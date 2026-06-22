@@ -46,6 +46,9 @@ export default function HomePage() {
             <Link href="/crm" className="bg-white text-brand-800 px-4 py-2 rounded-lg hover:bg-blue-50 transition font-semibold">
               Espace CRM
             </Link>
+            <Link href="/social" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-500 transition font-semibold">
+              Réseaux sociaux
+            </Link>
           </nav>
         </div>
       </header>

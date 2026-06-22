@@ -7,6 +7,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model SocialPost {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topic       String
+  contentLI   String?
+  contentIG   String?
+  imagePrompt String?
+  imageUrl    String?
+
+  status      String   @default("draft") // draft | scheduled | published | failed
+  scheduledAt DateTime?
+  publishedAt DateTime?
+
+  linkedinPostId  String?
+  instagramPostId String?
+  errorMessage    String?
+}
+
+model SocialConfig {
+  id              Int      @id @default(1)
+  companyName     String   @default("Levad")
+  companyDesc     String   @default("Levad est spécialisé dans les solutions d'impression, téléphonie, informatique et GED pour les entreprises.")
+  tone            String   @default("professionnel")
+  targetAudience  String   @default("dirigeants et responsables IT de PME")
+  topics          String   @default("impression,téléphonie,informatique,GED,productivité")
+  scheduleDays    String   @default("mardi,jeudi")
+  scheduleHour    Int      @default(9)
+  linkedinEnabled Boolean  @default(false)
+  instagramEnabled Boolean @default(false)
+  updatedAt       DateTime @updatedAt
+}
+
 model Lead {
   id         Int      @id @default(autoincrement())
   createdAt  DateTime @default(now())
