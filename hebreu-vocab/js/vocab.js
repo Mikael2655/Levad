@@ -10,87 +10,2056 @@
 //
 //  Pour ajouter un mot : copiez une ligne, collez-la, modifiez-la.
 //  N'oubliez pas la virgule à la fin de chaque ligne !
+//
+//  NOTE : la plupart des mots importés depuis votre Excel sont
+//  dans la catégorie "Général" car il n'y avait pas de thème
+//  renseigné dans le fichier d'origine. Vous pouvez changer le
+//  champ cat de n'importe quelle ligne à tout moment.
 // ============================================================
 
 const VOCAB = [
-  // --- Salutations & politesse ---
-  { he: "שלום",    translit: "shalom",    fr: "bonjour / paix",        cat: "Salutations" },
-  { he: "תודה",    translit: "toda",      fr: "merci",                 cat: "Salutations" },
-  { he: "בבקשה",   translit: "bevakasha", fr: "s'il te plaît / de rien", cat: "Salutations" },
-  { he: "סליחה",   translit: "slicha",    fr: "pardon / excuse-moi",   cat: "Salutations" },
-  { he: "בוקר טוב", translit: "boker tov", fr: "bonjour (le matin)",   cat: "Salutations" },
-  { he: "להתראות", translit: "lehitraot", fr: "au revoir",             cat: "Salutations" },
-
-  // --- Mots de base ---
-  { he: "כן",      translit: "ken",       fr: "oui",                   cat: "Base" },
-  { he: "לא",      translit: "lo",        fr: "non",                   cat: "Base" },
-  { he: "מה",      translit: "ma",        fr: "quoi / que",            cat: "Base" },
-  { he: "מי",      translit: "mi",        fr: "qui",                   cat: "Base" },
-  { he: "איפה",    translit: "eifo",      fr: "où",                    cat: "Base" },
-  { he: "למה",     translit: "lama",      fr: "pourquoi",              cat: "Base" },
-
-  // --- Nourriture & boissons ---
-  { he: "מים",     translit: "mayim",     fr: "eau",                   cat: "Nourriture" },
-  { he: "לחם",     translit: "lechem",    fr: "pain",                  cat: "Nourriture" },
-  { he: "יין",     translit: "yayin",     fr: "vin",                   cat: "Nourriture" },
-  { he: "חלב",     translit: "chalav",    fr: "lait",                  cat: "Nourriture" },
-  { he: "קפה",     translit: "kafe",      fr: "café",                  cat: "Nourriture" },
-  { he: "תה",      translit: "te",        fr: "thé",                   cat: "Nourriture" },
-  { he: "פרי",     translit: "pri",       fr: "fruit",                 cat: "Nourriture" },
-  { he: "ביצה",    translit: "beitsa",    fr: "œuf",                   cat: "Nourriture" },
-
-  // --- Maison ---
-  { he: "בית",     translit: "bayit",     fr: "maison",                cat: "Maison" },
-  { he: "דלת",     translit: "delet",     fr: "porte",                 cat: "Maison" },
-  { he: "חלון",    translit: "chalon",    fr: "fenêtre",               cat: "Maison" },
-  { he: "שולחן",   translit: "shulchan",  fr: "table",                 cat: "Maison" },
-  { he: "כיסא",    translit: "kise",      fr: "chaise",                cat: "Maison" },
-  { he: "מיטה",    translit: "mita",      fr: "lit",                   cat: "Maison" },
-  { he: "ספר",     translit: "sefer",     fr: "livre",                 cat: "Maison" },
-
-  // --- Famille & personnes ---
-  { he: "אבא",     translit: "aba",       fr: "papa",                  cat: "Famille" },
-  { he: "אמא",     translit: "ima",       fr: "maman",                 cat: "Famille" },
-  { he: "אח",      translit: "ach",       fr: "frère",                 cat: "Famille" },
-  { he: "אחות",    translit: "achot",     fr: "sœur",                  cat: "Famille" },
-  { he: "ילד",     translit: "yeled",     fr: "enfant / garçon",       cat: "Famille" },
-  { he: "ילדה",    translit: "yalda",     fr: "fille",                 cat: "Famille" },
-  { he: "משפחה",   translit: "mishpacha", fr: "famille",               cat: "Famille" },
-  { he: "חבר",     translit: "chaver",    fr: "ami",                   cat: "Famille" },
 
   // --- Nombres ---
-  { he: "אחת",     translit: "achat",     fr: "un / une (1)",          cat: "Nombres" },
-  { he: "שתיים",   translit: "shtayim",   fr: "deux (2)",              cat: "Nombres" },
-  { he: "שלוש",    translit: "shalosh",   fr: "trois (3)",             cat: "Nombres" },
-  { he: "ארבע",    translit: "arba",      fr: "quatre (4)",            cat: "Nombres" },
-  { he: "חמש",     translit: "chamesh",   fr: "cinq (5)",              cat: "Nombres" },
+  { he: "מאתיים", translit: "Mataim", fr: "200", cat: "Nombres" },
+  { he: "אלפיים", translit: "Alapaim", fr: "2000", cat: "Nombres" },
+  { he: "שנתיים", translit: "Chnataim", fr: "2 ans", cat: "Nombres" },
+  { he: "שעתיים", translit: "Chahataim", fr: "2 heures", cat: "Nombres" },
+  { he: "יומיים", translit: "Yomaim", fr: "2 jours", cat: "Nombres" },
+  { he: "חודשיים", translit: "Khodchaim", fr: "2 mois", cat: "Nombres" },
+  { he: "שבועיים", translit: "Chvouaim", fr: "2 semaines", cat: "Nombres" },
+
+  // --- Général ---
+  { he: "בזכות", translit: "Bizkhout", fr: "à cause / grâce à", cat: "Général" },
+  { he: "בגלל", translit: "Biglal", fr: "à cause / parce", cat: "Général" },
+  { he: "ימינה", translit: "Yamina", fr: "à droite", cat: "Général" },
 
   // --- Temps ---
-  { he: "יום",     translit: "yom",       fr: "jour",                  cat: "Temps" },
-  { he: "לילה",    translit: "layla",     fr: "nuit",                  cat: "Temps" },
-  { he: "בוקר",    translit: "boker",     fr: "matin",                 cat: "Temps" },
-  { he: "ערב",     translit: "erev",      fr: "soir",                  cat: "Temps" },
-  { he: "שבוע",    translit: "shavua",    fr: "semaine",               cat: "Temps" },
-  { he: "שנה",     translit: "shana",     fr: "année",                 cat: "Temps" },
-  { he: "היום",    translit: "hayom",     fr: "aujourd'hui",           cat: "Temps" },
-  { he: "מחר",     translit: "machar",    fr: "demain",                cat: "Temps" },
+  { he: "חוסל", translit: "Khousal", fr: "A été éliminé", cat: "Temps" },
 
-  // --- Verbes ---
-  { he: "ללכת",    translit: "lalechet",  fr: "aller / marcher",       cat: "Verbes" },
-  { he: "לאכול",   translit: "le'echol",  fr: "manger",                cat: "Verbes" },
-  { he: "לשתות",   translit: "lishtot",   fr: "boire",                 cat: "Verbes" },
-  { he: "לדבר",    translit: "ledaber",   fr: "parler",                cat: "Verbes" },
-  { he: "לקרוא",   translit: "likro",     fr: "lire",                  cat: "Verbes" },
-  { he: "לכתוב",   translit: "lichtov",   fr: "écrire",                cat: "Verbes" },
-  { he: "לישון",   translit: "lishon",    fr: "dormir",                cat: "Verbes" },
-  { he: "לרצות",   translit: "lirtsot",   fr: "vouloir",               cat: "Verbes" },
+  // --- Général ---
+  { he: "שמאלה", translit: "Smola", fr: "à gauche", cat: "Général" },
+  { he: "בפנים / בתוך", translit: "Bifnim / Betokh", fr: "à l'intérieur", cat: "Général" },
+  { he: "בסוף הכל חולף", translit: "Basof akol kholef", fr: "à la fin tout passe", cat: "Général" },
+  { he: "להשכרה", translit: "Lehaskara", fr: "à louer", cat: "Général" },
+  { he: "תור", translit: "Tor", fr: "Queue", cat: "Général" },
 
-  // --- Adjectifs ---
-  { he: "גדול",    translit: "gadol",     fr: "grand",                 cat: "Adjectifs" },
-  { he: "קטן",     translit: "katan",     fr: "petit",                 cat: "Adjectifs" },
-  { he: "טוב",     translit: "tov",       fr: "bon",                   cat: "Adjectifs" },
-  { he: "יפה",     translit: "yafe",      fr: "beau / joli",           cat: "Adjectifs" },
-  { he: "חדש",     translit: "chadash",   fr: "nouveau",               cat: "Adjectifs" },
-  { he: "חם",      translit: "cham",      fr: "chaud",                 cat: "Adjectifs" },
-  { he: "קר",      translit: "kar",       fr: "froid",                 cat: "Adjectifs" },
+  // --- Corps ---
+  { he: "מעתה ואילך", translit: "Mehata ve'eylakh", fr: "à partir de maintenant", cat: "Corps" },
+
+  // --- Général ---
+  { he: "תורך", translit: "Torekh/torkha", fr: "à toi/à ton tour", cat: "Général" },
+
+  // --- Temps ---
+  { he: "נתראה בקרוב", translit: "Nitrae bekarov", fr: "à tout à l'heure / à bientôt", cat: "Temps" },
+
+  // --- Général ---
+  { he: "תורכם", translit: "Torkhem", fr: "à votre tour", cat: "Général" },
+  { he: "מקולקל", translit: "Mekoulkal", fr: "Abimé / cassé", cat: "Général" },
+  { he: "מכור", translit: "Makhour", fr: "Accro", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "קניות", translit: "Kniot", fr: "Achats / shopping / courses", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "חמוץ", translit: "Khamouts", fr: "Acide", cat: "Général" },
+  { he: "פעולה", translit: "Peoula", fr: "Action", cat: "Général" },
+  { he: "פעילות", translit: "Peilot", fr: "Activité", cat: "Général" },
+  { he: "מתבגר", translit: "Mitbager", fr: "Adolescent", cat: "Général" },
+  { he: "כתובת", translit: "Ktovet", fr: "Adresse", cat: "Général" },
+  { he: "מבוגר", translit: "Mevougar", fr: "Adulte", cat: "Général" },
+  { he: "שדה תעופה", translit: "Sde tehoufa", fr: "Aéroport", cat: "Général" },
+  { he: "רעב", translit: "Ra'ev", fr: "Affamé / faim", cat: "Général" },
+  { he: "סוכנות", translit: "Sokhnout", fr: "Agence", cat: "Général" },
+  { he: "סוכנות נסיעות", translit: "Sokhnout nesiyot", fr: "Agence de voyage", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "שה", translit: "Sé", fr: "Agneau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "חקלאות", translit: "Khakla'out", fr: "Agriculture", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "שום", translit: "Choum", fr: "Ail", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "לעוף על החיים", translit: "Lahouf al hakhaim", fr: "Aimer la vie (sleng : exagéré)", cat: "Général" },
+  { he: "בכור", translit: "Bekhor", fr: "aîné", cat: "Général" },
+  { he: "אויר נקי", translit: "Avir naki", fr: "Air frais", cat: "Général" },
+  { he: "יאללה", translit: "Yala", fr: "Allé", cat: "Général" },
+  { he: "שקד", translit: "Chekèd", fr: "Amande", cat: "Général" },
+  { he: "רוח", translit: "Rouakh", fr: "Âme", cat: "Général" },
+  { he: "ידיד", translit: "Yadid", fr: "Ami", cat: "Général" },
+  { he: "מלאך", translit: "Mal'akh", fr: "Ange", cat: "Général" },
+  { he: "חיה", translit: "Khaya", fr: "Animal", cat: "Général" },
+  { he: "סמיכות", translit: "Smikhout", fr: "Annexion/juxtaposition", cat: "Général" },
+  { he: "ביטול", translit: "Bitoul", fr: "Annulation", cat: "Général" },
+  { he: "מצלמה", translit: "Matslema", fr: "Appareil photo", cat: "Général" },
+  { he: "דירה", translit: "Dira", fr: "Appartement", cat: "Général" },
+  { he: "תיבה", translit: "Teiva", fr: "Arche", cat: "Général" },
+  { he: "דמי כיס", translit: "Dmei kis", fr: "Argent de poche", cat: "Général" },
+  { he: "טיעון", translit: "Tioun", fr: "Argument", cat: "Général" },
+  { he: "רובע", translit: "Rova", fr: "Arrondissement", cat: "Général" },
+  { he: "אומנות", translit: "Omanout", fr: "Art", cat: "Général" },
+  { he: "אומן", translit: "Oman", fr: "Artiste", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "אופק", translit: "Ofek", fr: "Ascendant/horizon", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "מעלית", translit: "Ma'alit", fr: "Ascenseur", cat: "Général" },
+  { he: "בצר הכביש", translit: "Betsar hakvich", fr: "Au bord de la route", cat: "Général" },
+  { he: "בקצה", translit: "Bektse", fr: "Au bout / au bord", cat: "Général" },
+  { he: "להיפך", translit: "Leheifekh", fr: "Au contraire/l'inverse", cat: "Général" },
+
+  // --- Temps ---
+  { he: "בתחילת השנה", translit: "Bitkhilat / berechit hachana", fr: "Au début de l'année", cat: "Temps" },
+
+  // --- Général ---
+  { he: "מעל", translit: "Mehal", fr: "Au dessus de", cat: "Général" },
+  { he: "באותו הזמן", translit: "Beoto azman", fr: "Au même moment", cat: "Général" },
+  { he: "באמצע", translit: "Be'emtsa", fr: "Au milieu", cat: "Général" },
+  { he: "בזמן ש", translit: "Bizman che…", fr: "Au moment que", cat: "Général" },
+  { he: "בימי ה", translit: "Bime ha", fr: "Au temps de", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "חציל", translit: "Khatsil", fr: "Aubergine", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "גם וגם", translit: "Gam ve gam", fr: "Aussi", cat: "Général" },
+
+  // --- Temps ---
+  { he: "סתיו", translit: "Stav", fr: "Automne", cat: "Temps" },
+
+  // --- Général ---
+  { he: "מותר", translit: "Motar", fr: "Autorisé", cat: "Général" },
+  { he: "בדרך אחרת", translit: "Bederekh akheret", fr: "Autrement / différemment", cat: "Général" },
+  { he: "לפני כן", translit: "Lifne khen", fr: "Avant cela", cat: "Général" },
+
+  // --- Temps ---
+  { he: "שלשום", translit: "Chilchom", fr: "Avant hier", cat: "Temps" },
+
+  // --- Général ---
+  { he: "יתרון", translit: "itaron", fr: "Avantage", cat: "Général" },
+  { he: "בכיף", translit: "Bekeif", fr: "Avec plaisir", cat: "Général" },
+  { he: "עיוור", translit: "Hiver", fr: "Aveugle", cat: "Général" },
+  { he: "מטוס", translit: "Matous", fr: "Avion", cat: "Général" },
+  { he: "בגרות", translit: "Bagrout", fr: "Matûrité / baccalauréat", cat: "Général" },
+  { he: "טבעת", translit: "Tabahat", fr: "Bague", cat: "Général" },
+  { he: "וואלה", translit: "Wala", fr: "Bah/waouh/lol", cat: "Général" },
+
+  // --- Couleurs ---
+  { he: "אמבטיה", translit: "Embatia", fr: "Baignoire", cat: "Couleurs" },
+
+  // --- Général ---
+  { he: "נדנדה", translit: "Nadneda", fr: "Balançoire", cat: "Général" },
+
+  // --- Maison ---
+  { he: "מרפסת", translit: "Mirpeset", fr: "Balcon", cat: "Maison" },
+
+  // --- Général ---
+  { he: "נמוך", translit: "Namoukh", fr: "Bas / petit", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "קרב", translit: "Krav", fr: "Bataille", cat: "Nourriture" },
+
+  // --- Boissons ---
+  { he: "סירה", translit: "Sira", fr: "Bateau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "ביניין", translit: "Binian", fr: "Batiment/immeuble", cat: "Général" },
+
+  // --- Famille ---
+  { he: "גיס", translit: "Gis / gisa", fr: "Beau frère", cat: "Famille" },
+
+  // --- Boissons ---
+  { he: "חתיך", translit: "Khatikh", fr: "Beau/mignon/sexy", cat: "Boissons" },
+  { he: "המון", translit: "Amon", fr: "Beaucoup", cat: "Boissons" },
+  { he: "רב / רבה", translit: "Rav / raba", fr: "Beaucoup/plusieurs/trop", cat: "Boissons" },
+
+  // --- Famille ---
+  { he: "חמות", translit: "Khamot", fr: "Belle mère", cat: "Famille" },
+
+  // --- Général ---
+  { he: "התנדבות", translit: "Hitnadvout", fr: "Bénévolat", cat: "Général" },
+  { he: "רועה", translit: "Rohé", fr: "Berger", cat: "Général" },
+  { he: "צורך", translit: "Tsorekh", fr: "Besoin", cat: "Général" },
+  { he: "שטות", translit: "Chtout", fr: "Bêtises", cat: "Général" },
+  { he: "סלק", translit: "Selek", fr: "Betterave", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "חמאת בוטנים", translit: "Khem'at botnim", fr: "Beurre de cacahuète", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "תנ׳׳ך", translit: "Tanakh", fr: "Bible", cat: "Général" },
+  { he: "ספריה", translit: "Sifriya", fr: "Bibliothèque", cat: "Général" },
+  { he: "איל", translit: "Ayil", fr: "Biche", cat: "Général" },
+  { he: "עיטב", translit: "Eitev", fr: "Bien / parfaitement", cat: "Général" },
+  { he: "נכס", translit: "Nekhes", fr: "Bien immobilier", cat: "Général" },
+  { he: "בדוק", translit: "Badouk", fr: "Bien sûr", cat: "Général" },
+  { he: "בוודי", translit: "Bevaday", fr: "Bien sûr", cat: "Général" },
+  { he: "תכשיט", translit: "Takhchit", fr: "Bijoux", cat: "Général" },
+  { he: "כרטיס טיסה", translit: "Cartis tisa", fr: "Billet d'avion", cat: "Général" },
+  { he: "בדיחה", translit: "Bedikha", fr: "Blague", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "משקה", translit: "Machke", fr: "Boisson", cat: "Boissons" },
+  { he: "שתייה חמה", translit: "Chtiya khama", fr: "Boissons chaudes", cat: "Boissons" },
+
+  // --- Temps ---
+  { he: "מועדון", translit: "Mohadon", fr: "Boite de nuit/club", cat: "Temps" },
+
+  // --- Général ---
+  { he: "סוף שבוע נעים", translit: "Sof chavoua na'im", fr: "Bon week-end", cat: "Général" },
+  { he: "אושר", translit: "Ocher", fr: "Bonheur/joie", cat: "Général" },
+  { he: "בלגניסט / מבולגן", translit: "Balaganist Mevoulgan", fr: "Bordélique", cat: "Général" },
+
+  // --- Corps ---
+  { he: "פה", translit: "Pe", fr: "Bouche", cat: "Corps" },
+  { he: "מפה לאוזן", translit: "Mipe leozen", fr: "Bouche à oreille", cat: "Corps" },
+
+  // --- Général ---
+  { he: "פקק", translit: "Pkak", fr: "Bouchon", cat: "Général" },
+
+  // --- Corps ---
+  { he: "עגילים", translit: "Hagilim", fr: "Boucles d'oreilles", cat: "Corps" },
+
+  // --- Général ---
+  { he: "בוץ", translit: "Bots", fr: "Boue", cat: "Général" },
+  { he: "נר", translit: "Ner", fr: "Bougie", cat: "Général" },
+  { he: "מאפייה", translit: "Ma'afia", fr: "Boulangerie", cat: "Général" },
+  { he: "שיכור", translit: "Chikor", fr: "Bourré", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "מלגה", translit: "Milga", fr: "Bourse", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "ארד", translit: "Arad", fr: "Bronze", cat: "Général" },
+  { he: "שזוף", translit: "Chazouf", fr: "Bronzé", cat: "Général" },
+  { he: "מברשת", translit: "Mevrechet", fr: "Brosse", cat: "Général" },
+
+  // --- Corps ---
+  { he: "מצחצח שיניים", translit: "Metsakhtsekh chinaym", fr: "Brosse à dents", cat: "Corps" },
+
+  // --- Général ---
+  { he: "רעש", translit: "Ra'ach", fr: "Bruit", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "משרד", translit: "Misrad", fr: "Bureau", cat: "Boissons" },
+  { he: "חדר עבודה", translit: "Khadar avoda", fr: "Bureau (pièce)", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "מטרה", translit: "Matara", fr: "But / objectif", cat: "Général" },
+  { he: "זאת הדרך", translit: "Zot aderekh", fr: "C'est comme ça", cat: "Général" },
+  { he: "משהו משהו", translit: "Machou machou", fr: "C'est génial", cat: "Général" },
+  { he: "הנה זה בא", translit: "ine ze ba", fr: "C'est parti / allons-y", cat: "Général" },
+  { he: "זה לא בעיה שלי", translit: "Ze lo beaya cheli", fr: "C'est pas mon problème / je m'en tape", cat: "Général" },
+  { he: "אי אפשר", translit: "i efchar", fr: "C'est pas possible", cat: "Général" },
+  { he: "יש מצב", translit: "Yech matsav", fr: "C'est possible", cat: "Général" },
+  { he: "נשמע כיף", translit: "Nichma keif", fr: "ça à l'air sympa", cat: "Général" },
+  { he: "איזה באסה", translit: "Eize beasa", fr: "ça craint / quel dommage", cat: "Général" },
+  { he: "תלוי", translit: "Talouy", fr: "ça dépend", cat: "Général" },
+  { he: "לוקח לי", translit: "Lokeakh li", fr: "Ca me prend", cat: "Général" },
+  { he: "נראה", translit: "Nir'e", fr: "ça semble", cat: "Général" },
+
+  // --- Temps ---
+  { he: "מחברת", translit: "Makhberet", fr: "Cahier", cat: "Temps" },
+
+  // --- Boissons ---
+  { he: "לוח", translit: "Louakh", fr: "Calendrier / tableau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "רגוע", translit: "Ragoua", fr: "Calme / détendu", cat: "Général" },
+
+  // --- Maison ---
+  { he: "ספה", translit: "Sapa", fr: "Canapé", cat: "Maison" },
+
+  // --- Général ---
+  { he: "שרטן", translit: "Sartan", fr: "Cancer / Crabe", cat: "Général" },
+  { he: "קינמון", translit: "Kinamon", fr: "Canelle", cat: "Général" },
+  { he: "חמסין / שרב", translit: "Khamsin / charav", fr: "Canicule", cat: "Général" },
+  { he: "שווה", translit: "Chave", fr: "Canon", cat: "Général" },
+  { he: "מסוגל", translit: "Mesougal", fr: "Capable", cat: "Général" },
+  { he: "עיר בירה", translit: "ir bira", fr: "Capitale", cat: "Général" },
+  { he: "הפוך", translit: "Hafoukh", fr: "Capuccino", cat: "Général" },
+  { he: "על שום", translit: "Al choum", fr: "Car", cat: "Général" },
+  { he: "מכיוון ש", translit: "Mikeivan che", fr: "Car (plus soutenu)", cat: "Général" },
+  { he: "מפני ש", translit: "Mipnei che", fr: "Car (plus soutenu)", cat: "Général" },
+  { he: "משום ש", translit: "Michoum che", fr: "Car (plus soutenu)", cat: "Général" },
+
+  // --- Maison ---
+  { he: "אופי", translit: "Ofi", fr: "Caractère/personnalité", cat: "Maison" },
+
+  // --- Boissons ---
+  { he: "קנקן מים", translit: "Kankan maim", fr: "Carafe d'eau", cat: "Boissons" },
+
+  // --- Nourriture ---
+  { he: "גזר", translit: "Gezer", fr: "Carotte", cat: "Nourriture" },
+
+  // --- Couleurs ---
+  { he: "כרטיס אשראי", translit: "Cartis achra'ai", fr: "Carte bleue", cat: "Couleurs" },
+
+  // --- Général ---
+  { he: "קלפים", translit: "Klafim", fr: "Cartes", cat: "Général" },
+  { he: "כובע מיצחייה", translit: "Kova mitskhiya", fr: "Casquette", cat: "Général" },
+  { he: "סיר", translit: "Sir", fr: "Casserolle", cat: "Général" },
+  { he: "סיות", translit: "Siout", fr: "Cauchemar", cat: "Général" },
+  { he: "מה יצא", translit: "Ma yatsa", fr: "Ce qu'il se passe", cat: "Général" },
+
+  // --- Vêtements ---
+  { he: "חגורת בטיחות", translit: "Khagorat betikhout", fr: "Ceinture de sécurité", cat: "Vêtements" },
+
+  // --- Général ---
+  { he: "מפורסם", translit: "Mefoursam / semet", fr: "Célebre", cat: "Général" },
+  { he: "רווק", translit: "Ravak", fr: "Célibataire", cat: "Général" },
+  { he: "כל אחד/אחת", translit: "Kol ekhad/arat", fr: "Chacun(e)", cat: "Général" },
+  { he: "רשת", translit: "Rechet", fr: "Chaine", cat: "Général" },
+  { he: "חום", translit: "Khom", fr: "Chaleur", cat: "Général" },
+  { he: "חם/חמה", translit: "Kham(a)", fr: "Chaleureux(se)", cat: "Général" },
+
+  // --- Maison ---
+  { he: "חדר שינה", translit: "Khadar cheina", fr: "Chambre à coucher", cat: "Maison" },
+  { he: "צימר", translit: "Tsimer", fr: "Chambre d'hôte", cat: "Maison" },
+  { he: "ממד", translit: "Mamad", fr: "Chambre sécurisée dans la maison", cat: "Maison" },
+  { he: "מקלט", translit: "Miklat", fr: "Chambre sécurisée dans la rue", cat: "Maison" },
+
+  // --- Boissons ---
+  { he: "גמל", translit: "Gamal", fr: "Chameau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "פטריה", translit: "Pitria", fr: "Champignons", cat: "Général" },
+  { he: "שדה", translit: "Sade", fr: "Champs", cat: "Général" },
+  { he: "שינוי", translit: "Chinoui", fr: "Changement", cat: "Général" },
+  { he: "זמר/ת", translit: "Zamar/Zameret", fr: "Chanteur(se)", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "כובע", translit: "Kova", fr: "Chapeau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "פרה פרה", translit: "Para para", fr: "Chaque chose en son temps", cat: "Général" },
+  { he: "הציד", translit: "Hatsaid", fr: "Chasse", cat: "Général" },
+
+  // --- Vêtements ---
+  { he: "גרביים", translit: "Garbayim", fr: "Chaussettes", cat: "Vêtements" },
+  { he: "נעליים", translit: "Na'alaim", fr: "Chaussures", cat: "Vêtements" },
+  { he: "נעלי עקב", translit: "Na'alei hakev", fr: "Chaussures à talon", cat: "Vêtements" },
+  { he: "נעלי חגילים", translit: "Na'alei khagilim", fr: "Chaussures de costume", cat: "Vêtements" },
+  { he: "נעלי ספורט", translit: "Na'alei sport", fr: "Chaussures de sport", cat: "Vêtements" },
+
+  // --- Général ---
+  { he: "אופן", translit: "Ofen", fr: "Chemin", cat: "Général" },
+  { he: "צ׳ק", translit: "Tchek", fr: "Chèque", cat: "Général" },
+  { he: "יקר", translit: "Yakar", fr: "Cher", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "סוס", translit: "Sous", fr: "Cheval", cat: "Animaux" },
+
+  // --- Corps ---
+  { he: "שער / שיער", translit: "Sear", fr: "Cheveux", cat: "Corps" },
+
+  // --- Animaux ---
+  { he: "אז", translit: "Ez / izim", fr: "Chèvre", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "אצל", translit: "Etsel", fr: "Chez", cat: "Général" },
+  { he: "פלצני/ת", translit: "Paltsani/t", fr: "Chic (péjoratif : prout prout)", cat: "Général" },
+  { he: "נושא", translit: "Nos'e", fr: "Choix", cat: "Général" },
+  { he: "דבר", translit: "Davar", fr: "Chose", cat: "Général" },
+  { he: "כרוב", translit: "Krouv", fr: "Choux", cat: "Général" },
+  { he: "כרובית", translit: "Krouvit", fr: "Choux fleur", cat: "Général" },
+  { he: "נוצרים", translit: "Notzrim", fr: "Chrétiens", cat: "Général" },
+  { he: "נצרות", translit: "Natsrout", fr: "Christianisme", cat: "Général" },
+  { he: "קולנוע", translit: "Kolnoa", fr: "Cinéma", cat: "Général" },
+  { he: "אזרח", translit: "Ezrakh", fr: "Citoyen", cat: "Général" },
+  { he: "דלעת", translit: "Dla'at", fr: "Citrouille/potiron/courge", cat: "Général" },
+  { he: "מפתח", translit: "Mafteakh", fr: "Clé", cat: "Général" },
+  { he: "לקוח", translit: "Lakoakh", fr: "Client", cat: "Général" },
+  { he: "להיצן/נית", translit: "Lehitsan(nit)", fr: "Clown", cat: "Général" },
+  { he: "מועדון", translit: "Moadon", fr: "Club/centre communautaire", cat: "Général" },
+  { he: "כעס", translit: "Kahas", fr: "Colère / énervé", cat: "Général" },
+  { he: "שיתוף פעולה", translit: "Chitouf pe'oula", fr: "Collaboration", cat: "Général" },
+  { he: "גרביונים", translit: "Garbionim", fr: "Collants", cat: "Général" },
+  { he: "חטיבה", translit: "Khativa", fr: "Collège", cat: "Général" },
+  { he: "שרשרת", translit: "Charcheret", fr: "Collier", cat: "Général" },
+  { he: "קיטנה / מחנה", translit: "Keytana / Makhane", fr: "Colonie de vacances", cat: "Général" },
+  { he: "כ", translit: "Ke", fr: "Comme", cat: "Général" },
+  { he: "כרגיל", translit: "Karagil", fr: "Comme d'hab", cat: "Général" },
+  { he: "כאילו", translit: "Keilou", fr: "Comme si / genre", cat: "Général" },
+  { he: "חצי קלאץ׳ / כוח", translit: "Khetsi klatch / khetsi koakh", fr: "Comme-ci comme-ça", cat: "Général" },
+  { he: "חוג", translit: "Khoug", fr: "Communauté", cat: "Général" },
+  { he: "תקשורת", translit: "Tikchoret", fr: "Communication/média/presse", cat: "Général" },
+  { he: "תחרות", translit: "Takharout", fr: "Compétition", cat: "Général" },
+  { he: "דפוק בראש", translit: "Dafouk baroch", fr: "Complètement fou", cat: "Général" },
+  { he: "לגמרי", translit: "Legamrei", fr: "Complètement/tout à fait", cat: "Général" },
+  { he: "מסובך / מורכב", translit: "Mesoubakh / Mourkav", fr: "Compliqué / diffcile", cat: "Général" },
+
+  // --- Maison ---
+  { he: "רוא חשבון", translit: "Roe khechbon", fr: "Comptable", cat: "Maison" },
+
+  // --- Général ---
+  { he: "טמבל", translit: "Tembel", fr: "Con", cat: "Général" },
+  { he: "דפוק", translit: "Dafouk", fr: "Con / débile", cat: "Général" },
+  { he: "הופעה", translit: "Ofa'a", fr: "Concert", cat: "Général" },
+  { he: "תנאי", translit: "Tnai", fr: "Condition", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "ריבה", translit: "Riba", fr: "Confiture", cat: "Nourriture" },
+
+  // --- Maison ---
+  { he: "נוח", translit: "Noakh", fr: "Confortable / facile", cat: "Maison" },
+
+  // --- Général ---
+  { he: "מניאק", translit: "Maniac", fr: "Connard", cat: "Général" },
+  { he: "עצה", translit: "Etsa", fr: "Conseil", cat: "Général" },
+  { he: "אגדה", translit: "Hagada", fr: "Conte", cat: "Général" },
+  { he: "ההפך", translit: "Haefekh", fr: "Contraire", cat: "Général" },
+  { he: "בניגוד ל", translit: "Benigoud le", fr: "Contrairement à", cat: "Général" },
+  { he: "נגד", translit: "Neged", fr: "Contre", cat: "Général" },
+  { he: "שיחה", translit: "Sikha", fr: "Conversation", cat: "Général" },
+  { he: "עוגיות", translit: "Ougiot", fr: "Cookies/biscuits", cat: "Général" },
+  { he: "מגניב", translit: "Magniv", fr: "Cool", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "תרנגול", translit: "Tarnegol", fr: "Coq", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "חמוצים", translit: "Khamoutsim", fr: "Cornichons", cat: "Général" },
+
+  // --- Vêtements ---
+  { he: "חליפה", translit: "Khalifa", fr: "Costume", cat: "Vêtements" },
+
+  // --- Général ---
+  { he: "שקיעה", translit: "Shkiya ou Skiyat chemech", fr: "Coucher de soleil", cat: "Général" },
+  { he: "צבה", translit: "Tseva", fr: "Couleur", cat: "Général" },
+  { he: "מסדרון", translit: "Misderon", fr: "Couloir", cat: "Général" },
+  { he: "אהבה ממבט ראשון", translit: "Ahava mimabat richon", fr: "Coup de foudre", cat: "Général" },
+  { he: "מכת שמש", translit: "Makat chemech", fr: "Coup de soleil", cat: "Général" },
+  { he: "גביע", translit: "Gaviha", fr: "Coupe", cat: "Général" },
+  { he: "אמיץ", translit: "Amits", fr: "Courageux", cat: "Général" },
+  { he: "נפוץ", translit: "Nefots", fr: "Courant", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "קישוא", translit: "Kichou", fr: "Courgettes", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "מכתב", translit: "Mikhtav", fr: "Courrier/lettre", cat: "Général" },
+  { he: "קצר", translit: "Katsar", fr: "Court", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "סכין", translit: "Sakin", fr: "Couteau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "מנעג", translit: "Minhag", fr: "Coutume", cat: "Général" },
+
+  // --- Couleurs ---
+  { he: "סכו׳׳ם", translit: "Sakoum", fr: "Couvert", cat: "Couleurs" },
+
+  // --- Vêtements ---
+  { he: "עניבה", translit: "Aniva", fr: "Cravate", cat: "Vêtements" },
+
+  // --- Général ---
+  { he: "יצירתי", translit: "Yetsirati", fr: "Créatif", cat: "Général" },
+  { he: "רעשן", translit: "Ra'achan", fr: "Crecelle", cat: "Général" },
+  { he: "בית ילדים", translit: "Beit yeladim", fr: "Crèche", cat: "Général" },
+  { he: "קצפת", translit: "Katsefet", fr: "Crème chantilly", cat: "Général" },
+  { he: "שמנת", translit: "Chamenet", fr: "Crème fraiche / liquide", cat: "Général" },
+  { he: "חי", translit: "Khai", fr: "Cru", cat: "Général" },
+  { he: "אבקת מרק", translit: "Abkat marak", fr: "Cube de bouillon", cat: "Général" },
+  { he: "כף", translit: "Kaf", fr: "Cuillère", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "כפית", translit: "Capit", fr: "Cuillère à café", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "עור", translit: "Or", fr: "Cuir", cat: "Général" },
+
+  // --- Maison ---
+  { he: "מטבח", translit: "Mitbakh", fr: "Cuisine", cat: "Maison" },
+
+  // --- Général ---
+  { he: "טבח", translit: "Tabakh", fr: "cuisinier", cat: "Général" },
+
+  // --- Vêtements ---
+  { he: "תחתונים", translit: "Tartonim", fr: "Culotte", cat: "Vêtements" },
+
+  // --- Général ---
+  { he: "תרבות", translit: "Tarbout", fr: "Culture", cat: "Général" },
+  { he: "כורכום", translit: "Kourkoum", fr: "Curcuma", cat: "Général" },
+  { he: "סקרן", translit: "Sakran", fr: "Curieux", cat: "Général" },
+  { he: "קורות חיים (קו׳׳ח)", translit: "Korot Khaim (ko\"kh)", fr: "CV", cat: "Général" },
+  { he: "קודם", translit: "Kodem", fr: "D'abord", cat: "Général" },
+  { he: "מצד אחד... מצד שני", translit: "Mitsad ekhad.. mitsad cheni", fr: "D'un côté… de l'autre côté", cat: "Général" },
+  { he: "איכשהו", translit: "Ekhcheou", fr: "D'une certaine manière", cat: "Général" },
+  { he: "סכנה", translit: "Sakana", fr: "Danger", cat: "Général" },
+  { he: "שבוא/שבה/שבהם/שבהן", translit: "Chebo/cheba/…", fr: "Dans le-la-lesquel", cat: "Général" },
+  { he: "בעוד", translit: "Beod", fr: "Dans… (5 minutes, 3 ans)", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "תמר", translit: "Tamar", fr: "Datte", cat: "Nourriture" },
+
+  // --- Temps ---
+  { he: "על הבוקר", translit: "Al haboker", fr: "De bon matin", cat: "Temps" },
+
+  // --- Général ---
+  { he: "בצורה כזאת", translit: "Betsora kazot", fr: "De cette manière", cat: "Général" },
+  { he: "מהבית", translit: "Mehabait", fr: "De chez moi", cat: "Général" },
+
+  // --- Maison ---
+  { he: "ימני", translit: "Yemani", fr: "De droite (politique)", cat: "Maison" },
+  { he: "שמאלני", translit: "Sma'alni", fr: "De gauche (politique)", cat: "Maison" },
+
+  // --- Vêtements ---
+  { he: "גופייה", translit: "Goufiya", fr: "Débardeur", cat: "Vêtements" },
+
+  // --- Général ---
+  { he: "התחלה", translit: "Atkhala", fr: "Début", cat: "Général" },
+  { he: "החלטת", translit: "Akhlalat", fr: "Décision", cat: "Général" },
+  { he: "נטייה", translit: "Netiya", fr: "Déclinaison", cat: "Général" },
+  { he: "הפסד", translit: "Hefsed", fr: "Défaite", cat: "Général" },
+  { he: "תכונה רעה", translit: "Tkhouna ra'a", fr: "Défaut", cat: "Général" },
+  { he: "מיודע", translit: "Meyouda", fr: "Défini", cat: "Général" },
+  { he: "מעלות", translit: "Maalot", fr: "Degrés", cat: "Général" },
+  { he: "תחפושת", translit: "Takhposet", fr: "Déguisement", cat: "Général" },
+  { he: "כבר", translit: "Kvar", fr: "Déjà / ça fait", cat: "Général" },
+  { he: "טעים", translit: "Tayim", fr: "Délicieux", cat: "Général" },
+  { he: "בקשה", translit: "Bakacha", fr: "Demande", cat: "Général" },
+
+  // --- Corps ---
+  { he: "משחת שיניים", translit: "Michkhat chinayim", fr: "Dentifrice", cat: "Corps" },
+
+  // --- Général ---
+  { he: "מדוכא", translit: "Medouka", fr: "Dépressif", cat: "Général" },
+  { he: "דיכאון", translit: "Dika'on", fr: "Dépression", cat: "Général" },
+  { he: "מאז", translit: "Meaz", fr: "Depuis", cat: "Général" },
+  { he: "מההתחלה", translit: "Mehahatkhala", fr: "Depuis le début", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "מאז ומתמיד", translit: "Meaz oumitamid", fr: "Depuis toujours", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "פעם אחרונה", translit: "Paham akharona", fr: "Dernière fois", cat: "Général" },
+  { he: "מדבר", translit: "Midbar", fr: "Désert", cat: "Général" },
+  { he: "קינוח", translit: "Kinouakh", fr: "Dessert", cat: "Général" },
+  { he: "ציור", translit: "Tsiyour", fr: "Dessin/peinture", cat: "Général" },
+  { he: "גורל / פור", translit: "Goral / pour", fr: "Destin", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "פרט", translit: "Prat", fr: "Détail", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "תנוחי", translit: "Tanoukhi", fr: "Détend toi", cat: "Général" },
+  { he: "חובות", translit: "Khovot (toujours au pluriel)", fr: "Dette", cat: "Général" },
+
+  // --- Nombres ---
+  { he: "פעמיים", translit: "Pa'amaim", fr: "Deux fois", cat: "Nombres" },
+
+  // --- Général ---
+  { he: "לפנך", translit: "Lefanekha", fr: "Devant toi", cat: "Général" },
+  { he: "הבדל", translit: "Evdel", fr: "Différence", cat: "Général" },
+  { he: "שונה", translit: "Chone", fr: "Différent", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "תרנגול הודו", translit: "Tarnegol odou", fr: "Dinde", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "תואר", translit: "To'ar", fr: "Diplôme / titre (M. Mme…)", cat: "Général" },
+  { he: "כיוונים", translit: "Kivounim", fr: "Directions", cat: "Général" },
+  { he: "דיון", translit: "Dioun", fr: "Discussion", cat: "Général" },
+  { he: "ריב", translit: "Riv", fr: "Dispute", cat: "Général" },
+  { he: "מרחק", translit: "Merkhak", fr: "Distance", cat: "Général" },
+  { he: "מרוחק", translit: "Meroukhak", fr: "Distant", cat: "Général" },
+
+  // --- Corps ---
+  { he: "אצבע", translit: "Etsba", fr: "Doigt / empreinte", cat: "Corps" },
+  { he: "תחום", translit: "Tkhoum", fr: "Domaine", cat: "Corps" },
+
+  // --- Général ---
+  { he: "חבל", translit: "Khaval", fr: "Dommage", cat: "Général" },
+  { he: "לכן", translit: "Lakhen", fr: "Donc / c'est pourquoi / alors", cat: "Général" },
+  { he: "כל כך", translit: "Kol kakh", fr: "Tellement", cat: "Général" },
+
+  // --- Corps ---
+  { he: "גב", translit: "Gav", fr: "Dos", cat: "Corps" },
+
+  // --- Général ---
+  { he: "מיקלחת", translit: "Miklakhat", fr: "Douche", cat: "Général" },
+  { he: "כאב", translit: "Ke'ev", fr: "Douleur", cat: "Général" },
+  { he: "דאגה", translit: "Deaga", fr: "Doute/inquiétude", cat: "Général" },
+  { he: "מתוק", translit: "Matok / metouka", fr: "Doux", cat: "Général" },
+  { he: "זכות", translit: "Zkhout", fr: "Droit", cat: "Général" },
+  { he: "תכלס", translit: "Takhles", fr: "Droit au but", cat: "Général" },
+  { he: "ימין", translit: "Yamin", fr: "Droite", cat: "Général" },
+  { he: "ימני", translit: "Yemani", fr: "Droitier", cat: "Général" },
+  { he: "מצחיק", translit: "Matskhik", fr: "Drôle", cat: "Général" },
+  { he: "מצד", translit: "Mitsad", fr: "Du côté", cat: "Général" },
+  { he: "מכל העולם", translit: "Mikol Haolam", fr: "Du monde entier", cat: "Général" },
+  { he: "בכלל", translit: "Bikhlal", fr: "Du tout", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "במהלך", translit: "Bemahalakh", fr: "Au cours de", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "במשך", translit: "Bemechekh", fr: "Durant/pendant", cat: "Général" },
+  { he: "טווח", translit: "Tvakh", fr: "Durée (de location)", cat: "Général" },
+  { he: "צעיף", translit: "Tsa'if", fr: "Echarpe", cat: "Général" },
+  { he: "כתוב", translit: "Katouv", fr: "écrit", cat: "Général" },
+  { he: "סופר", translit: "Sofer", fr: "Ecrivain", cat: "Général" },
+  { he: "חינוך", translit: "Khinoukh", fr: "Education", cat: "Général" },
+  { he: "שווה", translit: "Chave", fr: "Egal / équivalent", cat: "Général" },
+
+  // --- Maison ---
+  { he: "שיוויון", translit: "Chivion", fr: "égalité", cat: "Maison" },
+
+  // --- Général ---
+  { he: "כנסייה", translit: "Knesia", fr: "Eglise", cat: "Général" },
+  { he: "בחירות", translit: "Bekhirot", fr: "Elections", cat: "Général" },
+  { he: "חשמל", translit: "Khachmal", fr: "Electricité", cat: "Général" },
+  { he: "גבוה/גבוהה", translit: "Gavoha / Gvoha", fr: "élevé", cat: "Général" },
+
+  // --- Corps ---
+  { he: "תמסור לו ד׳׳ש", translit: "Timsor lo dach", fr: "Embrasse le pour moi", cat: "Corps" },
+
+  // --- Général ---
+  { he: "מרגש", translit: "Meragech", fr: "émouvant", cat: "Général" },
+  { he: "למטה", translit: "Lemata", fr: "En bas", cat: "Général" },
+  { he: "בקיצור", translit: "Bekitsour", fr: "En bref / en résumé", cat: "Général" },
+  { he: "זוגיות", translit: "Zougiyot", fr: "En couple", cat: "Général" },
+  { he: "מחוץ", translit: "Mikhouts", fr: "En dehors", cat: "Général" },
+  { he: "מתחת ל", translit: "Mitakhat le", fr: "En dessous de", cat: "Général" },
+  { he: "מול", translit: "Moul", fr: "En face / contre", cat: "Général" },
+  { he: "בעצם", translit: "Be'etsem", fr: "En fait / vraiment", cat: "Général" },
+  { he: "למעלה", translit: "Lema'ala", fr: "En haut", cat: "Général" },
+  { he: "בינתיים", translit: "Beinataim", fr: "En même temps", cat: "Général" },
+  { he: "תוך כדי", translit: "Tokh kedei", fr: "En même temps / alors que", cat: "Général" },
+  { he: "בממוצע", translit: "Bememoutsa", fr: "En moyenne", cat: "Général" },
+  { he: "פרטיות", translit: "Pratiout", fr: "En privé", cat: "Général" },
+  { he: "מאחר", translit: "Me'akher/et", fr: "En retard", cat: "Général" },
+  { he: "בסך הכול", translit: "Besakh akol", fr: "En tout / dans l'ensemble", cat: "Général" },
+  { he: "שוב", translit: "Chouv", fr: "Encore", cat: "Général" },
+  { he: "עוד פעם", translit: "Od pa'am", fr: "Encore 1 fois", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "פעם נוספת", translit: "Paham nosefet", fr: "Encore 1 fois / de nouveau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "נהדר", translit: "Nehedar", fr: "Encore mieux", cat: "Général" },
+  { he: "עוד מעט", translit: "Od meat", fr: "Encore un peu / bientôt", cat: "Général" },
+  { he: "מעצבן", translit: "Mehatsen", fr: "Enervant", cat: "Général" },
+  { he: "כועס/ת", translit: "Co'es/et", fr: "énervé", cat: "Général" },
+  { he: "עצבני", translit: "Atsbani", fr: "Enervé / nerveux", cat: "Général" },
+  { he: "גור", translit: "Gour", fr: "Enfant d'animal", cat: "Général" },
+  { he: "מחויבות", translit: "Mekhouyavout", fr: "Engagement", cat: "Général" },
+  { he: "תהנו / תתחדש", translit: "Te'enou / Titkhadech", fr: "Enjoy", cat: "Général" },
+
+  // --- Corps ---
+  { he: "משעמם", translit: "Mecha'amem", fr: "Ennuyeux", cat: "Corps" },
+
+  // --- Général ---
+  { he: "מכללה", translit: "Mikhlala", fr: "Enseignement supérieur", cat: "Général" },
+  { he: "ביחד", translit: "Beyakhad", fr: "Ensemble", cat: "Général" },
+  { he: "לאחר מכן", translit: "Leakhar miken", fr: "Ensuite / après cela", cat: "Général" },
+  { he: "שלם", translit: "Chalem", fr: "Entier/ensemble/tout", cat: "Général" },
+  { he: "עטוף", translit: "Atouf", fr: "Entouré/enveloppé", cat: "Général" },
+  { he: "בין", translit: "Bein", fr: "Entre/parmi", cat: "Général" },
+  { he: "חברת התרופות", translit: "Khavrat hatroufot", fr: "Entreprise de médicaments", cat: "Général" },
+  { he: "ריאיון", translit: "Re'ayon", fr: "Entretien", cat: "Général" },
+  { he: "חשק", translit: "Khechek", fr: "Envie (j'ai pas envie)", cat: "Général" },
+  { he: "בערך", translit: "Be'erekh", fr: "Environ", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "תבלין", translit: "Tavlin", fr: "épice", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "תרד", translit: "Tered", fr: "Epinard", cat: "Général" },
+  { he: "גמור", translit: "Gamour / Gmoura", fr: "épuisé (e)", cat: "Général" },
+
+  // --- Maison ---
+  { he: "מדרגה", translit: "Madrega", fr: "Escalier", cat: "Maison" },
+
+  // --- Général ---
+  { he: "נער", translit: "Nahar", fr: "Jeune / assistant", cat: "Général" },
+  { he: "עבד", translit: "Eved", fr: "Esclave", cat: "Général" },
+  { he: "שפחה", translit: "Chifkha", fr: "Esclave (femme)", cat: "Général" },
+  { he: "מזומן", translit: "Mezouman", fr: "Espèce", cat: "Général" },
+  { he: "מזרח", translit: "Mizrakh", fr: "Est (cardinal)", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "האם צודק?", translit: "Aim tsodek ?", fr: "Est-ce que c'est juste ?", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "קומה", translit: "Koma", fr: "étage", cat: "Général" },
+
+  // --- Temps ---
+  { he: "קיץ", translit: "Kaitz", fr: "été", cat: "Temps" },
+
+  // --- Général ---
+  { he: "חו׳׳ל", translit: "Khou''l", fr: "étranger", cat: "Général" },
+  { he: "מדויק", translit: "Medouyak", fr: "Exact/précis/vrai", cat: "Général" },
+  { he: "מבחן", translit: "Mivkhan", fr: "Examen", cat: "Général" },
+  { he: "מעולה / מצוין", translit: "Meoule/Metsouyan", fr: "Excellent", cat: "Général" },
+  { he: "תירוץ", translit: "Terouts", fr: "Excuse/prétexte", cat: "Général" },
+  { he: "משל / דוגמה", translit: "Machal / Dougma", fr: "Exemple", cat: "Général" },
+  { he: "תרגיל", translit: "Targil", fr: "Exercice", cat: "Général" },
+  { he: "ניסיון / חוויה", translit: "Nisayon / khavaya", fr: "Expérience", cat: "Général" },
+  { he: "הסבר", translit: "Hesber", fr: "Explication", cat: "Général" },
+  { he: "ביטוי", translit: "Bitouy", fr: "Expression", cat: "Général" },
+  { he: "הבעת דעה", translit: "Habehat deha", fr: "Exprimer son opinion", cat: "Général" },
+  { he: "חיצוני", translit: "Khistoni", fr: "Extérieur", cat: "Général" },
+  { he: "משל", translit: "Machal", fr: "Fable", cat: "Général" },
+  { he: "פרווה", translit: "Parve", fr: "Fade", cat: "Général" },
+  { he: "חלש", translit: "Khalach", fr: "Faible", cat: "Général" },
+  { he: "ללכת בתלם", translit: "Lalekhet batelem", fr: "Faire comme tout le monde", cat: "Général" },
+  { he: "עמוד בתור", translit: "Amod bator", fr: "Faire la queue", cat: "Général" },
+  { he: "שייך", translit: "Chayakh", fr: "Faire partie", cat: "Général" },
+  { he: "לסים רגל", translit: "Lasim regel", fr: "Faire un croche-pate", cat: "Général" },
+  { he: "לעשות טעות", translit: "Laasot tahout", fr: "Faire une erreur", cat: "Général" },
+  { he: "מעריץ", translit: "Maharitz", fr: "Fan", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "קמח", translit: "Kemakh", fr: "Farine", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "עייף / עיפימ", translit: "Ayef", fr: "Fatigué(s)", cat: "Général" },
+
+  // --- Maison ---
+  { he: "כורסה", translit: "Coursa", fr: "Fauteuil", cat: "Maison" },
+
+  // --- Général ---
+  { he: "נקבה", translit: "Nekeva", fr: "Féminin", cat: "Général" },
+
+  // --- Famille ---
+  { he: "מנקה", translit: "Menaka", fr: "Femme de ménage", cat: "Famille" },
+
+  // --- Maison ---
+  { he: "חלון", translit: "Khalon", fr: "Fenêtre", cat: "Maison" },
+
+  // --- Général ---
+  { he: "סגור", translit: "Sagour", fr: "Fermé", cat: "Général" },
+  { he: "בליין", translit: "Balian", fr: "Fetard", cat: "Général" },
+
+  // --- Couleurs ---
+  { he: "רמזור", translit: "Ramzor", fr: "Feu rouge", cat: "Couleurs" },
+
+  // --- Général ---
+  { he: "עלה", translit: "ele", fr: "Feuille", cat: "Général" },
+  { he: "פול", translit: "Foul", fr: "Fève", cat: "Général" },
+  { he: "אמין", translit: "Amin", fr: "Fiable", cat: "Général" },
+
+  // --- Temps ---
+  { he: "קובץ", translit: "Kovets / Kvatsim", fr: "Fichier", cat: "Temps" },
+
+  // --- Général ---
+  { he: "נאמן", translit: "Ne'eman", fr: "Fidèle", cat: "Général" },
+  { he: "גאה", translit: "Ge'e / Gea", fr: "Fier", cat: "Général" },
+  { he: "חום", translit: "Khoum", fr: "Fièvre", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "תאנה", translit: "Te'ena", fr: "Figue", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "סרט", translit: "Seret", fr: "Film (s)", cat: "Général" },
+  { he: "כושר", translit: "Kocher", fr: "Fitness", cat: "Général" },
+  { he: "פרח", translit: "Perakh", fr: "Fleur", cat: "Général" },
+  { he: "פריחה", translit: "Prikha", fr: "Floraison", cat: "Général" },
+  { he: "כהה", translit: "Kehe", fr: "Foncé / sombre", cat: "Général" },
+  { he: "תפקיד", translit: "Tafkid", fr: "Fonction / rôle", cat: "Général" },
+  { he: "כדורגל", translit: "Kadouregel", fr: "Football", cat: "Général" },
+  { he: "כוח", translit: "Coakh", fr: "Force / pouvoir", cat: "Général" },
+  { he: "יער", translit: "Ya'ar", fr: "Forêt", cat: "Général" },
+  { he: "גומות", translit: "Goumot", fr: "Fossettes", cat: "Général" },
+  { he: "מתורף על", translit: "Metouraf al", fr: "Fou de", cat: "Général" },
+  { he: "שטותניק", translit: "Chtoutnik", fr: "Fou/drôle", cat: "Général" },
+  { he: "טירוף", translit: "Teirouf", fr: "Fou/ouf/dingue", cat: "Général" },
+
+  // --- Maison ---
+  { he: "תנור", translit: "Tanour", fr: "Four", cat: "Maison" },
+  { he: "מזלג", translit: "Mazleg", fr: "Fourchette", cat: "Maison" },
+
+  // --- Nourriture ---
+  { he: "תות", translit: "Tout", fr: "Fraise", cat: "Nourriture" },
+  { he: "תות גינה", translit: "Tout guina", fr: "Fraise des bois", cat: "Nourriture" },
+
+  // --- Famille ---
+  { he: "אח", translit: "Akh", fr: "Frère / cheminée", cat: "Famille" },
+
+  // --- Maison ---
+  { he: "מקרר", translit: "Mekarer", fr: "Frigo", cat: "Maison" },
+
+  // --- Général ---
+  { he: "קר", translit: "Kar", fr: "Froid", cat: "Général" },
+  { he: "גבול", translit: "Gvoul", fr: "Frontière", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "פרי / פירות", translit: "Pri", fr: "Fruit", cat: "Nourriture" },
+  { he: "עוגה", translit: "Ouga", fr: "Gâteau", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "שמאל", translit: "Smol", fr: "Gauche", cat: "Général" },
+  { he: "שמאלי", translit: "Sma'ali", fr: "Gaucher", cat: "Général" },
+  { he: "כללי", translit: "Klali", fr: "Général", cat: "Général" },
+  { he: "דרך בלל", translit: "Derekh klal", fr: "Généralement", cat: "Général" },
+  { he: "נדיב", translit: "Nediv", fr: "Généreux / bienveillant", cat: "Général" },
+  { he: "מבריק", translit: "Mavrik", fr: "Génial/brillant/intelligent", cat: "Général" },
+
+  // --- Corps ---
+  { he: "ברך", translit: "Berekh / birkaim", fr: "Genoux", cat: "Corps" },
+
+  // --- Général ---
+  { he: "להקה", translit: "Lehaka", fr: "Genre", cat: "Général" },
+  { he: "טוב לב", translit: "Tov lev", fr: "Gentil / bienveillant", cat: "Général" },
+  { he: "נחמד מצדך", translit: "Nekhmad mitsidekha", fr: "Gentil de ta part", cat: "Général" },
+  { he: "חנות גלידה", translit: "Khanout glida", fr: "Glacier", cat: "Général" },
+
+  // --- Corps ---
+  { he: "גרון", translit: "Garone", fr: "Gorge", cat: "Corps" },
+
+  // --- Général ---
+  { he: "טעם", translit: "Taham", fr: "Goût", cat: "Général" },
+  { he: "דקדוק", translit: "Dikdouk", fr: "Grammaire", cat: "Général" },
+
+  // --- Famille ---
+  { he: "סבא / סבתא", translit: "Saba / savta", fr: "Grand-père / mère", cat: "Famille" },
+
+  // --- Général ---
+  { he: "חינם", translit: "Khinam", fr: "Gratuit", cat: "Général" },
+  { he: "נורה", translit: "Nora", fr: "Grave / horrible / terrible", cat: "Général" },
+  { he: "ברד", translit: "Barad", fr: "Grêle", cat: "Général" },
+  { he: "שפעת", translit: "Chapa'at", fr: "Grippe/fièvre", cat: "Général" },
+
+  // --- Couleurs ---
+  { he: "אפור", translit: "Afor / Afora", fr: "Gris", cat: "Couleurs" },
+
+  // --- Général ---
+  { he: "מערה", translit: "Mehara", fr: "Grotte", cat: "Général" },
+  { he: "קבוצה", translit: "Kvoutsa", fr: "Groupe", cat: "Général" },
+  { he: "מדריך", translit: "Madrikh", fr: "Guide", cat: "Général" },
+  { he: "תושב", translit: "Tochav", fr: "Habitant", cat: "Général" },
+  { he: "שעועית", translit: "Chouit", fr: "Haricots", cat: "Général" },
+  { he: "מקרה", translit: "Mikra", fr: "Hasard", cat: "Général" },
+  { he: "גבוה", translit: "Gavoa", fr: "Haut", cat: "Général" },
+
+  // --- Temps ---
+  { he: "מאושר", translit: "Meouchar", fr: "Heureux", cat: "Temps" },
+  { he: "אתמול", translit: "Etmol", fr: "Hier", cat: "Temps" },
+
+  // --- Général ---
+  { he: "סיפור", translit: "Sipour", fr: "Histoire", cat: "Général" },
+  { he: "מעשה", translit: "Ma'ase", fr: "Histoire (conte)", cat: "Général" },
+
+  // --- Temps ---
+  { he: "חורף", translit: "Khoref", fr: "Hiver", cat: "Temps" },
+
+  // --- Général ---
+  { he: "תחביב", translit: "Tarkhbiv", fr: "Hobby", cat: "Général" },
+  { he: "בושה", translit: "Boucha", fr: "Honte", cat: "Général" },
+  { he: "חוץ", translit: "Khouts", fr: "Hormis/sauf", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "שמן זית", translit: "Chemen zait", fr: "Huile d'olive", cat: "Nourriture" },
+  { he: "שמן קנולה", translit: "Chemen kenola", fr: "Huile de colza", cat: "Nourriture" },
+  { he: "שמן", translit: "Chemen", fr: "Huile/gras/gros", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "לח", translit: "Lakh", fr: "Humide", cat: "Général" },
+  { he: "פה / כאן", translit: "Po / kan", fr: "Ici", cat: "Général" },
+  { he: "רעיון", translit: "Rayon", fr: "Idée", cat: "Général" },
+
+  // --- Corps ---
+  { he: "זהות", translit: "Zehout", fr: "Identité", cat: "Corps" },
+
+  // --- Général ---
+  { he: "נראה לי", translit: "Nira li", fr: "Il me semble", cat: "Général" },
+  { he: "אין מה לעשות", translit: "Ein ma laassot", fr: "Il n'y a rien à faire", cat: "Général" },
+  { he: "כדאי", translit: "Keday", fr: "Il vaut mieux / recommandé", cat: "Général" },
+  { he: "דימיון", translit: "Dimion", fr: "Imagination", cat: "Général" },
+  { he: "נדל׳׳ן", translit: "Nadlan", fr: "Immobilier", cat: "Général" },
+  { he: "סתמי", translit: "Stami", fr: "Impersonnel/neutre", cat: "Général" },
+  { he: "חשוב", translit: "Khachouv", fr: "Important", cat: "Général" },
+  { he: "אין מצב", translit: "Ein matsav", fr: "Impossible/pas question", cat: "Général" },
+  { he: "כולל", translit: "Kolel", fr: "Inclus / compris", cat: "Général" },
+  { he: "חסרון", translit: "Khisaron", fr: "Inconvénient", cat: "Général" },
+  { he: "מדהים", translit: "Mad'him", fr: "Incroyable / génial", cat: "Général" },
+  { he: "דלקת", translit: "Daleket", fr: "Inflammation", cat: "Général" },
+  { he: "מעליב", translit: "Maaliv", fr: "Insulte", cat: "Général" },
+  { he: "חכם/חכמה", translit: "Khakham(a)", fr: "Intelligent(e)", cat: "Général" },
+  { he: "חנון", translit: "Khnoun", fr: "Intellos / geek", cat: "Général" },
+  { he: "אסור", translit: "Assour", fr: "Interdit", cat: "Général" },
+  { he: "מתעניין ב", translit: "Mit'anien be", fr: "Intéressé par", cat: "Général" },
+  { he: "פנימי", translit: "Pnimi", fr: "Intérieur", cat: "Général" },
+  { he: "מתווך", translit: "Metavekh", fr: "Intermédiaire", cat: "Général" },
+  { he: "בינלאומי", translit: "Beinleoumi", fr: "International", cat: "Général" },
+  { he: "פרשנות", translit: "Parchanout", fr: "Interprétation", cat: "Général" },
+
+  // --- Maison ---
+  { he: "צומת", translit: "Tsomet", fr: "Intersection/carrefour", cat: "Maison" },
+
+  // --- Général ---
+  { he: "מראיין", translit: "Mera'ayen", fr: "Intervieweur", cat: "Général" },
+  { he: "חסר", translit: "Khasar", fr: "Inutile / manqué", cat: "Général" },
+  { he: "חסר טעם", translit: "Khasar taham", fr: "Inutile / sans goût", cat: "Général" },
+  { he: "חסר ערך", translit: "Khasar erekh", fr: "Inutile/nul", cat: "Général" },
+  { he: "הזמנה", translit: "Azmana", fr: "Invitation / réservation", cat: "Général" },
+  { he: "אורח", translit: "Oreakh", fr: "Invité", cat: "Général" },
+  { he: "בא לי / בא לך", translit: "Ba li / lakh / lekha", fr: "J'ai envie (argot)", cat: "Général" },
+  { he: "כואב", translit: "Coev", fr: "J'ai mal", cat: "Général" },
+  { he: "שחכתי", translit: "Chakhakhti", fr: "J'ai oublié", cat: "Général" },
+  { he: "נמאס לי", translit: "Nim'as li", fr: "J'en ai marre", cat: "Général" },
+  { he: "אין לי מושג", translit: "Ein li mousag", fr: "J'en sais rien", cat: "Général" },
+  { he: "מקנא", translit: "Mekane", fr: "Jaloux", cat: "Général" },
+
+  // --- Maison ---
+  { he: "גנן", translit: "Ganan", fr: "Jardinier", cat: "Maison" },
+
+  // --- Couleurs ---
+  { he: "צהוב", translit: "Tsahov", fr: "Jaune", cat: "Couleurs" },
+
+  // --- Général ---
+  { he: "לא סגור על זה", translit: "Lo sagour al ze", fr: "Je ne suis pas sûr", cat: "Général" },
+  { he: "אני בעננים", translit: "Ani bahananim", fr: "Je suis aux anges", cat: "Général" },
+  { he: "אני מסכים", translit: "Ani maskim", fr: "Je suis d'accord", cat: "Général" },
+  { he: "לא נעים לי", translit: "Lo naim li", fr: "Je suis gêné", cat: "Général" },
+  { he: "אני עייף מת", translit: "Ani ayef met", fr: "Je suis mort de fatigue", cat: "Général" },
+  { he: "אני במתח", translit: "Ani bemetakh", fr: "Je suis stressé", cat: "Général" },
+  { he: "אני מניח שכן", translit: "Ani meniakh cheken", fr: "Je suppose que oui", cat: "Général" },
+  { he: "משחק", translit: "Miskhak", fr: "Jeu/match", cat: "Général" },
+  { he: "צעיר", translit: "Tsa'ir(a)", fr: "Jeune", cat: "Général" },
+  { he: "בחורה", translit: "Bakhora", fr: "Jeune femme", cat: "Général" },
+
+  // --- Temps ---
+  { he: "עיתון", translit: "Iton", fr: "Journal", cat: "Temps" },
+
+  // --- Général ---
+  { he: "שיפוטי", translit: "Chipouti", fr: "Juge/critique", cat: "Général" },
+
+  // --- Famille ---
+  { he: "תאום", translit: "Teom", fr: "Jumeau", cat: "Famille" },
+
+  // --- Vêtements ---
+  { he: "חצאית", translit: "Khatsa'it", fr: "Jupe", cat: "Vêtements" },
+
+  // --- Boissons ---
+  { he: "אם כבר אז כבר", translit: "Im kvar az kvar", fr: "Jusqu'au bout", cat: "Boissons" },
+  { he: "חוק", translit: "Khok", fr: "Justice/droit/loi", cat: "Boissons" },
+
+  // --- Nourriture ---
+  { he: "אפרסמון", translit: "Afarsemon", fr: "Kaki (fruit)", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "השפעה (על)", translit: "Hachpa'a (al)", fr: "L'influence", cat: "Général" },
+  { he: "מחשבים", translit: "Makhchevim", fr: "L'informatique", cat: "Général" },
+  { he: "אחד את השנייה", translit: "Ekhad et achnia", fr: "L'un l'autre", cat: "Général" },
+  { he: "זה בזו", translit: "Ze bazo", fr: "L'un l'autre", cat: "Général" },
+  { he: "מוות", translit: "Mavet", fr: "La mort", cat: "Général" },
+  { he: "דואר", translit: "Doar", fr: "La poste", cat: "Général" },
+  { he: "המשך", translit: "Hemchekh", fr: "La suite", cat: "Général" },
+  { he: "שם", translit: "Cham", fr: "Là-bas", cat: "Général" },
+  { he: "חולוני", translit: "Khiloni", fr: "Laïque", cat: "Général" },
+  { he: "חסה", translit: "Khasa", fr: "Laitue", cat: "Général" },
+  { he: "מנורה", translit: "Menora", fr: "Lampe", cat: "Général" },
+  { he: "שפה", translit: "Safa", fr: "Langue", cat: "Général" },
+  { he: "דמעה", translit: "Dim'a", fr: "Larme", cat: "Général" },
+  { he: "מסכן", translit: "Misken", fr: "Le pauvre", cat: "Général" },
+  { he: "העם הנבחר", translit: "Aham hanivkhar", fr: "Le peuple élu", cat: "Général" },
+  { he: "העיכר", translit: "Haikar", fr: "Le plus important", cat: "Général" },
+  { he: "כמי שיותר", translit: "Cama cheyoter", fr: "Le plus possible", cat: "Général" },
+  { he: "כמה שיותר מהר", translit: "Kama cheyoter maher", fr: "Le plus vite possible", cat: "Général" },
+  { he: "כבשת הרש", translit: "Kivsat harach", fr: "Le seul et unique", cat: "Général" },
+  { he: "קריאה", translit: "Kri'a", fr: "Lecture", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "ירק", translit: "Yerek", fr: "Légume", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "לאט", translit: "Leat", fr: "Lentement", cat: "Général" },
+  { he: "צלבנים", translit: "Tsalbanim", fr: "Les \"croisés\"", cat: "Général" },
+  { he: "צרכים", translit: "Tsrakhim", fr: "Besoins", cat: "Général" },
+  { he: "שניהם", translit: "Chnei hem", fr: "Les deux", cat: "Général" },
+  { he: "בחירות", translit: "Bkhirot", fr: "Les élections", cat: "Général" },
+  { he: "אות", translit: "Ot", fr: "Lettre (alphabet)", cat: "Général" },
+  { he: "זריחה", translit: "Zrikha", fr: "Lever du soleil", cat: "Général" },
+  { he: "פנוי", translit: "Panouy", fr: "Libre", cat: "Général" },
+  { he: "קשור", translit: "Kachour", fr: "Lié / lien", cat: "Général" },
+  { he: "קשר", translit: "Kecher", fr: "Lien", cat: "Général" },
+  { he: "לינק", translit: "Link", fr: "Lien internet", cat: "Général" },
+  { he: "קו", translit: "Kav", fr: "Ligne (transport)", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "שורה", translit: "Choura", fr: "Ligne (tableau)", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "לקרוא בלב", translit: "Likro balev", fr: "Lire en silence", cat: "Général" },
+  { he: "קראו", translit: "Kir'ou", fr: "Lisez (impératif)", cat: "Général" },
+  { he: "רשימה", translit: "Rechima", fr: "Liste", cat: "Général" },
+  { he: "כתובים", translit: "Ktouvim", fr: "Livre les écrits", cat: "Général" },
+  { he: "נביאים", translit: "Nevi'im", fr: "Livre Les prophètes", cat: "Général" },
+  { he: "תורה", translit: "Torah", fr: "Livre Torah", cat: "Général" },
+  { he: "מיקום", translit: "Mikoum", fr: "Localisation", cat: "Général" },
+  { he: "השכרת אוטו", translit: "Askarat oto", fr: "Location de voiture", cat: "Général" },
+  { he: "רחוק... מ", translit: "Rakhok… me", fr: "Loin", cat: "Général" },
+  { he: "ארוך", translit: "Arokh", fr: "Long", cat: "Général" },
+  { he: "כשיהיה מאוחר", translit: "Kcheiye meoukhar", fr: "Lorsqu'il sera trop tard", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "זאב", translit: "Ze'èv", fr: "Loup", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "כבד", translit: "Kaved", fr: "Lourd", cat: "Général" },
+  { he: "ירח", translit: "Yareakh", fr: "Lune", cat: "Général" },
+  { he: "משקפיים", translit: "Michkafaim", fr: "Lunettes", cat: "Général" },
+  { he: "משקפי שמש", translit: "Michkafei chemech", fr: "Lunettes de soleil", cat: "Général" },
+  { he: "תיכון", translit: "Tikhon", fr: "Lycée", cat: "Général" },
+
+  // --- Famille ---
+  { he: "אישתי", translit: "Ishti", fr: "Ma femme", cat: "Famille" },
+
+  // --- Général ---
+  { he: "מכונה", translit: "Mekhona", fr: "Machine", cat: "Général" },
+  { he: "חנות / חנויות", translit: "Khanout", fr: "Magasin", cat: "Général" },
+  { he: "קסם", translit: "Kesem", fr: "Magie", cat: "Général" },
+  { he: "מהמם / יפהפה", translit: "Mehamem / Yefifa", fr: "Magnifique", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "בגד ים", translit: "Beged yam", fr: "Maillot de bain", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "אלא", translit: "Ela", fr: "Mais", cat: "Général" },
+  { he: "תירס", translit: "Tiras", fr: "Maïs", cat: "Général" },
+
+  // --- Maison ---
+  { he: "בית אבות", translit: "Beit avot", fr: "Maison de retraite", cat: "Maison" },
+
+  // --- Général ---
+  { he: "משרת", translit: "Mecharet", fr: "Majordome", cat: "Général" },
+  { he: "חולה", translit: "Khole/a", fr: "Malade", cat: "Général" },
+  { he: "מחלה", translit: "Makhala", fr: "Maladie", cat: "Général" },
+  { he: "קללה", translit: "Klala", fr: "Malédiction", cat: "Général" },
+  { he: "למרות ה", translit: "Lamrot ha", fr: "Malgré le", cat: "Général" },
+
+  // --- Corps ---
+  { he: "לאכול את הראש", translit: "Leekhol et haroch", fr: "Manger la tête", cat: "Corps" },
+
+  // --- Général ---
+  { he: "לאכול סרט", translit: "Leekhol seret", fr: "Manger un film", cat: "Général" },
+  { he: "דרך", translit: "Derekh", fr: "Manière (chemin métaphore)", cat: "Général" },
+  { he: "דוגמן/נית", translit: "Dougman(nit)", fr: "Mannequin", cat: "Général" },
+  { he: "אפור", translit: "ipour", fr: "Maquillage", cat: "Général" },
+
+  // --- Famille ---
+  { he: "בעל / בן הזוג", translit: "Ba'al / Ben azoug", fr: "Mari", cat: "Famille" },
+  { he: "נשואי / נשואה", translit: "Nesouy / Nesoua", fr: "Marié (e)", cat: "Famille" },
+
+  // --- Couleurs ---
+  { he: "חום", translit: "Khoum / Khouma", fr: "Marron", cat: "Couleurs" },
+
+  // --- Général ---
+  { he: "זכר", translit: "Zakhar", fr: "Masculin", cat: "Général" },
+  { he: "מסכה", translit: "Masekha", fr: "Masque", cat: "Général" },
+  { he: "הנני", translit: "Hineni", fr: "Me voici (présent)", cat: "Général" },
+  { he: "רשע / רשעית", translit: "Racha / rachait", fr: "Méchant", cat: "Général" },
+  { he: "רופא", translit: "Rofe", fr: "Médecin", cat: "Général" },
+  { he: "רפואי", translit: "Refo'i", fr: "Médical", cat: "Général" },
+  { he: "תרופה", translit: "Troufa / cadour", fr: "Médicament", cat: "Général" },
+  { he: "חברי כנסת", translit: "Khavrei knesset", fr: "Membres de la Knesset", cat: "Général" },
+  { he: "אף על פי", translit: "Af al pi", fr: "Même si / bien que", cat: "Général" },
+  { he: "אפילו", translit: "afilou", fr: "Même/encore/aussi/ni", cat: "Général" },
+  { he: "שקר", translit: "Cheker", fr: "Mensonge", cat: "Général" },
+  { he: "שקרן", translit: "Chakran", fr: "Menteur", cat: "Général" },
+  { he: "תפריט", translit: "Tafrit", fr: "Menu", cat: "Général" },
+
+  // --- Temps ---
+  { he: "ים התיכון", translit: "Hayam hatikhon", fr: "Mer Méditérrannée", cat: "Temps" },
+
+  // --- Général ---
+  { he: "נפלה", translit: "Nifla", fr: "Merveilleux/super/formidable", cat: "Général" },
+  { he: "הודעה", translit: "Oda'a", fr: "Message", cat: "Général" },
+
+  // --- Temps ---
+  { he: "מזג אויר", translit: "Mezeg avir", fr: "Météo", cat: "Temps" },
+
+  // --- Général ---
+  { he: "שיטה", translit: "Chita", fr: "Méthode", cat: "Général" },
+  { he: "רהיט", translit: "Rahit", fr: "Meuble", cat: "Général" },
+
+  // --- Temps ---
+  { he: "צהריים", translit: "Tsohorayim", fr: "Midi", cat: "Temps" },
+
+  // --- Général ---
+  { he: "עדיף", translit: "Adif", fr: "Mieux", cat: "Général" },
+  { he: "אוף", translit: "Ouf", fr: "Mince", cat: "Général" },
+  { he: "שר", translit: "Sar", fr: "Ministre", cat: "Général" },
+
+  // --- Temps ---
+  { he: "חצות", translit: "Khatsot", fr: "Minuit", cat: "Temps" },
+
+  // --- Général ---
+  { he: "מראה", translit: "Mar'a", fr: "Miroir", cat: "Général" },
+  { he: "משמה", translit: "Mesima", fr: "Mission / tache", cat: "Général" },
+  { he: "מכוער", translit: "Mekhoar", fr: "Moche", cat: "Général" },
+  { he: "אופנה", translit: "Ofna", fr: "Mode", cat: "Général" },
+  { he: "מודרני", translit: "Moderni", fr: "Moderne", cat: "Général" },
+  { he: "צנוה", translit: "Tsanoua", fr: "Modeste", cat: "Général" },
+  { he: "עצמי", translit: "Atsmi", fr: "Moi-même", cat: "Général" },
+  { he: "פחות", translit: "Pakhot", fr: "Moins", cat: "Général" },
+  { he: "מינוס", translit: "Minos", fr: "Moins (négatif)", cat: "Général" },
+  { he: "מפלצת", translit: "Mifletset", fr: "Monstre", cat: "Général" },
+  { he: "הר", translit: "Har", fr: "Montagne", cat: "Général" },
+  { he: "מוסרי", translit: "Mousari", fr: "Moral(adj)", cat: "Général" },
+  { he: "מוסר", translit: "Mousar", fr: "Moral(nom)", cat: "Général" },
+  { he: "נמשל", translit: "Nimchal", fr: "Morale (histoire)", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "חתיכה", translit: "Khatikha", fr: "Morceau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "מסגד", translit: "Misgad", fr: "Mosquée", cat: "Général" },
+  { he: "רך", translit: "Rakh", fr: "Mou / doux / souple", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "זבוב", translit: "Zvouv", fr: "Mouche", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "רטוב", translit: "Ratouv", fr: "Mouillé", cat: "Général" },
+  { he: "קצף", translit: "Ketsef", fr: "Mousse", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "כבשה", translit: "Kivsa", fr: "Mouton", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "תנועת נוער", translit: "Tenouat noar", fr: "Mouvement de jeunesse", cat: "Général" },
+  { he: "תנועה", translit: "Tnouha", fr: "Mouvement/déplacement", cat: "Général" },
+  { he: "צבעוני", translit: "Tsivoni/t", fr: "Multicolore", cat: "Général" },
+  { he: "חומה", translit: "Khoma", fr: "Mur", cat: "Général" },
+  { he: "לחן", translit: "Lakhan", fr: "Musique (de chanson)", cat: "Général" },
+  { he: "קופת חולים", translit: "Koupat kholim", fr: "Mutuelle", cat: "Général" },
+  { he: "לידה", translit: "Leida", fr: "Naissance", cat: "Général" },
+  { he: "נאיבי", translit: "Naivi", fr: "Naive", cat: "Général" },
+  { he: "טבע", translit: "Teva", fr: "Nature", cat: "Général" },
+  { he: "טבעי", translit: "Tivhi", fr: "Naturel", cat: "Général" },
+  { he: "באופן טבעי", translit: "Beofen tvi'i", fr: "Naturellement/logiquement", cat: "Général" },
+  { he: "שלג", translit: "Chaleg", fr: "Neige", cat: "Général" },
+
+  // --- Famille ---
+  { he: "אחיין / נית", translit: "Akhyan / it", fr: "Neveu / nièce", cat: "Famille" },
+
+  // --- Corps ---
+  { he: "אף", translit: "Af", fr: "Nez", cat: "Corps" },
+
+  // --- Boissons ---
+  { he: "רמה", translit: "Rama", fr: "Niveau", cat: "Boissons" },
+
+  // --- Couleurs ---
+  { he: "שחור", translit: "Chakhor/chkhora", fr: "Noir", cat: "Couleurs" },
+
+  // --- Général ---
+  { he: "צפון", translit: "Tsafon", fr: "Nord", cat: "Général" },
+  { he: "רגיל", translit: "Ragil", fr: "Normal (sain)", cat: "Général" },
+  { he: "נורמלי", translit: "Normali", fr: "Normal / ordinaire", cat: "Général" },
+  { he: "בדרך כלל", translit: "Baderekh klal", fr: "Normalement / d'habitude", cat: "Général" },
+  { he: "ציון", translit: "Tsioun", fr: "Note", cat: "Général" },
+  { he: "ענן", translit: "Anan", fr: "Nuage", cat: "Général" },
+  { he: "מעונן", translit: "Mehounan", fr: "Nuageux", cat: "Général" },
+  { he: "עלוב", translit: "Alouv", fr: "Nul / pitoyable / misérable", cat: "Général" },
+  { he: "אף מקום", translit: "Af makom", fr: "Nulle part", cat: "Général" },
+  { he: "עורף", translit: "Oref", fr: "Nuque", cat: "Général" },
+  { he: "חובה", translit: "Khova", fr: "Obligation", cat: "Général" },
+  { he: "חייב", translit: "Khayav", fr: "Obligé", cat: "Général" },
+  { he: "עסוק", translit: "Hasouk", fr: "Occupé", cat: "Général" },
+  { he: "אוקיינוס", translit: "Okianous", fr: "Océan", cat: "Général" },
+  { he: "ריח", translit: "Reakh", fr: "Odeur", cat: "Général" },
+
+  // --- Corps ---
+  { he: "עין", translit: "Ayin", fr: "Œil", cat: "Corps" },
+
+  // --- Nourriture ---
+  { he: "בצל", translit: "Batsal", fr: "Oignon", cat: "Nourriture" },
+  { he: "בצל ירוק", translit: "Batsal yarok", fr: "Oignon nouveau", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "הזדמנות", translit: "Hizdamnout", fr: "Opportunité / chance", cat: "Général" },
+  { he: "זהב", translit: "Zahav", fr: "Or", cat: "Général" },
+
+  // --- Couleurs ---
+  { he: "כתום", translit: "Catom / Ctouma", fr: "Orange (couleur)", cat: "Couleurs" },
+
+  // --- Général ---
+  { he: "פרדס", translit: "Pardes", fr: "Orangeraie", cat: "Général" },
+  { he: "מחשב", translit: "Makhchev", fr: "Ordinateur", cat: "Général" },
+  { he: "מרשם", translit: "Mircham", fr: "Ordonnance", cat: "Général" },
+  { he: "מסודר", translit: "Mesoudar / deret", fr: "Organisé", cat: "Général" },
+  { he: "יתום", translit: "Yatom", fr: "Orphelin", cat: "Général" },
+  { he: "עצם", translit: "Etsem", fr: "Os/arrête", cat: "Général" },
+  { he: "מערב", translit: "Maharav", fr: "Ouest", cat: "Général" },
+  { he: "כלי", translit: "Kley", fr: "Outil", cat: "Général" },
+  { he: "עמוד", translit: "Amoud", fr: "Page", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "ארמון", translit: "Armon", fr: "Palais / château", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "אשכולית", translit: "Echkolit", fr: "Pamplemousse", cat: "Général" },
+
+  // --- Vêtements ---
+  { he: "מכנסיים", translit: "Mikhnasayim", fr: "Pantalon", cat: "Vêtements" },
+
+  // --- Général ---
+  { he: "דף", translit: "Daf", fr: "Papier / feuille", cat: "Général" },
+  { he: "חבילה", translit: "Khavila", fr: "Paquet", cat: "Général" },
+  { he: "למשל", translit: "Lemachal", fr: "Par exemple", cat: "Général" },
+  { he: "פסקה", translit: "Piska", fr: "Paragraphe", cat: "Général" },
+  { he: "מטריה", translit: "Mitriha", fr: "Parapluie", cat: "Général" },
+  { he: "שמשייה", translit: "Chimchia", fr: "Parasol", cat: "Général" },
+  { he: "גן משחקים", translit: "Gan miskhakim", fr: "Parc de jeux", cat: "Général" },
+
+  // --- Famille ---
+  { he: "הורים", translit: "Horim", fr: "Parents", cat: "Famille" },
+
+  // --- Général ---
+  { he: "עצלן", translit: "Atslan", fr: "Paresseux", cat: "Général" },
+  { he: "מושלם", translit: "Mouchlam", fr: "Parfait", cat: "Général" },
+  { he: "מתאים", translit: "Mat'im", fr: "Parfait/mieux/idéal/adapté", cat: "Général" },
+  { he: "בושם", translit: "Bosem", fr: "Parfum", cat: "Général" },
+  { he: "חניון / חניה", translit: "Khanyon / Khaniya", fr: "Parking", cat: "Général" },
+
+  // --- Corps ---
+  { he: "לדבר בארבע עיניים", translit: "Ledaber bearba enayim", fr: "Parler entre 4 yeux", cat: "Corps" },
+
+  // --- Général ---
+  { he: "בכל מקום", translit: "Bekhol makom", fr: "Partout", cat: "Général" },
+  { he: "לא צריך", translit: "Lo tsarikh", fr: "Pas besoin", cat: "Général" },
+  { he: "זול", translit: "Zol", fr: "Pas cher", cat: "Général" },
+  { he: "בלי שטויות", translit: "Bli chtouyot", fr: "Pas de bêtises", cat: "Général" },
+  { he: "אין בעיה", translit: "Ein beaya", fr: "Pas de problème", cat: "Général" },
+  { he: "לא נורה", translit: "Lo nora", fr: "Pas grave", cat: "Général" },
+  { he: "אין ברירה", translit: "Ein breira", fr: "Pas le choix", cat: "Général" },
+  { he: "לא רע", translit: "Lo ra", fr: "Pas mal", cat: "Général" },
+  { he: "עבר", translit: "Avar", fr: "Passé", cat: "Général" },
+  { he: "תשוקה", translit: "Techouka", fr: "Passion/passionné", cat: "Général" },
+  { he: "בטטה", translit: "Batata", fr: "Patate douce", cat: "Général" },
+  { he: "סבלן", translit: "Savlani", fr: "Patient", cat: "Général" },
+  { he: "מנהל", translit: "Menahel/et", fr: "Patron", cat: "Général" },
+  { he: "הפסקה", translit: "Hafsaka", fr: "Pause / récré", cat: "Général" },
+  { he: "אביון / עני / רש", translit: "Evion / hani / rach", fr: "Pauvre", cat: "Général" },
+  { he: "ארץ", translit: "Erets", fr: "Pays", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "אפרסק", translit: "Afarsek", fr: "Pêche (fruit)", cat: "Nourriture" },
+  { he: "חט", translit: "Khet", fr: "Pêcher", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "צייר", translit: "Tsayar / tsayeret", fr: "Peintre", cat: "Général" },
+  { he: "במשך זמן רב", translit: "Bemechekh zman rav", fr: "Pendant longtemps", cat: "Général" },
+  { he: "פרפקציוניסט", translit: "Perfetsionist", fr: "Perfectioniste", cat: "Général" },
+  { he: "תקופה", translit: "Tkoufa", fr: "Période / époque", cat: "Général" },
+  { he: "דמות", translit: "Dmout", fr: "Personnage", cat: "Général" },
+
+  // --- Maison ---
+  { he: "אישיות", translit: "Ichiout", fr: "Personnalité", cat: "Maison" },
+
+  // --- Général ---
+  { he: "אף אחד", translit: "Af ekhad/akhat", fr: "Personne / nobody", cat: "Général" },
+
+  // --- Maison ---
+  { he: "גינה", translit: "Guina", fr: "Petit jardin", cat: "Maison" },
+
+  // --- Famille ---
+  { he: "נכד", translit: "Nekhed", fr: "Petit-fils (fille)", cat: "Famille" },
+
+  // --- Maison ---
+  { he: "לא משנה", translit: "Lo mechane", fr: "Peu importe", cat: "Maison" },
+
+  // --- Général ---
+  { he: "מעט", translit: "Meat", fr: "Peu/légèrement", cat: "Général" },
+  { he: "פחד", translit: "Pakhad", fr: "Peur", cat: "Général" },
+  { he: "אולי / יתכן", translit: "Oulay / itakhen", fr: "Peut-être", cat: "Général" },
+  { he: "רוקחות", translit: "Rok'khout", fr: "Pharmaceutique", cat: "Général" },
+  { he: "בית מרקחת", translit: "Beit merkakhat", fr: "Pharmacie", cat: "Général" },
+  { he: "תמונה / צילום", translit: "Tmouna/tsiloum", fr: "Photo", cat: "Général" },
+  { he: "צלם/מת", translit: "Tsalam / lemet", fr: "Photographe", cat: "Général" },
+  { he: "מישפט", translit: "Michpat", fr: "Phrase", cat: "Général" },
+  { he: "אבן", translit: "Even", fr: "Pierre", cat: "Général" },
+  { he: "פראייר", translit: "Frayer", fr: "Pigeon (sens figuré)", cat: "Général" },
+  { he: "יונה", translit: "Yona", fr: "Pigeon / colombe", cat: "Général" },
+  { he: "טייס", translit: "Tayas", fr: "Pilote d'avion", cat: "Général" },
+  { he: "חריף", translit: "Kharif", fr: "Piquant", cat: "Général" },
+  { he: "עקיצה", translit: "Akitsa", fr: "Piqûre (moustique)", cat: "Général" },
+  { he: "זריקה", translit: "Zrika", fr: "Piqûre (vaccin)", cat: "Général" },
+  { he: "בריכה", translit: "Brekha", fr: "Piscine", cat: "Général" },
+  { he: "נשק", translit: "Nechek", fr: "Pistolet", cat: "Général" },
+  { he: "כיכר", translit: "Kikar", fr: "Place", cat: "Général" },
+  { he: "חניה", translit: "Khanaya", fr: "Place de stationnement", cat: "Général" },
+  { he: "נעים", translit: "Nahim", fr: "Plaisant / agréable", cat: "Général" },
+
+  // --- Temps ---
+  { he: "סטוץ", translit: "Stouts", fr: "Plan d'un soir", cat: "Temps" },
+
+  // --- Général ---
+  { he: "צמח", translit: "Tsemakh", fr: "Plante", cat: "Général" },
+  { he: "מנה", translit: "Mana", fr: "Plat", cat: "Général" },
+  { he: "מלא", translit: "Male", fr: "Plein", cat: "Général" },
+  { he: "גשם / מטר", translit: "Gechem / meter", fr: "Pluie", cat: "Général" },
+  { he: "רבים", translit: "Rabim", fr: "Pluriel", cat: "Général" },
+  { he: "יותר", translit: "Yoter", fr: "Plus (+)", cat: "Général" },
+  { he: "דווקא", translit: "Davka", fr: "Plutôt / vraiment", cat: "Général" },
+  { he: "גשום", translit: "Gachoum", fr: "Pluvieux", cat: "Général" },
+  { he: "שירה", translit: "Shira", fr: "Poésie", cat: "Général" },
+  { he: "משרר/ת", translit: "Mechorer/et", fr: "Poète", cat: "Général" },
+  { he: "משקל", translit: "Michkal", fr: "Poids / équilibre / importance", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "אגס", translit: "Agas", fr: "Poire", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "מנומס", translit: "Menoumas", fr: "Poli", cat: "Général" },
+
+  // --- Maison ---
+  { he: "שער", translit: "Chahar", fr: "Porte (embarquement)", cat: "Maison" },
+  { he: "אפשרות", translit: "Efcharout", fr: "Possibilité", cat: "Maison" },
+  { he: "אפשרות לקידום", translit: "Efcharout lekidoum", fr: "Possibilité d'évolution", cat: "Maison" },
+
+  // --- Général ---
+  { he: "זבל", translit: "Zevel", fr: "Poubelle", cat: "Général" },
+  { he: "בעד", translit: "Behed", fr: "Pour (inverse de contre)", cat: "Général" },
+  { he: "כדי / בשביל", translit: "Kedey / Bichvil", fr: "Pour / afin", cat: "Général" },
+  { he: "קרגע", translit: "Karega", fr: "Pour le moment", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "לסיכום", translit: "Lesikoum", fr: "Pour résumer/synthétiser", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "בגללך", translit: "Biglalekh", fr: "Pour/à cause à toi", cat: "Général" },
+  { he: "למען", translit: "Lemaan", fr: "Pour/afin", cat: "Général" },
+
+  // --- Nombres ---
+  { he: "אחוז", translit: "Akhouz", fr: "Pourcent/pourcentage", cat: "Nombres" },
+
+  // --- Corps ---
+  { he: "שעברה", translit: "Cheaver /cheavra", fr: "Précédent/dernier/passé", cat: "Corps" },
+
+  // --- Général ---
+  { he: "הפניה", translit: "Hafnaya", fr: "Prescription (voir un spé)", cat: "Général" },
+  { he: "הווה", translit: "Hove", fr: "Présent", cat: "Général" },
+  { he: "הצגה", translit: "Hatsaga", fr: "Présentation", cat: "Général" },
+
+  // --- Corps ---
+  { he: "נשיא", translit: "Nasi", fr: "Président", cat: "Corps" },
+
+  // --- Général ---
+  { he: "קמעת", translit: "Kim'at", fr: "Presque", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "סחות", translit: "Sakhout", fr: "Pressé (jus)", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "מוכן", translit: "Moukhan", fr: "Prêt", cat: "Général" },
+  { he: "צפוי", translit: "Tsafoui", fr: "Prévisible", cat: "Général" },
+  { he: "תחזית", translit: "Takhazit", fr: "Prévision", cat: "Général" },
+  { he: "יסודי", translit: "Yesodi", fr: "Primaire", cat: "Général" },
+  { he: "בעיקר", translit: "Be'icar", fr: "Principalement", cat: "Général" },
+
+  // --- Temps ---
+  { he: "אביב", translit: "Aviv", fr: "Printemps", cat: "Temps" },
+
+  // --- Général ---
+  { he: "פרטי", translit: "Prati", fr: "Privé", cat: "Général" },
+  { he: "מחיר", translit: "Mekhir", fr: "Prix", cat: "Général" },
+  { he: "הבאה", translit: "Habaha", fr: "Prochain/suivant", cat: "Général" },
+  { he: "קרוב... ל", translit: "Karov… le", fr: "Proche/près", cat: "Général" },
+  { he: "מפיק", translit: "Mefik", fr: "Producteur", cat: "Général" },
+  { he: "מרצה", translit: "Martze", fr: "Prof (université)", cat: "Général" },
+  { he: "מקצוע", translit: "Miktsoa", fr: "Profession", cat: "Général" },
+  { he: "מקצועי", translit: "Miktso'i", fr: "Professionnel", cat: "Général" },
+  { he: "עמוק", translit: "Amok", fr: "Profond", cat: "Général" },
+  { he: "תוכנית", translit: "Tokhnit", fr: "Programme", cat: "Général" },
+  { he: "נביא", translit: "Navi", fr: "Prophète", cat: "Général" },
+  { he: "נקי", translit: "Naki / nekiya", fr: "Propre", cat: "Général" },
+  { he: "בעלים", translit: "Bealim", fr: "Propriétaire", cat: "Général" },
+
+  // --- Temps ---
+  { he: "רכוש", translit: "Rekhouch", fr: "Propriété", cat: "Temps" },
+
+  // --- Général ---
+  { he: "פרסומת", translit: "Pirsomet", fr: "Pub", cat: "Général" },
+  { he: "ציבורי", translit: "Tsibouri", fr: "Public", cat: "Général" },
+  { he: "באר", translit: "Beer", fr: "Puit", cat: "Général" },
+  { he: "סוודר", translit: "Sveder", fr: "Pull (pas sweat)", cat: "Général" },
+  { he: "עונש", translit: "Onech", fr: "Punition", cat: "Général" },
+  { he: "פירה", translit: "Pire", fr: "Purée", cat: "Général" },
+
+  // --- Maison ---
+  { he: "תכונה טובה / איכות", translit: "Tkhouna tova / eikhout", fr: "Qualité", cat: "Maison" },
+
+  // --- Général ---
+  { he: "כאשר", translit: "Ka'acher", fr: "Quand / alors que", cat: "Général" },
+  { he: "שכונה", translit: "Chkhouna", fr: "Quartier", cat: "Général" },
+  { he: "מהי", translit: "Mahi", fr: "Quel (le) est", cat: "Général" },
+  { he: "איזה כיף", translit: "Eize keif", fr: "Quel kiffe", cat: "Général" },
+  { he: "מה קשור", translit: "Ma kachour (+ akhchav)", fr: "Quel rapport", cat: "Général" },
+  { he: "אי שם", translit: "Ey cham", fr: "Quelque part", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "מספר ימים", translit: "Mispar yamim", fr: "Quelques jours", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "אחדים", translit: "Akhadim", fr: "Quelques uns / unes", cat: "Général" },
+  { he: "עיניין", translit: "Inyan", fr: "Question / problème", cat: "Général" },
+  { he: "עניין של זמן", translit: "Inyan chel zman", fr: "Question de temps", cat: "Général" },
+  { he: "תור", translit: "Tor", fr: "Queue / tour / rdv (likboa tor)", cat: "Général" },
+  { he: "מה חוץ מזה ?", translit: "Ma khouts mize ?", fr: "Quoi d'autre ?", cat: "Général" },
+  { he: "קמצן", translit: "Kamtsan", fr: "Radin", cat: "Général" },
+  { he: "צנונית", translit: "Tsnonit", fr: "Radis", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "ענב", translit: "Anav", fr: "Raisin", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "סיבה", translit: "Siba", fr: "Raison", cat: "Général" },
+  { he: "סביר", translit: "Savir", fr: "Raisonnable/possible", cat: "Général" },
+  { he: "מהר", translit: "Maher", fr: "Rapidement", cat: "Général" },
+  { he: "ברכה שווה", translit: "Broukha chava", fr: "Re-bienvenue", cat: "Général" },
+  { he: "במאי", translit: "Bamay / bamayit", fr: "Réalisateur", cat: "Général" },
+  { he: "לאחרונה", translit: "La'akhrona", fr: "Récemment", cat: "Général" },
+  { he: "מתכון", translit: "Matkon", fr: "Recette", cat: "Général" },
+  { he: "המלצות", translit: "Hamlatsot", fr: "Recommandation", cat: "Général" },
+  { he: "אסירת תודה", translit: "Assirat toda", fr: "Reconnaissant", cat: "Général" },
+  { he: "קבלה", translit: "Kabala", fr: "Reçu/réception", cat: "Général" },
+  { he: "הנחה", translit: "Hanakha", fr: "Réduction", cat: "Général" },
+  { he: "מבט", translit: "Mabat", fr: "Regard / vue / vision", cat: "Général" },
+  { he: "תסתכל עליי", translit: "Tistakel alai", fr: "Regarde moi", cat: "Général" },
+  { he: "צפו", translit: "Tsfou", fr: "Regardez (impératif)", cat: "Général" },
+  { he: "אזור", translit: "Ezor", fr: "Région/zone", cat: "Général" },
+  { he: "חוק", translit: "Khok", fr: "Règle / loi", cat: "Général" },
+  { he: "באופן קבוע", translit: "Beofen kavoua", fr: "Régulièrement / souvent", cat: "Général" },
+  { he: "שותף / יחס", translit: "Chotef / yakhas", fr: "Relation", cat: "Général" },
+  { he: "דתי / דתייה", translit: "Dati", fr: "Religieux / croyant", cat: "Général" },
+  { he: "דת", translit: "Dat", fr: "Religion", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "שועל", translit: "Choual", fr: "Renard", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "פגישה / הכרות", translit: "P'gicha / hekherout", fr: "Rencontre / rdv", cat: "Général" },
+  { he: "משופץ", translit: "Mechoupets", fr: "Rénové", cat: "Général" },
+  { he: "ארוחה", translit: "Aroukha", fr: "Repas", cat: "Général" },
+  { he: "תשובה", translit: "Tchouva", fr: "Réponse", cat: "Général" },
+  { he: "מכבד", translit: "Mekhabed", fr: "Respectueux", cat: "Général" },
+
+  // --- Maison ---
+  { he: "אחראי", translit: "Akhara'i / it", fr: "Responsable (qualité)", cat: "Maison" },
+
+  // --- Général ---
+  { he: "ישיבה", translit: "Yechiva", fr: "Réunion", cat: "Général" },
+  { he: "חלום", translit: "Khalom", fr: "Rêve", cat: "Général" },
+  { he: "חזרה", translit: "Khazara", fr: "Révision / répétition", cat: "Général" },
+  { he: "קומת קרקה", translit: "Komat karka", fr: "Rez de chaussée", cat: "Général" },
+  { he: "עשיר / מליין(נית)", translit: "Achir / Malian(nit)", fr: "Riche", cat: "Général" },
+  { he: "שום דבר", translit: "Choum davar / kloum", fr: "Rien", cat: "Général" },
+  { he: "בטן גב", translit: "Beten gav", fr: "Rien faire (en vacances)", cat: "Général" },
+  { he: "חרוז", translit: "Kharouz", fr: "Rime", cat: "Général" },
+  { he: "נהר / נהרות", translit: "Nahar", fr: "Rivière", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "אורז", translit: "Orez", fr: "Riz", cat: "Nourriture" },
+
+  // --- Vêtements ---
+  { he: "שמלה", translit: "Simla", fr: "Robe", cat: "Vêtements" },
+
+  // --- Général ---
+  { he: "מלך", translit: "Melekh", fr: "Roi", cat: "Général" },
+  { he: "רומנטי", translit: "Romanti", fr: "Romantique", cat: "Général" },
+
+  // --- Couleurs ---
+  { he: "ורוד", translit: "Varod / Vrouda", fr: "Rose", cat: "Couleurs" },
+  { he: "אדום", translit: "Adom", fr: "Rouge", cat: "Couleurs" },
+
+  // --- Général ---
+  { he: "כביש", translit: "Kvich", fr: "Route / autoroute", cat: "Général" },
+  { he: "ממלכה", translit: "Mamlakha", fr: "Royaume", cat: "Général" },
+  { he: "רחוב", translit: "Rekhov", fr: "Rue", cat: "Général" },
+  { he: "ערמומי", translit: "Armoumi", fr: "Rusé", cat: "Général" },
+  { he: "אם יש", translit: "im yesh", fr: "S'il y a", cat: "Général" },
+  { he: "בריא", translit: "Bari / bri'a", fr: "Sain / bonne santé", cat: "Général" },
+  { he: "עונה", translit: "Hona", fr: "Saison", cat: "Général" },
+  { he: "משכורת / שכר", translit: "Maskoret / sakhar", fr: "Salaire", cat: "Général" },
+  { he: "מלוכלך", translit: "Meloukhlakh", fr: "Sale", cat: "Général" },
+  { he: "לכלוך", translit: "Likhloukh", fr: "Saleté", cat: "Général" },
+  { he: "חדר כושר", translit: "Khadar kocher", fr: "Salle de sport", cat: "Général" },
+  { he: "אדלאידע", translit: "Ad'loyada", fr: "Sans fin", cat: "Général" },
+  { he: "בילדיי", translit: "Biladai", fr: "Sans moi", cat: "Général" },
+  { he: "בלי סיבה", translit: "Bli siba", fr: "Sans raison", cat: "Général" },
+  { he: "בינוני", translit: "Beinouni", fr: "Sans saveur (ni bon ni mauvais)", cat: "Général" },
+  { he: "רותב", translit: "Rotev", fr: "Sauce", cat: "Général" },
+  { he: "מצב רוח", translit: "Matsav rouakh", fr: "Saute d'humeur", cat: "Général" },
+  { he: "מידע", translit: "Meida", fr: "Savoir", cat: "Général" },
+  { he: "מדע", translit: "Mada", fr: "Science", cat: "Général" },
+  { he: "טוסטוס", translit: "Toustous", fr: "Scooter", cat: "Général" },
+  { he: "יבש", translit: "Yavech", fr: "Sec", cat: "Général" },
+
+  // --- Temps ---
+  { he: "שניה", translit: "Chnia", fr: "Seconde", cat: "Temps" },
+
+  // --- Général ---
+  { he: "סוד", translit: "Sod", fr: "Secret", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "מלח", translit: "Melakh", fr: "Sel", cat: "Nourriture" },
+  { he: "לפי", translit: "Lefi", fr: "Selon", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "סנילי", translit: "Senili", fr: "Senile / gateux", cat: "Général" },
+  { he: "משמעות", translit: "Machmahout", fr: "Sens / signification", cat: "Général" },
+  { he: "תחושה", translit: "Tkhoucha", fr: "Sentiment / sensation", cat: "Général" },
+  { he: "סדרה", translit: "Sidra", fr: "Série", cat: "Général" },
+  { he: "רציני", translit: "Retsini", fr: "Sérieux", cat: "Général" },
+  { he: "מלצר / מלצרית", translit: "Meltsar / Meltsarit", fr: "Serveur (se)", cat: "Général" },
+  { he: "משמרת", translit: "Michmeret", fr: "Service/équipe", cat: "Général" },
+  { he: "מגבות אמבטיה", translit: "Magavot ambatia", fr: "Serviette de bain", cat: "Général" },
+  { he: "שמפו", translit: "Champo", fr: "Shampoing", cat: "Général" },
+  { he: "שנ׳׳צ", translit: "Chna\"tz", fr: "Sieste", cat: "Général" },
+  { he: "מאזניים", translit: "Moznaim", fr: "Signe Balance", cat: "Général" },
+  { he: "טלה", translit: "Tale", fr: "Signe Bélier", cat: "Général" },
+  { he: "סרתן", translit: "Sartan", fr: "Signe Cancer", cat: "Général" },
+  { he: "גדי", translit: "Gdi", fr: "Signe Capricorne", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "תאומים", translit: "Teoumim", fr: "Signe Gémeaux", cat: "Boissons" },
+
+  // --- Animaux ---
+  { he: "אריה", translit: "Arie", fr: "Signe Lion", cat: "Animaux" },
+
+  // --- Nourriture ---
+  { he: "דגים", translit: "Dagim", fr: "Signe Poisson", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "קשת", translit: "Kachat", fr: "Signe Sagitaire", cat: "Général" },
+  { he: "עקרב", translit: "Akrav", fr: "Signe Scorpion", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "שור", translit: "Chor", fr: "Signe Taureau", cat: "Boissons" },
+  { he: "דלי", translit: "Dli", fr: "Signe Verseau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "בתולה", translit: "Betoula", fr: "Signe Vierge", cat: "Général" },
+  { he: "כן", translit: "Kein", fr: "Sincère", cat: "Général" },
+  { he: "כנות", translit: "Keinout", fr: "Sincérité", cat: "Général" },
+  { he: "אתר אינטרנר", translit: "Atar internet", fr: "Site internet", cat: "Général" },
+
+  // --- Temps ---
+  { he: "חברה", translit: "Khavera", fr: "Société", cat: "Temps" },
+
+  // --- Général ---
+  { he: "צמה", translit: "Tsame", fr: "Soif", cat: "Général" },
+  { he: "מבצה", translit: "Mivtsa", fr: "Solde / opération", cat: "Général" },
+
+  // --- Maison ---
+  { he: "בודד", translit: "Boded (a)", fr: "Solitaire/célibataire", cat: "Maison" },
+
+  // --- Temps ---
+  { he: "יוצאים", translit: "Yotz'im", fr: "Sortir (avec des amis, en soirée)", cat: "Temps" },
+
+  // --- Général ---
+  { he: "משאלה", translit: "Mich'ala", fr: "Vœu / souhait", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "מרק", translit: "Marak", fr: "Soupe", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "מיוחד", translit: "Meyoukhad", fr: "Spécial", cat: "Général" },
+  { he: "מומחה", translit: "Moumkhe / khit", fr: "Spécialiste", cat: "Général" },
+  { he: "הצגה", translit: "Atsaga", fr: "Spectacle", cat: "Général" },
+  { he: "דייל", translit: "Dayal / Dayelet", fr: "Stewart / Hotesse de l'air", cat: "Général" },
+  { he: "עצור", translit: "Atsour", fr: "Stop", cat: "Général" },
+  { he: "לחץ", translit: "Lakhats", fr: "Stress", cat: "Général" },
+  { he: "מטומטם / טיפשי", translit: "Metoumtam / tipchi", fr: "Stupide/idiot/débile", cat: "Général" },
+  { he: "עט", translit: "Et", fr: "Stylo", cat: "Général" },
+  { he: "דרום", translit: "Darom", fr: "Sud", cat: "Général" },
+  { he: "השגחה פרטית", translit: "Achgakha pratit", fr: "Suivi personnalisé", cat: "Général" },
+  { he: "נושה", translit: "Nose", fr: "Sujet", cat: "Général" },
+  { he: "אחלה / סבבה", translit: "Akhla / Sababa", fr: "Super", cat: "Général" },
+  { he: "בהחלט", translit: "Be'ekhlet", fr: "Sûrement/bien sûr", cat: "Général" },
+  { he: "הפתעה", translit: "Aftaha", fr: "Surprise", cat: "Général" },
+  { he: "סמל", translit: "Semel", fr: "Symbole", cat: "Général" },
+  { he: "נחמד", translit: "Nekhmad", fr: "Sympa", cat: "Général" },
+  { he: "מערכת", translit: "Maharekhet", fr: "Système", cat: "Général" },
+  { he: "אין לך זין", translit: "Ein lekha zayin", fr: "T'as pas de couilles", cat: "Général" },
+
+  // --- Maison ---
+  { he: "שלחן קפה", translit: "Choulkhan cafe", fr: "Table basse", cat: "Maison" },
+
+  // --- Général ---
+  { he: "נמשים", translit: "Nemachim", fr: "Tâches de rousseur", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "גזרה / מידה", translit: "Gizra / mida", fr: "Taille", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "עקב", translit: "Hekev", fr: "Talent", cat: "Général" },
+  { he: "מאוחר", translit: "Meoukhar", fr: "Tard", cat: "Général" },
+  { he: "פאי", translit: "Pay", fr: "Tarte", cat: "Général" },
+  { he: "ספל", translit: "Sefel", fr: "Tasse", cat: "Général" },
+  { he: "קעקוע", translit: "Kaakoua", fr: "Tatouage", cat: "Général" },
+  { he: "חושך", translit: "Khochekh", fr: "Ténèbre", cat: "Général" },
+  { he: "אוהל", translit: "Ohel", fr: "Tente", cat: "Général" },
+  { he: "תלבושת", translit: "Tilbochet", fr: "Tenue/uniforme", cat: "Général" },
+  { he: "מפחיד", translit: "Mafkhid", fr: "Terrifiant/terrible", cat: "Général" },
+
+  // --- Corps ---
+  { he: "פרצוף תחת", translit: "Partsouf takhat", fr: "Tête de cul", cat: "Corps" },
+
+  // --- Général ---
+  { he: "פתק החלפה", translit: "Petek hakhlafa", fr: "Ticket de change", cat: "Général" },
+  { he: "ביישן", translit: "Baichan", fr: "Timide / réservé", cat: "Général" },
+  { he: "כותרת", translit: "Koteret", fr: "Titre", cat: "Général" },
+  { he: "גג", translit: "Gag", fr: "Toit", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "עגבנייה", translit: "Agvania", fr: "Tomate", cat: "Nourriture" },
+  { he: "עגבניהת שרי", translit: "Agvaniat chery", fr: "Tomate cerise", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "כפכפים", translit: "Cafcafim", fr: "Tong", cat: "Général" },
+  { he: "מוקדם", translit: "Moukdam", fr: "Tôt", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "עדיין", translit: "Adayin", fr: "Toujours / encore", cat: "Animaux" },
+  { he: "תמיד", translit: "Tamid", fr: "Toujours / jamais", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "תייר", translit: "Tayar", fr: "Touriste", cat: "Général" },
+  { he: "מאוחדים", translit: "Meoukhadim", fr: "Tous unis", cat: "Général" },
+  { he: "מייד", translit: "Miyad", fr: "Tout de suite / immédiatement", cat: "Général" },
+  { he: "ישיר", translit: "Yachar", fr: "Tout droit", cat: "Général" },
+  { he: "כל מיני", translit: "Kol minei", fr: "Toute sorte", cat: "Général" },
+  { he: "מסורת", translit: "Massoret", fr: "Tradition", cat: "Général" },
+  { he: "רכבת", translit: "Rakevet", fr: "Train", cat: "Général" },
+
+  // --- Maison ---
+  { he: "שלווה", translit: "Chalva", fr: "Tranquillité/paix/calme", cat: "Maison" },
+
+  // --- Général ---
+  { he: "תחבורה", translit: "Takhboura", fr: "Transport", cat: "Général" },
+
+  // --- Nourriture ---
+  { he: "עבודה / משרה", translit: "Avoda / misra", fr: "Travail", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "רע מאוד", translit: "Ra meod", fr: "Très mal", cat: "Général" },
+  { he: "אוצר", translit: "Otsar", fr: "Trésor", cat: "Général" },
+  { he: "צמות", translit: "Tsamot", fr: "Tresses", cat: "Général" },
+  { he: "רמאות", translit: "Ramaout", fr: "Triche/arnaque/escroquerie", cat: "Général" },
+  { he: "עצוב", translit: "Atsouv", fr: "Triste", cat: "Général" },
+  { he: "מידי", translit: "Midai", fr: "Trop", cat: "Général" },
+  { he: "יותר מידי", translit: "Yoter Midai", fr: "Trop / too much", cat: "Général" },
+  { he: "ממש", translit: "Mamach", fr: "Trop / vraiment", cat: "Général" },
+  { he: "נקב", translit: "Nekev", fr: "Trou", cat: "Général" },
+  { he: "אתה צודק", translit: "Ata Tsodek / deket", fr: "Tu as raison", cat: "Général" },
+  { he: "לא אכפת לך", translit: "Lo ekhpat lekha", fr: "Tu t'en fous", cat: "Général" },
+  { he: "להרוג טורקי ולנוח", translit: "Laharog tourki ve lanouakh", fr: "Tuer un turc et se reposer", cat: "Général" },
+  { he: "סוג", translit: "Soug", fr: "Type/genre/sorte", cat: "Général" },
+  { he: "גבר גבר", translit: "Gever gever", fr: "Un homme (un vrai)", cat: "Général" },
+
+  // --- Temps ---
+  { he: "יום עסל יום בצל", translit: "Yom hasal yom batsal", fr: "Un jour avec un jour sans", cat: "Temps" },
+
+  // --- Général ---
+  { he: "קצת / מעט", translit: "Ktsat / meat", fr: "Un peu", cat: "Général" },
+  { he: "ריקוד", translit: "Rikoud", fr: "Une danse", cat: "Général" },
+  { he: "פעם", translit: "Pa'am", fr: "Une fois / autrefois / avant", cat: "Général" },
+  { he: "אחת ולתמיד", translit: "Akhat veletamid", fr: "Une fois pour toute", cat: "Général" },
+  { he: "דקה", translit: "Daka", fr: "Une minute", cat: "Général" },
+  { he: "חלק", translit: "Khelek", fr: "Une partie", cat: "Général" },
+  { he: "תלבושת אחידה", translit: "Tilbochet akhida", fr: "Uniforme", cat: "Général" },
+  { he: "יחיד", translit: "Yakhid", fr: "Unique", cat: "Général" },
+  { he: "חירום", translit: "Kheiroum", fr: "Urgence", cat: "Général" },
+  { he: "חופש", translit: "Khofech", fr: "Vacances", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "פרה", translit: "Para", fr: "Vache", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "מזוודה", translit: "Mizvada", fr: "Valise", cat: "Général" },
+  { he: "עמק", translit: "Emek", fr: "Vallée", cat: "Général" },
+  { he: "טבעוני", translit: "Tiv'oni/t", fr: "Végan(e)", cat: "Général" },
+  { he: "צמחוני", translit: "Tsimkhoni", fr: "Végétarien", cat: "Général" },
+  { he: "אופנוע / אופניים", translit: "Ofanoa", fr: "Vélo", cat: "Général" },
+  { he: "מוכר", translit: "Mokher", fr: "Vendeur/familier/connu", cat: "Général" },
+  { he: "למכור בנזיד עדשים", translit: "Limkor benezid hadachim", fr: "Vendre pour une misère", cat: "Général" },
+  { he: "בדיקה", translit: "Bedika", fr: "Vérification", cat: "Général" },
+  { he: "בידוק בטחון", translit: "Bidouk bitakhon", fr: "Vérification de sécurité", cat: "Général" },
+  { he: "אמת", translit: "Emet", fr: "Vérité", cat: "Général" },
+  { he: "כוס", translit: "Cos", fr: "Verre", cat: "Général" },
+  { he: "פסוק", translit: "Pasouk", fr: "Verset", cat: "Général" },
+
+  // --- Couleurs ---
+  { he: "ירוק", translit: "Yarok", fr: "Vert", cat: "Couleurs" },
+
+  // --- Vêtements ---
+  { he: "ז׳קט", translit: "Djaket", fr: "Veste (jacket)", cat: "Vêtements" },
+
+  // --- Boissons ---
+  { he: "מעיל", translit: "Me'il", fr: "Veste / manteau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "בגדים", translit: "Bgadim", fr: "Vêtements", cat: "Général" },
+  { he: "קורבן", translit: "Korban", fr: "Victime", cat: "Général" },
+  { he: "סרטון", translit: "Sirton", fr: "Vidéo/clip", cat: "Général" },
+  { he: "חבר ותיק", translit: "Khaver vatik", fr: "Vieil ami", cat: "Général" },
+  { he: "ישן / ישנה", translit: "Yachan / Yechana", fr: "Vieux / vielle", cat: "Général" },
+  { he: "עיר", translit: "Ir", fr: "Ville", cat: "Général" },
+  { he: "אלים", translit: "Alim", fr: "Violent", cat: "Général" },
+
+  // --- Couleurs ---
+  { he: "סגול", translit: "Sagol / Sgoula", fr: "Violet", cat: "Couleurs" },
+
+  // --- Général ---
+  { he: "נקודה", translit: "Nekouda", fr: "Virgule", cat: "Général" },
+
+  // --- Corps ---
+  { he: "פרצוף", translit: "Partsouf", fr: "Visage / tête", cat: "Corps" },
+
+  // --- Général ---
+  { he: "חי בסרט", translit: "Khai baseret", fr: "Vivre dans un film", cat: "Général" },
+  { he: "שכן", translit: "Chakhen/chkhena", fr: "Voisin", cat: "Général" },
+  { he: "מכונית / אוטו", translit: "Mekhonit / oto", fr: "Voiture", cat: "Général" },
+  { he: "קול", translit: "Kol", fr: "Voix", cat: "Général" },
+  { he: "טיסה", translit: "Tissa", fr: "Vol", cat: "Général" },
+  { he: "גנב", translit: "Ganav", fr: "Voleur", cat: "Général" },
+  { he: "רצון", translit: "Ratson", fr: "Volonté", cat: "Général" },
+  { he: "מגדת התידות", translit: "Magedet hatidout", fr: "Voyante", cat: "Général" },
+  { he: "בהמת / בהצם", translit: "Behemet / behetsem", fr: "Vraiment", cat: "Général" },
+  { he: "חבל על הזמן", translit: "Khaval al azman", fr: "Vraiment cool", cat: "Général" },
+
+  // --- Famille ---
+  { he: "תאומים (לא) זהים", translit: "Teomim (lo) zehim", fr: "Vrais (faux) jumeaux", cat: "Famille" },
+
+  // --- Général ---
+  { he: "נוף", translit: "Nof", fr: "Vue", cat: "Général" },
+  { he: "סופ׳׳ש", translit: "Sof achavoua (Sofa''ch)", fr: "Week-end", cat: "Général" },
+
+  // --- Corps ---
+  { he: "עיניים", translit: "Enayim", fr: "Yeux", cat: "Corps" },
+
+  // --- Nourriture ---
+  { he: "מפריעה", translit: "Mafria", fr: "Gêne / empêche", cat: "Nourriture" },
+
+  // --- Général ---
+  { he: "אבוד", translit: "Avoud", fr: "Perdu / égaré", cat: "Général" },
+  { he: "מקרה", translit: "Mikre", fr: "Cas / événement", cat: "Général" },
+  { he: "לכן", translit: "Lakhen", fr: "Donc / alors / c'est pourquoi", cat: "Général" },
+  { he: "קהל", translit: "Kahal", fr: "Public / foule", cat: "Général" },
+  { he: "מזוויף", translit: "Mezouyaf", fr: "Bidon / truqué / factice", cat: "Général" },
+  { he: "צבוע", translit: "Tsavoua", fr: "Hypocrite", cat: "Général" },
+
+  // --- Maison ---
+  { he: "נימוס", translit: "Nimous", fr: "Politesse / respect", cat: "Maison" },
+
+  // --- Temps ---
+  { he: "לצערי", translit: "Letsa'ari", fr: "Malheureusement", cat: "Temps" },
+
+  // --- Général ---
+  { he: "מדוע", translit: "Madoua", fr: "Pourquoi", cat: "Général" },
+  { he: "גבירתי / גברת", translit: "Gvirti (seul)/Geveret (+nom)", fr: "Madame", cat: "Général" },
+  { he: "מצע", translit: "Mats'a", fr: "Drap", cat: "Général" },
+  { he: "רשמי", translit: "Richmi", fr: "Officiel", cat: "Général" },
+  { he: "פקיד", translit: "Pakid", fr: "Fonctionnaire/employé", cat: "Général" },
+  { he: "ריק", translit: "Reik", fr: "Vide", cat: "Général" },
+  { he: "חסר מילים", translit: "Khasar milim", fr: "Sans voix / sans mot", cat: "Général" },
+  { he: "רגיש", translit: "Ragich", fr: "Sensible", cat: "Général" },
+
+  // --- Maison ---
+  { he: "רגישות", translit: "Regichout", fr: "Sensibilité", cat: "Maison" },
+
+  // --- Général ---
+  { he: "מקרה אבוד", translit: "Mikre avoud", fr: "Cause perdue", cat: "Général" },
+
+  // --- Maison ---
+  { he: "סיכוי", translit: "Sikoui", fr: "Chance/risque/probabilité", cat: "Maison" },
+
+  // --- Général ---
+  { he: "משותף", translit: "Mechoutaf", fr: "Commun", cat: "Général" },
+  { he: "טיפ", translit: "Tip", fr: "Conseil/astuce/pourboire", cat: "Général" },
+  { he: "משום מקום", translit: "Michoum makom", fr: "Nulle part / soudain", cat: "Général" },
+  { he: "הגיוני", translit: "Hegioni", fr: "Logique", cat: "Général" },
+  { he: "היגיע לי", translit: "Higia li", fr: "Mérité", cat: "Général" },
+  { he: "חוסר ביטחון", translit: "Khoser bitakhon", fr: "Manque de confiance/d'assurance", cat: "Général" },
+  { he: "אמיץ", translit: "Amitz", fr: "Courageux", cat: "Général" },
+  { he: "מבולבל", translit: "Mevoulbal", fr: "Confu", cat: "Général" },
+  { he: "אל הורי", translit: "Al hori", fr: "Ne veut pas d'enfant", cat: "Général" },
+  { he: "עקשני", translit: "Akchani", fr: "Têtu", cat: "Général" },
+  { he: "מעש", translit: "Maas", fr: "Action / acte", cat: "Général" },
+  { he: "ניצחון", translit: "Nitzakhon", fr: "Victoire", cat: "Général" },
+  { he: "זהירות", translit: "Zehirout", fr: "Attention", cat: "Général" },
+  { he: "די היגיוני", translit: "Di (dai) higioni", fr: "C'est logique", cat: "Général" },
+
+  // --- Temps ---
+  { he: "יומן", translit: "Yoman", fr: "Agenda / journal intime", cat: "Temps" },
+
+  // --- Général ---
+  { he: "התלבטות", translit: "Hitlabtot", fr: "Hésitation", cat: "Général" },
+  { he: "ירושה", translit: "Yeroucha", fr: "Héritage", cat: "Général" },
+
+  // --- Maison ---
+  { he: "אשמה", translit: "Achma", fr: "Culpabilité", cat: "Maison" },
+
+  // --- Général ---
+  { he: "קשקשן", translit: "Kachkechan", fr: "Pipelette / grande gueule", cat: "Général" },
+  { he: "כפול", translit: "Kafoul", fr: "Double", cat: "Général" },
+  { he: "דעה", translit: "Dea", fr: "Avis / opinion", cat: "Général" },
+  { he: "לשבור את הקרח", translit: "Lichbor et akerakh", fr: "Briser la glace", cat: "Général" },
+
+  // --- Corps ---
+  { he: "אזרח", translit: "Ezrakh", fr: "Résident", cat: "Corps" },
+
+  // --- Général ---
+  { he: "פושע", translit: "Pochea", fr: "Criminel", cat: "Général" },
+  { he: "לכאורה", translit: "Likh'ora", fr: "Apparemment", cat: "Général" },
+  { he: "חנינה", translit: "Khamina", fr: "Amnistie", cat: "Général" },
+  { he: "קלפי", translit: "Kalpi", fr: "Urne", cat: "Général" },
+  { he: "נכה", translit: "Nekhe / nekha", fr: "Handicapé", cat: "Général" },
+  { he: "קצה", translit: "Katse", fr: "Extrême", cat: "Général" },
+  { he: "סקר", translit: "Seker", fr: "Sondage", cat: "Général" },
+
+  // --- Corps ---
+  { he: "תספורת", translit: "Tisporet", fr: "Coupe (cheveux)", cat: "Corps" },
+
+  // --- Général ---
+  { he: "ספר", translit: "Sapar", fr: "Coiffeur", cat: "Général" },
+
+  // --- Maison ---
+  { he: "מספרה", translit: "Maspera", fr: "Salon de coiffure", cat: "Maison" },
+
+  // --- Général ---
+  { he: "נמשכת", translit: "Nimchekh", fr: "Je suis attiré", cat: "Général" },
+  { he: "אוכלוסייה", translit: "Okhlousia", fr: "Population", cat: "Général" },
+  { he: "רשום", translit: "Rachoum", fr: "Inscrit", cat: "Général" },
+  { he: "כלומר", translit: "Klomar / keilou", fr: "Enfin / c'est à dire", cat: "Général" },
+  { he: "כ", translit: "Ke", fr: "Environ / à peu près", cat: "Général" },
+  { he: "כולל", translit: "Kolel", fr: "Y compris", cat: "Général" },
+  { he: "נחשב", translit: "Nikhchav", fr: "Semble que", cat: "Général" },
+  { he: "תחבורה ציבורית", translit: "Takhboura tsibourit", fr: "Transport en commun", cat: "Général" },
+  { he: "עירום", translit: "Heyrom", fr: "Nu", cat: "Général" },
+  { he: "לא לגעת", translit: "Lo lagaat", fr: "Pas touche", cat: "Général" },
+  { he: "חיפוס", translit: "Khipous", fr: "Recherche", cat: "Général" },
+  { he: "דוש", translit: "Douch", fr: "Crétin / connard", cat: "Général" },
+  { he: "מתכנת", translit: "Metakhnet", fr: "Programmeur (codeur)", cat: "Général" },
+  { he: "תכנות", translit: "Tikhnout", fr: "Programmation (code)", cat: "Général" },
+  { he: "שייך", translit: "Chayakh", fr: "Appartenir", cat: "Général" },
+  { he: "מין", translit: "Min", fr: "Sorte / espèce / sexe", cat: "Général" },
+  { he: "נפוץ", translit: "Nefotz", fr: "Courant / commun", cat: "Général" },
+  { he: "בולבול", translit: "Boulboul", fr: "Zizi", cat: "Général" },
+  { he: "חיובי", translit: "Khiouvi", fr: "Positif", cat: "Général" },
+  { he: "שלילי", translit: "Chlili", fr: "Négatif", cat: "Général" },
+  { he: "שלילה", translit: "Chlila", fr: "Négation", cat: "Général" },
+  { he: "יחידה קרבית", translit: "Yikhida kravit", fr: "Unité combattate", cat: "Général" },
+  { he: "ברצף", translit: "Beretzef", fr: "D'affilé", cat: "Général" },
+  { he: "מסטול", translit: "Mastoul", fr: "Défoncé / drogué", cat: "Général" },
+  { he: "סמים", translit: "Samim", fr: "Drogues", cat: "Général" },
+  { he: "להתארגן", translit: "Lehit'argen", fr: "Trouver de la drogue", cat: "Général" },
+  { he: "חול", translit: "Khol", fr: "Sable", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "יום חול", translit: "Yom khol", fr: "Tous les jours (sauf chabat)", cat: "Animaux" },
+
+  // --- Maison ---
+  { he: "איכותי", translit: "Eikhouti", fr: "Qualité", cat: "Maison" },
+
+  // --- Général ---
+  { he: "ניגוד", translit: "Nigoud", fr: "Contradiction", cat: "Général" },
+  { he: "אישי", translit: "Ichi", fr: "Personnel", cat: "Général" },
+  { he: "מרחב מוגן", translit: "Merkhav mougan", fr: "Pièce sécurisée", cat: "Général" },
+  { he: "למען האמת", translit: "Lema'an haemet", fr: "Pour dire la vérité", cat: "Général" },
+  { he: "במקרה", translit: "Bemikre", fr: "Par hasard / en cas / au cas où", cat: "Général" },
+  { he: "אומנה", translit: "Omna", fr: "Famille d'accueil", cat: "Général" },
+  { he: "פרס", translit: "Pras", fr: "Récompense/prix", cat: "Général" },
+  { he: "מאזין", translit: "Ma'azin", fr: "Auditeur", cat: "Général" },
+  { he: "גרועה", translit: "Geroua", fr: "Pire", cat: "Général" },
+  { he: "מזויף", translit: "Mezouyaf", fr: "Faux / bidon", cat: "Général" },
+  { he: "מהיכן", translit: "Meeikhan", fr: "D'où", cat: "Général" },
+  { he: "גזע", translit: "Geiza", fr: "Tronc (race)", cat: "Général" },
+  { he: "גזענות", translit: "Gizanout", fr: "Racisme", cat: "Général" },
+  { he: "גזען", translit: "Geizan", fr: "Raciste", cat: "Général" },
+  { he: "צב", translit: "Tsav", fr: "Tortue", cat: "Général" },
+  { he: "אוגר", translit: "Oger", fr: "Hamster", cat: "Général" },
+  { he: "עמותה", translit: "Amouta", fr: "Association", cat: "Général" },
+  { he: "מתבגר", translit: "Mitbager", fr: "Adolescent", cat: "Général" },
+
+  // --- Temps ---
+  { he: "למחרת", translit: "Lemakharat", fr: "Le lendemain", cat: "Temps" },
+
+  // --- Général ---
+  { he: "צרכים רגשיים", translit: "Tsrakhim regchiim", fr: "Besoins émotionnels", cat: "Général" },
+  { he: "צרכים נפשיים", translit: "Tsrakhim nefchiim", fr: "Besoins mentaux", cat: "Général" },
+  { he: "חרדה", translit: "Kharada", fr: "Angoisse", cat: "Général" },
+  { he: "התקף חרדה", translit: "Etkef kharada", fr: "Crise d'angoisse", cat: "Général" },
+  { he: "חברותי", translit: "Khevrouti", fr: "Sociable", cat: "Général" },
+  { he: "בעקבות", translit: "Behikvot", fr: "Suite à", cat: "Général" },
+  { he: "חווה", translit: "Khava", fr: "Ferme (animaux)", cat: "Général" },
+  { he: "כלוב", translit: "Klouv", fr: "Cage", cat: "Général" },
+  { he: "להקה", translit: "Lehaka", fr: "Groupe (musique / animaux)", cat: "Général" },
+
+  // --- Temps ---
+  { he: "חברה", translit: "Khevra", fr: "Société", cat: "Temps" },
+
+  // --- Général ---
+  { he: "מציל", translit: "Metsil", fr: "Sauveteur", cat: "Général" },
+  { he: "קושי", translit: "Kochi", fr: "Difficillement", cat: "Général" },
+
+  // --- Temps ---
+  { he: "רכוש", translit: "Rekhouch", fr: "Propriété", cat: "Temps" },
+
+  // --- Général ---
+  { he: "התעללות", translit: "Hit'alelout", fr: "Abus / maltraitance", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "פייר", translit: "Fair", fr: "Fair / juste", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "צער", translit: "Tsa'ar", fr: "Tristesse", cat: "Général" },
+  { he: "מרפאה", translit: "Mirpa", fr: "Cabinet / clinique", cat: "Général" },
+  { he: "עצמאים", translit: "Estmaim", fr: "Indépendant (à ton compte)", cat: "Général" },
+  { he: "קלקלה", translit: "Kalkala", fr: "Economie", cat: "Général" },
+  { he: "תלוש שכר", translit: "Tlouch sakhar", fr: "Fiche de paye", cat: "Général" },
+  { he: "השוואה", translit: "Hachva'a", fr: "Comparaison", cat: "Général" },
+  { he: "ממוצה", translit: "Memoutsa", fr: "Moyenne", cat: "Général" },
+  { he: "מומלץ", translit: "Moumlats", fr: "Conseillé", cat: "Général" },
+  { he: "מנהרה", translit: "Minara", fr: "Tunnel", cat: "Général" },
+  { he: "קו העוני", translit: "Kav Ha'oni", fr: "Seuil de pauvreté", cat: "Général" },
+  { he: "שימושי", translit: "Chimouchi", fr: "Utile / pratique", cat: "Général" },
+  { he: "שפת אם", translit: "Sfat am", fr: "Langue maternelle", cat: "Général" },
+  { he: "סבב", translit: "Sevev", fr: "Cycle", cat: "Général" },
+  { he: "מחלה", translit: "Makhala", fr: "Maladie", cat: "Général" },
+  { he: "מרושע", translit: "Meroucha", fr: "Méchant", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "שכל", translit: "Sekhel", fr: "Cerveau", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "זר", translit: "Zar", fr: "étranger", cat: "Général" },
+  { he: "מאולף", translit: "Me'oulaf", fr: "Dressé", cat: "Général" },
+  { he: "ארצה", translit: "Artsa", fr: "Couché!", cat: "Général" },
+  { he: "זנב", translit: "Zanav", fr: "Queue", cat: "Général" },
+  { he: "לכשכש בזנה", translit: "Lekachkech bazanav", fr: "Remuer la queue", cat: "Général" },
+  { he: "ישבן", translit: "Yachvan", fr: "Fesse", cat: "Général" },
+  { he: "הוכחה", translit: "Hokhakha", fr: "Preuve", cat: "Général" },
+  { he: "מחונך", translit: "Mekhounakh", fr: "Eduqué", cat: "Général" },
+  { he: "אנוכי", translit: "Anokhi", fr: "Egoiste", cat: "Général" },
+  { he: "שטיח", translit: "Chatiakh", fr: "Tapis", cat: "Général" },
+
+  // --- Animaux ---
+  { he: "ברווז", translit: "Barvaz", fr: "Canard", cat: "Animaux" },
+
+  // --- Général ---
+  { he: "קטע", translit: "Keta", fr: "Truc", cat: "Général" },
+  { he: "באנה", translit: "Bona", fr: "Allez ! Vas y ! (come on)", cat: "Général" },
+  { he: "טוס מפה", translit: "Tous mipo", fr: "Casse toi !", cat: "Général" },
+  { he: "הייתי פה", translit: "Ayiti po", fr: "J'me casse", cat: "Général" },
+  { he: "תודה מראש", translit: "Toda meroch", fr: "Merci d'avance", cat: "Général" },
+  { he: "נחייה", translit: "Nekhia", fr: "Guide", cat: "Général" },
+  { he: "מפיק", translit: "Mefik", fr: "Producteur (celui qui cheche l'argent)", cat: "Général" },
+  { he: "צלם", translit: "Tselem", fr: "Photographe/caméraman", cat: "Général" },
+  { he: "עורכת", translit: "Orekhet", fr: "Monteur vidéo", cat: "Général" },
+  { he: "מעצב פסקול", translit: "Meatsev paskol", fr: "Moneur son/audio", cat: "Général" },
+  { he: "מקליט", translit: "Maklit", fr: "Enregisteur", cat: "Général" },
+  { he: "פליט", translit: "Palit", fr: "Réfugié", cat: "Général" },
+  { he: "איטי", translit: "Iti", fr: "Lent", cat: "Général" },
+  { he: "מבטא", translit: "Mivta", fr: "Accent", cat: "Général" },
+  { he: "יחד איתו", translit: "Yakhad ito", fr: "Avec lui", cat: "Général" },
+  { he: "ממון", translit: "Mamon", fr: "Argent", cat: "Général" },
+  { he: "בסופו של דבר", translit: "Besofo chel davar", fr: "En fin de compte / finalement", cat: "Général" },
+  { he: "הלך עליו", translit: "Alakh alav", fr: "Il est foutu / fini", cat: "Général" },
+  { he: "אשם", translit: "Achem", fr: "Coupable", cat: "Général" },
+
+  // --- Maison ---
+  { he: "ספק", translit: "Safek", fr: "Fournisseur", cat: "Maison" },
+
+  // --- Général ---
+  { he: "אימון", translit: "imoun", fr: "Entrainement", cat: "Général" },
+  { he: "קול רם", translit: "Kol ram", fr: "Voix haute", cat: "Général" },
+  { he: "זקוק", translit: "Zadouk", fr: "Besoin (+ fort que tsarikh)", cat: "Général" },
+  { he: "ליווי", translit: "Livoui", fr: "Accompagnement", cat: "Général" },
+  { he: "חיית מחמד", translit: "Khayat makhmad", fr: "Animal de compagnie/domestique", cat: "Général" },
+  { he: "קבוע", translit: "Kavoa", fr: "Permanent", cat: "Général" },
+  { he: "תמיכה", translit: "Tmikha", fr: "Soutien", cat: "Général" },
+  { he: "סיוע", translit: "Siyoua", fr: "Aide / assistance", cat: "Général" },
+  { he: "מוגבלות", translit: "Mougbalout", fr: "Handicapé (plus joli)", cat: "Général" },
+  { he: "תהליך", translit: "Taalikh", fr: "Processus", cat: "Général" },
+  { he: "לצאת פיתה", translit: "Latset pita", fr: "Passer pour un idiot / se faire avoir", cat: "Général" },
+  { he: "מעפן", translit: "Ma'afen", fr: "Nul / pourri / ringard", cat: "Général" },
+  { he: "גרוע", translit: "Garoua / groua", fr: "Nul / mauvais", cat: "Général" },
+  { he: "גאון", translit: "Ga'on", fr: "Génie", cat: "Général" },
+  { he: "לעשות צחוק מעצמי", translit: "Laasot Tskhok meatsmi", fr: "Se ridiculiser / foutre la honte", cat: "Général" },
+  { he: "מגוחך", translit: "Megoukhakh", fr: "Ridicule", cat: "Général" },
+  { he: "לשלוף מהמותן", translit: "Lichlof mehamoten", fr: "Répondre ou agir sans réfléchir", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "לאכול את הכוכע", translit: "Leekhol et hakova", fr: "Ravaler son chapeau (reconnaître son erreur)", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "לאכול אותה", translit: "Leekhol ota", fr: "Se faire avoir / subir les conséquences", cat: "Général" },
+  { he: "איזה באסה", translit: "Eize ba'asa", fr: "Quel dommage / galère", cat: "Général" },
+
+  // --- Corps ---
+  { he: "בעל פה", translit: "Beal pe", fr: "Oralement / par cœur", cat: "Corps" },
+
+  // --- Général ---
+  { he: "בכתב", translit: "Bikhtav", fr: "à l'écrit", cat: "Général" },
+  { he: "חופש הביטוי", translit: "Khofech habitoui", fr: "Liberté d'expression", cat: "Général" },
+  { he: "ויכוח", translit: "Vikouakh", fr: "Débat", cat: "Général" },
+  { he: "לנהל דיון", translit: "Lenahel diyoun", fr: "Mener une discussion", cat: "Général" },
+  { he: "עמדה", translit: "Emda", fr: "Position / opinion", cat: "Général" },
+  { he: "מקרה", translit: "Mikre", fr: "Cas / hasard", cat: "Général" },
+  { he: "על הניר", translit: "Al haniyar", fr: "Sur le papier", cat: "Général" },
+  { he: "שופט", translit: "Chofet", fr: "Juge / arbitre", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "צדק", translit: "Tsedek", fr: "Justice / raison", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "ראיה", translit: "Re'aya", fr: "Evidence", cat: "Général" },
+  { he: "הוכחה", translit: "Hokhakha", fr: "Preuve", cat: "Général" },
+  { he: "רצר", translit: "Retsar", fr: "Homicide", cat: "Général" },
+  { he: "גלויה", translit: "Glouya", fr: "Carte postale", cat: "Général" },
+
+  // --- Maison ---
+  { he: "חצר", translit: "Khatser", fr: "Petit jardin", cat: "Maison" },
+  { he: "שטויות במיץ עגבניות", translit: "Chtouyot bemitz agvaniot", fr: "N'importe quoi", cat: "Maison" },
+
+  // --- Général ---
+  { he: "ישבן", translit: "Yechvan", fr: "Postérieur (fesses)", cat: "Général" },
+  { he: "חזה", translit: "Khaze", fr: "Poitrine", cat: "Général" },
+  { he: "חרב", translit: "Kherev", fr: "Epée / sabre", cat: "Général" },
+  { he: "עד", translit: "Hed", fr: "Echo", cat: "Général" },
+  { he: "טיעון / טענה", translit: "Tihoun / tehena", fr: "Argument", cat: "Général" },
+  { he: "מאמר / כתבה", translit: "Ma'amar / Katava", fr: "Article", cat: "Général" },
+  { he: "מסקנה", translit: "Maskana", fr: "Conclusion", cat: "Général" },
+
+  // --- Boissons ---
+  { he: "נימוק", translit: "Nimouk", fr: "Justification", cat: "Boissons" },
+
+  // --- Général ---
+  { he: "ניתן", translit: "Niten", fr: "Possible", cat: "Général" },
+  { he: "לעיתים קרובות", translit: "Lehitim krovot", fr: "Souvent", cat: "Général" },
+  { he: "לעיתים רחוכות", translit: "Lehitim rekhokot", fr: "Rarement", cat: "Général" },
+  { he: "לכן", translit: "Lakhen", fr: "Donc", cat: "Général" },
+  { he: "על כן", translit: "Al ken", fr: "Par conséquent", cat: "Général" },
+  { he: "אם כן", translit: "im ken", fr: "Alors / donc", cat: "Général" },
+  { he: "לפיכך", translit: "Lefikhakh", fr: "De ce fait / ainsi", cat: "Général" },
+  { he: "לקראת", translit: "Likrat", fr: "Avant", cat: "Général" },
+  { he: "שרב", translit: "Charav", fr: "Canicule", cat: "Général" },
+
+  // --- Maison ---
+  { he: "מפלגה", translit: "Miflaga", fr: "Parti politique", cat: "Maison" },
+
+  // --- Général ---
+  { he: "חידות", translit: "Khidot", fr: "Enigme", cat: "Général" },
+  { he: "מנהיג", translit: "Manhig", fr: "Chef / leader", cat: "Général" },
+  { he: "ציבור", translit: "Tsibour", fr: "Public", cat: "Général" },
+  { he: "קיצוני", translit: "Kitsoni", fr: "Extrême", cat: "Général" },
+  { he: "קולות", translit: "Kolot", fr: "Votes", cat: "Général" },
+  { he: "אחוז החסימה", translit: "Akhouz akhasima", fr: "% minimum", cat: "Général" },
+  { he: "הימור", translit: "Himour", fr: "Risque / pari", cat: "Général" },
+  { he: "ביקורת", translit: "Bikoret", fr: "Critique", cat: "Général" },
+  { he: "לגבי", translit: "Legabe", fr: "à propos", cat: "Général" },
+  { he: "מחאה", translit: "Mekha'a", fr: "Protestation", cat: "Général" },
+  { he: "שטח", translit: "Chetakh", fr: "Terrain / espace", cat: "Général" },
+  { he: "כיוון", translit: "Kivoun", fr: "Direction", cat: "Général" },
+  { he: "תוצאה", translit: "Totsa'a", fr: "Résultat", cat: "Général" },
 ];
