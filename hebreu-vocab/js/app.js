@@ -180,9 +180,14 @@ function normalizeTranslit(text) {
     .replace(/kh/g, "ch");
 }
 
-/* Garde uniquement les lettres hébraïques (enlève niqqoud, espaces…) */
+/* Garde uniquement les lettres hébraïques (enlève niqqoud, espaces…)
+   et assimile les lettres finales (ך ם ן ף ץ) à leur forme normale
+   (כ מ נ פ צ) : c'est la même lettre, seule l'apparence change. */
+const FINAL_LETTERS = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
 function hebrewLetters(text) {
-  return text.replace(/[^א-ת]/g, "");
+  return text
+    .replace(/[^א-ת]/g, "")
+    .replace(/[ךםןףץ]/g, (c) => FINAL_LETTERS[c]);
 }
 
 /* Une réponse de conjugaison est bonne si elle correspond à la forme
