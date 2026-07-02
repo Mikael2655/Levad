@@ -278,6 +278,102 @@ body {
 .session-score .ok  { color: var(--good); }
 .session-score .ko  { color: var(--bad); }
 
+/* ---------- Conjugaison ---------- */
+.segmented {
+  display: flex;
+  background: #e6e2da;
+  border-radius: var(--radius);
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 0.9rem;
+}
+.seg-btn {
+  flex: 1;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.55rem 0.4rem;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.seg-btn.active {
+  background: var(--card);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.conj-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.conj-select {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border-radius: 10px;
+  border: 2px solid #e3ded4;
+  background: var(--card);
+  max-width: 100%;
+}
+
+.conj-badges {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+.badge {
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: var(--bg);
+  color: var(--muted);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+}
+.badge-tense {
+  background: var(--accent);
+  color: #fff;
+}
+
+.option-he .he { font-size: 1.5rem; font-weight: 700; }
+.option-he { text-align: center; }
+
+.conj-table-block {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+.conj-tense-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+.conj-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.conj-table td {
+  padding: 0.45rem 0.3rem;
+  border-top: 1px solid #efece5;
+  vertical-align: middle;
+}
+.conj-table .personne { font-size: 0.85rem; color: var(--muted); }
+.conj-table .form {
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+.conj-table .translit { font-size: 0.9rem; text-align: right; padding-inline-start: 0.6rem; }
+
+.feedback .he { font-size: 1.25rem; font-weight: 700; }
+
 /* ---------- Page Progrès ---------- */
 .progress-summary {
   display: grid;

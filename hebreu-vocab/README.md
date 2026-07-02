@@ -46,6 +46,42 @@ ligne sur ce modèle :
 le fichier en UTF-8 (c'est le réglage par défaut de presque tous les
 éditeurs).
 
+## 🔤 Ajouter des verbes (conjugaison)
+
+Les verbes vivent dans `js/verbes.js`. Chaque verbe est un bloc avec
+son infinitif, sa traduction, et un tableau par temps :
+
+```js
+{
+  inf: "לכתוב", translit: "lichtov", fr: "écrire",
+  temps: {
+    "Présent": [
+      { p: "masc. sing. (אני / אתה / הוא)", he: "כותב", t: "kotev" },
+      // ... une ligne par personne
+    ],
+    "Passé": [ /* ... */ ],
+    "Futur": [ /* ... */ ],
+  },
+},
+```
+
+- `p` : la personne (libellé libre, affiché tel quel)
+- `he` : la forme conjuguée en hébreu
+- `t` : sa prononciation
+
+Vous pouvez ajouter **n'importe quel temps** (impératif, etc.) : il
+apparaîtra automatiquement dans le filtre des exercices. Le plus simple
+est de copier un bloc entier de verbe et de le modifier.
+
+L'onglet Conjugaison propose trois modes :
+
+- **📖 Tableaux** : consulter la conjugaison complète d'un verbe ;
+- **✅ QCM** : on vous demande une forme (verbe + temps + personne),
+  vous choisissez la bonne écriture parmi quatre ;
+- **✍️ Écrire** : vous tapez la forme demandée, en translittération
+  (ex. `katavti`, majuscules/accents/apostrophes ignorés, `kh` accepté
+  pour `ch`) ou directement en hébreu si vous avez le clavier.
+
 ## 📈 Comment marche la progression ?
 
 Chaque mot a un niveau de 0 à 4 (les pastilles vertes sur la page
