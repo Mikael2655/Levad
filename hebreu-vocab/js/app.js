@@ -137,6 +137,14 @@ function el(tag, className, html) {
   return node;
 }
 
+/* Les nombres écrits en lettres valent les chiffres :
+   "encore une fois" == "encore 1 fois". On applique la même
+   conversion à la réponse tapée ET à la traduction attendue. */
+const NUMBER_WORDS = {
+  zero: "0", un: "1", une: "1", deux: "2", trois: "3", quatre: "4",
+  cinq: "5", six: "6", sept: "7", huit: "8", neuf: "9", dix: "10",
+};
+
 // Normalise une réponse tapée : minuscules, sans accents ni ponctuation
 function normalize(text) {
   return text
@@ -146,7 +154,8 @@ function normalize(text) {
     .replace(/œ/g, "oe")
     .replace(/[^a-z0-9 ]/g, " ")     // ponctuation → espace
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .replace(/\b(zero|une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix)\b/g, (m) => NUMBER_WORDS[m]);
 }
 
 /* La traduction "bonjour / paix" ou "un / une (1)" accepte
