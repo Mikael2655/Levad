@@ -58,12 +58,32 @@ body {
 }
 .logo-he { color: #ffd97a; margin-inline-end: 0.35rem; }
 
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
 .cat-filter {
   font-size: 0.9rem;
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
+
+.profile-chip {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.35rem 0.8rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: pointer;
+}
+.profile-chip:hover { background: rgba(255, 255, 255, 0.3); }
 .cat-filter select {
   font: inherit;
   padding: 0.3rem 0.5rem;
@@ -145,6 +165,42 @@ body {
 }
 .stats-banner .big { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
 .stats-banner .label { font-size: 0.8rem; color: var(--muted); }
+
+/* ---------- Choix du profil ---------- */
+.profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
+}
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.profile-btn {
+  flex: 1;
+  font: inherit;
+  font-size: 1.1rem;
+  text-align: left;
+  padding: 0.9rem 1.1rem;
+  background: var(--card);
+  border: 2px solid #e3ded4;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+.profile-btn:hover { border-color: var(--accent); }
+.profile-delete {
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.profile-delete:hover { color: var(--bad); background: var(--bad-bg); }
 
 /* ---------- Flashcards ---------- */
 .flash-scene {

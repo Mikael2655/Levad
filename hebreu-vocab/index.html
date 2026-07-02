@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>עברית — Mon vocabulaire hébreu</title>
+  <!-- Pour l'iPhone : icône et affichage en "vraie app" depuis l'écran d'accueil -->
+  <meta name="theme-color" content="#2b5fa3">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Hébreu">
+  <link rel="apple-touch-icon" href="icon.png">
   <!-- Police hébraïque lisible (avec repli sur les polices système si hors ligne) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,10 +22,13 @@
     <h1 class="logo" data-action="home" role="button" tabindex="0">
       <span class="logo-he" dir="rtl">עִבְרִית</span> Mon hébreu
     </h1>
-    <label class="cat-filter">
-      Thème :
-      <select id="category-select"></select>
-    </label>
+    <div class="topbar-right">
+      <label class="cat-filter">
+        Thème :
+        <select id="category-select"></select>
+      </label>
+      <button id="profile-chip" class="profile-chip" title="Changer de profil"></button>
+    </div>
   </header>
 
   <nav class="tabs" id="tabs">

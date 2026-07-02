@@ -21,9 +21,25 @@ python3 -m http.server 8000
 
 Puis ouvrez http://localhost:8000 dans votre navigateur.
 
-**Sur mobile :** le plus pratique est de mettre le dossier en ligne
-(par exemple avec GitHub Pages) ou d'ouvrir l'app sur le même Wi-Fi via
-l'option 2 (`http://IP-de-votre-ordinateur:8000`).
+**Sur mobile / en ligne :** un workflow GitHub Actions
+(`.github/workflows/deploy-hebreu-vocab.yml`) publie automatiquement ce
+dossier sur GitHub Pages à chaque modification. Activation (une fois) :
+sur GitHub, *Settings → Pages → Source : GitHub Actions*. L'app est
+alors accessible sur `https://<votre-compte>.github.io/<repo>/`.
+Sur iPhone, ouvrez cette adresse dans Safari puis « Partager →
+Sur l'écran d'accueil » : l'app s'installe comme une vraie application.
+
+## 👤 Profils
+
+Au premier lancement, l'app demande un prénom : chaque profil a sa
+propre progression (répétition espacée, scores), enregistrée dans le
+navigateur de l'appareil. Plusieurs personnes peuvent donc utiliser la
+même app — même sur un appareil partagé — sans mélanger leurs
+statistiques. Le badge 👤 en haut à droite permet de changer de profil.
+Il n'y a pas de mot de passe : c'est un partage de confiance.
+
+Note : la progression reste locale à chaque appareil (pas de
+synchronisation entre votre téléphone et votre ordinateur).
 
 ## ✏️ Ajouter des mots
 

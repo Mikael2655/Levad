@@ -15,8 +15,31 @@
    Les mots des boîtes basses sont tirés beaucoup plus souvent.
    Le tout est sauvegardé dans le navigateur (localStorage).       */
 
-const STORAGE_KEY = "hebreu-vocab-progres";
+const LEGACY_STORAGE_KEY = "hebreu-vocab-progres"; // ancienne sauvegarde (avant les profils)
+const PROFILES_KEY = "hebreu-vocab-profils";
+const ACTIVE_PROFILE_KEY = "hebreu-vocab-profil-actif";
 const MAX_BOX = 4;
+
+/* ---- Profils : chaque personne a sa propre progression ----
+   La liste des profils et le profil actif sont mémorisés dans le
+   navigateur ; la progression de chacun est rangée sous sa propre
+   clé ("hebreu-vocab-progres-Nom").                              */
+
+function getProfiles() {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILES_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveProfiles(list) {
+  localStorage.setItem(PROFILES_KEY, JSON.stringify(list));
+}
+
+function storageKeyFor(name) {
+  return LEGACY_STORAGE_KEY + "-" + name;
+}
 
 /* Correspondance lettres finales → formes normales (ך ם ן ף ץ ne
    peuvent apparaître qu'en fin de mot). */
@@ -31,15 +54,55 @@ function fixFinalLetters(text) {
 }
 
 function loadProgress() {
+  if (!activeProfile) return {};
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    return JSON.parse(localStorage.getItem(storageKeyFor(activeProfile))) || {};
   } catch {
     return {};
   }
 }
 
 function saveProgress() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+  if (!activeProfile) return;
+  localStorage.setItem(storageKeyFor(activeProfile), JSON.stringify(progress));
+}
+
+function createProfile(name) {
+  name = name.trim();
+  if (!name) return;
+  const profiles = getProfiles();
+  if (!profiles.includes(name)) {
+    profiles.push(name);
+    saveProfiles(profiles);
+    /* Migration : la progression d'avant les profils est rattachée
+       au tout premier profil créé, pour ne rien perdre. */
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy && profiles.length === 1 && !localStorage.getItem(storageKeyFor(name))) {
+      localStorage.setItem(storageKeyFor(name), legacy);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
+  }
+  selectProfile(name);
+}
+
+function selectProfile(name) {
+  activeProfile = name;
+  localStorage.setItem(ACTIVE_PROFILE_KEY, name);
+  progress = loadProgress();
+  updateProfileChip();
+  switchView("home");
+}
+
+function deleteProfile(name) {
+  saveProfiles(getProfiles().filter((p) => p !== name));
+  localStorage.removeItem(storageKeyFor(name));
+  if (activeProfile === name) {
+    activeProfile = null;
+    localStorage.removeItem(ACTIVE_PROFILE_KEY);
+    progress = {};
+    updateProfileChip();
+  }
+  render();
 }
 
 /* Clé de sauvegarde d'un élément : les mots utilisent leur hébreu,
@@ -98,7 +161,9 @@ function pickWord(pool, avoid) {
    2. ÉTAT GLOBAL
    ------------------------------------------------------------ */
 
-const progress = loadProgress();
+let activeProfile = localStorage.getItem(ACTIVE_PROFILE_KEY) || null;
+if (activeProfile && !getProfiles().includes(activeProfile)) activeProfile = null;
+let progress = loadProgress();
 
 const state = {
   view: "home",
@@ -257,6 +322,11 @@ function render() {
   document.querySelectorAll(".tab").forEach((t) => {
     t.classList.toggle("active", t.dataset.view === state.view);
   });
+  // Tant que personne n'est identifié, on affiche le choix du profil
+  if (!activeProfile || state.view === "profiles") {
+    renderProfileGate();
+    return;
+  }
   const views = {
     home: renderHome,
     flashcards: renderFlashcards,
@@ -276,6 +346,66 @@ function switchView(view) {
   render();
 }
 
+/* ----- Choix du profil ----- */
+function renderProfileGate() {
+  screen.appendChild(el("h2", "view-title", "👤 Qui révise aujourd'hui ?"));
+
+  const profiles = getProfiles();
+  if (profiles.length > 0) {
+    const list = el("div", "profile-list");
+    profiles.forEach((name) => {
+      const row = el("div", "profile-row");
+      const btn = el("button", "profile-btn", `👤 <strong>${name}</strong>`);
+      btn.addEventListener("click", () => selectProfile(name));
+      row.appendChild(btn);
+      const del = el("button", "profile-delete", "✕");
+      del.title = "Supprimer ce profil et sa progression";
+      del.addEventListener("click", () => {
+        if (confirm(`Supprimer le profil « ${name} » et toute sa progression ?`)) {
+          deleteProfile(name);
+        }
+      });
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+    screen.appendChild(list);
+  } else {
+    screen.appendChild(
+      el("p", "hint", "Bienvenue ! Créez votre profil pour commencer : votre progression sera enregistrée sous votre prénom.")
+    );
+  }
+
+  const form = el("form", "write-form");
+  const input = el("input", "write-input");
+  input.type = "text";
+  input.placeholder = "Votre prénom…";
+  input.maxLength = 30;
+  input.autocapitalize = "words";
+  const submit = el("button", "btn btn-primary", profiles.length ? "Ajouter" : "Commencer");
+  form.appendChild(input);
+  form.appendChild(submit);
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    createProfile(input.value);
+  });
+  screen.appendChild(form);
+  if (profiles.length === 0) input.focus();
+
+  screen.appendChild(
+    el(
+      "p",
+      "hint",
+      "💡 Chaque profil a sa propre progression sur cet appareil. Pas de mot de passe : c'est un partage de confiance entre amis."
+    )
+  );
+}
+
+function updateProfileChip() {
+  const chip = document.getElementById("profile-chip");
+  chip.textContent = activeProfile ? `👤 ${activeProfile}` : "👤";
+  chip.style.display = activeProfile ? "" : "none";
+}
+
 /* ----- Accueil ----- */
 function renderHome() {
   const total = VOCAB.length;
@@ -285,7 +415,7 @@ function renderHome() {
   }).length;
   const seen = VOCAB.filter((w) => progress[w.he] && progress[w.he].seen > 0).length;
 
-  screen.appendChild(el("h2", "view-title", "שלום ! Prêt(e) à réviser ?"));
+  screen.appendChild(el("h2", "view-title", `שלום ${activeProfile} ! Prêt(e) à réviser ?`));
 
   const banner = el("div", "stats-banner");
   banner.innerHTML = `
@@ -799,9 +929,9 @@ function renderProgress() {
   const resetZone = el("div", "reset-zone");
   const resetBtn = el("button", "btn btn-neutral", "🗑 Remettre ma progression à zéro");
   resetBtn.addEventListener("click", () => {
-    if (confirm("Effacer toute votre progression ? (le vocabulaire est conservé)")) {
-      localStorage.removeItem(STORAGE_KEY);
-      Object.keys(progress).forEach((k) => delete progress[k]);
+    if (confirm(`Effacer toute la progression de « ${activeProfile} » ? (le vocabulaire est conservé)`)) {
+      localStorage.removeItem(storageKeyFor(activeProfile));
+      progress = {};
       render();
     }
   });
@@ -825,6 +955,10 @@ document.getElementById("tabs").addEventListener("click", (e) => {
 });
 
 document.querySelector(".logo").addEventListener("click", () => switchView("home"));
+
+// Le badge profil (en haut à droite) ramène à l'écran de choix du profil
+document.getElementById("profile-chip").addEventListener("click", () => switchView("profiles"));
+updateProfileChip();
 
 const categorySelect = document.getElementById("category-select");
 ["Tous", ...new Set(VOCAB.map((w) => w.cat))].forEach((cat) => {

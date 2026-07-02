@@ -1,0 +1,37 @@
+# Publie l'application de vocabulaire hébreu sur GitHub Pages.
+# Seul le dossier hebreu-vocab/ est mis en ligne — le reste du dépôt
+# (projet Next.js) n'est pas publié.
+#
+# Activation (une seule fois) : Settings → Pages → Source : "GitHub Actions"
+
+name: Déployer l'app hébreu sur GitHub Pages
+
+on:
+  push:
+    branches: [main, claude/hebrew-vocab-app-4h8kmn]
+    paths: ["hebreu-vocab/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: hebreu-vocab
+      - id: deployment
+        uses: actions/deploy-pages@v4
