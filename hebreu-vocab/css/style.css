@@ -1,0 +1,330 @@
+/* ============================================================
+   Mon vocabulaire hébreu — styles
+   Mobile d'abord, s'adapte aux grands écrans.
+   ============================================================ */
+
+:root {
+  --bg: #f6f4ef;
+  --card: #ffffff;
+  --ink: #232323;
+  --muted: #6e6a63;
+  --accent: #2b5fa3;        /* bleu principal */
+  --accent-dark: #1e4679;
+  --good: #2e7d4f;
+  --good-bg: #e2f3e8;
+  --bad: #b3372f;
+  --bad-bg: #fbe7e5;
+  --gold: #c99a2e;
+  --radius: 14px;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tout texte hébreu : police dédiée, droite → gauche, bien espacé */
+.he, .logo-he {
+  font-family: "Noto Sans Hebrew", "Arial Hebrew", "David", "Segoe UI", sans-serif;
+  direction: rtl;
+  unicode-bidi: isolate;
+  line-height: 1.4;
+}
+
+/* ---------- En-tête ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.8rem 1rem;
+  background: var(--accent);
+  color: #fff;
+}
+.logo {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.logo-he { color: #ffd97a; margin-inline-end: 0.35rem; }
+
+.cat-filter {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.cat-filter select {
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+  border: none;
+}
+
+/* ---------- Onglets ---------- */
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  background: var(--accent-dark);
+}
+.tab {
+  flex: 1 0 auto;
+  padding: 0.7rem 0.9rem;
+  border: none;
+  background: none;
+  color: #cfe0f5;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+}
+.tab.active {
+  color: #fff;
+  border-bottom-color: var(--gold);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- Écran principal ---------- */
+#screen {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.2rem 1rem 2rem;
+}
+
+.view-title { margin: 0.2rem 0 1rem; font-size: 1.3rem; }
+.hint { color: var(--muted); font-size: 0.92rem; }
+
+/* ---------- Accueil ---------- */
+.menu-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+@media (min-width: 480px) {
+  .menu-grid { grid-template-columns: 1fr 1fr; }
+}
+.menu-card {
+  background: var(--card);
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.2rem 1rem;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.menu-card:hover { transform: translateY(-2px); }
+.menu-card .emoji { font-size: 1.8rem; display: block; margin-bottom: 0.4rem; }
+.menu-card strong { font-size: 1.05rem; }
+.menu-card p { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.88rem; }
+
+.stats-banner {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.9rem 1rem;
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+  gap: 0.5rem;
+}
+.stats-banner .big { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+.stats-banner .label { font-size: 0.8rem; color: var(--muted); }
+
+/* ---------- Flashcards ---------- */
+.flash-scene {
+  perspective: 1000px;
+  margin: 0.5rem 0 1rem;
+}
+.flash-card {
+  position: relative;
+  width: 100%;
+  min-height: 260px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease;
+}
+.flash-card.flipped { transform: rotateY(180deg); }
+.flash-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1.5rem;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backface-visibility: hidden;
+  text-align: center;
+}
+.flash-face.back { transform: rotateY(180deg); }
+
+.he-word {
+  font-size: 3rem;
+  font-weight: 700;
+}
+.translit { color: var(--muted); font-style: italic; font-size: 1.1rem; }
+.fr-word { font-size: 1.7rem; font-weight: 700; color: var(--accent); }
+.word-cat {
+  font-size: 0.78rem;
+  background: var(--bg);
+  color: var(--muted);
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+}
+.tap-hint { color: var(--muted); font-size: 0.85rem; }
+
+.flash-buttons {
+  display: flex;
+  gap: 0.8rem;
+}
+.flash-buttons button { flex: 1; }
+
+/* ---------- Boutons génériques ---------- */
+.btn {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.75rem 1.1rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: filter 0.12s ease, transform 0.08s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-good    { background: var(--good);   color: #fff; }
+.btn-bad     { background: var(--bad);    color: #fff; }
+.btn-neutral { background: #e6e2da; color: var(--ink); }
+.btn:hover { filter: brightness(1.08); }
+.btn[disabled] { opacity: 0.45; cursor: default; }
+
+/* ---------- QCM ---------- */
+.quiz-question {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.quiz-options {
+  display: grid;
+  gap: 0.7rem;
+}
+.quiz-option {
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 0.85rem 1rem;
+  background: var(--card);
+  border: 2px solid #e3ded4;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s ease;
+}
+.quiz-option:hover:not([disabled]) { border-color: var(--accent); }
+.quiz-option.correct { background: var(--good-bg); border-color: var(--good); }
+.quiz-option.wrong   { background: var(--bad-bg);  border-color: var(--bad); }
+.quiz-option[disabled] { cursor: default; }
+
+/* ---------- Mode écriture ---------- */
+.write-form { display: flex; gap: 0.6rem; margin-top: 1rem; }
+.write-input {
+  flex: 1;
+  font: inherit;
+  font-size: 1.1rem;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid #e3ded4;
+  border-radius: var(--radius);
+}
+.write-input:focus { outline: none; border-color: var(--accent); }
+
+.feedback {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+.feedback.good { background: var(--good-bg); color: var(--good); }
+.feedback.bad  { background: var(--bad-bg);  color: var(--bad); }
+
+/* ---------- Score de session ---------- */
+.session-score {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+.session-score .ok  { color: var(--good); }
+.session-score .ko  { color: var(--bad); }
+
+/* ---------- Page Progrès ---------- */
+.progress-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7rem;
+  margin-bottom: 1.2rem;
+}
+.progress-summary .cell {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.8rem 0.4rem;
+  text-align: center;
+}
+.progress-summary .big { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+.progress-summary .label { font-size: 0.75rem; color: var(--muted); }
+
+.word-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.word-row {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.7rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.word-row .he { font-size: 1.35rem; font-weight: 700; min-width: 5.5rem; text-align: right; }
+.word-row .infos { flex: 1; }
+.word-row .infos .fr { font-weight: 600; }
+.word-row .infos .translit { font-size: 0.85rem; }
+.level-dots { display: flex; gap: 3px; }
+.level-dots span {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #e3ded4;
+}
+.level-dots span.on { background: var(--good); }
+.word-row.struggling .level-dots span.on { background: var(--bad); }
+
+.reset-zone { margin-top: 1.5rem; text-align: center; }
+
+/* ---------- Pied de page ---------- */
+.footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 1rem;
+}
+code { background: #eceae4; padding: 0.1rem 0.35rem; border-radius: 5px; }

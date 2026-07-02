@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>עברית — Mon vocabulaire hébreu</title>
+  <!-- Police hébraïque lisible (avec repli sur les polices système si hors ligne) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <h1 class="logo" data-action="home" role="button" tabindex="0">
+      <span class="logo-he" dir="rtl">עִבְרִית</span> Mon hébreu
+    </h1>
+    <label class="cat-filter">
+      Thème :
+      <select id="category-select"></select>
+    </label>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-view="home">🏠 Accueil</button>
+    <button class="tab" data-view="flashcards">🃏 Flashcards</button>
+    <button class="tab" data-view="quiz">✅ QCM</button>
+    <button class="tab" data-view="write">✍️ Écrire</button>
+    <button class="tab" data-view="progress">📊 Progrès</button>
+  </nav>
+
+  <!-- Chaque "vue" (écran) de l'application est rendue ici par app.js -->
+  <main id="screen"></main>
+
+  <footer class="footer">
+    Ajoutez vos mots dans <code>js/vocab.js</code> — בהצלחה ! (bonne chance !)
+  </footer>
+
+  <script src="js/vocab.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
