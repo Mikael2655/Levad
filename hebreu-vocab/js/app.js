@@ -18,6 +18,18 @@
 const STORAGE_KEY = "hebreu-vocab-progres";
 const MAX_BOX = 4;
 
+/* Correspondance lettres finales → formes normales (ך ם ן ף ץ ne
+   peuvent apparaître qu'en fin de mot). */
+const FINAL_LETTERS = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
+
+/* Garde-fou sur les données : une lettre finale tapée par erreur au
+   milieu d'un mot (ex. דןים) est corrigée en sa forme normale (דנים).
+   On regarde le caractère suivant : si c'est encore de l'hébreu
+   (lettre ou niqqoud), la lettre n'est pas en fin de mot. */
+function fixFinalLetters(text) {
+  return text.replace(/[ךםןףץ](?=[֑-״])/g, (c) => FINAL_LETTERS[c]);
+}
+
 function loadProgress() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
@@ -95,6 +107,23 @@ const state = {
   session: { ok: 0, ko: 0 }, // score de la session en cours
   conj: { mode: "qcm", tense: "Tous", verb: 0, current: null }, // onglet Conjugaison
 };
+
+/* Nettoyage des données au chargement : on corrige les lettres
+   finales mal placées dans le vocabulaire et les verbes, pour que
+   l'app n'affiche jamais une forme impossible. */
+VOCAB.forEach((w) => {
+  w.he = fixFinalLetters(w.he);
+});
+if (typeof VERBES !== "undefined") {
+  VERBES.forEach((v) => {
+    v.inf = fixFinalLetters(v.inf);
+    Object.values(v.temps).forEach((forms) =>
+      forms.forEach((f) => {
+        f.he = fixFinalLetters(f.he);
+      })
+    );
+  });
+}
 
 /* On "déplie" les verbes (js/verbes.js) en une liste plate de formes
    conjuguées : chaque forme devient un exercice avec sa propre clé
@@ -183,7 +212,6 @@ function normalizeTranslit(text) {
 /* Garde uniquement les lettres hébraïques (enlève niqqoud, espaces…)
    et assimile les lettres finales (ך ם ן ף ץ) à leur forme normale
    (כ מ נ פ צ) : c'est la même lettre, seule l'apparence change. */
-const FINAL_LETTERS = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
 function hebrewLetters(text) {
   return text
     .replace(/[^א-ת]/g, "")
