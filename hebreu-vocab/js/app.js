@@ -738,9 +738,10 @@ function renderConj() {
   else renderConjWrite();
 }
 
-/* Affiche la question commune aux deux exercices :
-   verbe (français + infinitif hébreu) + temps + personne demandés */
-function conjQuestionBox(item) {
+/* Affiche la question : verbe + temps + personne demandés.
+   En QCM (hideInf), on cache l'infinitif hébreu et sa prononciation :
+   ils donneraient la réponse. */
+function conjQuestionBox(item, hideInf) {
   const q = el("div", "quiz-question");
   q.innerHTML = `
     <div class="conj-badges">
@@ -749,7 +750,7 @@ function conjQuestionBox(item) {
       ${item.verb.binyan ? `<span class="badge">${item.verb.binyan}</span>` : ""}
     </div>
     <div class="fr-word">${item.verb.fr}</div>
-    <div class="translit"><span class="he">${item.verb.inf}</span> · ${item.verb.translit}</div>`;
+    ${hideInf ? "" : `<div class="translit"><span class="he">${item.verb.inf}</span> · ${item.verb.translit}</div>`}`;
   return q;
 }
 
@@ -812,21 +813,48 @@ function renderConjQuiz() {
   const item = state.conj.current;
 
   screen.appendChild(sessionScoreBar());
-  screen.appendChild(conjQuestionBox(item));
+  screen.appendChild(conjQuestionBox(item, true));
 
-  // Distracteurs : d'abord d'autres formes du même verbe (le vrai piège),
-  // puis la même personne/temps chez d'autres verbes. On écarte les
-  // doublons d'écriture (ex. "tu masc." et "elle" identiques au futur).
-  const sameVerb = CONJ_ITEMS.filter((c) => c.verb === item.verb);
-  const otherVerbs = CONJ_ITEMS.filter((c) => c.verb !== item.verb && c.tense === item.tense);
+  // Distracteurs : tous AU MÊME TEMPS que la question, en préférant
+  // les verbes qui ressemblent à la bonne réponse (même binyan,
+  // racine proche, même première lettre, longueur voisine) pour que
+  // le choix soit un vrai exercice.
+  const rootOf = (v) => hebrewLetters(String(v.racine || ""));
+  const itemRoot = rootOf(item.verb);
+  function ressemblance(c) {
+    let s = Math.random(); // départage aléatoire pour varier les questions
+    if (c.verb.binyan && c.verb.binyan === item.verb.binyan) s += 3;
+    if (c.he[0] === item.he[0]) s += 2;
+    if (Math.abs(c.he.length - item.he.length) <= 1) s += 1;
+    const r = rootOf(c.verb);
+    if (itemRoot && r) {
+      let communes = 0;
+      new Set(r).forEach((ch) => { if (itemRoot.includes(ch)) communes++; });
+      if (communes >= 2) s += 2;
+    }
+    return s;
+  }
   const seen = new Set([item.he]);
   const distractors = [];
-  shuffle(sameVerb).concat(shuffle(otherVerbs)).forEach((c) => {
-    if (distractors.length < 3 && !seen.has(c.he)) {
-      seen.add(c.he);
-      distractors.push(c);
-    }
-  });
+  CONJ_ITEMS
+    .filter((c) => c.tense === item.tense && c.verb !== item.verb)
+    .map((c) => [ressemblance(c), c])
+    .sort((a, b) => b[0] - a[0])
+    .forEach(([, c]) => {
+      if (distractors.length < 3 && !seen.has(c.he)) {
+        seen.add(c.he);
+        distractors.push(c);
+      }
+    });
+  // Sécurité : si un temps a trop peu de verbes, on complète ailleurs
+  if (distractors.length < 3) {
+    shuffle(CONJ_ITEMS).forEach((c) => {
+      if (distractors.length < 3 && !seen.has(c.he)) {
+        seen.add(c.he);
+        distractors.push(c);
+      }
+    });
+  }
   const options = shuffle([item, ...distractors]);
 
   const optionsBox = el("div", "quiz-options");
