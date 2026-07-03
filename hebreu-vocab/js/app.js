@@ -172,6 +172,7 @@ const state = {
   reverse: false, // sens de la question : false = hébreu→français, true = français→hébreu
   session: { ok: 0, ko: 0 }, // score de la session en cours
   conj: { mode: "qcm", tense: "Tous", verb: 0, current: null }, // onglet Conjugaison
+  prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
 };
 
 /* Nettoyage des données au chargement : on corrige les lettres
@@ -1127,68 +1128,117 @@ function renderConjWrite() {
 
 /* ----- Page Progrès ----- */
 function renderProgress() {
-  const pool = filteredVocab();
+  const f = state.prog;
 
-  screen.appendChild(el("h2", "view-title", "📊 Vos progrès"));
-
-  const seen = pool.filter((w) => progress[w.he] && progress[w.he].seen > 0);
-  const known = pool.filter((w) => progress[w.he] && progress[w.he].box >= 3);
-  const struggling = pool.filter((w) => {
-    const s = progress[w.he];
-    return s && s.seen >= 2 && s.ko > s.ok;
-  });
-
-  const summary = el("div", "progress-summary");
-  summary.innerHTML = `
-    <div class="cell"><div class="big">${seen.length}/${pool.length}</div><div class="label">mots travaillés</div></div>
-    <div class="cell"><div class="big">${known.length}</div><div class="label">bien connus</div></div>
-    <div class="cell"><div class="big">${struggling.length}</div><div class="label">à retravailler</div></div>`;
-  screen.appendChild(summary);
-
-  if (CONJ_ITEMS.length > 0) {
-    const cSeen = CONJ_ITEMS.filter((c) => progress[c.key] && progress[c.key].seen > 0).length;
-    const cKnown = CONJ_ITEMS.filter((c) => progress[c.key] && progress[c.key].box >= 3).length;
-    screen.appendChild(
-      el(
-        "p",
-        "hint",
-        `🔤 Conjugaison : ${cSeen}/${CONJ_ITEMS.length} formes travaillées, dont ${cKnown} bien connues.`
-      )
+  // Liste unifiée : les mots ET les formes conjuguées, présentés pareil
+  const items = [];
+  if (f.content !== "Conjugaison") {
+    filteredVocab().forEach((w) =>
+      items.push({ he: w.he, label: w.fr, translit: w.translit, key: itemKey(w) })
+    );
+  }
+  if (f.content !== "Mots") {
+    CONJ_ITEMS.forEach((c) =>
+      items.push({ he: c.he, label: `${c.verb.fr} · ${c.tense}`, translit: c.translit, key: c.key })
     );
   }
 
+  const statsOf = (it) => progress[it.key] || { box: 0, seen: 0, ok: 0, ko: 0 };
+  const isRed = (s) => s.seen >= 2 && s.ko > s.ok;
+  const levelOf = (s) => (s.seen > 0 ? s.box + 1 : 0); // 0 = jamais vu, 1..5 = pastilles
+
+  screen.appendChild(el("h2", "view-title", "📊 Vos progrès"));
+
+  // Résumé (sur le contenu choisi, avant les autres filtres)
+  const nSeen = items.filter((it) => statsOf(it).seen > 0).length;
+  const nKnown = items.filter((it) => { const s = statsOf(it); return s.seen > 0 && s.box >= 3; }).length;
+  const nRed = items.filter((it) => isRed(statsOf(it))).length;
+  const summary = el("div", "progress-summary");
+  summary.innerHTML = `
+    <div class="cell"><div class="big">${nSeen}/${items.length}</div><div class="label">travaillés</div></div>
+    <div class="cell"><div class="big">${nKnown}</div><div class="label">bien connus</div></div>
+    <div class="cell"><div class="big">${nRed}</div><div class="label">à retravailler</div></div>`;
+  screen.appendChild(summary);
+
+  // Barre de filtres
+  const bar = el("div", "prog-filters");
+  const addFilter = (labelTxt, options, current, apply) => {
+    const wrap = el("label", "prog-filter", labelTxt + " ");
+    const sel = el("select", "conj-select");
+    options.forEach(([value, text]) => {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = text;
+      if (value === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener("change", () => {
+      apply(sel.value);
+      f.shown = 300;
+      render();
+    });
+    wrap.appendChild(sel);
+    bar.appendChild(wrap);
+  };
+  addFilter("Contenu :", [["Tout", "Tout"], ["Mots", "Mots"], ["Conjugaison", "Conjugaison"]], f.content, (v) => (f.content = v));
+  addFilter("Statut :", [["Tous", "Tous"], ["Déjà vus", "Déjà vus"], ["Jamais vus", "Jamais vus"]], f.status, (v) => (f.status = v));
+  addFilter("Niveau :", [["Tous", "Tous"], ["1", "🟢 1"], ["2", "🟢 2"], ["3", "🟢 3"], ["4", "🟢 4"], ["5", "🟢 5"]], f.level, (v) => (f.level = v));
+  addFilter("Difficulté :", [["Tous", "Tous"], ["rouge", "🔴 À retravailler"]], f.rouge, (v) => (f.rouge = v));
+  screen.appendChild(bar);
+
   screen.appendChild(
-    el("p", "hint", "Les pastilles vertes = niveau de mémorisation (5 = bien ancré). En rouge : les mots que vous ratez souvent.")
+    el("p", "hint", "Les pastilles vertes = niveau de mémorisation (5 = bien ancré). En rouge : ce que vous ratez souvent.")
   );
 
-  // Tri : les mots en difficulté d'abord, puis par niveau croissant
-  const sorted = pool.slice().sort((a, b) => {
-    const sa = progress[a.he] || { box: 0, seen: 0, ok: 0, ko: 0 };
-    const sb = progress[b.he] || { box: 0, seen: 0, ok: 0, ko: 0 };
-    const strugA = sa.seen >= 2 && sa.ko > sa.ok ? 0 : 1;
-    const strugB = sb.seen >= 2 && sb.ko > sb.ok ? 0 : 1;
-    if (strugA !== strugB) return strugA - strugB;
+  // Application des filtres
+  const filtered = items.filter((it) => {
+    const s = statsOf(it);
+    if (f.status === "Déjà vus" && s.seen === 0) return false;
+    if (f.status === "Jamais vus" && s.seen > 0) return false;
+    if (f.level !== "Tous" && levelOf(s) !== Number(f.level)) return false;
+    if (f.rouge === "rouge" && !isRed(s)) return false;
+    return true;
+  });
+
+  // Tri : les rouges d'abord, puis par niveau croissant
+  filtered.sort((a, b) => {
+    const sa = statsOf(a), sb = statsOf(b);
+    const ra = isRed(sa) ? 0 : 1, rb = isRed(sb) ? 0 : 1;
+    if (ra !== rb) return ra - rb;
     return sa.box - sb.box;
   });
 
+  screen.appendChild(el("p", "hint", `${filtered.length} élément${filtered.length > 1 ? "s" : ""} correspondent aux filtres.`));
+
+  // Rendu (par tranches, pour rester fluide sur téléphone)
   const list = el("div", "word-list");
-  sorted.forEach((w) => {
-    const s = progress[w.he] || { box: 0, seen: 0, ok: 0, ko: 0 };
-    const isStruggling = s.seen >= 2 && s.ko > s.ok;
-    const row = el("div", "word-row" + (isStruggling ? " struggling" : ""));
+  filtered.slice(0, f.shown).forEach((it) => {
+    const s = statsOf(it);
+    const row = el("div", "word-row" + (isRed(s) ? " struggling" : ""));
     const dots = Array.from({ length: MAX_BOX + 1 }, (_, i) =>
       `<span class="${i <= s.box && s.seen > 0 ? "on" : ""}"></span>`
     ).join("");
     row.innerHTML = `
-      <div class="he">${w.he}</div>
+      <div class="he">${it.he}</div>
       <div class="infos">
-        <div class="fr">${w.fr}</div>
-        <div class="translit">${w.translit} · vu ${s.seen}×${s.seen ? ` · ✔ ${s.ok} / ✘ ${s.ko}` : ""}</div>
+        <div class="fr">${it.label}</div>
+        <div class="translit">${it.translit} · vu ${s.seen}×${s.seen ? ` · ✔ ${s.ok} / ✘ ${s.ko}` : ""}</div>
       </div>
       <div class="level-dots">${dots}</div>`;
     list.appendChild(row);
   });
   screen.appendChild(list);
+
+  if (filtered.length > f.shown) {
+    const more = el("button", "btn btn-neutral", `Afficher plus (${filtered.length - f.shown} restants)`);
+    more.style.width = "100%";
+    more.style.marginTop = "0.8rem";
+    more.addEventListener("click", () => {
+      f.shown += 300;
+      render();
+    });
+    screen.appendChild(more);
+  }
 
   const resetZone = el("div", "reset-zone");
   const resetBtn = el("button", "btn btn-neutral", "🗑 Remettre ma progression à zéro");
