@@ -480,6 +480,36 @@ body {
 
 .reset-zone { margin-top: 1.5rem; text-align: center; }
 
+/* ---------- Affichage compact sur téléphone ----------
+   Objectif : le QCM (surtout en conjugaison) tient à l'écran
+   sans avoir à faire défiler. */
+@media (max-width: 520px) {
+  #screen { padding: 0.6rem 0.8rem 1.2rem; }
+  .view-title { margin: 0.1rem 0 0.5rem; font-size: 1.1rem; }
+  .session-score { margin-bottom: 0.5rem; gap: 1rem; font-size: 0.9rem; }
+  .segmented { margin-bottom: 0.5rem; padding: 3px; }
+  .seg-btn { padding: 0.4rem 0.3rem; font-size: 0.88rem; }
+  .conj-filter { margin-bottom: 0.5rem; }
+  .conj-select { padding: 0.25rem 0.5rem; font-size: 0.9rem; }
+
+  .quiz-question { padding: 0.8rem 0.9rem; margin-bottom: 0.6rem; }
+  .quiz-question .he-word { font-size: 2.1rem; }
+  .quiz-question .fr-word { font-size: 1.35rem; }
+  .quiz-question .translit { font-size: 0.95rem; }
+  .conj-badges { margin-bottom: 0.4rem; }
+  .badge { font-size: 0.75rem; padding: 0.15rem 0.6rem; }
+
+  .quiz-options { gap: 0.45rem; }
+  .quiz-option { padding: 0.55rem 0.8rem; font-size: 0.98rem; }
+  .option-he .he { font-size: 1.25rem; }
+
+  .feedback { margin-top: 0.6rem; padding: 0.6rem 0.8rem; font-size: 0.92rem; }
+  .flash-card { min-height: 230px; }
+  .topbar { padding: 0.5rem 0.8rem; }
+  .tab { padding: 0.5rem 0.7rem; font-size: 0.9rem; }
+  .footer { display: none; }
+}
+
 /* ---------- Pied de page ---------- */
 .footer {
   text-align: center;

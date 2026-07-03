@@ -169,6 +169,7 @@ const state = {
   view: "home",
   category: "Tous",
   currentWord: null,
+  reverse: false, // sens de la question : false = hébreu→français, true = français→hébreu
   session: { ok: 0, ko: 0 }, // score de la session en cours
   conj: { mode: "qcm", tense: "Tous", verb: 0, current: null }, // onglet Conjugaison
 };
@@ -283,12 +284,16 @@ function hebrewLetters(text) {
     .replace(/[ךםןףץ]/g, (c) => FINAL_LETTERS[c]);
 }
 
-/* Une réponse de conjugaison est bonne si elle correspond à la forme
-   en hébreu OU à sa translittération. */
-function checkConjAnswer(item, typed) {
+/* Une réponse en hébreu est bonne si elle correspond au mot hébreu
+   OU à sa translittération (les variantes "x / y" sont acceptées). */
+function checkHebrewAnswer(item, typed) {
   const heTyped = hebrewLetters(typed);
-  if (heTyped.length > 0) return heTyped === hebrewLetters(item.he);
-  return normalizeTranslit(typed) === normalizeTranslit(item.translit);
+  if (heTyped.length > 0) {
+    return String(item.he).split("/").some((v) => hebrewLetters(v) === heTyped);
+  }
+  const t = normalizeTranslit(typed);
+  if (t.length === 0) return false;
+  return String(item.translit).split("/").some((v) => normalizeTranslit(v) === t);
 }
 
 function mixedFeedback(word) {
@@ -452,30 +457,42 @@ function renderHome() {
   );
 }
 
+/* Tire un nouveau mot ET un sens de question au hasard */
+function nextWord(pool, avoid) {
+  state.currentWord = pickWord(pool, avoid);
+  state.reverse = Math.random() < 0.5;
+}
+
 /* ----- Flashcards ----- */
 function renderFlashcards() {
   const pool = filteredVocab();
   if (pool.length === 0) return renderEmpty();
 
-  if (!state.currentWord) state.currentWord = pickWord(pool, null);
+  if (!state.currentWord) nextWord(pool, null);
   const word = state.currentWord;
 
   screen.appendChild(el("h2", "view-title", "🃏 Flashcards"));
   screen.appendChild(sessionScoreBar());
 
+  // Le recto varie selon le sens tiré au sort ; le verso montre tout
+  const front = state.reverse
+    ? `<span class="word-cat">${word.cat}</span>
+       <div class="fr-word">${word.fr}</div>
+       <div class="tap-hint">👆 Touchez la carte pour voir l'hébreu</div>`
+    : `<span class="word-cat">${word.cat}</span>
+       <div class="he-word he">${word.he}</div>
+       <div class="translit">${word.translit}</div>
+       <div class="tap-hint">👆 Touchez la carte pour voir la traduction</div>`;
+
   const scene = el("div", "flash-scene");
   const card = el("div", "flash-card");
   card.innerHTML = `
-    <div class="flash-face front">
-      <span class="word-cat">${word.cat}</span>
-      <div class="he-word he">${word.he}</div>
-      <div class="translit">${word.translit}</div>
-      <div class="tap-hint">👆 Touchez la carte pour voir la traduction</div>
-    </div>
+    <div class="flash-face front">${front}</div>
     <div class="flash-face back">
       <span class="word-cat">${word.cat}</span>
-      <div class="fr-word">${word.fr}</div>
-      <div class="he-word he" style="font-size:1.6rem">${word.he}</div>
+      <div class="he-word he" style="font-size:2.1rem">${word.he}</div>
+      <div class="translit">${word.translit}</div>
+      <div class="fr-word" style="font-size:1.3rem">${word.fr}</div>
       ${word.note ? `<div class="word-note">💡 ${word.note}</div>` : ""}
     </div>`;
   scene.appendChild(card);
@@ -498,7 +515,7 @@ function renderFlashcards() {
   function answer(isCorrect) {
     recordAnswer(word, isCorrect);
     state.session[isCorrect ? "ok" : "ko"] += 1;
-    state.currentWord = pickWord(pool, word);
+    nextWord(pool, word);
     render();
   }
   btnOk.addEventListener("click", () => answer(true));
@@ -506,35 +523,59 @@ function renderFlashcards() {
 }
 
 /* ----- QCM ----- */
+
+/* Après une réponse au QCM, on enchaîne tout seul : vite si c'est
+   juste, plus lentement si c'est faux (le temps de lire la correction). */
+const QCM_DELAY_OK = 1100;
+const QCM_DELAY_KO = 2800;
+
 function renderQuiz() {
   const pool = filteredVocab();
   if (pool.length === 0) return renderEmpty();
 
-  if (!state.currentWord) state.currentWord = pickWord(pool, null);
+  if (!state.currentWord) nextWord(pool, null);
   const word = state.currentWord;
+  const reverse = state.reverse; // true : question en français, choix en hébreu
 
   screen.appendChild(el("h2", "view-title", "✅ QCM"));
   screen.appendChild(sessionScoreBar());
 
   const question = el("div", "quiz-question");
-  question.innerHTML = `
-    <span class="word-cat">${word.cat}</span>
-    <div class="he-word he">${word.he}</div>
-    <div class="translit">${word.translit}</div>`;
+  question.innerHTML = reverse
+    ? `<span class="word-cat">${word.cat}</span>
+       <div class="fr-word">${word.fr}</div>`
+    : `<span class="word-cat">${word.cat}</span>
+       <div class="he-word he">${word.he}</div>
+       <div class="translit">${word.translit}</div>`;
   screen.appendChild(question);
 
-  // 3 mauvaises réponses : de préférence dans la même catégorie
+  // 3 mauvaises réponses : de préférence dans la même catégorie, en
+  // évitant les doublons d'affichage (deux mots de même traduction)
+  const displayOf = (w) => (reverse ? w.he : w.fr);
   const sameCat = VOCAB.filter((w) => w !== word && w.cat === word.cat);
   const others = VOCAB.filter((w) => w !== word && w.cat !== word.cat);
-  const distractors = shuffle(sameCat).concat(shuffle(others)).slice(0, 3);
+  const seen = new Set([displayOf(word)]);
+  const distractors = [];
+  shuffle(sameCat).concat(shuffle(others)).forEach((w) => {
+    if (distractors.length < 3 && !seen.has(displayOf(w))) {
+      seen.add(displayOf(w));
+      distractors.push(w);
+    }
+  });
   const options = shuffle([word, ...distractors]);
 
   const optionsBox = el("div", "quiz-options");
   screen.appendChild(optionsBox);
 
   let answered = false;
+  const buttons = [];
   options.forEach((option) => {
-    const btn = el("button", "quiz-option", option.fr);
+    const btn = el(
+      "button",
+      "quiz-option" + (reverse ? " option-he" : ""),
+      reverse ? `<span class="he">${option.he}</span>` : option.fr
+    );
+    buttons.push({ btn, option });
     btn.addEventListener("click", () => {
       if (answered) return;
       answered = true;
@@ -542,22 +583,22 @@ function renderQuiz() {
       recordAnswer(word, isCorrect);
       state.session[isCorrect ? "ok" : "ko"] += 1;
 
-      // Coloration : la bonne réponse en vert, l'erreur en rouge
-      optionsBox.querySelectorAll(".quiz-option").forEach((b) => {
+      buttons.forEach(({ btn: b, option: o }) => {
         b.disabled = true;
-        if (b.textContent === word.fr) b.classList.add("correct");
+        if (o === word) b.classList.add("correct");
       });
-      if (!isCorrect) btn.classList.add("wrong");
+      if (!isCorrect) {
+        btn.classList.add("wrong");
+        screen.appendChild(el("div", "feedback bad", `✘ ${mixedFeedback(word)}`));
+      }
 
-      const next = el("button", "btn btn-primary", "Mot suivant →");
-      next.style.marginTop = "1rem";
-      next.style.width = "100%";
-      next.addEventListener("click", () => {
-        state.currentWord = pickWord(pool, word);
-        render();
-      });
-      screen.appendChild(next);
-      next.focus();
+      // Enchaînement automatique (sauf si on a changé d'écran entre-temps)
+      setTimeout(() => {
+        if (state.view === "quiz" && state.currentWord === word) {
+          nextWord(pool, word);
+          render();
+        }
+      }, isCorrect ? QCM_DELAY_OK : QCM_DELAY_KO);
     });
     optionsBox.appendChild(btn);
   });
@@ -568,23 +609,32 @@ function renderWrite() {
   const pool = filteredVocab();
   if (pool.length === 0) return renderEmpty();
 
-  if (!state.currentWord) state.currentWord = pickWord(pool, null);
+  if (!state.currentWord) nextWord(pool, null);
   const word = state.currentWord;
+  const reverse = state.reverse; // true : le français est affiché, on écrit l'hébreu
 
   screen.appendChild(el("h2", "view-title", "✍️ Écrire la traduction"));
   screen.appendChild(sessionScoreBar());
 
   const question = el("div", "quiz-question");
-  question.innerHTML = `
-    <span class="word-cat">${word.cat}</span>
-    <div class="he-word he">${word.he}</div>
-    <div class="translit">${word.translit}</div>`;
+  question.innerHTML = reverse
+    ? `<span class="word-cat">${word.cat}</span>
+       <div class="fr-word">${word.fr}</div>`
+    : `<span class="word-cat">${word.cat}</span>
+       <div class="he-word he">${word.he}</div>
+       <div class="translit">${word.translit}</div>`;
   screen.appendChild(question);
+
+  if (reverse) {
+    screen.appendChild(
+      el("p", "hint", "Tapez le mot en hébreu ou en prononciation (ex. <em>shalom</em>).")
+    );
+  }
 
   const form = el("form", "write-form");
   const input = el("input", "write-input");
   input.type = "text";
-  input.placeholder = "Traduction en français…";
+  input.placeholder = reverse ? "En hébreu ou en prononciation…" : "Traduction en français…";
   input.autocapitalize = "off";
   input.autocomplete = "off";
   const submit = el("button", "btn btn-primary", "Valider");
@@ -596,10 +646,12 @@ function renderWrite() {
   let answered = false;
   form.addEventListener("submit", (e) => {
     e.preventDefault();
-    if (answered || normalize(input.value) === "") return;
+    if (answered || input.value.trim() === "") return;
     answered = true;
 
-    const isCorrect = acceptedAnswers(word).includes(normalize(input.value));
+    const isCorrect = reverse
+      ? checkHebrewAnswer(word, input.value)
+      : acceptedAnswers(word).includes(normalize(input.value));
     recordAnswer(word, isCorrect);
     state.session[isCorrect ? "ok" : "ko"] += 1;
 
@@ -618,7 +670,7 @@ function renderWrite() {
     next.style.marginTop = "1rem";
     next.style.width = "100%";
     next.addEventListener("click", () => {
-      state.currentWord = pickWord(pool, word);
+      nextWord(pool, word);
       render();
     });
     screen.appendChild(next);
@@ -800,20 +852,17 @@ function renderConjQuiz() {
         el(
           "div",
           "feedback " + (isCorrect ? "good" : "bad"),
-          `${isCorrect ? "✔" : "✘"} ${item.verb.fr}, ${item.tense.toLowerCase()}, ${item.personne} :
-           <span class="he">${item.he}</span> (<em>${item.translit}</em>)`
+          `${isCorrect ? "✔" : "✘"} <span class="he">${item.he}</span> (<em>${item.translit}</em>)`
         )
       );
 
-      const next = el("button", "btn btn-primary", "Suivant →");
-      next.style.marginTop = "1rem";
-      next.style.width = "100%";
-      next.addEventListener("click", () => {
-        state.conj.current = pickWord(pool, item);
-        render();
-      });
-      screen.appendChild(next);
-      next.focus();
+      // Enchaînement automatique
+      setTimeout(() => {
+        if (state.view === "conj" && state.conj.mode === "qcm" && state.conj.current === item) {
+          state.conj.current = pickWord(pool, item);
+          render();
+        }
+      }, isCorrect ? QCM_DELAY_OK : QCM_DELAY_KO);
     });
     optionsBox.appendChild(btn);
   });
@@ -849,7 +898,7 @@ function renderConjWrite() {
     if (answered || input.value.trim() === "") return;
     answered = true;
 
-    const isCorrect = checkConjAnswer(item, input.value);
+    const isCorrect = checkHebrewAnswer(item, input.value);
     recordAnswer(item, isCorrect);
     state.session[isCorrect ? "ok" : "ko"] += 1;
 
