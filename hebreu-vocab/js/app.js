@@ -209,6 +209,18 @@ if (typeof VERBES !== "undefined") {
         });
       });
     });
+    // L'infinitif est aussi une question à part entière (QCM et écrire)
+    if (verb.inf) {
+      CONJ_ITEMS.push({
+        key: `V|${verb.inf}|Infinitif|0`,
+        verb,
+        tense: "Infinitif",
+        personne: "שם פועל",
+        he: verb.inf,
+        translit: verb.translit,
+        isInf: true,
+      });
+    }
   });
 }
 const CONJ_TENSES = [...new Set(CONJ_ITEMS.map((c) => c.tense))];
@@ -739,18 +751,20 @@ function renderConj() {
 }
 
 /* Affiche la question : verbe + temps + personne demandés.
-   En QCM (hideInf), on cache l'infinitif hébreu et sa prononciation :
+   En QCM (hideInf) — et toujours quand la question porte sur
+   l'infinitif — on cache l'infinitif hébreu et sa prononciation :
    ils donneraient la réponse. */
 function conjQuestionBox(item, hideInf) {
+  const hide = hideInf || item.isInf;
   const q = el("div", "quiz-question");
   q.innerHTML = `
     <div class="conj-badges">
       <span class="badge badge-tense">${item.tense}</span>
-      <span class="badge">${item.personne}</span>
+      ${item.isInf ? "" : `<span class="badge">${item.personne}</span>`}
       ${item.verb.binyan ? `<span class="badge">${item.verb.binyan}</span>` : ""}
     </div>
     <div class="fr-word">${item.verb.fr}</div>
-    ${hideInf ? "" : `<div class="translit"><span class="he">${item.verb.inf}</span> · ${item.verb.translit}</div>`}`;
+    ${hide ? "" : `<div class="translit"><span class="he">${item.verb.inf}</span> · ${item.verb.translit}</div>`}`;
   return q;
 }
 
