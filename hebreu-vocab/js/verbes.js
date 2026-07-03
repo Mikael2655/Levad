@@ -1,4087 +1,4860 @@
 // ============================================================
-//  VOS VERBES — c'est ICI que vous ajoutez des conjugaisons !
+//  VOS VERBES — générés depuis votre Excel (onglet "Verbes")
 // ============================================================
-//  Chaque verbe est un bloc { ... } avec :
-//    inf      : l'infinitif en hébreu
-//    translit : sa prononciation
-//    fr       : la traduction française
-//    temps    : un bloc par temps ("Présent", "Passé", "Futur"...
-//               vous pouvez ajouter n'importe quel temps, il
-//               apparaîtra automatiquement dans les exercices).
+//  Fidèle au tableau : UNE forme de référence par temps
+//  (présent masc. sing., passé "il", futur "il"), plus la racine
+//  (racine) et la construction (binyan), affichées dans l'app.
 //
-//  Chaque forme conjuguée est une ligne :
-//    { p: "la personne", he: "forme en hébreu", t: "prononciation" },
-//
-//  Pour ajouter un verbe : copiez un bloc entier (de { à },),
-//  collez-le et modifiez-le. N'oubliez pas les virgules !
-//
-//  NOTE IMPORTANTE : import automatique depuis votre Excel.
-//  Pour chaque temps (Présent/Passé/Futur) où vous aviez déjà
-//  rempli au moins une forme, les 4/8/9 formes ont été générées
-//  automatiquement à partir des règles de conjugaison hébraïque.
-//  Les temps qui étaient entièrement vides dans votre Excel sont
-//  restés vides ici (mieux vaut rien qu'une conjugaison inventée
-//  et fausse). Cherchez "// À COMPLÉTER" pour repérer les verbes
-//  concernés.
+//  Pour enrichir : modifiez l'Excel et redonnez-le moi, ou
+//  éditez ce fichier sur GitHub. Vous pouvez aussi ajouter
+//  d'autres personnes à un temps (une ligne { p, he, t } de plus)
+//  ou d'autres temps : ils apparaîtront automatiquement.
 // ============================================================
 
 const VERBES = [
-  // Acheter
   {
     inf: "לקנות", translit: "Liknot", fr: "Acheter",
+    racine: "קנה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "קונה", t: "Kone" },
-        { p: "fém. sing. (אני/את/היא)", he: "קונה", t: "Kona" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "קונים", t: "Konim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "קונות", t: "Konot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "קניתי", t: "Kaniti" },
-        { p: "tu masc. (אתה)", he: "קנית", t: "Kanita" },
-        { p: "tu fém. (את)", he: "קנית", t: "Kanit" },
         { p: "il (הוא)", he: "קנה", t: "Kana" },
-        { p: "elle (היא)", he: "קנתה", t: "Kanta" },
-        { p: "nous (אנחנו)", he: "קנינו", t: "Kaninu" },
-        { p: "vous masc. (אתם)", he: "קניתם", t: "Kanitem" },
-        { p: "vous fém. (אתן)", he: "קניתן", t: "Kaniten" },
-        { p: "ils / elles (הם/הן)", he: "קנו", t: "Kanu" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אקנה", t: "ekene" },
-        { p: "tu masc. (אתה)", he: "תקנה", t: "tikene" },
-        { p: "tu fém. (את)", he: "תקני", t: "tikeni" },
         { p: "il (הוא)", he: "יקנה", t: "Ikene" },
-        { p: "elle (היא)", he: "תקנה", t: "tikene" },
-        { p: "nous (אנחנו)", he: "נקנה", t: "nikene" },
-        { p: "vous (אתם/אתן)", he: "תקנו", t: "tikenu" },
-        { p: "ils / elles (הם/הן)", he: "יקנו", t: "yikenu" },
       ],
     },
   },
-
-  // Aider  // À COMPLÉTER : Passé, Futur
   {
     inf: "לעזור", translit: "La'azor", fr: "Aider",
+    racine: "עזר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "עוזר", t: "Ozer" },
-        { p: "fém. sing. (אני/את/היא)", he: "עוזרת", t: "Ozeret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "עוזרים", t: "Ozrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "עוזרות", t: "Ozrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "עזר", t: "Azar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעזור", t: "Ya'azor" },
       ],
     },
   },
-
-  // Aimer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לאהוב", translit: "Leehov", fr: "Aimer",
+    racine: "אהב", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "אוהב", t: "Ohev" },
-        { p: "fém. sing. (אני/את/היא)", he: "אוהבת", t: "Ohevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "אוהבים", t: "Ohvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "אוהבות", t: "Ohvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "אהב", t: "A'av" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאהב", t: "Ye'ehav" },
       ],
     },
   },
-
-  // Ajouter  // À COMPLÉTER : Passé, Futur
   {
     inf: "להוסיף", translit: "Lehosif", fr: "Ajouter",
+    racine: "יסף", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מוסיף", t: "Mosif" },
-        { p: "fém. sing. (אני/את/היא)", he: "מוסיפה", t: "Mosifa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מוסיפים", t: "Mosfim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מוסיפות", t: "Mosfot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הוסיף", t: "Hosif" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יוסיף", t: "Yosif" },
       ],
     },
   },
-
-  // Aller / marcher  // À COMPLÉTER : Passé, Futur
   {
     inf: "ללכת", translit: "Lalekhet", fr: "Aller / marcher",
+    racine: "הלך", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "הולך", t: "Olekh" },
-        { p: "fém. sing. (אני/את/היא)", he: "הולכת", t: "Olekhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "הולכים", t: "Olkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "הולכות", t: "Olkhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הלך", t: "Halakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ילך", t: "Yelekh" },
       ],
     },
   },
-
-  // Aller avec / matcher  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתאים", translit: "Lehat'im", fr: "Aller avec / matcher",
-    temps: {},
+    racine: "תאם", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתאים", t: "Mat'im" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התאים", t: "Hit'im" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתאים", t: "Yat'im" },
+      ],
+    },
   },
-
-  // Ameliorer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשפר", translit: "Lechaper", fr: "Ameliorer",
+    racine: "שפר", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משפר", t: "Mechaper" },
-        { p: "fém. sing. (אני/את/היא)", he: "משפרת", t: "Mechaperet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משפרים", t: "Mechaprim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משפרות", t: "Mechaprot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שיפר", t: "Chiper" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישפר", t: "Yechaper" },
       ],
     },
   },
-
-  // Appeler  // À COMPLÉTER : Présent, Passé, Futur
   {
-    inf: "", translit: "Lehitkacher", fr: "Appeler",
-    temps: {},
+    inf: "להתקשר", translit: "Lehitkacher", fr: "Appeler",
+    racine: "קשר", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתקשר", t: "Mitkacher" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התקשר", t: "Hitkacher" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתקשר", t: "Yitkacher" },
+      ],
+    },
   },
-
-  // Apporter  // À COMPLÉTER : Passé, Futur
   {
     inf: "להביא", translit: "Lehavi", fr: "Apporter",
+    racine: "בוא", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מביא", t: "Mevi" },
-        { p: "fém. sing. (אני/את/היא)", he: "מביאה", t: "Mevia" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מביאים", t: "Meviim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מביאות", t: "Meviot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הביא", t: "Hevi" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יביא", t: "Yavi" },
       ],
     },
   },
-
-  // Arrêter / s'arrêter  // À COMPLÉTER : Passé, Futur
   {
     inf: "להפסיק", translit: "Lehafsik", fr: "Arrêter / s'arrêter",
+    racine: "פסק", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מפסיק", t: "Mafsik" },
-        { p: "fém. sing. (אני/את/היא)", he: "מפסיקה", t: "Mafsika" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מפסיקים", t: "Mafsikim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מפסיקות", t: "Mafsikot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הפסיק", t: "Hifsik" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפסיק", t: "Yafsik" },
       ],
     },
   },
-
-  // Arriver  // À COMPLÉTER : Passé, Futur
   {
     inf: "להגיע", translit: "Lehagia", fr: "Arriver",
+    racine: "נגע", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מגיע", t: "Magia" },
-        { p: "fém. sing. (אני/את/היא)", he: "מגיעה", t: "Magiaa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מגיעים", t: "Magiaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מגיעות", t: "Magiaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הגיע", t: "Higia" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגיע", t: "Yagia" },
       ],
     },
   },
-
-  // Attendre  // À COMPLÉTER : Passé, Futur
   {
     inf: "לחכות", translit: "Lekhakot", fr: "Attendre",
+    racine: "חכה", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מחכה", t: "Mekhake" },
-        { p: "fém. sing. (אני/את/היא)", he: "מחכה", t: "Mekhaka" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מחכים", t: "Mekhakim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מחכות", t: "Mekhakot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חיכה", t: "Khika" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחכה", t: "Yekhake" },
       ],
     },
   },
-
-  // Avoir besoin / devoir  // À COMPLÉTER : Passé, Futur
   {
-    inf: "", translit: "", fr: "Avoir besoin / devoir",
+    inf: "להיות צריך", translit: "Lihiyot tsarikh", fr: "Avoir besoin / devoir",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "צריך", t: "Tsarikh" },
-        { p: "fém. sing. (אני/את/היא)", he: "צריכה", t: "Tsrikha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "צריכים", t: "Tsarkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "צריכות", t: "Tsarkhot" },
       ],
     },
   },
-
-  // Avoir mal  // À COMPLÉTER : Passé, Futur
   {
     inf: "לכאוב", translit: "Likh'ov", fr: "Avoir mal",
+    racine: "כאב", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "כואב", t: "Co'ev" },
-        { p: "fém. sing. (אני/את/היא)", he: "כואבת", t: "Co'evet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "כואבים", t: "Co'vim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "כואבות", t: "Co'vot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "כאב", t: "Ka'av" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכאב", t: "Yikh'av" },
       ],
     },
   },
-
-  // Avoir raison  // À COMPLÉTER : Passé, Futur
   {
     inf: "לצדוק", translit: "Litzdok", fr: "Avoir raison",
+    racine: "צדק", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "צודק", t: "Tsodek" },
-        { p: "fém. sing. (אני/את/היא)", he: "צודקת", t: "Tsodeket" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "צודקים", t: "Tsodkim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "צודקות", t: "Tsodkot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צדק", t: "Tsadak" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצדק", t: "Yitsdak" },
       ],
     },
   },
-
-  // Boire  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשתות", translit: "Lichtot", fr: "Boire",
+    racine: "שתה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שותה", t: "Chote" },
-        { p: "fém. sing. (אני/את/היא)", he: "שותה", t: "Chota" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שותים", t: "Chotim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שותות", t: "Chotot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שתה", t: "Chata" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישתה", t: "Yichte" },
       ],
     },
   },
-
-  // Bouger  // À COMPLÉTER : Passé, Futur
   {
     inf: "לזוז", translit: "Lazouz", fr: "Bouger",
+    racine: "זוז", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "זז", t: "Zaz" },
-        { p: "fém. sing. (אני/את/היא)", he: "זזה", t: "Zaza" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "זזים", t: "Zzim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "זזות", t: "Zzot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "זז", t: "Zaz" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יזוז", t: "Yazouz" },
       ],
     },
   },
-
-  // Changer / modifier  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשנות", translit: "Lechanot", fr: "Changer / modifier",
+    racine: "שנה", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משנה", t: "Mechane" },
-        { p: "fém. sing. (אני/את/היא)", he: "משנה", t: "Mechana" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משנים", t: "Mechanim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משנות", t: "Mechanot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שינה", t: "China" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישנה", t: "Yechane" },
       ],
     },
   },
-
-  // Chanter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשיר", translit: "Lachir", fr: "Chanter",
+    racine: "שיר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שר", t: "Char" },
-        { p: "fém. sing. (אני/את/היא)", he: "שרה", t: "Chara" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שרים", t: "Chrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שרות", t: "Chrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שר", t: "Char" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישיר", t: "Yachir" },
       ],
     },
   },
-
-  // Checker/vérifier  // À COMPLÉTER : Passé, Futur
   {
     inf: "לבדוק", translit: "Livdok", fr: "Checker/vérifier",
+    racine: "בדק", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "בודק", t: "Bodek" },
-        { p: "fém. sing. (אני/את/היא)", he: "בודקת", t: "Bodeket" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "בודקים", t: "Bodkim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "בודקות", t: "Bodkot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "בדק", t: "Badak" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבדוק", t: "Yivdok" },
       ],
     },
   },
-
-  // Chercher  // À COMPLÉTER : Passé, Futur
   {
     inf: "לחפש", translit: "Lekhapes", fr: "Chercher",
+    racine: "חפש", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מחפש", t: "Mekhapes" },
-        { p: "fém. sing. (אני/את/היא)", he: "מחפשת", t: "Mekhapeset" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מחפשים", t: "Mekhapsim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מחפשות", t: "Mekhapsot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חיפש", t: "Khipes" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחפש", t: "Yekhapes" },
       ],
     },
   },
-
-  // Choisir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לבחור", translit: "Livkhor", fr: "Choisir",
+    racine: "בחר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "בוחר", t: "Bokher" },
-        { p: "fém. sing. (אני/את/היא)", he: "בוחרת", t: "Bokheret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "בוחרים", t: "Bokhrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "בוחרות", t: "Bokhrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "בחר", t: "Bakhar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבחר", t: "Yivkhar" },
       ],
     },
   },
-
-  // Commander/réserver/inviter  // À COMPLÉTER : Passé, Futur
   {
     inf: "להזמין", translit: "Lehazmine", fr: "Commander/réserver/inviter",
+    racine: "זמן", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מזמין", t: "Mazmin" },
-        { p: "fém. sing. (אני/את/היא)", he: "מזמינה", t: "Mazmina" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מזמינים", t: "Mazminim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מזמינות", t: "Mazminot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הזמין", t: "Hizmin" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יזמין", t: "Yazmin" },
       ],
     },
   },
-
-  // Commencer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתחיל", translit: "Lehatkhil", fr: "Commencer",
+    racine: "תחל", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתחיל", t: "Matkhil" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתחילה", t: "Matkhila" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתחילים", t: "Matkhilim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתחילות", t: "Matkhilot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התחיל", t: "Hikhil" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתחיל", t: "Yatkhil" },
       ],
     },
   },
-
-  // Comprendre  // À COMPLÉTER : Passé, Futur
   {
     inf: "להבין", translit: "Lehavin", fr: "Comprendre",
+    racine: "בין", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מבין", t: "Mevin" },
-        { p: "fém. sing. (אני/את/היא)", he: "מבינה", t: "Mevina" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מבינים", t: "Mevinim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מבינות", t: "Mevinot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הבין", t: "Hevin" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבין", t: "Yavin" },
       ],
     },
   },
-
-  // Conduire  // À COMPLÉTER : Passé, Futur
   {
     inf: "לנהוג", translit: "Linhog", fr: "Conduire",
+    racine: "נהג", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נוהג", t: "Noheg" },
-        { p: "fém. sing. (אני/את/היא)", he: "נוהגת", t: "Noheget" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נוהגים", t: "Nohgim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נוהגות", t: "Nohgot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נהג", t: "Nahag" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינהג", t: "Yinhag" },
       ],
     },
   },
-
-  // Connaître/savoir  // À COMPLÉTER : Passé, Futur
   {
     inf: "להכיר", translit: "Lehakir", fr: "Connaître/savoir",
+    racine: "נכר", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מכיר", t: "Makir" },
-        { p: "fém. sing. (אני/את/היא)", he: "מכירה", t: "Makira" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מכירים", t: "Makirim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מכירות", t: "Makirot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הכיר", t: "Hikir" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכיר", t: "Yakir" },
       ],
     },
   },
-
-  // Construire  // À COMPLÉTER : Passé, Futur
   {
     inf: "לבנות", translit: "Livnot", fr: "Construire",
+    racine: "בנה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "בונה", t: "Bone" },
-        { p: "fém. sing. (אני/את/היא)", he: "בונה", t: "Bona" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "בונים", t: "Bonim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "בונות", t: "Bonot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "בנה", t: "Bana" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבנה", t: "Yivne" },
       ],
     },
   },
-
-  // Continuer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להמשיך", translit: "Leamchikh", fr: "Continuer",
+    racine: "משך", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "ממשיך", t: "Mamchikh" },
-        { p: "fém. sing. (אני/את/היא)", he: "ממשיכה", t: "Mamchikha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "ממשיכים", t: "Mamchkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "ממשיכות", t: "Mamchkhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "המשיך", t: "Himshikh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימשיך", t: "Yamshikh" },
       ],
     },
   },
-
-  // Courir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לרוץ", translit: "Larouts", fr: "Courir",
+    racine: "רוץ", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "רץ", t: "Rats" },
-        { p: "fém. sing. (אני/את/היא)", he: "רצה", t: "Ratsa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "רצים", t: "Rtsim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "רצות", t: "Rtsot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "רץ", t: "Rats" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירוץ", t: "Yaruts" },
       ],
     },
   },
-
-  // Coûter / monter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לעלות", translit: "Laalot", fr: "Coûter / monter",
+    racine: "עלה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "עולה", t: "Ole" },
-        { p: "fém. sing. (אני/את/היא)", he: "עולה", t: "Ola" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "עולים", t: "Olim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "עולות", t: "Olot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "עלה", t: "Ala" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעלה", t: "Ya'ale" },
       ],
     },
   },
-
-  // Croire  // À COMPLÉTER : Passé, Futur
   {
-    inf: "להאמין", translit: "Leha'amin", fr: "Croire",
+    inf: "להמין", translit: "Lehamin", fr: "Croire",
+    racine: "אמן", binyan: "הפעיל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מאמין", t: "Maamin" },
-        { p: "fém. sing. (אני/את/היא)", he: "מאמינה", t: "Maamina" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מאמינים", t: "Maaminim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מאמינות", t: "Maaminot" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מהמין", t: "Maamin" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "האמין", t: "Hehemin" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאמין", t: "Ya'amin" },
       ],
     },
   },
-
-  // Cuisiner  // À COMPLÉTER : Passé, Futur
   {
     inf: "לבשל", translit: "Levachel", fr: "Cuisiner",
+    racine: "בשל", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מבשל", t: "Mevachel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מבשלת", t: "Mevachelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מבשלים", t: "Mevachlim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מבשלות", t: "Mevachlot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "בישל", t: "Bishel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבשל", t: "Yevachel" },
       ],
     },
   },
-
-  // Préparer  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להכין", translit: "Lehakhine", fr: "Préparer",
-    temps: {},
+    racine: "כון", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מכין", t: "Mekhin" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הכין", t: "Hekhin" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכין", t: "Yakhin" },
+      ],
+    },
   },
-
-  // Danser  // À COMPLÉTER : Passé, Futur
   {
     inf: "לרקוד", translit: "Lirkod", fr: "Danser",
+    racine: "רקד", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "רוקד", t: "Roked" },
-        { p: "fém. sing. (אני/את/היא)", he: "רוקדת", t: "Rokedet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "רוקדים", t: "Rokdim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "רוקדות", t: "Rokdot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "רקד", t: "Rakad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירקוד", t: "Yirkod" },
       ],
     },
   },
-
-  // Décider  // À COMPLÉTER : Passé, Futur
   {
     inf: "להחליט", translit: "Lehakhlit", fr: "Décider",
+    racine: "חלט", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מחליט", t: "Makhlit" },
-        { p: "fém. sing. (אני/את/היא)", he: "מחליטה", t: "Makhlita" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מחליטים", t: "Makhlitim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מחליטות", t: "Makhlitot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "החליט", t: "Hikhlit" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחליט", t: "Yakhlit" },
       ],
     },
   },
-
-  // Découvrir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לגלות", translit: "Legalot", fr: "Découvrir",
+    racine: "גלה", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מגלה", t: "Megale" },
-        { p: "fém. sing. (אני/את/היא)", he: "מגלה", t: "Megala" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מגלים", t: "Megalim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מגלות", t: "Megalot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "גילה", t: "Gila" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגלה", t: "Yegale" },
       ],
     },
   },
-
-  // Décrire  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לתאר", translit: "Leta'er", fr: "Décrire",
-    temps: {},
+    racine: "תאר", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתאר", t: "Metaer" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "תיאר", t: "Tiar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתאר", t: "Yetaer" },
+      ],
+    },
   },
-
-  // Demander/exiger/réclamer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לבקש", translit: "Levakesh", fr: "Demander/exiger/réclamer",
+    racine: "בקש", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מבקש", t: "Mevakesh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מבקשת", t: "Mevakeshet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מבקשים", t: "Mevakshim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מבקשות", t: "Mevakshot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ביקש", t: "Bikesh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבקש", t: "Yevakesh" },
       ],
     },
   },
-
-  // Demander/questionner  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשאול", translit: "Lich'ol", fr: "Demander/questionner",
+    racine: "שאל", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שואל", t: "Cho'el" },
-        { p: "fém. sing. (אני/את/היא)", he: "שואלת", t: "Cho'elet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שואלים", t: "Cho'lim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שואלות", t: "Cho'lot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שאל", t: "Cha'al" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישאל", t: "Yich'al" },
       ],
     },
   },
-
-  // Descendre / tomber  // À COMPLÉTER : Passé, Futur
   {
     inf: "לרדת", translit: "Laredet", fr: "Descendre / tomber",
+    racine: "ירד", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "יורד", t: "Yored" },
-        { p: "fém. sing. (אני/את/היא)", he: "יורדת", t: "Yoredet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "יורדים", t: "Yordim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "יורדות", t: "Yordot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ירד", t: "Yarad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירד", t: "Yered" },
       ],
     },
   },
-
-  // Dessiner / peindre  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לציר", translit: "Letsayer", fr: "Dessiner / peindre",
-    temps: {},
+    racine: "ציר", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מצייר", t: "Metsayer" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צייר", t: "Tsiyer" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצייר", t: "Yetsayer" },
+      ],
+    },
   },
-
-  // Détester  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשנוא", translit: "Lisno", fr: "Détester",
+    racine: "שנא", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שונא", t: "Sone" },
-        { p: "fém. sing. (אני/את/היא)", he: "שונאת", t: "Soneet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שונאים", t: "Sneim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שונאות", t: "Sneot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שנא", t: "Sana" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישנא", t: "Yisna" },
       ],
     },
   },
-
-  // Devenir fou  // À COMPLÉTER : Passé, Futur
   {
     inf: "להשתגע", translit: "Lehichtagea", fr: "Devenir fou",
+    racine: "שגע", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משתגע", t: "Michtagea" },
-        { p: "fém. sing. (אני/את/היא)", he: "משתגעת", t: "Michtageaet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משתגעים", t: "Michtagaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משתגעות", t: "Michtagaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השתגע", t: "Hishtagea" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישתגע", t: "Yishtagea" },
       ],
     },
   },
-
-  // Dire  // À COMPLÉTER : Passé, Futur
   {
     inf: "לומר", translit: "Lomar", fr: "Dire",
+    racine: "אמר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "אומר", t: "Omer" },
-        { p: "fém. sing. (אני/את/היא)", he: "אומרת", t: "Omeret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "אומרים", t: "Omrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "אומרות", t: "Omrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "אמר", t: "Amar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאמר", t: "Yomar" },
       ],
     },
   },
-
-  // Dire  // À COMPLÉTER : Passé, Futur
   {
     inf: "להגיד", translit: "Lehagid", fr: "Dire",
+    racine: "נגד", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מגיד", t: "Magid" },
-        { p: "fém. sing. (אני/את/היא)", he: "מגידה", t: "Magida" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מגידים", t: "Magidim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מגידות", t: "Magidot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הגיד", t: "Higid" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגיד", t: "Yagid" },
       ],
     },
   },
-
-  // Diriger (patron)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לנהל", translit: "Lenahel", fr: "Diriger (patron)",
+    racine: "נהל", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מנהל", t: "Menahel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מנהלת", t: "Menahelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מנהלים", t: "Menahlim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מנהלות", t: "Menahlot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ניהל", t: "Nihel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינהל", t: "Yenahel" },
       ],
     },
   },
-
-  // Divorcer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתגרש", translit: "Lehitgarech", fr: "Divorcer",
+    racine: "גרש", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתגרש", t: "Mitgarech" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתגרשת", t: "Mitgarechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתגרשים", t: "Mitgarchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתגרשות", t: "Mitgarchot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התגרש", t: "Hitgaresh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתגרש", t: "Yitgaresh" },
       ],
     },
   },
-
-  // Donner  // À COMPLÉTER : Passé, Futur
   {
     inf: "לתת", translit: "Latet", fr: "Donner",
+    racine: "נתן", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נותן", t: "Noten" },
-        { p: "fém. sing. (אני/את/היא)", he: "נותנת", t: "Notenet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נותנים", t: "Notnim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נותנות", t: "Notnot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נתן", t: "Natan" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייתן", t: "Yiten" },
       ],
     },
   },
-
-  // Dormir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לישון", translit: "Lichon", fr: "Dormir",
+    racine: "ישן", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "ישן", t: "Yachen" },
-        { p: "fém. sing. (אני/את/היא)", he: "ישנה", t: "Yechena" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "ישנים", t: "Yachnim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "ישנות", t: "Yachnot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ישן", t: "Yachen" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יישן", t: "Yishan" },
       ],
     },
   },
-
-  // Draguer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לפלרטט", translit: "Leflartet", fr: "Draguer",
+    racine: "פלרטט", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מפלרטט", t: "Meflartet" },
-        { p: "fém. sing. (אני/את/היא)", he: "מפלרטטת", t: "Meflartetet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מפלרטטים", t: "Meflarttim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מפלרטטות", t: "Meflarttot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "פלרטט", t: "Flirtet" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפלרטט", t: "Yeflartet" },
       ],
     },
   },
-
-  // Ecouter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשמוע", translit: "Lichmoa", fr: "Ecouter",
+    racine: "שמע", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שומע", t: "Chomea" },
-        { p: "fém. sing. (אני/את/היא)", he: "שומעת", t: "Chomeaet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שומעים", t: "Chomaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שומעות", t: "Chomaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שמע", t: "Chama" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישמע", t: "Yichma" },
       ],
     },
   },
-
-  // Ecouter  // À COMPLÉTER : Passé, Futur
   {
     inf: "להקשיב", translit: "Leakchiv", fr: "Ecouter",
+    racine: "קשב", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מקשיב", t: "Makchiv" },
-        { p: "fém. sing. (אני/את/היא)", he: "מקשיבת", t: "Makchivet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מקשיבים", t: "Makchvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מקשיבות", t: "Makchvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הקשיב", t: "Hikshiv" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקשיב", t: "Yakshiv" },
       ],
     },
   },
-
-  // Ecrire  // À COMPLÉTER : Passé, Futur
   {
     inf: "לכתוב", translit: "Likhtov", fr: "Ecrire",
+    racine: "כתב", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "כותב", t: "Kotev" },
-        { p: "fém. sing. (אני/את/היא)", he: "כותבת", t: "Kotevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "כותבים", t: "Kotvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "כותבות", t: "Kotvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "כתב", t: "Katav" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכתוב", t: "Yikhtov" },
       ],
     },
   },
-
-  // Enseigner  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "ללמד", translit: "Lelamed", fr: "Enseigner",
-    temps: {},
+    racine: "למד", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מלמד", t: "Melamed" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "לימד", t: "Limed" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ילמד", t: "Yelamed" },
+      ],
+    },
   },
-
-  // Entrer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להכנס", translit: "Lehikanes", fr: "Entrer",
+    racine: "כנס", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נכנס", t: "Nikhnas" },
-        { p: "fém. sing. (אני/את/היא)", he: "נכנסת", t: "Nikhnaset" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נכנסים", t: "Nikhnsim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נכנסות", t: "Nikhnsot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נכנס", t: "Nikhnas" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכנס", t: "Yikhnas" },
       ],
     },
   },
-
-  // Entretenir (embauche)  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתראיין", translit: "Lehitrayen", fr: "Entretenir (embauche)",
+    racine: "ריין", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתראיין", t: "Mitrayen" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתראיינת", t: "Mitrayenet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתראיינים", t: "Mitraynim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתראיינות", t: "Mitraynot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התראיין", t: "Hitrayen" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתראיין", t: "Yitrayen" },
       ],
     },
   },
-
-  // Envoyer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשלוח", translit: "Lichloakh", fr: "Envoyer",
+    racine: "שלח", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שולח", t: "Choleakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "שולחת", t: "Choleakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שולחים", t: "Cholekhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שולחות", t: "Cholekhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שלח", t: "Chalakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישלח", t: "Yichlakh" },
       ],
     },
   },
-
-  // Espérer  // À COMPLÉTER : Futur
   {
     inf: "לקוות", translit: "Lekavot", fr: "Espérer",
+    racine: "קוה", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מקווה", t: "Mekave" },
-        { p: "fém. sing. (אני/את/היא)", he: "מקווה", t: "Mekava" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מקווים", t: "Mekavim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מקווות", t: "Mekavot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "קיוויתי", t: "Kiviti" },
-        { p: "tu masc. (אתה)", he: "קיווית", t: "Kivita" },
-        { p: "tu fém. (את)", he: "קיווית", t: "Kivit" },
         { p: "il (הוא)", he: "קיווה", t: "Kiva" },
-        { p: "elle (היא)", he: "קיוותה", t: "Kivta" },
-        { p: "nous (אנחנו)", he: "קיווינו", t: "Kivinu" },
-        { p: "vous masc. (אתם)", he: "קיוויתם", t: "Kivitem" },
-        { p: "vous fém. (אתן)", he: "קיוויתן", t: "Kiviten" },
-        { p: "ils / elles (הם/הן)", he: "קיווו", t: "Kivu" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקווה", t: "Yekave" },
       ],
     },
   },
-
-  // Espérer (fort) / désirer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לייחל", translit: "Leyakhel", fr: "Espérer (fort) / désirer",
+    racine: "יחל", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מייחל", t: "Meyakhel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מייחלת", t: "Meyakhelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מייחלים", t: "Meyakhlim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מייחלות", t: "Meyakhlot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ייחל", t: "Yikhel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייחל", t: "Yeyakhel" },
       ],
     },
   },
-
-  // Essayer / tenter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לנסות", translit: "Lenasot", fr: "Essayer / tenter",
+    racine: "נסה", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מנסה", t: "Menase" },
-        { p: "fém. sing. (אני/את/היא)", he: "מנסה", t: "Menasa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מנסים", t: "Menasim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מנסות", t: "Menasot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ניסה", t: "Nisa" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינסה", t: "Yenase" },
       ],
     },
   },
-
-  // Essayer / tester  // À COMPLÉTER : Passé, Futur
   {
     inf: "למדוד", translit: "Limdod", fr: "Essayer / tester",
+    racine: "מדד", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מודד", t: "Moded" },
-        { p: "fém. sing. (אני/את/היא)", he: "מודדת", t: "Modedet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מודדים", t: "Moddim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מודדות", t: "Moddot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "מדד", t: "Madad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימוד", t: "Yamod" },
       ],
     },
   },
-
-  // Être  // À COMPLÉTER : Passé, Futur
   {
     inf: "להיות", translit: "Lehiyot", fr: "Être",
+    racine: "היה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "הווה", t: "Hove" },
-        { p: "fém. sing. (אני/את/היא)", he: "הווה", t: "Hova" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "הווים", t: "Hovim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "הווות", t: "Hovot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "היה", t: "Aya" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יהיה", t: "Yihye" },
       ],
     },
   },
-
-  // Être accepté / admis  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתקבל", translit: "Lehitkabel", fr: "Être accepté / admis",
+    racine: "קבל", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתקבל", t: "Mitkabel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתקבלת", t: "Mitkabelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתקבלים", t: "Mitkablim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתקבלות", t: "Mitkablot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התקבל", t: "Hitkabel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתקבל", t: "Yitkabel" },
       ],
     },
   },
-
-  // Être d'accord  // À COMPLÉTER : Passé, Futur
   {
     inf: "להסכים", translit: "Lehaskim", fr: "Être d'accord",
+    racine: "סכם", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מסכים", t: "Maskim" },
-        { p: "fém. sing. (אני/את/היא)", he: "מסכימה", t: "Maskima" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מסכימים", t: "Maskimim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מסכימות", t: "Maskimot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הסכים", t: "Hiskim" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסכים", t: "Yaskim" },
       ],
     },
   },
-
-  // Être debout  // À COMPLÉTER : Passé, Futur
   {
     inf: "לעמוד", translit: "Lahamod", fr: "Être debout",
+    racine: "עמד", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "עומד", t: "Omed" },
-        { p: "fém. sing. (אני/את/היא)", he: "עומדת", t: "Omedet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "עומדים", t: "Omdim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "עומדות", t: "Omdot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "עמד", t: "Amad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעמוד", t: "Ya'amod" },
       ],
     },
   },
-
-  // Être en retard  // À COMPLÉTER : Passé, Futur
   {
     inf: "לאחר", translit: "Le'akher", fr: "Être en retard",
+    racine: "אחר", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מאחר", t: "Me'akher" },
-        { p: "fém. sing. (אני/את/היא)", he: "מאחרת", t: "Me'akheret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מאחרים", t: "Me'akhrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מאחרות", t: "Me'akhrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "איחר", t: "Ikher" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאחר", t: "Ye'akher" },
       ],
     },
   },
-
-  // Etre prêt  // À COMPLÉTER : Passé, Futur
   {
-    inf: "", translit: "Lehiot Moukhan", fr: "Etre prêt",
+    inf: "להיות מוכן", translit: "Lehiot Moukhan", fr: "Etre prêt",
+    racine: "כון", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "ממוכן", t: "Memoukhan" },
-        { p: "fém. sing. (אני/את/היא)", he: "ממוכנת", t: "Memoukhanet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "ממוכנים", t: "Memoukhnim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "ממוכנות", t: "Memoukhnot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הוכן", t: "Hukhan" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יוכן", t: "Yukhan" },
       ],
     },
   },
-
-  // Etudier  // À COMPLÉTER : Passé, Futur
   {
     inf: "ללמוד", translit: "Lilmod", fr: "Etudier",
+    racine: "למד", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "לומד", t: "Lomed" },
-        { p: "fém. sing. (אני/את/היא)", he: "לומדת", t: "Lomedet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "לומדים", t: "Lomdim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "לומדות", t: "Lomdot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "למד", t: "Lamad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ילמד", t: "Yilmad" },
       ],
     },
   },
-
-  // Eviter  // À COMPLÉTER : Présent, Passé, Futur
   {
-    inf: "", translit: "", fr: "Eviter",
-    temps: {},
+    inf: "לפסוח", translit: "Lifsoakh", fr: "Sauter / ignoser",
+    racine: "מנע", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "פוסח", t: "Poseakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "פסח", t: "Pasakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפסח", t: "Yifsakh" },
+      ],
+    },
   },
-
-  // Exciter (pas sexuel)  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתרגש", translit: "Lehitragech", fr: "Exciter (pas sexuel)",
+    racine: "רגש", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתרגש", t: "Mitragech" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתרגשת", t: "Mitragechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתרגשים", t: "Mitragchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתרגשות", t: "Mitragchot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התרגש", t: "Hitragesh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתרגש", t: "Yitragesh" },
       ],
     },
   },
-
-  // Expliquer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להסביר", translit: "Lehasbir", fr: "Expliquer",
+    racine: "סבר", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מסביר", t: "Masbir" },
-        { p: "fém. sing. (אני/את/היא)", he: "מסבירה", t: "Masbira" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מסבירים", t: "Masbirim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מסבירות", t: "Masbirot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הסביר", t: "Hisbir" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסביר", t: "Yasbir" },
       ],
     },
   },
-
-  // Faire  // À COMPLÉTER : Passé, Futur
   {
     inf: "לעשות", translit: "Laassot", fr: "Faire",
+    racine: "עשה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "עושה", t: "Osse" },
-        { p: "fém. sing. (אני/את/היא)", he: "עושה", t: "Ossa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "עושים", t: "Ossim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "עושות", t: "Ossot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "עשה", t: "Asa" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעשה", t: "Ya'ase" },
       ],
     },
   },
-
-  // Faire du bénévolat  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתנדב", translit: "Lehitnadev", fr: "Faire du bénévolat",
+    racine: "נדב", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתנדב", t: "Mitnadev" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתנדבת", t: "Mitnadevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתנדבים", t: "Mitnadvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתנדבות", t: "Mitnadvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התנדב", t: "Hitnadev" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתנדב", t: "Yitnadev" },
       ],
     },
   },
-
-  // Faire rire/être drôle/plaisanter  // À COMPLÉTER : Passé, Futur
   {
     inf: "להצחיק", translit: "Lehatskhik", fr: "Faire rire/être drôle/plaisanter",
+    racine: "צחק", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מצחיק", t: "Matskhik" },
-        { p: "fém. sing. (אני/את/היא)", he: "מצחיקה", t: "Matskhika" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מצחיקים", t: "Matskhikim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מצחיקות", t: "Matskhikot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הצחיק", t: "Hitskhik" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצחיק", t: "Yatskhik" },
       ],
     },
   },
-
-  // Fermer à clé  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לנעול דלת", translit: "Linhol delet", fr: "Fermer à clé",
-    temps: {},
-  },
-
-  // Fêter  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לחגוג", translit: "Lakhgog", fr: "Fêter",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "חוגג", t: "Khogeg" },
-        { p: "fém. sing. (אני/את/היא)", he: "חוגגת", t: "Khogeget" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "חוגגים", t: "Khoggim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "חוגגות", t: "Khoggot" },
-      ],
-    },
-  },
-
-  // Finir/terminer (achever) / causer  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לגמור", translit: "Ligmor", fr: "Finir/terminer (achever) / causer",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "גומר", t: "Gomer" },
-        { p: "fém. sing. (אני/את/היא)", he: "גומרת", t: "Gomeret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "גומרים", t: "Gomrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "גומרות", t: "Gomrot" },
-      ],
-    },
-  },
-
-  // Finir/terminer (complètement)  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לסיים", translit: "Lesayem", fr: "Finir/terminer (complètement)",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מסיים", t: "Mesayem" },
-        { p: "fém. sing. (אני/את/היא)", he: "מסיימת", t: "Mesayemet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מסיימים", t: "Mesaymim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מסיימות", t: "Mesaymot" },
-      ],
-    },
-  },
-
-  // Finir (être fini)  // À COMPLÉTER : Présent, Passé, Futur
-  {
-    inf: "", translit: "Lehigamer", fr: "Finir (être fini)",
-    temps: {},
-  },
-
-  // Fixer / prevoir  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לקבוע", translit: "Likboa", fr: "Fixer / prevoir",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "קובע", t: "Kovea" },
-        { p: "fém. sing. (אני/את/היא)", he: "קובעת", t: "Koveaet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "קובעים", t: "Kovaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "קובעות", t: "Kovaot" },
-      ],
-    },
-  },
-
-  // Flotter  // À COMPLÉTER : Présent, Passé, Futur
-  {
-    inf: "לצוף", translit: "Latsouf", fr: "Flotter",
-    temps: {},
-  },
-
-  // Gagner  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לנצח", translit: "Lenatseakh", fr: "Gagner",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מנצח", t: "Menatseakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מנצחת", t: "Menatseakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מנצחים", t: "Menatsekhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מנצחות", t: "Menatsekhot" },
-      ],
-    },
-  },
-
-  // Garder / proteger  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לשמור", translit: "Lichmor", fr: "Garder / proteger",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "שומר", t: "Chomer" },
-        { p: "fém. sing. (אני/את/היא)", he: "שומרת", t: "Chomeret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שומרים", t: "Chomrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שומרות", t: "Chomrot" },
-      ],
-    },
-  },
-
-  // Grandir  // À COMPLÉTER : Présent, Passé, Futur
-  {
-    inf: "לגדול", translit: "Ligdol", fr: "Grandir",
-    temps: {},
-  },
-
-  // Grignoter  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לנשנש", translit: "Lenachnech", fr: "Grignoter",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מנשנש", t: "Menachnech" },
-        { p: "fém. sing. (אני/את/היא)", he: "מנשנשת", t: "Menachnechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מנשנשים", t: "Menachnchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מנשנשות", t: "Menachnchot" },
-      ],
-    },
-  },
-
-  // Inventer  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "להמציא", translit: "Lehamtsi", fr: "Inventer",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "ממציא", t: "Mamtsi" },
-        { p: "fém. sing. (אני/את/היא)", he: "ממציאה", t: "Mamtsia" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "ממציאים", t: "Mamtsiim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "ממציאות", t: "Mamtsiot" },
-      ],
-    },
-  },
-
-  // Jouer (foot)  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לשחק", translit: "Lessakhek", fr: "Jouer (foot)",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משחק", t: "Messakhek" },
-        { p: "fém. sing. (אני/את/היא)", he: "משחקת", t: "Messakheket" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משחקים", t: "Messakhkim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משחקות", t: "Messakhkot" },
-      ],
-    },
-  },
-
-  // Jouer (instrument)  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לנגן", translit: "Lenagen", fr: "Jouer (instrument)",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מנגן", t: "Menagen" },
-        { p: "fém. sing. (אני/את/היא)", he: "מנגנת", t: "Menagenet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מנגנים", t: "Menagnim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מנגנות", t: "Menagnot" },
-      ],
-    },
-  },
-
-  // Lire  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לקרוא", translit: "Likro", fr: "Lire",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "קורא", t: "Kore" },
-        { p: "fém. sing. (אני/את/היא)", he: "קוראת", t: "Koreet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "קוראים", t: "Kreim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "קוראות", t: "Kreot" },
-      ],
-    },
-  },
-
-  // Louer un appart (locataire)  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לשכור", translit: "Liskor", fr: "Louer un appart (locataire)",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "שוכר", t: "Sokher" },
-        { p: "fém. sing. (אני/את/היא)", he: "שוכרת", t: "Sokheret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שוכרים", t: "Sokhrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שוכרות", t: "Sokhrot" },
-      ],
-    },
-  },
-
-  // Louer un appart (proprietaire)  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "להשכיר", translit: "Lehaskir", fr: "Louer un appart (proprietaire)",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משכיר", t: "Maskir" },
-        { p: "fém. sing. (אני/את/היא)", he: "משכירה", t: "Maskira" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משכירים", t: "Maskirim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משכירות", t: "Maskirot" },
-      ],
-    },
-  },
-
-  // Manger  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לאכול", translit: "Leekhol", fr: "Manger",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "אוכל", t: "Okhel" },
-        { p: "fém. sing. (אני/את/היא)", he: "אוכלת", t: "Okhelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "אוכלים", t: "Okhlim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "אוכלות", t: "Okhlot" },
-      ],
-    },
-  },
-
-  // Mentir  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לשקר", translit: "Lechaker", fr: "Mentir",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משקר", t: "Mechaker" },
-        { p: "fém. sing. (אני/את/היא)", he: "משקרת", t: "Mechakeret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משקרים", t: "Mechakrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משקרות", t: "Mechakrot" },
-      ],
-    },
-  },
-
-  // Mettre/poser  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לשים", translit: "Lassim", fr: "Mettre/poser",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "שם", t: "Sam" },
-        { p: "fém. sing. (אני/את/היא)", he: "שמה", t: "Sama" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שמים", t: "Smim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שמות", t: "Smot" },
-      ],
-    },
-  },
-
-  // Montrer  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "להראות", translit: "Lehar'ot", fr: "Montrer",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מראה", t: "Mar'é" },
-        { p: "fém. sing. (אני/את/היא)", he: "מראה", t: "Mar'éa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מראים", t: "Mar'éim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מראות", t: "Mar'éot" },
-      ],
-    },
-  },
-
-  // Nager  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לשחות", translit: "Liskhot", fr: "Nager",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "שוחה", t: "Sokhe" },
-        { p: "fém. sing. (אני/את/היא)", he: "שוחה", t: "Sokha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שוחים", t: "Sokhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שוחות", t: "Sokhot" },
-      ],
-    },
-  },
-
-  // Naitre  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "להיוולד", translit: "Lehivaled", fr: "Naitre",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "נולד", t: "Nolad" },
-        { p: "fém. sing. (אני/את/היא)", he: "נולדת", t: "Noladet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נולדים", t: "Noldim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נולדות", t: "Noldot" },
-      ],
-    },
-  },
-
-  // Necessiter/exiger/impliquer  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "להצריך", translit: "Lehatsrikh", fr: "Necessiter/exiger/impliquer",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מצריך", t: "Matsrikh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מצריכה", t: "Matsrikha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מצריכים", t: "Matsrikhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מצריכות", t: "Matsrikhot" },
-      ],
-    },
-  },
-
-  // Oublier  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לשכוח", translit: "Lichkoakh", fr: "Oublier",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "שוכח", t: "Chokheakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "שוכחת", t: "Chokheakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שוכחים", t: "Chokhekhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שוכחות", t: "Chokhekhot" },
-      ],
-    },
-  },
-
-  // Ouvrir  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לפתוח", translit: "Liftoakh", fr: "Ouvrir",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "פותח", t: "Poteakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "פותחת", t: "Poteakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "פותחים", t: "Potekhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "פותחות", t: "Potekhot" },
-      ],
-    },
-  },
-
-  // Parler  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לדבר", translit: "Ledaber", fr: "Parler",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מדבר", t: "Medaber" },
-        { p: "fém. sing. (אני/את/היא)", he: "מדברת", t: "Medaberet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מדברים", t: "Medabrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מדברות", t: "Medabrot" },
-      ],
-    },
-  },
-
-  // Passer / franchir  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לעבור", translit: "La'avor", fr: "Passer / franchir",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "עובר", t: "Hover" },
-        { p: "fém. sing. (אני/את/היא)", he: "עוברת", t: "Hoveret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "עוברים", t: "Hovrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "עוברות", t: "Hovrot" },
-      ],
-    },
-  },
-
-  // Passer au dessus/ enjamber  // À COMPLÉTER : Présent, Passé, Futur
-  {
-    inf: "", translit: "Lifsoakh", fr: "Passer au dessus/ enjamber",
-    temps: {},
-  },
-
-  // Payer  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לשלם", translit: "Lechalem", fr: "Payer",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משלם", t: "Mechalem" },
-        { p: "fém. sing. (אני/את/היא)", he: "משלמת", t: "Mechalemet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משלמים", t: "Mechalmim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משלמות", t: "Mechalmot" },
-      ],
-    },
-  },
-
-  // Penser / Réfléchir  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לחשוב", translit: "Lakhchov", fr: "Penser / Réfléchir",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "חושב", t: "Khochev" },
-        { p: "fém. sing. (אני/את/היא)", he: "חושבת", t: "Khochevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "חושבים", t: "Khochvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "חושבות", t: "Khochvot" },
-      ],
-    },
-  },
-
-  // Perdre  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לאבד", translit: "Leabed", fr: "Perdre",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מאבד", t: "Meabed" },
-        { p: "fém. sing. (אני/את/היא)", he: "מאבדת", t: "Meabedet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מאבדים", t: "Meabdim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מאבדות", t: "Meabdot" },
-      ],
-    },
-  },
-
-  // Peser  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לשקול", translit: "Lichkol", fr: "Peser",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "שוקל", t: "Chokel" },
-        { p: "fém. sing. (אני/את/היא)", he: "שוקלת", t: "Chokelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שוקלים", t: "Choklim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שוקלות", t: "Choklot" },
-      ],
-    },
-  },
-
-  // Pleurer  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לבכות", translit: "Livkot", fr: "Pleurer",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "בוכה", t: "Bokhe" },
-        { p: "fém. sing. (אני/את/היא)", he: "בוכה", t: "Bokha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "בוכים", t: "Bokhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "בוכות", t: "Bokhot" },
-      ],
-    },
-  },
-
-  // Porter ceinture sécurité  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לחגור", translit: "Lakhgor", fr: "Porter ceinture sécurité",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "חוגר", t: "Khoger" },
-        { p: "fém. sing. (אני/את/היא)", he: "חוגרת", t: "Khogeret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "חוגרים", t: "Khogrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "חוגרות", t: "Khogrot" },
-      ],
-    },
-  },
-
-  // Porter des chaussettes  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לגרוב", translit: "Ligrov", fr: "Porter des chaussettes",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "גורב", t: "Gorev" },
-        { p: "fém. sing. (אני/את/היא)", he: "גורבת", t: "Gorevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "גורבים", t: "Gorvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "גורבות", t: "Gorvot" },
-      ],
-    },
-  },
-
-  // Porter des chaussures  // À COMPLÉTER : Passé, Futur
-  {
-    inf: "לנעול", translit: "Lin'ol", fr: "Porter des chaussures",
+    racine: "נעל", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נועל", t: "No'el" },
-        { p: "fém. sing. (אני/את/היא)", he: "נועלת", t: "No'elet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נועלים", t: "No'lim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נועלות", t: "No'lot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נעל", t: "Na'al" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינעל", t: "Yin'al" },
       ],
     },
   },
-
-  // Porter des lunettes  // À COMPLÉTER : Présent, Passé, Futur
+  {
+    inf: "לחגוג", translit: "Lakhgog", fr: "Fêter",
+    racine: "חגג", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "חוגג", t: "Khogeg" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חגג", t: "Khagag" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחוג", t: "Yakhog" },
+      ],
+    },
+  },
+  {
+    inf: "לגמור", translit: "Ligmor", fr: "Finir/terminer (achever) / causer",
+    racine: "גמר", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "גומר", t: "Gomer" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "גמר", t: "Gamar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגמור", t: "Yigmor" },
+      ],
+    },
+  },
+  {
+    inf: "לסיים", translit: "Lesayem", fr: "Finir/terminer (complètement)",
+    racine: "סים", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מסיים", t: "Mesayem" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "סיים", t: "Siyem" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסיים", t: "Yesayem" },
+      ],
+    },
+  },
+  {
+    inf: "להיגמר", translit: "Lehigamer", fr: "Finir (être fini)",
+    racine: "גמר", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נגמר", t: "Nigmar" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נגמר", t: "Nigmar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייגמר", t: "Yigmar" },
+      ],
+    },
+  },
+  {
+    inf: "לקבוע", translit: "Likboa", fr: "Fixer / prevoir",
+    racine: "קבע", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "קובע", t: "Kovea" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "קבע", t: "Kava" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקבע", t: "Yikba" },
+      ],
+    },
+  },
+  {
+    inf: "לצוף", translit: "Latsouf", fr: "Flotter",
+    racine: "צוף", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "צף", t: "Tsaf" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צף", t: "Tsaf" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצוף", t: "Yatsouf" },
+      ],
+    },
+  },
+  {
+    inf: "לנצח", translit: "Lenatseakh", fr: "Gagner",
+    racine: "נצח", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מנצח", t: "Menatseakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ניצח", t: "Nitseakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינצח", t: "Yenatseakh" },
+      ],
+    },
+  },
+  {
+    inf: "לשמור", translit: "Lichmor", fr: "Garder / proteger",
+    racine: "שמר", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "שומר", t: "Chomer" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שמר", t: "Chamar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישמור", t: "Yichmor" },
+      ],
+    },
+  },
+  {
+    inf: "לגדול", translit: "Ligdol", fr: "Grandir",
+    racine: "גדל", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "גדל", t: "Gadel" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "גדל", t: "Gadal" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגדל", t: "Yigdal" },
+      ],
+    },
+  },
+  {
+    inf: "לנשנש", translit: "Lenachnech", fr: "Grignoter",
+    racine: "נשנש", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מנשנש", t: "Menachnech" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נשנש", t: "Nishnesh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינשנש", t: "Yenashnesh" },
+      ],
+    },
+  },
+  {
+    inf: "להמציא", translit: "Lehamtsi", fr: "Inventer",
+    racine: "מצא", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "ממציא", t: "Mamtsi" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "המציא", t: "Himtsi" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימציא", t: "Yamtsi" },
+      ],
+    },
+  },
+  {
+    inf: "לשחק", translit: "Lessakhek", fr: "Jouer (foot)",
+    racine: "שחק", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משחק", t: "Messakhek" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שיחק", t: "Sikhek" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישחק", t: "Yesakhek" },
+      ],
+    },
+  },
+  {
+    inf: "לנגן", translit: "Lenagen", fr: "Jouer (instrument)",
+    racine: "נגן", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מנגן", t: "Menagen" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ניגן", t: "Nigen" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינגן", t: "Yenagen" },
+      ],
+    },
+  },
+  {
+    inf: "לקרוא", translit: "Likro", fr: "Lire",
+    racine: "קרא", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "קורא", t: "Kore" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "קרא", t: "Kara" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקרא", t: "Yikra" },
+      ],
+    },
+  },
+  {
+    inf: "לשכור", translit: "Liskor", fr: "Louer un appart (locataire)",
+    racine: "שכר", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "שוכר", t: "Sokher" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שכר", t: "Sakhar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישכור", t: "Yiskor" },
+      ],
+    },
+  },
+  {
+    inf: "להשכיר", translit: "Lehaskir", fr: "Louer un appart (proprietaire)",
+    racine: "שכר", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משכיר", t: "Maskir" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השכיר", t: "Hiskir" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישכיר", t: "Yaskir" },
+      ],
+    },
+  },
+  {
+    inf: "לאכול", translit: "Leekhol", fr: "Manger",
+    racine: "אכל", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "אוכל", t: "Okhel" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "אכל", t: "Akhal" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאכל", t: "Yokhal" },
+      ],
+    },
+  },
+  {
+    inf: "לשקר", translit: "Lechaker", fr: "Mentir",
+    racine: "שקר", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משקר", t: "Mechaker" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שיקר", t: "Chiker" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישקר", t: "Yeshaker" },
+      ],
+    },
+  },
+  {
+    inf: "לשים", translit: "Lassim", fr: "Mettre/poser",
+    racine: "שים", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "שם", t: "Sam" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שם", t: "Sam" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישים", t: "Yasim" },
+      ],
+    },
+  },
+  {
+    inf: "להראות", translit: "Lehar'ot", fr: "Montrer",
+    racine: "ראה", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מראה", t: "Mar'é" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הראה", t: "Her'a" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יראה", t: "Yar'e" },
+      ],
+    },
+  },
+  {
+    inf: "לשחות", translit: "Liskhot", fr: "Nager",
+    racine: "שחה", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "שוחה", t: "Sokhe" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שחה", t: "Sakha" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישחה", t: "Yiskhe" },
+      ],
+    },
+  },
+  {
+    inf: "להיוולד", translit: "Lehivaled", fr: "Naitre",
+    racine: "ילד", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נולד", t: "Nolad" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נולד", t: "Nolad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייוולד", t: "Yivaled" },
+      ],
+    },
+  },
+  {
+    inf: "להצריך", translit: "Lehatsrikh", fr: "Necessiter/exiger/impliquer",
+    racine: "צרך", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מצריך", t: "Matsrikh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הצריך", t: "Hitsrikh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצריך", t: "Yatsrikh" },
+      ],
+    },
+  },
+  {
+    inf: "לשכוח", translit: "Lichkoakh", fr: "Oublier",
+    racine: "שכח", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "שוכח", t: "Chokheakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שכח", t: "Chakhakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישכח", t: "Yichkakh" },
+      ],
+    },
+  },
+  {
+    inf: "לפתוח", translit: "Liftoakh", fr: "Ouvrir",
+    racine: "פתח", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "פותח", t: "Poteakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "פתח", t: "Patakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפתח", t: "Yiftakh" },
+      ],
+    },
+  },
+  {
+    inf: "לדבר", translit: "Ledaber", fr: "Parler",
+    racine: "דבר", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מדבר", t: "Medaber" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "דיבר", t: "Diber" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידבר", t: "Yedaber" },
+      ],
+    },
+  },
+  {
+    inf: "לעבור", translit: "La'avor", fr: "Passer / franchir",
+    racine: "עבר", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "עובר", t: "Hover" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "עבר", t: "Avar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעבור", t: "Ya'avor" },
+      ],
+    },
+  },
+  {
+    inf: "לשלם", translit: "Lechalem", fr: "Payer",
+    racine: "שלם", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משלם", t: "Mechalem" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שילם", t: "Chilem" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישלם", t: "Yeshalem" },
+      ],
+    },
+  },
+  {
+    inf: "לחשוב", translit: "Lakhchov", fr: "Penser / Réfléchir",
+    racine: "חשב", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "חושב", t: "Khochev" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חשב", t: "Khachav" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחשוב", t: "Yakhchov" },
+      ],
+    },
+  },
+  {
+    inf: "לאבד", translit: "Leabed", fr: "Perdre",
+    racine: "אבד", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מאבד", t: "Meabed" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "איבד", t: "Ibed" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאבד", t: "Ye'abed" },
+      ],
+    },
+  },
+  {
+    inf: "לשקול", translit: "Lichkol", fr: "Peser",
+    racine: "שקל", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "שוקל", t: "Chokel" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שקל", t: "Chakal" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישקול", t: "Yishkol" },
+      ],
+    },
+  },
+  {
+    inf: "לבכות", translit: "Livkot", fr: "Pleurer",
+    racine: "בכה", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "בוכה", t: "Bokhe" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "בכה", t: "Bakha" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבכה", t: "Yivke" },
+      ],
+    },
+  },
+  {
+    inf: "לחגור", translit: "Lakhgor", fr: "Porter ceinture sécurité",
+    racine: "חגר", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "חוגר", t: "Khoger" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חגר", t: "Khagar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחגור", t: "Yakhgor" },
+      ],
+    },
+  },
+  {
+    inf: "לגרוב", translit: "Ligrov", fr: "Porter des chaussettes",
+    racine: "גרב", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "גורב", t: "Gorev" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "גרב", t: "Garav" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגרוב", t: "Yigrov" },
+      ],
+    },
+  },
+  {
+    inf: "לנעול", translit: "Lin'ol", fr: "Porter des chaussures",
+    racine: "נעל", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נועל", t: "No'el" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נעל", t: "Na'al" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינעל", t: "Yin'al" },
+      ],
+    },
+  },
   {
     inf: "להרכיב", translit: "Learkiv", fr: "Porter des lunettes",
-    temps: {},
+    racine: "רכב", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מרכיב", t: "Markiv" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הרכיב", t: "Hirkiv" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירכיב", t: "Yarkiv" },
+      ],
+    },
   },
-
-  // Porter écharp/mask/foular  // À COMPLÉTER : Passé, Futur
   {
     inf: "לעטות", translit: "Lahatot", fr: "Porter écharp/mask/foular",
+    racine: "עטה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "עוטה", t: "Hote" },
-        { p: "fém. sing. (אני/את/היא)", he: "עוטה", t: "Hota" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "עוטים", t: "Hotim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "עוטות", t: "Hotot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "עטה", t: "Ata" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעטה", t: "Ya'ate" },
       ],
     },
   },
-
-  // Porter un bijou  // À COMPLÉTER : Passé, Futur
   {
     inf: "לענוד", translit: "Lahanod", fr: "Porter un bijou",
+    racine: "ענד", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "עונד", t: "Honed" },
-        { p: "fém. sing. (אני/את/היא)", he: "עונדת", t: "Honedet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "עונדים", t: "Hondim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "עונדות", t: "Hondot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ענד", t: "Anad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יענוד", t: "Ya'anod" },
       ],
     },
   },
-
-  // Porter un chapeau  // À COMPLÉTER : Passé, Futur
   {
     inf: "לחבוש", translit: "Lakhboch", fr: "Porter un chapeau",
+    racine: "חבש", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "חובש", t: "Khovech" },
-        { p: "fém. sing. (אני/את/היא)", he: "חובשת", t: "Khovechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "חובשים", t: "Khovchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "חובשות", t: "Khovchot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חבש", t: "Khavach" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחבוש", t: "Yakhbosh" },
       ],
     },
   },
-
-  // Habiller (porter des vêtements)  // À COMPLÉTER : Passé, Futur
   {
     inf: "ללבוש", translit: "Lilboch", fr: "Habiller (porter des vêtements)",
+    racine: "לבש", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "לובש", t: "Lovech" },
-        { p: "fém. sing. (אני/את/היא)", he: "לובשת", t: "Lovechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "לובשים", t: "Lovchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "לובשות", t: "Lovchot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "לבש", t: "Lavach" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ילבש", t: "Yilbach" },
       ],
     },
   },
-
-  // Pouvoir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לוכל", translit: "Loukhal", fr: "Pouvoir",
+    racine: "יכל", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "יכול", t: "Yakhol" },
-        { p: "fém. sing. (אני/את/היא)", he: "יכולת", t: "Yakholet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "יכולים", t: "Yakhlim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "יכולות", t: "Yakhlot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "יכול", t: "Yakhol" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יוכל", t: "Yukhal" },
       ],
     },
   },
-
-  // Préférer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להעדיף", translit: "Lea'adif", fr: "Préférer",
+    racine: "עדף", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מעדיף", t: "Ma'adif" },
-        { p: "fém. sing. (אני/את/היא)", he: "מעדיפה", t: "Ma'adifa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מעדיפים", t: "Ma'adfim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מעדיפות", t: "Ma'adfot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "העדיף", t: "He'edif" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעדיף", t: "Ya'adif" },
       ],
     },
   },
-
-  // Prier  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתפלל", translit: "Lehitpalel", fr: "Prier",
+    racine: "פלל", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתפלל", t: "Mitpalel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתפללת", t: "Mitpalelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתפללים", t: "Mitpallim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתפללות", t: "Mitpallot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התפלל", t: "Hitpalel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתפלל", t: "Yitpalel" },
       ],
     },
   },
-
-  // Progresser / avancer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתקדם", translit: "Lehitkadem", fr: "Progresser / avancer",
+    racine: "קדם", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתקדם", t: "Mitkadem" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתקדמת", t: "Mitkademet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתקדמים", t: "Mitkadmim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתקדמות", t: "Mitkadmot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התקדם", t: "Hitkadem" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתקדם", t: "Yitkadem" },
       ],
     },
   },
-
-  // Promettre  // À COMPLÉTER : Passé, Futur
   {
     inf: "להבטיח", translit: "Lehavtiakh", fr: "Promettre",
+    racine: "בטח", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מבטיח", t: "Mavtiakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מבטיחה", t: "Mavtiakha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מבטיחים", t: "Mavtiakhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מבטיחות", t: "Mavtiakhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הבטיח", t: "Hivtiakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבטיח", t: "Yavtiakh" },
       ],
     },
   },
-
-  // Promettre  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להבטיח", translit: "Lehavtiakh", fr: "Promettre",
-    temps: {},
+    racine: "בטח", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מבטיח", t: "Mavtiakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הבטיח", t: "Hivtiakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבטיח", t: "Yavtiakh" },
+      ],
+    },
   },
-
-  // Quitter  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לעזוב", translit: "Lahazov", fr: "Quitter",
-    temps: {},
+    racine: "עזב", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "עוזב", t: "Ozev" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "עזב", t: "Azav" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעזוב", t: "Ya'azov" },
+      ],
+    },
   },
-
-  // Raconter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לספר", translit: "Lesaper", fr: "Raconter",
+    racine: "ספר", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מספר", t: "Mesaper" },
-        { p: "fém. sing. (אני/את/היא)", he: "מספרת", t: "Mesaperet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מספרים", t: "Mesaprim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מספרות", t: "Mesaprot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "סיפר", t: "Siper" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יספר", t: "Yesaper" },
       ],
     },
   },
-
-  // Ranger / organiser  // À COMPLÉTER : Futur
   {
     inf: "לסדר", translit: "Lesader", fr: "Ranger / organiser",
+    racine: "סדר", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מסדר", t: "Mesader" },
-        { p: "fém. sing. (אני/את/היא)", he: "מסדרת", t: "Mesaderet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מסדרים", t: "Mesadrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מסדרות", t: "Mesadrot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "סידרתי", t: "Siderti" },
-        { p: "tu masc. (אתה)", he: "סידרת", t: "Siderta" },
-        { p: "tu fém. (את)", he: "סידרת", t: "Sidert" },
         { p: "il (הוא)", he: "סידר", t: "Sider" },
-        { p: "elle (היא)", he: "סידרה", t: "Sidra" },
-        { p: "nous (אנחנו)", he: "סידרנו", t: "Sidernu" },
-        { p: "vous masc. (אתם)", he: "סידרתם", t: "Sdertem" },
-        { p: "vous fém. (אתן)", he: "סידרתן", t: "Sderten" },
-        { p: "ils / elles (הם/הן)", he: "סידרו", t: "Sidru" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסדר", t: "Yesader" },
       ],
     },
   },
-
-  // Recevoir (un cadeau)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לקבל", translit: "Lekabel", fr: "Recevoir (un cadeau)",
+    racine: "קבל", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מקבל", t: "Mekabel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מקבלת", t: "Mekabelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מקבלים", t: "Mekablim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מקבלות", t: "Mekablot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "קיבל", t: "Kibel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקבל", t: "Yekabel" },
       ],
     },
   },
-
-  // Recommander / conseiller  // À COMPLÉTER : Passé, Futur
   {
     inf: "להמליץ", translit: "Lehamlitz", fr: "Recommander / conseiller",
+    racine: "מלץ", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "ממליץ", t: "Mamlitz" },
-        { p: "fém. sing. (אני/את/היא)", he: "ממליצה", t: "Mamlitza" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "ממליצים", t: "Mamlitzim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "ממליצות", t: "Mamlitzot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "המליץ", t: "Himlitz" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימליץ", t: "Yamlitz" },
       ],
     },
   },
-
-  // Regarder  // À COMPLÉTER : Passé, Futur
   {
     inf: "להיסתכל", translit: "Lehistakel", fr: "Regarder",
+    racine: "סכל", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מיסתכל", t: "Mistakel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מיסתכלת", t: "Mistakelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מיסתכלים", t: "Mistaklim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מיסתכלות", t: "Mistaklot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הסתכל", t: "Histakel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסתכל", t: "Yistakel" },
       ],
     },
   },
-
-  // Remplacer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להחליף", translit: "Lehakhlif", fr: "Remplacer",
+    racine: "חלף", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מחליף", t: "Makhlif" },
-        { p: "fém. sing. (אני/את/היא)", he: "מחליפה", t: "Makhlifa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מחליפים", t: "Makhlifim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מחליפות", t: "Makhlifot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "החליף", t: "Hekhlif" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחליף", t: "Yakhlif" },
       ],
     },
   },
-
-  // Rencontrer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לפגוש", translit: "Lifgoch", fr: "Rencontrer",
+    racine: "פגש", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "פוגש", t: "Pogech" },
-        { p: "fém. sing. (אני/את/היא)", he: "פוגשת", t: "Pogechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "פוגשים", t: "Pogchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "פוגשות", t: "Pogchot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "פגש", t: "Pagach" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפגוש", t: "Yifgoch" },
       ],
     },
   },
-
-  // Rentrer/revenir/réviser/répéter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לחזור", translit: "Lakhzor", fr: "Rentrer/revenir/réviser/répéter",
+    racine: "חזר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "חוזר", t: "Khozer" },
-        { p: "fém. sing. (אני/את/היא)", he: "חוזרת", t: "Khozeret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "חוזרים", t: "Khozrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "חוזרות", t: "Khozrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חזר", t: "Khazar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחזור", t: "Yakhzor" },
       ],
     },
   },
-
-  // Répondre  // À COMPLÉTER : Passé, Futur
   {
     inf: "להנות", translit: "Lehanot", fr: "Répondre",
+    racine: "הנה", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מהנה", t: "Mehane" },
-        { p: "fém. sing. (אני/את/היא)", he: "מהנה", t: "Mehana" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מהנים", t: "Mehanim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מהנות", t: "Mehanot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הנה", t: "Ina" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יהנה", t: "Yehane" },
       ],
     },
   },
-
-  // Ressembler  // À COMPLÉTER : Passé, Futur
   {
     inf: "לדמות", translit: "Lidmot", fr: "Ressembler",
+    racine: "דמה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "דומה", t: "Dome" },
-        { p: "fém. sing. (אני/את/היא)", he: "דומה", t: "Doma" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "דומים", t: "Domim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "דומות", t: "Domot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "דמה", t: "Dama" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידמה", t: "Yidme" },
       ],
     },
   },
-
-  // Réussir  // À COMPLÉTER : Passé, Futur
   {
     inf: "להצליח", translit: "Lehatsliakh", fr: "Réussir",
+    racine: "צלח", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מצליח", t: "Matsliakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מצליחה", t: "Matsliakha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מצליחים", t: "Matsliakhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מצליחות", t: "Matsliakhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הצליח", t: "Hitsliakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצליח", t: "Yatsliakh" },
       ],
     },
   },
-
-  // Rigoler / plaisanter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לצחוק", translit: "Litskhok", fr: "Rigoler / plaisanter",
+    racine: "צחק", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "צוחק", t: "Tsokhek" },
-        { p: "fém. sing. (אני/את/היא)", he: "צוחקת", t: "Tsokheket" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "צוחקים", t: "Tsokhkim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "צוחקות", t: "Tsokhkot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צחק", t: "Tsakhak" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצחק", t: "Yitskhak" },
       ],
     },
   },
-
-  // S'asseoir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשבת", translit: "Lachevet", fr: "S'asseoir",
+    racine: "ישב", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "יושב", t: "Yochev" },
-        { p: "fém. sing. (אני/את/היא)", he: "יושבת", t: "Yochevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "יושבים", t: "Yochvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "יושבות", t: "Yochvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ישב", t: "Yachav" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישב", t: "Yechev" },
       ],
     },
   },
-
-  // S'écrire  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתכתב", translit: "Lehitkhatev", fr: "S'écrire",
+    racine: "כתב", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתכתב", t: "Mitkhatev" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתכתבת", t: "Mitkhatevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתכתבים", t: "Mitkhatvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתכתבות", t: "Mitkhatvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התכתב", t: "Hitkhatev" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתכתב", t: "Yitkhatev" },
       ],
     },
   },
-
-  // S'ennuyer  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לשעמם", translit: "Lechaamem", fr: "S'ennuyer",
-    temps: {},
+    racine: "שעמם", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משעמם", t: "Meshaamem" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שיעמם", t: "Shi'amem" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישעמם", t: "Yeshaamem" },
+      ],
+    },
   },
-
-  // Habiller (action : se vêtir)  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתלבש", translit: "Lehitlabech", fr: "Habiller (action : se vêtir)",
+    racine: "לבש", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתלבש", t: "Mitlabech" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתלבשת", t: "Mitlabechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתלבשים", t: "Mitlabchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתלבשות", t: "Mitlabchot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התלבש", t: "Hitlabech" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתלבש", t: "Yitlabech" },
       ],
     },
   },
-
-  // Se balader (trip)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לטייל", translit: "Letayel", fr: "Se balader (trip)",
+    racine: "טייל", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מטייל", t: "Metayel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מטיילת", t: "Metayelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מטיילים", t: "Metaylim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מטיילות", t: "Metaylot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "טייל", t: "Tiyel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יטייל", t: "Yetayel" },
       ],
     },
   },
-
-  // Se deguiser  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתחפש", translit: "Lehitkhapes", fr: "Se deguiser",
+    racine: "חפש", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתחפש", t: "Mitkhapes" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתחפשת", t: "Mitkhapeset" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתחפשים", t: "Mitkhapsim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתחפשות", t: "Mitkhapsot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התחפש", t: "Hitkhapes" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתחפש", t: "Yitkhapes" },
       ],
     },
   },
-
-  // Se déplacer (en avion)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לטוס", translit: "Latous", fr: "Se déplacer (en avion)",
+    racine: "טוס", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "טס", t: "Tass" },
-        { p: "fém. sing. (אני/את/היא)", he: "טסת", t: "Tasset" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "טסים", t: "Tssim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "טסות", t: "Tssot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "טס", t: "Tas" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יטוס", t: "Yatus" },
       ],
     },
   },
-
-  // Se déplacer (voiture, bus…)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לינסוע", translit: "Linsoa", fr: "Se déplacer (voiture, bus…)",
+    racine: "נסע", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נוסע", t: "Nossea" },
-        { p: "fém. sing. (אני/את/היא)", he: "נוסעת", t: "Nosseaet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נוסעים", t: "Nossaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נוסעות", t: "Nossaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נסע", t: "Nasa" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייסע", t: "Yisa" },
       ],
     },
   },
-
-  // Se doucher  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתקלח", translit: "Lehitkalakh", fr: "Se doucher",
+    racine: "קלח", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתקלח", t: "Mitkaleakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתקלחת", t: "Mitkaleakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתקלחים", t: "Mitkalekhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתקלחות", t: "Mitkalekhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התקלח", t: "Hitkalakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתקלח", t: "Yitkaleakh" },
       ],
     },
   },
-
-  // Se laver  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשטוף", translit: "Lichtof", fr: "Se laver",
+    racine: "שטף", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שוטף", t: "Chotef" },
-        { p: "fém. sing. (אני/את/היא)", he: "שוטפת", t: "Chotefet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שוטפים", t: "Chotfim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שוטפות", t: "Chotfot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שטף", t: "Chataf" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישטוף", t: "Yishtof" },
       ],
     },
   },
-
-  // Se maquiller  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתאפר", translit: "Lehit'aper", fr: "Se maquiller",
+    racine: "אפר", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתאפר", t: "Mit'aper" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתאפרת", t: "Mit'aperet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתאפרים", t: "Mit'aprim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתאפרות", t: "Mit'aprot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התאפר", t: "Hit'aper" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתאפר", t: "Yit'aper" },
       ],
     },
   },
-
-  // Se marier  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתחתן", translit: "Lehitkhaten", fr: "Se marier",
+    racine: "חתן", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתחתן", t: "Mitkhaten" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתחתנת", t: "Mitkhatenet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתחתנים", t: "Mitkhatnim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתחתנות", t: "Mitkhatnot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התחתן", t: "Hitkhaten" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתחתן", t: "Yitkhaten" },
       ],
     },
   },
-
-  // Se reposer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לנוח", translit: "Lanouakh", fr: "Se reposer",
+    racine: "נוח", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נח", t: "Nakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "נחת", t: "Nakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נחים", t: "Nkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נחות", t: "Nkhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נח", t: "Nakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינוח", t: "Yanuakh" },
       ],
     },
   },
-
-  // Se retourner  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתפך", translit: "Lehit'apekh", fr: "Se retourner",
+    racine: "הפך", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתהפך", t: "Mit'hapekh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתהפכת", t: "Mit'hapekhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתהפכים", t: "Mit'hapkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתהפכות", t: "Mit'hapkhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התהפך", t: "Hit'hapekh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתהפך", t: "Yit'hapekh" },
       ],
     },
   },
-
-  // Se retrouver  // À COMPLÉTER : Passé, Futur
   {
     inf: "להיפגש", translit: "Lehipagech", fr: "Se retrouver",
+    racine: "פגש", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נפגש", t: "Nifgach" },
-        { p: "fém. sing. (אני/את/היא)", he: "נפגשת", t: "Nifgachet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נפגשים", t: "Nifgchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נפגשות", t: "Nifgchot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נפגש", t: "Nifgach" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייפגש", t: "Yipagech" },
       ],
     },
   },
-
-  // Se lever  // À COMPLÉTER : Passé, Futur
   {
     inf: "לקום", translit: "Lakoum", fr: "Se lever",
+    racine: "קום", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "קם", t: "Kam" },
-        { p: "fém. sing. (אני/את/היא)", he: "קמה", t: "Kama" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "קמים", t: "Kmim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "קמות", t: "Kmot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "קם", t: "Kam" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקום", t: "Yakum" },
       ],
     },
   },
-
-  // Se saouler  // À COMPLÉTER : Passé, Futur
   {
     inf: "להשתכר", translit: "Lehichtaker", fr: "Se saouler",
+    racine: "שכר", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משתכר", t: "Michtaker" },
-        { p: "fém. sing. (אני/את/היא)", he: "משתכרת", t: "Michtakeret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משתכרים", t: "Michtakrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משתכרות", t: "Michtakrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השתכר", t: "Hishtaker" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישתכר", t: "Yishtaker" },
       ],
     },
   },
-
-  // Se sentir  // À COMPLÉTER : Passé, Futur
   {
     inf: "להרגיש", translit: "Lehargich", fr: "Se sentir",
+    racine: "רגש", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מרגיש", t: "Margich" },
-        { p: "fém. sing. (אני/את/היא)", he: "מרגישה", t: "Margicha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מרגישים", t: "Margichim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מרגישות", t: "Margichot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הרגיש", t: "Hirgish" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירגיש", t: "Yargish" },
       ],
     },
   },
-
-  // Se tromper  // À COMPLÉTER : Passé, Futur
   {
     inf: "לטעות", translit: "Lit'ot", fr: "Se tromper",
+    racine: "טעה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "טועה", t: "To'e" },
-        { p: "fém. sing. (אני/את/היא)", he: "טועה", t: "To'a" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "טועים", t: "To'im" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "טועות", t: "To'ot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "טעה", t: "Ta'a" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יטעה", t: "Yit'e" },
       ],
     },
   },
-
-  // Se trouver  // À COMPLÉTER : Passé, Futur
   {
     inf: "למצא", translit: "Limtso", fr: "Se trouver",
+    racine: "מצא", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נמצא", t: "Nimtsa" },
-        { p: "fém. sing. (אני/את/היא)", he: "נמצאת", t: "Nimtsaet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נמצאים", t: "Nmtsaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נמצאות", t: "Nmtsaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נמצא", t: "Nimtsa" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימצא", t: "Yimatse" },
       ],
     },
   },
-
-  // Sortir (au resto, avec des amis…)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לצאת", translit: "Latset", fr: "Sortir (au resto, avec des amis…)",
+    racine: "יצא", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "יוצא", t: "Yots'e" },
-        { p: "fém. sing. (אני/את/היא)", he: "יוצאת", t: "Yots'eet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "יוצאים", t: "Yts'eim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "יוצאות", t: "Yts'eot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "יצא", t: "Yatsa" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצא", t: "Yetse" },
       ],
     },
   },
-
-  // Souffler (vent)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לנשוב", translit: "Linchov", fr: "Souffler (vent)",
+    racine: "נשב", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נושב", t: "Nochev" },
-        { p: "fém. sing. (אני/את/היא)", he: "נושבת", t: "Nochevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נושבים", t: "Nochvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נושבות", t: "Nochvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נשב", t: "Nachav" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינשוב", t: "Yinchov" },
       ],
     },
   },
-
-  // Souhaiter / te souhaiter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לאחל", translit: "Le'akhel", fr: "Souhaiter / te souhaiter",
+    racine: "אחל", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מאחל", t: "Me'akhel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מאחלת", t: "Me'akhelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מאחלים", t: "Me'akhlim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מאחלות", t: "Me'akhlot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "איחל", t: "Ikhel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאחל", t: "Ye'akhel" },
       ],
     },
   },
-
-  // Survivre  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשרוד", translit: "Lisrod", fr: "Survivre",
+    racine: "שרד", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שורד", t: "Sored" },
-        { p: "fém. sing. (אני/את/היא)", he: "שורדת", t: "Soredet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שורדים", t: "Sordim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שורדות", t: "Sordot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שרד", t: "Sarad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישרוד", t: "Yisrod" },
       ],
     },
   },
-
-  // Tomber malade  // À COMPLÉTER : Passé, Futur
   {
     inf: "לחלות", translit: "Lakhlot", fr: "Tomber malade",
+    racine: "חלה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "חולה", t: "Khole" },
-        { p: "fém. sing. (אני/את/היא)", he: "חולה", t: "Khola" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "חולים", t: "Kholim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "חולות", t: "Kholot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חלה", t: "Khala" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחלה", t: "Yekhele" },
       ],
     },
   },
-
-  // Tourner (changer de direction)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לפנות", translit: "Lifnot", fr: "Tourner (changer de direction)",
+    racine: "פנה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "פונה", t: "Pone" },
-        { p: "fém. sing. (אני/את/היא)", he: "פונה", t: "Pona" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "פונים", t: "Ponim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "פונות", t: "Ponot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "פנה", t: "Pana" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפנה", t: "Yifne" },
       ],
     },
   },
-
-  // Travailler  // À COMPLÉTER : Passé, Futur
   {
     inf: "לעבוד", translit: "La'avod", fr: "Travailler",
+    racine: "עבד", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "עובד", t: "Oved" },
-        { p: "fém. sing. (אני/את/היא)", he: "עובדת", t: "Ovedet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "עובדים", t: "Ovdim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "עובדות", t: "Ovdot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "עבד", t: "Avad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעבוד", t: "Ya'avod" },
       ],
     },
   },
-
-  // Tuer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להרוג", translit: "Laharog", fr: "Tuer",
+    racine: "הרג", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "הורג", t: "Oreg" },
-        { p: "fém. sing. (אני/את/היא)", he: "הורגת", t: "Oreget" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "הורגים", t: "Orgim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "הורגות", t: "Orgot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הרג", t: "Harag" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יהרוג", t: "Yahrog" },
       ],
     },
   },
-
-  // Tuer (abattage rituel)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשחוט", translit: "Lichkhot", fr: "Tuer (abattage rituel)",
+    racine: "שחט", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שוחט", t: "Chokhet" },
-        { p: "fém. sing. (אני/את/היא)", he: "שוחטת", t: "Chokhetet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שוחטים", t: "Chokhtim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שוחטות", t: "Chokhtot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שחט", t: "Chakhat" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישחט", t: "Yishkhat" },
       ],
     },
   },
-
-  // Utiliser  // À COMPLÉTER : Présent, Passé, Futur
   {
-    inf: "", translit: "Lehichtamech", fr: "Utiliser",
-    temps: {},
+    inf: "להשתמש", translit: "Lehichtamech", fr: "Utiliser",
+    racine: "שמש", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משתמש", t: "Mishtamesh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השתמש", t: "Hishtamech" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישתמש", t: "Yishtamech" },
+      ],
+    },
   },
-
-  // Vendre  // À COMPLÉTER : Passé, Futur
   {
     inf: "למכור", translit: "Limkor", fr: "Vendre",
+    racine: "מכר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מוכר", t: "Mokher" },
-        { p: "fém. sing. (אני/את/היא)", he: "מוכרת", t: "Mokheret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מוכרים", t: "Mokhrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מוכרות", t: "Mokhrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "מכר", t: "Makhar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימכור", t: "Yimkor" },
       ],
     },
   },
-
-  // Venir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לבוא", translit: "Lavo", fr: "Venir",
+    racine: "בוא", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "בא", t: "Ba" },
-        { p: "fém. sing. (אני/את/היא)", he: "באת", t: "Baet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "באים", t: "Baim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "באות", t: "Baot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "בא", t: "Ba" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבוא", t: "Yavo" },
       ],
     },
   },
-
-  // Visiter quelqu'un (et)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לבקר", translit: "Levaker", fr: "Visiter quelqu'un (et)",
+    racine: "בקר", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מבקר", t: "Mevaker" },
-        { p: "fém. sing. (אני/את/היא)", he: "מבקרת", t: "Mevakeret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מבקרים", t: "Mevakrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מבקרות", t: "Mevakrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ביקר", t: "Biker" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבקר", t: "Yevaker" },
       ],
     },
   },
-
-  // Vivre / habiter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לגור", translit: "Lagour", fr: "Vivre / habiter",
+    racine: "גור", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "גר", t: "Gar" },
-        { p: "fém. sing. (אני/את/היא)", he: "גרת", t: "Garet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "גרים", t: "Grim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "גרות", t: "Grot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "גר", t: "Gar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגור", t: "Yagur" },
       ],
     },
   },
-
-  // Voir (film)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לראות", translit: "Lir'ot", fr: "Voir (film)",
+    racine: "ראה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "רואה", t: "Roe" },
-        { p: "fém. sing. (אני/את/היא)", he: "רואה", t: "Roa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "רואים", t: "Roim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "רואות", t: "Root" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ראה", t: "Raa" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יראה", t: "Yir'e" },
       ],
     },
   },
-
-  // Voter / indiquer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להצביע", translit: "Lehatsbia", fr: "Voter / indiquer",
+    racine: "צבע", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מצביע", t: "Matsbia" },
-        { p: "fém. sing. (אני/את/היא)", he: "מצביעה", t: "Matsbiaa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מצביעים", t: "Matsbiaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מצביעות", t: "Matsbiaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הצביע", t: "Hitsbia" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצביע", t: "Yatsbia" },
       ],
     },
   },
-
-  // Vouloir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לרצות", translit: "Lirtsot", fr: "Vouloir",
+    racine: "רצה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "רוצה", t: "Rotse" },
-        { p: "fém. sing. (אני/את/היא)", he: "רוצה", t: "Rotsa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "רוצים", t: "Rotsim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "רוצות", t: "Rotsot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "רצה", t: "Ratsa" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירצה", t: "Yirtse" },
       ],
     },
   },
-
-  // Corriger  // À COMPLÉTER : Passé, Futur
   {
     inf: "לתקן", translit: "Letaken", fr: "Corriger",
+    racine: "תקן", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתקן", t: "Metaken" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתקנת", t: "Metakenet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתקנים", t: "Metaknim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתקנות", t: "Metaknot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "תיקן", t: "Tiken" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתקן", t: "Yetaken" },
       ],
     },
   },
-
-  // Rester  // À COMPLÉTER : Passé, Futur
   {
     inf: "להישאר", translit: "Lehicha'er", fr: "Rester",
+    racine: "שאר", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נשאר", t: "Nich'ar" },
-        { p: "fém. sing. (אני/את/היא)", he: "נשארת", t: "Nich'aret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נשארים", t: "Nich'rim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נשארות", t: "Nich'rot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נשאר", t: "Nich'ar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישאר", t: "Yich'ar" },
       ],
     },
   },
-
-  // Durer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להימשך", translit: "Lehimachekh", fr: "Durer",
+    racine: "משך", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נמשך", t: "Nimchakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "נמשכת", t: "Nimchakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נמשכים", t: "Nimchkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נמשכות", t: "Nimchkhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נמשך", t: "Nimchakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימשך", t: "Yimchakh" },
       ],
     },
   },
-
-  // Se souvenir (passif)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לזכור", translit: "Lizcor", fr: "Se souvenir (passif)",
+    racine: "זכר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "זוכר", t: "Zokher" },
-        { p: "fém. sing. (אני/את/היא)", he: "זוכרת", t: "Zokheret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "זוכרים", t: "Zokhrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "זוכרות", t: "Zokhrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "זכר", t: "Zakhar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יזכור", t: "Yizkor" },
       ],
     },
   },
-
-  // Se souvenir (actif : action de réflechir)  // À COMPLÉTER : Passé, Futur
   {
     inf: "להיזכר", translit: "Lehizakher (be)", fr: "Se souvenir (actif : action de réflechir)",
+    racine: "זכר", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נזכר", t: "Nizcar" },
-        { p: "fém. sing. (אני/את/היא)", he: "נזכרת", t: "Nizcaret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נזכרים", t: "Nizcrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נזכרות", t: "Nizcrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נזכר", t: "Nizcar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יזכר", t: "Yizcar" },
       ],
     },
   },
-
-  // Echouer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להיכשל", translit: "Lehicachel (be)", fr: "Echouer",
+    racine: "כשל", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נכשל", t: "Nikhchal" },
-        { p: "fém. sing. (אני/את/היא)", he: "נכשלת", t: "Nikhchalet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נכשלים", t: "Nikhchlim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נכשלות", t: "Nikhchlot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נכשל", t: "Nikhchal" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכשל", t: "Yikhchal" },
       ],
     },
   },
-
-  // S'inscrire  // À COMPLÉTER : Passé, Futur
   {
     inf: "להירשם", translit: "Lehirachem", fr: "S'inscrire",
+    racine: "רשם", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נרשם", t: "Nircham" },
-        { p: "fém. sing. (אני/את/היא)", he: "נרשמת", t: "Nirchamet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נרשמים", t: "Nirchmim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נרשמות", t: "Nirchmot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נרשם", t: "Nircham" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירשם", t: "Yircham" },
       ],
     },
   },
-
-  // Réaliser  // À COMPLÉTER : Passé, Futur
   {
     inf: "להגשים", translit: "Lehagchim", fr: "Réaliser",
+    racine: "גשם", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מגשים", t: "Magchim" },
-        { p: "fém. sing. (אני/את/היא)", he: "מגשימה", t: "Magchima" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מגשימים", t: "Magchimim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מגשימות", t: "Magchimot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הגשים", t: "Higshim" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגשים", t: "Yagshim" },
       ],
     },
   },
-
-  // Gagner (de l'argent)  // À COMPLÉTER : Passé, Futur
   {
     inf: "להרוויח כסף", translit: "Learviakh kesef", fr: "Gagner (de l'argent)",
+    racine: "רוח", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מרוויח", t: "Marvikh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מרוויחת", t: "Marvikhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מרוויחים", t: "Marvkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מרוויחות", t: "Marvkhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הרוויח", t: "Hirviakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירוויח", t: "Yarviakh" },
       ],
     },
   },
-
-  // Influencer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להשפיע", translit: "Lehachpiha", fr: "Influencer",
+    racine: "שפע", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משפיע", t: "Machpiha" },
-        { p: "fém. sing. (אני/את/היא)", he: "משפיעה", t: "Machpihaa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משפיעים", t: "Machpihaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משפיעות", t: "Machpihaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השפיע", t: "Hishpia" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישפיע", t: "Yashpia" },
       ],
     },
   },
-
-  // Attacher / nouer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לקשור", translit: "Likchor", fr: "Attacher / nouer",
+    racine: "קשר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "קושר", t: "Kocher" },
-        { p: "fém. sing. (אני/את/היא)", he: "קושרת", t: "Kocheret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "קושרים", t: "Kochrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "קושרות", t: "Kochrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "קשר", t: "Kachar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקשור", t: "Yikchor" },
       ],
     },
   },
-
-  // Sacrifier  // À COMPLÉTER : Passé, Futur
   {
     inf: "להקריב", translit: "Lehakriv", fr: "Sacrifier",
+    racine: "קרב", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מקריב", t: "Makriv" },
-        { p: "fém. sing. (אני/את/היא)", he: "מקריבה", t: "Makriva" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מקריבים", t: "Makrivim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מקריבות", t: "Makrivot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הקריב", t: "Hikriv" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקריב", t: "Yakriv" },
       ],
     },
   },
-
-  // Respecter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לכבד", translit: "Lekhabed", fr: "Respecter",
+    racine: "כבד", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מכבד", t: "Mekhabed" },
-        { p: "fém. sing. (אני/את/היא)", he: "מכבדת", t: "Mekhabedet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מכבדים", t: "Mekhabdim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מכבדות", t: "Mekhabdot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "כיבד", t: "Kibed" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכבד", t: "Yekhabed" },
       ],
     },
   },
-
-  // Egorger  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשחוט", translit: "Lichkot", fr: "Egorger",
+    racine: "שחט", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שוקט", t: "Choket" },
-        { p: "fém. sing. (אני/את/היא)", he: "שוקטת", t: "Choketet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שוקטים", t: "Choktim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שוקטות", t: "Choktot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שחט", t: "Chakhat" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישחט", t: "Yishkhat" },
       ],
     },
   },
-
-  // Voler (dérober)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לגנוב", translit: "Lignov", fr: "Voler (dérober)",
+    racine: "גנב", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "גונב", t: "Gonev" },
-        { p: "fém. sing. (אני/את/היא)", he: "גונבת", t: "Gonevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "גונבים", t: "Gonvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "גונבות", t: "Gonvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "גנב", t: "Ganav" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגנוב", t: "Yignov" },
       ],
     },
   },
-
-  // Tromper / trahir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לבגוד", translit: "Livgod", fr: "Tromper / trahir",
+    racine: "בגד", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "בוגד", t: "Boged" },
-        { p: "fém. sing. (אני/את/היא)", he: "בוגדת", t: "Bogedet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "בוגדים", t: "Bogdim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "בוגדות", t: "Bogdot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "בגד", t: "Bagad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבגוד", t: "Yivgod" },
       ],
     },
   },
-
-  // Deviner  // À COMPLÉTER : Passé, Futur
   {
     inf: "לנחש", translit: "Lenakhech", fr: "Deviner",
+    racine: "נחש", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מנחש", t: "Menakhech" },
-        { p: "fém. sing. (אני/את/היא)", he: "מנחשת", t: "Menakhechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מנחשים", t: "Menakhchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מנחשות", t: "Menakhchot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ניחש", t: "Nikhesh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינחש", t: "Yenakhesh" },
       ],
     },
   },
-
-  // Lever  // À COMPLÉTER : Passé, Futur
   {
     inf: "להרים", translit: "Leharim", fr: "Lever",
+    racine: "רום", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מרים", t: "Marim" },
-        { p: "fém. sing. (אני/את/היא)", he: "מרימה", t: "Marima" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מרימים", t: "Marimim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מרימות", t: "Marimot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הרים", t: "Herim" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירים", t: "Yarim" },
       ],
     },
   },
-
-  // Toucher (physique)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לגעת", translit: "Lagahat", fr: "Toucher (physique)",
+    racine: "נגע", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נוגע", t: "Nogea" },
-        { p: "fém. sing. (אני/את/היא)", he: "נוגעת", t: "Nogeaet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נוגעים", t: "Nogaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נוגעות", t: "Nogaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נגע", t: "Naga" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייגע", t: "Yiga" },
       ],
     },
   },
-
-  // Copier / tricher  // À COMPLÉTER : Passé, Futur
   {
     inf: "להעתיק", translit: "Leahetik", fr: "Copier / tricher",
+    racine: "עתק", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מעדיק", t: "Mahetik" },
-        { p: "fém. sing. (אני/את/היא)", he: "מעדיקת", t: "Mahetiket" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מעדיקים", t: "Mahetkim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מעדיקות", t: "Mahetkot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "העתיק", t: "He'etik" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעתיק", t: "Ya'atik" },
       ],
     },
   },
-
-  // Tomber amoureux  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתאהב", translit: "Lehit'aev", fr: "Tomber amoureux",
-    temps: {},
+    racine: "אהב", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתאהב", t: "Mit'aev" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התאהב", t: "Hit'aev" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתאהב", t: "Yit'aev" },
+      ],
+    },
   },
-
-  // S'opposer à  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתנגד", translit: "Lehitnaged", fr: "S'opposer à",
-    temps: {},
+    racine: "נגד", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתנגד", t: "Mitnaged" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התנגד", t: "Hitnaged" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתנגד", t: "Yitnaged" },
+      ],
+    },
   },
-
-  // Prendre quelqu'un dans ses bras  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתחבק", translit: "Lehitkhabek", fr: "Prendre quelqu'un dans ses bras",
-    temps: {},
+    racine: "חבק", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתחבק", t: "Mitkhabek" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התחבק", t: "Hitkhabek" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתחבק", t: "Yitkhabek" },
+      ],
+    },
   },
-
-  // S'éloigner de (מ)  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתרחק", translit: "Lehitrakhek", fr: "S'éloigner de (מ)",
-    temps: {},
+    racine: "רחק", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתרחק", t: "Mitrakhek" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התרחק", t: "Hitrakhek" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתרחק", t: "Yitrakhek" },
+      ],
+    },
   },
-
-  // S'approcher de (ל)  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתקרב", translit: "Lehitkarev", fr: "S'approcher de (ל)",
-    temps: {},
+    racine: "קרב", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתקרב", t: "Mitkarev" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התקרב", t: "Hitkarev" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתקרב", t: "Yitkarev" },
+      ],
+    },
   },
-
-  // Ressentir un manque (ל)  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתגעגע", translit: "Lehitgahageha", fr: "Ressentir un manque (ל)",
-    temps: {},
+    racine: "געגע", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתגעגע", t: "Mitgaageha" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התגעגע", t: "Hitgaageha" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתגעגע", t: "Yitgaageha" },
+      ],
+    },
   },
-
-  // Être désolé / regretter  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להצטער", translit: "Lehitstaher", fr: "Être désolé / regretter",
-    temps: {},
+    racine: "צער", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מצטער", t: "Mitstaer" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הצטער", t: "Hitstaer" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצטער", t: "Yitstaer" },
+      ],
+    },
   },
-
-  // Annuler/supprimer/abandonner  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לבטל", translit: "Levatel", fr: "Annuler/supprimer/abandonner",
-    temps: {},
+    racine: "בטל", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מבטל", t: "Mevatel" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ביטל", t: "Bitel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבטל", t: "Yevatel" },
+      ],
+    },
   },
-
-  // Accoucher  // À COMPLÉTER : Passé, Futur
   {
     inf: "ללדת", translit: "Laledet", fr: "Accoucher",
+    racine: "ילד", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "יולד", t: "Yoled" },
-        { p: "fém. sing. (אני/את/היא)", he: "יולדת", t: "Yoledet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "יולדים", t: "Yoldim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "יולדות", t: "Yoldot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ילד", t: "Yalad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ילד", t: "Yeled" },
       ],
     },
   },
-
-  // Chasser  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לצוד", translit: "Latsoud", fr: "Chasser",
-    temps: {},
+    racine: "צוד", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "צד", t: "Tsad" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צד", t: "Tsad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצוד", t: "Yatsud" },
+      ],
+    },
   },
-
-  // Souhaiter / saluer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לברך", translit: "Levarekh", fr: "Souhaiter / saluer",
+    racine: "ברך", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מברך", t: "Mevarekh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מברכת", t: "Mevarekhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מברכים", t: "Mevarkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מברכות", t: "Mevarkhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ברך", t: "Berakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יברך", t: "Yevarekh" },
       ],
     },
   },
-
-  // Tricher / arnaquer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לרמות", translit: "Leramot", fr: "Tricher / arnaquer",
+    racine: "רמה", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מרמה", t: "Merame" },
-        { p: "fém. sing. (אני/את/היא)", he: "מרמה", t: "Merama" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מרמים", t: "Meramim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מרמות", t: "Meramot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "רימה", t: "Rima" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירמה", t: "Yerame" },
       ],
     },
   },
-
-  // Goûter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לטעום", translit: "Lit'om", fr: "Goûter",
+    racine: "טעם", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "טועם", t: "Tohem" },
-        { p: "fém. sing. (אני/את/היא)", he: "טועמת", t: "Tohemet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "טועמים", t: "Tohmim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "טועמות", t: "Tohmot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "טעם", t: "Taham" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יטעם", t: "Yit'am" },
       ],
     },
   },
-
-  // Avoir honte  // À COMPLÉTER : Futur
   {
     inf: "לבוש", translit: "Levoch", fr: "Avoir honte",
+    racine: "בוש", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "בוש", t: "Boch" },
-        { p: "fém. sing. (אני/את/היא)", he: "בושת", t: "Bochet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "בושים", t: "Bchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "בושות", t: "Bchot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "בושתי", t: "Bochti" },
-        { p: "tu masc. (אתה)", he: "בושת", t: "Bochta" },
-        { p: "tu fém. (את)", he: "בושת", t: "Bocht" },
         { p: "il (הוא)", he: "בוש", t: "Boch" },
-        { p: "elle (היא)", he: "בושה", t: "Bcha" },
-        { p: "nous (אנחנו)", he: "בושנו", t: "Bochnu" },
-        { p: "vous masc. (אתם)", he: "בושתם", t: "Bchtem" },
-        { p: "vous fém. (אתן)", he: "בושתן", t: "Bchten" },
-        { p: "ils / elles (הם/הן)", he: "בושו", t: "Bchu" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבוש", t: "Yevoch" },
       ],
     },
   },
-
-  // Compléter / remplir  // À COMPLÉTER : Futur
   {
     inf: "להשלים", translit: "Lehachlim", fr: "Compléter / remplir",
+    racine: "שלם", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משלים", t: "Machlim" },
-        { p: "fém. sing. (אני/את/היא)", he: "משלימה", t: "Machlima" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משלימים", t: "Machlimim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משלימות", t: "Machlimot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "ברחתי", t: "Barakhti" },
-        { p: "tu masc. (אתה)", he: "ברחת", t: "Barakhta" },
-        { p: "tu fém. (את)", he: "ברחת", t: "Barakht" },
         { p: "il (הוא)", he: "ברח", t: "Barakh" },
-        { p: "elle (היא)", he: "ברחה", t: "Barkha" },
-        { p: "nous (אנחנו)", he: "ברחנו", t: "Barakhnu" },
-        { p: "vous masc. (אתם)", he: "ברחתם", t: "Brakhtem" },
-        { p: "vous fém. (אתן)", he: "ברחתן", t: "Brakhten" },
-        { p: "ils / elles (הם/הן)", he: "ברחו", t: "Barkhu" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישלים", t: "Yashlim" },
       ],
     },
   },
-
-  // Avoir raconté  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "מסופר", translit: "Mesoupar", fr: "Avoir raconté",
-    temps: {},
-  },
+    racine: "ספר", binyan: "פועל (סביל)",
+    temps: {
 
-  // Toucher (atteindre)  // À COMPLÉTER : Passé, Futur
+    },
+  },
   {
     inf: "לנגוע", translit: "Lingoa", fr: "Toucher (atteindre)",
+    racine: "נגע", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נוגע", t: "Nogea" },
-        { p: "fém. sing. (אני/את/היא)", he: "נוגעת", t: "Nogeaet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נוגעים", t: "Nogaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נוגעות", t: "Nogaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נגע", t: "Naga" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייגע", t: "Yiga" },
       ],
     },
   },
-
-  // S'être terminé  // À COMPLÉTER : Présent, Passé, Futur
   {
-    inf: "", translit: "Lehistayem", fr: "S'être terminé",
-    temps: {},
+    inf: "להסתיים", translit: "Lehistayem", fr: "S'être terminé",
+    racine: "סים", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מסתיים", t: "Mistayem" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הסתיים", t: "Histayem" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסתיים", t: "Yistayem" },
+      ],
+    },
   },
-
-  // Crier  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לצעוק", translit: "Lits'ok", fr: "Crier",
-    temps: {},
+    racine: "צעק", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "צועק", t: "Tsoek" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צעק", t: "Tsa'ak" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצעק", t: "Yitsak" },
+      ],
+    },
   },
-
-  // Blesser / vexer  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לפגוע", translit: "Lifgoa", fr: "Blesser / vexer",
-    temps: {},
+    racine: "פגע", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "פוגע", t: "Poge'a" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "פגע", t: "Paga" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפגע", t: "Yifga" },
+      ],
+    },
   },
-
-  // Déplacer  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להזיז", translit: "Lehaziz", fr: "Déplacer",
-    temps: {},
+    racine: "זוז", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מזיז", t: "Meziz" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הזיז", t: "Heziz" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יזיז", t: "Yaziz" },
+      ],
+    },
   },
-
-  // Réveiller  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להעיר", translit: "Leha'ir", fr: "Réveiller",
-    temps: {},
+    racine: "עור", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מעיר", t: "Meir" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "העיר", t: "He'ir" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעיר", t: "Ya'ir" },
+      ],
+    },
   },
-
-  // Se réveiller  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתעורר", translit: "Lehit'orer", fr: "Se réveiller",
-    temps: {},
+    racine: "עור", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתעורר", t: "Mit'orer" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התעורר", t: "Hit'orer" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתעורר", t: "Yit'orer" },
+      ],
+    },
   },
-
-  // Proposer  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להציע", translit: "Lehatsia", fr: "Proposer",
-    temps: {},
+    racine: "יצע", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מציע", t: "Matsia" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הציע", t: "Hetsia" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יציע", t: "Yatsia" },
+      ],
+    },
   },
-
-  // Acquérir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לרכוש", translit: "Lirkoch", fr: "Acquérir",
+    racine: "רכש", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "רוכש", t: "Rokech" },
-        { p: "fém. sing. (אני/את/היא)", he: "רוכשת", t: "Rokechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "רוכשים", t: "Rokchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "רוכשות", t: "Rokchot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "רכש", t: "Rakhach" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירכוש", t: "Yirkoch" },
       ],
     },
   },
-
-  // Interpréter / expliquer / traduire  // À COMPLÉTER : Passé, Futur
   {
     inf: "לפרש", translit: "Lefarech", fr: "Interpréter / expliquer / traduire",
+    racine: "פרש", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "פורש", t: "Porech" },
-        { p: "fém. sing. (אני/את/היא)", he: "פורשת", t: "Porechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "פורשים", t: "Porchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "פורשות", t: "Porchot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "פרש", t: "Parach" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפרוש", t: "Yifroch" },
       ],
     },
   },
-
-  // Présenter  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להציג", translit: "Lehatsig", fr: "Présenter",
-    temps: {},
+    racine: "יצג", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מציג", t: "Matsig" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הציג", t: "Hetsig" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יציג", t: "Yatsig" },
+      ],
+    },
   },
-
-  // Passer/amuser/rester/vivre  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לבלות", translit: "Levalot", fr: "Passer/amuser/rester/vivre",
-    temps: {},
+    racine: "בלה", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מבלה", t: "Mevale" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "בילה", t: "Bila" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבלה", t: "Yevale" },
+      ],
+    },
   },
-
-  // Regarder  // À COMPLÉTER : Passé, Futur
   {
     inf: "להביט", translit: "Lehabit", fr: "Regarder",
+    racine: "נבט", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מביט", t: "Mabit" },
-        { p: "fém. sing. (אני/את/היא)", he: "מביטה", t: "Mabita" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מביטים", t: "Mabitim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מביטות", t: "Mabitot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הביט", t: "Hibit" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יביט", t: "Yabit" },
       ],
     },
   },
-
-  // Rendre/causer/faire  // À COMPLÉTER : Passé, Futur
   {
     inf: "לגרום", translit: "Ligrom", fr: "Rendre/causer/faire",
+    racine: "גרם", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "גורם", t: "Gorem" },
-        { p: "fém. sing. (אני/את/היא)", he: "גורמת", t: "Goremet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "גורמים", t: "Gormim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "גורמות", t: "Gormot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "גרם", t: "Garam" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגרום", t: "Yigrom" },
       ],
     },
   },
-
-  // Perdre  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להפסיד", translit: "Leafsid", fr: "Perdre",
-    temps: {},
+    racine: "פסד", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מפסיד", t: "Mafsid" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הפסיד", t: "Hifsid" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפסיד", t: "Yafsid" },
+      ],
+    },
   },
-
-  // Faire le deuil  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתאבל", translit: "Lehit'abel", fr: "Faire le deuil",
-    temps: {},
+    racine: "אבל", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתאבל", t: "Mit'abel" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התאבל", t: "Hit'abel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתאבל", t: "Yit'abel" },
+      ],
+    },
   },
-
-  // Pêcher (heb moderne : pas très grave)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לחטוא", translit: "Lakhto", fr: "Pêcher (heb moderne : pas très grave)",
+    racine: "חטא", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "חוטא", t: "Khote" },
-        { p: "fém. sing. (אני/את/היא)", he: "חוטאת", t: "Khoteet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "חוטאים", t: "Khteim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "חוטאות", t: "Khteot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חטא", t: "Khata" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחטא", t: "Yekhta" },
       ],
     },
   },
-
-  // Arroser  // À COMPLÉTER : Passé, Futur
   {
     inf: "להשקות", translit: "Lehachkot", fr: "Arroser",
+    racine: "שקה", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משקה", t: "Machke" },
-        { p: "fém. sing. (אני/את/היא)", he: "משקה", t: "Machka" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משקים", t: "Machkim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משקות", t: "Machkot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השקה", t: "Hishka" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישקה", t: "Yashke" },
       ],
     },
   },
-
-  // Excuser  // À COMPLÉTER : Passé, Futur
   {
     inf: "לסלוח", translit: "Lisloakh", fr: "Excuser",
+    racine: "סלח", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "סולח", t: "Soleakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "סולחת", t: "Soleakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "סולחים", t: "Solekhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "סולחות", t: "Solekhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "סלח", t: "Salakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסלח", t: "Yislakh" },
       ],
     },
   },
-
-  // Faire l'amour/s'allonger  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשכב", translit: "Lichkav", fr: "Faire l'amour/s'allonger",
+    racine: "שכב", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שוכב", t: "Sokhev" },
-        { p: "fém. sing. (אני/את/היא)", he: "שוכבת", t: "Sokhevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שוכבים", t: "Sokhvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שוכבות", t: "Sokhvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שכב", t: "Chakhav" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישכב", t: "Yishkav" },
       ],
     },
   },
-
-  // Punir  // À COMPLÉTER : Passé, Futur
   {
     inf: "להעניש", translit: "Leha'anich", fr: "Punir",
+    racine: "ענש", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מעניש", t: "Ma'anich" },
-        { p: "fém. sing. (אני/את/היא)", he: "מענישה", t: "Ma'anicha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מענישים", t: "Ma'anichim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מענישות", t: "Ma'anichot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "העניש", t: "He'enich" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעניש", t: "Ya'anich" },
       ],
     },
   },
-
-  // Se débrouiller  // À COMPLÉTER : Passé, Futur
   {
     inf: "להסתדר", translit: "Lehistader", fr: "Se débrouiller",
+    racine: "סדר", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מסתדר", t: "Mistader" },
-        { p: "fém. sing. (אני/את/היא)", he: "מסתדרת", t: "Mistaderet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מסתדרים", t: "Mistadrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מסתדרות", t: "Mistadrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הסתדר", t: "Histader" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסתדר", t: "Yistader" },
       ],
     },
   },
-
-  // Faire la guerre  // À COMPLÉTER : Passé, Futur
   {
     inf: "לההילחם", translit: "Lehilakhem", fr: "Faire la guerre",
+    racine: "לחם", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נלחם", t: "Nilkham" },
-        { p: "fém. sing. (אני/את/היא)", he: "נלחמת", t: "Nilkhamet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נלחמים", t: "Nilkhmim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נלחמות", t: "Nilkhmot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נלחם", t: "Nilkham" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ילחם", t: "Yilkham" },
       ],
     },
   },
-
-  // Se comporter  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתנהג", translit: "Lehitnaheg", fr: "Se comporter",
+    racine: "נהג", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתנהג", t: "Mitnaheg" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתנהגת", t: "Mitnaheget" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתנהגים", t: "Mitnahgim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתנהגות", t: "Mitnahgot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התנהג", t: "Hitnaheg" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתנהג", t: "Yitnaheg" },
       ],
     },
   },
-
-  // Se changer  // À COMPLÉTER : Présent, Passé, Futur
   {
-    inf: "", translit: "Lehichtanot", fr: "Se changer",
-    temps: {},
+    inf: "להשתנות", translit: "Lehichtanot", fr: "Se changer",
+    racine: "שנה", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משתנה", t: "Mishtane" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השתנה", t: "Hishtana" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישתנה", t: "Yishtane" },
+      ],
+    },
   },
-
-  // S'intéresser  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתעניין", translit: "Lehit'anien", fr: "S'intéresser",
+    racine: "ענין", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתעניין", t: "Mit'anien" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתעניינת", t: "Mit'anienet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתעניינים", t: "Mit'aninim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתעניינות", t: "Mit'aninot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התעניין", t: "Hit'anien" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתעניין", t: "Yit'anien" },
       ],
     },
   },
-
-  // être timide  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתבייש", translit: "Lehitbayech", fr: "être timide",
+    racine: "בוש", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתבייש", t: "Mitbayech" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתביישת", t: "Mitbayechet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתביישים", t: "Mitbaychim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתביישות", t: "Mitbaychot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התבייש", t: "Hitbayech" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתבייש", t: "Yitbayech" },
       ],
     },
   },
-
-  // être déçu  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתאכזב", translit: "Lehit'akhzev", fr: "être déçu",
+    racine: "אכזב", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתאכזב", t: "Mit'akhzev" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתאכזבת", t: "Mit'akhzevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתאכזבים", t: "Mit'akhzvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתאכזבות", t: "Mit'akhzvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התאכזב", t: "Hit'akhzev" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתאכזב", t: "Yit'akhzev" },
       ],
     },
   },
-
-  // S'inquiéter  // À COMPLÉTER : Passé, Futur
   {
     inf: "לדאוג", translit: "Lid'og", fr: "S'inquiéter",
+    racine: "דאג", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "דואג", t: "Do'eg" },
-        { p: "fém. sing. (אני/את/היא)", he: "דואגת", t: "Do'eget" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "דואגים", t: "Do'gim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "דואגות", t: "Do'got" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "דאג", t: "Da'ag" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידאג", t: "Yid'ag" },
       ],
     },
   },
-
-  // Sourire  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לחייך", translit: "Lekhayekh", fr: "Sourire",
-    temps: {},
+    racine: "חייך", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מחייך", t: "Mekhayekh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חייך", t: "Khiyekh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחייך", t: "Yekhayekh" },
+      ],
+    },
   },
-
-  // Soupirer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להאנח", translit: "Lehe'aneakh", fr: "Soupirer",
+    racine: "אנח", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נאנח", t: "Ne'enakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "נאנחת", t: "Ne'enakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נאנחים", t: "Ne'enkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נאנחות", t: "Ne'enkhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נאנח", t: "Ne'enakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאנח", t: "Ye'enakh" },
       ],
     },
   },
-
-  // S'arrêter  // À COMPLÉTER : Futur
   {
     inf: "לעצור", translit: "La'atsor", fr: "S'arrêter",
+    racine: "עצר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "עוצר", t: "Otser" },
-        { p: "fém. sing. (אני/את/היא)", he: "עוצרת", t: "Otseret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "עוצרים", t: "Otsrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "עוצרות", t: "Otsrot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "עצרתי", t: "Atsarti" },
-        { p: "tu masc. (אתה)", he: "עצרת", t: "Atsarta" },
-        { p: "tu fém. (את)", he: "עצרת", t: "Atsart" },
         { p: "il (הוא)", he: "עצר", t: "Atsar" },
-        { p: "elle (היא)", he: "עצרה", t: "Atsra" },
-        { p: "nous (אנחנו)", he: "עצרנו", t: "Atsarnu" },
-        { p: "vous masc. (אתם)", he: "עצרתם", t: "Atsartem" },
-        { p: "vous fém. (אתן)", he: "עצרתן", t: "Atsarten" },
-        { p: "ils / elles (הם/הן)", he: "עצרו", t: "Atsru" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעצור", t: "Ya'atsor" },
       ],
     },
   },
-
-  // Juger  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשפות", translit: "Lichpot", fr: "Juger",
+    racine: "שפט", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שופת", t: "Chofet" },
-        { p: "fém. sing. (אני/את/היא)", he: "שופתת", t: "Chofetet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שופתים", t: "Choftim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שופתות", t: "Choftot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שפט", t: "Chafat" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישפוט", t: "Yichpot" },
       ],
     },
   },
-
-  // Jeuner  // À COMPLÉTER : Passé, Futur
   {
     inf: "לצום", translit: "Latsoum", fr: "Jeuner",
+    racine: "צום", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "צם", t: "Tsam" },
-        { p: "fém. sing. (אני/את/היא)", he: "צמה", t: "Tsama" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "צמים", t: "Tsmim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "צמות", t: "Tsmot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צם", t: "Tsam" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצום", t: "Yatsum" },
       ],
     },
   },
-
-  // Discuter / juger  // À COMPLÉTER : Passé, Futur
   {
     inf: "לדון", translit: "Ladoun", fr: "Discuter / juger",
+    racine: "דון", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "דן", t: "Dan" },
-        { p: "fém. sing. (אני/את/היא)", he: "דנה", t: "Dana" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "דנים", t: "Dnim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "דנות", t: "Dnot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "דן", t: "Dan" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידון", t: "Yadun" },
       ],
     },
   },
-
-  // Oser  // À COMPLÉTER : Passé, Futur
   {
     inf: "להעז", translit: "Lahahez", fr: "Oser",
+    racine: "עז", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מעז", t: "Mehez" },
-        { p: "fém. sing. (אני/את/היא)", he: "מעזת", t: "Mehezet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מעזים", t: "Mehzim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מעזות", t: "Mehzot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "העז", t: "He'ez" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעז", t: "Ya'ez" },
       ],
     },
   },
-
-  // Créer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לברוא", translit: "Livro", fr: "Créer",
+    racine: "ברא", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "בורא", t: "Bore" },
-        { p: "fém. sing. (אני/את/היא)", he: "בוראת", t: "Boreet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "בוראים", t: "Breim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "בוראות", t: "Breot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ברא", t: "Bara" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יברא", t: "Yivra" },
       ],
     },
   },
-
-  // Cueillir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לקטוף", translit: "Liktof", fr: "Cueillir",
+    racine: "קטף", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "קוטף", t: "Kotef" },
-        { p: "fém. sing. (אני/את/היא)", he: "קוטפת", t: "Kotefet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "קוטפים", t: "Kotfim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "קוטפות", t: "Kotfot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "קטף", t: "Kataf" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקטוף", t: "Yiktof" },
       ],
     },
   },
-
-  // Blesser  // À COMPLÉTER : Passé, Futur
   {
     inf: "להכאיב", translit: "Leakh'iv", fr: "Blesser",
+    racine: "כאב", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מכאיב", t: "Makh'iv" },
-        { p: "fém. sing. (אני/את/היא)", he: "מכאיבת", t: "Makh'ivet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מכאיבים", t: "Makh'vim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מכאיבות", t: "Makh'vot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הכאיב", t: "Hikh'iv" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכאיב", t: "Yakh'iv" },
       ],
     },
   },
-
-  // Casser  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשבור", translit: "Lichbor", fr: "Casser",
+    racine: "שבר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שובר", t: "Chover" },
-        { p: "fém. sing. (אני/את/היא)", he: "שוברת", t: "Choveret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שוברים", t: "Chovrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שוברות", t: "Chovrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שבר", t: "Chavar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישבור", t: "Yishbor" },
       ],
     },
   },
-
-  // Tomber  // À COMPLÉTER : Passé, Futur
   {
     inf: "לנפול", translit: "Linpol", fr: "Tomber",
+    racine: "נפל", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נופל", t: "Nofel" },
-        { p: "fém. sing. (אני/את/היא)", he: "נופלת", t: "Nofelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נופלים", t: "Noflim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נופלות", t: "Noflot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נפל", t: "Nafal" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפול", t: "Yipol" },
       ],
     },
   },
-
-  // S'occuper de  // À COMPLÉTER : Passé, Futur
   {
     inf: "לטפל", translit: "Letapel", fr: "S'occuper de",
+    racine: "טפל", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מטפל", t: "Metapel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מטפלת", t: "Metapelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מטפלים", t: "Metaplim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מטפלות", t: "Metaplot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "טיפל", t: "Tipel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יטפל", t: "Yetapel" },
       ],
     },
   },
-
-  // Parler sur qq'un / jaser  // À COMPLÉTER : Passé, Futur
   {
     inf: "לרכל", translit: "Lerakhel", fr: "Parler sur qq'un / jaser",
+    racine: "רכל", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מרכל", t: "Merakel" },
-        { p: "fém. sing. (אני/את/היא)", he: "מרכלת", t: "Merakelet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מרכלים", t: "Meraklim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מרכלות", t: "Meraklot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ריכל", t: "Rikel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירכל", t: "Yerakel" },
       ],
     },
   },
-
-  // Transpirer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להזיה", translit: "Lehazia", fr: "Transpirer",
+    racine: "זיע", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מזיה", t: "Mazia" },
-        { p: "fém. sing. (אני/את/היא)", he: "מזיה", t: "Maziaa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מזיים", t: "Maziaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מזיות", t: "Maziaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הזיע", t: "Heziya" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יזיע", t: "Yazia" },
       ],
     },
   },
-
-  // Habiller (quelqu'un d'autre)  // À COMPLÉTER : Passé, Futur
   {
     inf: "להלביש", translit: "Lehalbich", fr: "Habiller (quelqu'un d'autre)",
+    racine: "לבש", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מלביש", t: "Malbich" },
-        { p: "fém. sing. (אני/את/היא)", he: "מלבישה", t: "Malbicha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מלבישים", t: "Malbichim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מלבישות", t: "Malbichot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הלביש", t: "Hilbish" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ילביש", t: "Yalbish" },
       ],
     },
   },
-
-  // Exprimer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לבטא", translit: "Levate", fr: "Exprimer",
+    racine: "בטא", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מבטא", t: "Mevate" },
-        { p: "fém. sing. (אני/את/היא)", he: "מבטאת", t: "Mevateet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מבטאים", t: "Mevteim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מבטאות", t: "Mevteot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ביטא", t: "Bita" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבטא", t: "Yevate" },
       ],
     },
   },
-
-  // Contratrier  // À COMPLÉTER : Passé, Futur
   {
     inf: "לצער", translit: "Letsaer", fr: "Contratrier",
+    racine: "צער", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מצער", t: "Metsaer" },
-        { p: "fém. sing. (אני/את/היא)", he: "מצערת", t: "Metsaeret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מצערים", t: "Metsarim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מצערות", t: "Metsarot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צער", t: "Tsier" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצער", t: "Yetsaer" },
       ],
     },
   },
-
-  // Frapper  // À COMPLÉTER : Passé, Futur
   {
     inf: "להרביץ", translit: "Leharbitz", fr: "Frapper",
+    racine: "רבץ", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מרביץ", t: "Marbitz" },
-        { p: "fém. sing. (אני/את/היא)", he: "מרביצה", t: "Marbitza" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מרביצים", t: "Marbitzim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מרביצות", t: "Marbitzot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הרביץ", t: "Hirbits" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירביץ", t: "Yarbits" },
       ],
     },
   },
-
-  // Contacter  // À COMPLÉTER : Passé, Futur
   {
     inf: "ליצור קשר", translit: "Litsor kecher", fr: "Contacter",
+    racine: "יצר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "יוצר", t: "Yotser" },
-        { p: "fém. sing. (אני/את/היא)", he: "יוצרת", t: "Yotseret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "יוצרים", t: "Yotsrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "יוצרות", t: "Yotsrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "יצר", t: "Yatsar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייצור", t: "Yitsor" },
       ],
     },
   },
-
-  // Remercier  // À COMPLÉTER : Passé, Futur
   {
     inf: "להודות", translit: "Lehodot", fr: "Remercier",
+    racine: "ידה", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מודה", t: "Mode" },
-        { p: "fém. sing. (אני/את/היא)", he: "מודה", t: "Moda" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מודים", t: "Modim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מודות", t: "Modot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הודה", t: "Hoda" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יודה", t: "Yode" },
       ],
     },
   },
-
-  // Permettre / autoriser  // À COMPLÉTER : Passé, Futur
   {
     inf: "לאפשר", translit: "Le'afcher", fr: "Permettre / autoriser",
+    racine: "אפשר", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מאפשר", t: "Me'afcher" },
-        { p: "fém. sing. (אני/את/היא)", he: "מאפשרת", t: "Me'afcheret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מאפשרים", t: "Me'afchrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מאפשרות", t: "Me'afchrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "אפשר", t: "Ifsher" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאפשר", t: "Ye'afsher" },
       ],
     },
   },
-
-  // Rejoindre  // À COMPLÉTER : Passé, Futur
   {
     inf: "להצטרף", translit: "Lehitstaref", fr: "Rejoindre",
+    racine: "צרף", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מצטרף", t: "Mitstaref" },
-        { p: "fém. sing. (אני/את/היא)", he: "מצטרפת", t: "Mitstarefet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מצטרפים", t: "Mitstarfim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מצטרפות", t: "Mitstarfot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הצטרף", t: "Hitstaref" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצטרף", t: "Yitstaref" },
       ],
     },
   },
-
-  // Se détacher  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתנתק", translit: "Lehitnatek", fr: "Se détacher",
+    racine: "נתק", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתנתק", t: "Mitnatek" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתנתקת", t: "Mitnateket" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתנתקים", t: "Mitnatkim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתנתקות", t: "Mitnatkot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התנתק", t: "Hitnatek" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתנתק", t: "Yitnatek" },
       ],
     },
   },
-
-  // Tirer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לירות", translit: "Lirot", fr: "Tirer",
+    racine: "ירה", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "יורה", t: "Yore" },
-        { p: "fém. sing. (אני/את/היא)", he: "יורה", t: "Yora" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "יורים", t: "Yorim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "יורות", t: "Yorot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ירה", t: "Yara" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יירה", t: "Yire" },
       ],
     },
   },
-
-  // Réfléchir  // À COMPLÉTER : Passé, Futur
   {
     inf: "להרהר", translit: "Leharher", fr: "Réfléchir",
+    racine: "הרהר", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מהרהר", t: "Meharher" },
-        { p: "fém. sing. (אני/את/היא)", he: "מהרהרה", t: "Meharhera" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מהרהרים", t: "Meharherim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מהרהרות", t: "Meharherot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הרהר", t: "Hirher" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יהרהר", t: "Yeharher" },
       ],
     },
   },
-
-  // Faire attenttion  // À COMPLÉTER : Passé, Futur
   {
     inf: "להיזהר", translit: "Lehizaher", fr: "Faire attenttion",
+    racine: "זהר", binyan: "נפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נזהר", t: "Nizhar" },
-        { p: "fém. sing. (אני/את/היא)", he: "נזהרת", t: "Nizharet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נזהרים", t: "Nizhrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נזהרות", t: "Nizhrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נזהר", t: "Nizhar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יזהר", t: "Yizhar" },
       ],
     },
   },
-
-  // Demander conseil  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתייעץ", translit: "Lehityaetz", fr: "Demander conseil",
+    racine: "יעץ", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתייעץ", t: "Mityaetz" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתייעצת", t: "Mityaetzet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתייעצים", t: "Mityatzim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתייעצות", t: "Mityatzot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התייעץ", t: "Hityaetz" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתייעץ", t: "Yityaetz" },
       ],
     },
   },
-
-  // Imaginer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לדמיין", translit: "Ledamien", fr: "Imaginer",
+    racine: "דמין", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מדמיין", t: "Medamien" },
-        { p: "fém. sing. (אני/את/היא)", he: "מדמיינת", t: "Medamienet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מדמיינים", t: "Medaminim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מדמיינות", t: "Medaminot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "דמיין", t: "Dimyen" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידמיין", t: "Yedamien" },
       ],
     },
   },
-
-  // Hésiter  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתלבט", translit: "Lehitlabet", fr: "Hésiter",
+    racine: "לבט", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתלבט", t: "Mitlabet" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתלבטת", t: "Mitlabetet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתלבטים", t: "Mitlabtim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתלבטות", t: "Mitlabtot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התלבט", t: "Hitlabet" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתלבט", t: "Yitlabet" },
       ],
     },
   },
-
-  // Culpabiliser  // À COMPLÉTER : Passé, Futur
   {
     inf: "להאשים", translit: "Lehaachim", fr: "Culpabiliser",
+    racine: "אשם", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מאשים", t: "Maachim" },
-        { p: "fém. sing. (אני/את/היא)", he: "מאשימה", t: "Maachima" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מאשימים", t: "Maachimim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מאשימות", t: "Maachimot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "האשים", t: "He'achim" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאשים", t: "Ya'achim" },
       ],
     },
   },
-
-  // Parier  // À COMPLÉTER : Passé, Futur
   {
     inf: "להמר", translit: "Lehamer", fr: "Parier",
+    racine: "מר", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מהמר", t: "Mehamer" },
-        { p: "fém. sing. (אני/את/היא)", he: "מהמרה", t: "Mehamera" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מהמרים", t: "Mehamerim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מהמרות", t: "Mehamerot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "המר", t: "Himer" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימר", t: "Yamer" },
       ],
     },
   },
-
-  // Intervenir / se mêler  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתערב", translit: "Lehit'arev", fr: "Intervenir / se mêler",
+    racine: "ערב", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתערב", t: "Mit'arev" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתערבת", t: "Mit'arevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתערבים", t: "Mit'arvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתערבות", t: "Mit'arvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התערב", t: "Hit'arev" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתערב", t: "Yit'arev" },
       ],
     },
   },
-
-  // Faire fonctionner / activer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להפעיל", translit: "Lehaf'il", fr: "Faire fonctionner / activer",
+    racine: "פעל", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מפעיל", t: "Maf'il" },
-        { p: "fém. sing. (אני/את/היא)", he: "מפעילה", t: "Maf'ila" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מפעילים", t: "Maf'ilim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מפעילות", t: "Maf'ilot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הפעיל", t: "Hif'il" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפעיל", t: "Yaf'il" },
       ],
     },
   },
-
-  // Papoter  // À COMPLÉTER : Futur
   {
     inf: "לפטפט", translit: "Lefatpet", fr: "Papoter",
+    racine: "פטפט", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מפטפט", t: "Mefatpet" },
-        { p: "fém. sing. (אני/את/היא)", he: "מפטפטת", t: "Mefatpetet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מפטפטים", t: "Mefatptim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מפטפטות", t: "Mefatptot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "פטפטתי", t: "Pitpetti" },
-        { p: "tu masc. (אתה)", he: "פטפטת", t: "Pitpetta" },
-        { p: "tu fém. (את)", he: "פטפטת", t: "Pitpett" },
         { p: "il (הוא)", he: "פטפט", t: "Pitpet" },
-        { p: "elle (היא)", he: "פטפטה", t: "Pitpta" },
-        { p: "nous (אנחנו)", he: "פטפטנו", t: "Pitpetnu" },
-        { p: "vous masc. (אתם)", he: "פטפטתם", t: "Ptpettem" },
-        { p: "vous fém. (אתן)", he: "פטפטתן", t: "Ptpetten" },
-        { p: "ils / elles (הם/הן)", he: "פטפטו", t: "Pitptu" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפטפט", t: "Yefatpet" },
       ],
     },
   },
-
-  // Regarder / mâter  // À COMPLÉTER : Passé, Futur
   {
     inf: "להציץ", translit: "Lehatzits", fr: "Regarder / mâter",
+    racine: "ציץ", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מציץ", t: "Metsits" },
-        { p: "fém. sing. (אני/את/היא)", he: "מציצה", t: "Metsitsa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מציצים", t: "Metsitsim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מציצות", t: "Metsitsot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הציץ", t: "Hetsits" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יציץ", t: "Yatsits" },
       ],
     },
   },
-
-  // Servir (armée)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשרת", translit: "Lecharet", fr: "Servir (armée)",
+    racine: "שרת", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משרת", t: "Merachet" },
-        { p: "fém. sing. (אני/את/היא)", he: "משרתת", t: "Merachetet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "משרתים", t: "Merachtim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "משרתות", t: "Merachtot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שירת", t: "Cheret" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישרת", t: "Yesharet" },
       ],
     },
   },
-
-  // Abandonner  // À COMPLÉTER : Passé, Futur
   {
     inf: "לוותר", translit: "Levater", fr: "Abandonner",
+    racine: "ותר", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מוותר", t: "Mevater" },
-        { p: "fém. sing. (אני/את/היא)", he: "מוותרת", t: "Mevateret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מוותרים", t: "Mevatrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מוותרות", t: "Mevatrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ויתר", t: "Viter" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יוותר", t: "Yevater" },
       ],
     },
   },
-
-  // Surfer  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לגלוש", translit: "Ligloch", fr: "Surfer",
-    temps: {},
+    racine: "גלש", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "גולש", t: "Golech" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "גלש", t: "Galach" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגלוש", t: "Yiglosh" },
+      ],
+    },
   },
-
-  // Adopter  // À COMPLÉTER : Passé, Futur
   {
     inf: "להמלץ", translit: "Lehamets", fr: "Adopter",
+    racine: "מלץ", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "ממלץ", t: "Mamlets" },
-        { p: "fém. sing. (אני/את/היא)", he: "ממלצה", t: "Mamletsa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "ממלצים", t: "Mamletsim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "ממלצות", t: "Mamletsot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "המליץ", t: "Himlits" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימליץ", t: "Yamlits" },
       ],
     },
   },
-
-  // Admirer
   {
     inf: "להעריץ", translit: "Leha'arits", fr: "Admirer",
+    racine: "ערץ", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מעריץ", t: "Ma'arits" },
-        { p: "fém. sing. (אני/את/היא)", he: "מעריצה", t: "Ma'aritsa" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מעריצים", t: "Ma'aritsim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מעריצות", t: "Ma'aritsot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "העריצתי", t: "He'eritsti" },
-        { p: "tu masc. (אתה)", he: "העריצת", t: "He'eritsta" },
-        { p: "tu fém. (את)", he: "העריצת", t: "He'eritst" },
         { p: "il (הוא)", he: "העריץ", t: "He'erits" },
-        { p: "elle (היא)", he: "העריצה", t: "He'ertsa" },
-        { p: "nous (אנחנו)", he: "העריצנו", t: "He'eritsnu" },
-        { p: "vous masc. (אתם)", he: "העריצתם", t: "He'eritstem" },
-        { p: "vous fém. (אתן)", he: "העריצתן", t: "He'eritsten" },
-        { p: "ils / elles (הם/הן)", he: "העריצו", t: "He'ertsu" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אעריץ", t: "ea'erits" },
-        { p: "tu masc. (אתה)", he: "תעריץ", t: "tia'erits" },
-        { p: "tu fém. (את)", he: "תעריצי", t: "tia'eritsi" },
         { p: "il (הוא)", he: "יעריץ", t: "Ya'erits" },
-        { p: "elle (היא)", he: "תעריץ", t: "tia'erits" },
-        { p: "nous (אנחנו)", he: "נעריץ", t: "nia'erits" },
-        { p: "vous (אתם/אתן)", he: "תעריצו", t: "tia'eritsu" },
-        { p: "ils / elles (הם/הן)", he: "יעריצו", t: "yia'eritsu" },
       ],
     },
   },
-
-  // Murir  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתבגר", translit: "Lehitbager", fr: "Murir",
+    racine: "בגר", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מהתבגר", t: "Mitbager" },
-        { p: "fém. sing. (אני/את/היא)", he: "מהתבגרת", t: "Mitbageret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מהתבגרים", t: "Mitbagrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מהתבגרות", t: "Mitbagrot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התבגר", t: "Hitbager" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתבגר", t: "Yitbager" },
       ],
     },
   },
-
-  // Rééduquer  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לשקם", translit: "Lechakem", fr: "Rééduquer",
-    temps: {},
+    racine: "שקם", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משקם", t: "Meshakem" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שיקם", t: "Shikem" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישקם", t: "Yeshakem" },
+      ],
+    },
   },
-
-  // Sauver  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להציל", translit: "Lehatsil", fr: "Sauver",
-    temps: {},
+    racine: "נצל", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מציל", t: "Matsil" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הציל", t: "Hitsil" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יציל", t: "Yatsil" },
+      ],
+    },
   },
-
-  // Laisser  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להשאיר", translit: "Lehachir", fr: "Laisser",
-    temps: {},
+    racine: "שאר", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משאיר", t: "Mash'ir" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השאיר", t: "Hish'ir" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישאיר", t: "Yash'ir" },
+      ],
+    },
   },
-
-  // Faire exprès  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתכוון", translit: "Lehitkaven", fr: "Faire exprès",
-    temps: {},
+    racine: "כון", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתכוון", t: "Mitkaven" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התכוון", t: "Hitkaven" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתכוון", t: "Yitkaven" },
+      ],
+    },
   },
-
-  // Errer  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לשוטט", translit: "Lechotet", fr: "Errer",
-    temps: {},
+    racine: "שוט", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משוטט", t: "Meshotet" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שוטט", t: "Shotet" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישוטט", t: "Yeshotet" },
+      ],
+    },
   },
-
-  // Abuser  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתעלל", translit: "Lehit'alel", fr: "Abuser",
-    temps: {},
+    racine: "עלל", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתעלל", t: "Mit'alel" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התעלל", t: "Hit'alel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתעלל", t: "Yit'alel" },
+      ],
+    },
   },
-
-  // Faire un effort  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתאמץ", translit: "Lehit'amets", fr: "Faire un effort",
-    temps: {},
+    racine: "אמץ", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתאמץ", t: "Mit'amets" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התאמץ", t: "Hit'amets" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתאמץ", t: "Yit'amets" },
+      ],
+    },
   },
-
-  // Tourner (se balader/circuler)  // À COMPLÉTER : Passé, Futur
   {
     inf: "להסתובב", translit: "Lehistovev", fr: "Tourner (se balader/circuler)",
+    racine: "סבב", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מסתובב", t: "Mistovev" },
-        { p: "fém. sing. (אני/את/היא)", he: "מסתובבת", t: "Mistovevet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מסתובבים", t: "Mistovvim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מסתובבות", t: "Mistovvot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הסתובב", t: "Histovev" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסתובב", t: "Yistovev" },
       ],
     },
   },
-
-  // Dresser  // À COMPLÉTER : Passé, Futur
   {
     inf: "לאלף", translit: "Le'alef", fr: "Dresser",
+    racine: "אלף", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מאלף", t: "Me'alef" },
-        { p: "fém. sing. (אני/את/היא)", he: "מאלפת", t: "Me'alefet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מאלפים", t: "Me'alfim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מאלפות", t: "Me'alfot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "אילף", t: "Ilef" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאלף", t: "Ye'alef" },
       ],
     },
   },
-
-  // Aboyer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לנבוח", translit: "Linboakh", fr: "Aboyer",
+    racine: "נבח", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "נובח", t: "Noveakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "נובחת", t: "Noveakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "נובחים", t: "Novekhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "נובחות", t: "Novekhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נבח", t: "Navakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינבח", t: "Yinbakh" },
       ],
     },
   },
-
-  // Autoriser
   {
     inf: "להרשות", translit: "Leharchot", fr: "Autoriser",
+    racine: "רשה", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מרשה", t: "Marche" },
-        { p: "fém. sing. (אני/את/היא)", he: "מרשה", t: "Marcha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מרשים", t: "Marchim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מרשות", t: "Marchot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "הרשהתי", t: "Hircheti" },
-        { p: "tu masc. (אתה)", he: "הרשהת", t: "Hircheta" },
-        { p: "tu fém. (את)", he: "הרשהת", t: "Hirchet" },
         { p: "il (הוא)", he: "הרשה", t: "Hirche" },
-        { p: "elle (היא)", he: "הרשהה", t: "Hrchea" },
-        { p: "nous (אנחנו)", he: "הרשהנו", t: "Hirchenu" },
-        { p: "vous masc. (אתם)", he: "הרשהתם", t: "Hirchetem" },
-        { p: "vous fém. (אתן)", he: "הרשהתן", t: "Hircheten" },
-        { p: "ils / elles (הם/הן)", he: "הרשהו", t: "Hrcheu" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "ארשה", t: "earche" },
-        { p: "tu masc. (אתה)", he: "תרשה", t: "tiarche" },
-        { p: "tu fém. (את)", he: "תרשי", t: "tiarchi" },
         { p: "il (הוא)", he: "ירשה", t: "Yarche" },
-        { p: "elle (היא)", he: "תרשה", t: "tiarche" },
-        { p: "nous (אנחנו)", he: "נרשה", t: "niarche" },
-        { p: "vous (אתם/אתן)", he: "תרשו", t: "tiarchu" },
-        { p: "ils / elles (הם/הן)", he: "ירשו", t: "yiarchu" },
       ],
     },
   },
-
-  // Emigrer
   {
     inf: "להגר", translit: "Lehager", fr: "Emigrer",
+    racine: "הגר", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מהגר", t: "Mehager" },
-        { p: "fém. sing. (אני/את/היא)", he: "מהגרה", t: "Mehagera" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מהגרים", t: "Mehagerim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מהגרות", t: "Mehagerot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "היגרתי", t: "Higerti" },
-        { p: "tu masc. (אתה)", he: "היגרת", t: "Higerta" },
-        { p: "tu fém. (את)", he: "היגרת", t: "Higert" },
         { p: "il (הוא)", he: "היגר", t: "Higer" },
-        { p: "elle (היא)", he: "היגרה", t: "Higra" },
-        { p: "nous (אנחנו)", he: "היגרנו", t: "Higernu" },
-        { p: "vous masc. (אתם)", he: "היגרתם", t: "Higertem" },
-        { p: "vous fém. (אתן)", he: "היגרתן", t: "Higerten" },
-        { p: "ils / elles (הם/הן)", he: "היגרו", t: "Higru" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אהגר", t: "eehager" },
-        { p: "tu masc. (אתה)", he: "תהגר", t: "tiehager" },
-        { p: "tu fém. (את)", he: "תהגרי", t: "tiehageri" },
         { p: "il (הוא)", he: "יהגר", t: "Yehager" },
-        { p: "elle (היא)", he: "תהגר", t: "tiehager" },
-        { p: "nous (אנחנו)", he: "נהגר", t: "niehager" },
-        { p: "vous (אתם/אתן)", he: "תהגרו", t: "tiehageru" },
-        { p: "ils / elles (הם/הן)", he: "יהגרו", t: "yiehageru" },
       ],
     },
   },
-
-  // Prolonger
   {
     inf: "להאריך", translit: "Leha'arikh", fr: "Prolonger",
+    racine: "ארך", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מאריך", t: "Ma'arikh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מאריכה", t: "Ma'arikha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מאריכים", t: "Ma'arikhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מאריכות", t: "Ma'arikhot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "האריכתי", t: "He'erikhti" },
-        { p: "tu masc. (אתה)", he: "האריכת", t: "He'erikhta" },
-        { p: "tu fém. (את)", he: "האריכת", t: "He'erikht" },
         { p: "il (הוא)", he: "האריך", t: "He'erikh" },
-        { p: "elle (היא)", he: "האריכה", t: "He'erkha" },
-        { p: "nous (אנחנו)", he: "האריכנו", t: "He'erikhnu" },
-        { p: "vous masc. (אתם)", he: "האריכתם", t: "He'erikhtem" },
-        { p: "vous fém. (אתן)", he: "האריכתן", t: "He'erikhten" },
-        { p: "ils / elles (הם/הן)", he: "האריכו", t: "He'erkhu" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אאריך", t: "ea'arikh" },
-        { p: "tu masc. (אתה)", he: "תאריך", t: "tia'arikh" },
-        { p: "tu fém. (את)", he: "תאריכי", t: "tia'arikhi" },
         { p: "il (הוא)", he: "יאריך", t: "Ya'arikh" },
-        { p: "elle (היא)", he: "תאריך", t: "tia'arikh" },
-        { p: "nous (אנחנו)", he: "נאריך", t: "nia'arikh" },
-        { p: "vous (אתם/אתן)", he: "תאריכו", t: "tia'arikhu" },
-        { p: "ils / elles (הם/הן)", he: "יאריכו", t: "yia'arikhu" },
       ],
     },
   },
-
-  // Résoudre
   {
     inf: "לפתור", translit: "Liftor", fr: "Résoudre",
+    racine: "פתר", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "פותר", t: "Poter" },
-        { p: "fém. sing. (אני/את/היא)", he: "פותרת", t: "Poteret" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "פותרים", t: "Potrim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "פותרות", t: "Potrot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "פתרתי", t: "Patarti" },
-        { p: "tu masc. (אתה)", he: "פתרת", t: "Patarta" },
-        { p: "tu fém. (את)", he: "פתרת", t: "Patart" },
         { p: "il (הוא)", he: "פתר", t: "Patar" },
-        { p: "elle (היא)", he: "פתרה", t: "Patra" },
-        { p: "nous (אנחנו)", he: "פתרנו", t: "Patarnu" },
-        { p: "vous masc. (אתם)", he: "פתרתם", t: "Ptartem" },
-        { p: "vous fém. (אתן)", he: "פתרתן", t: "Ptarten" },
-        { p: "ils / elles (הם/הן)", he: "פתרו", t: "Patru" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אפתור", t: "eftor" },
-        { p: "tu masc. (אתה)", he: "תפתור", t: "tiftor" },
-        { p: "tu fém. (את)", he: "תפתורי", t: "tiftori" },
         { p: "il (הוא)", he: "יפתור", t: "Yiftor" },
-        { p: "elle (היא)", he: "תפתור", t: "tiftor" },
-        { p: "nous (אנחנו)", he: "נפתור", t: "niftor" },
-        { p: "vous (אתם/אתן)", he: "תפתורו", t: "tiftoru" },
-        { p: "ils / elles (הם/הן)", he: "יפתורו", t: "yiftoru" },
       ],
     },
   },
-
-  // Financer
   {
     inf: "לממן", translit: "Lemamen", fr: "Financer",
+    racine: "ממן", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מממן", t: "Memamen" },
-        { p: "fém. sing. (אני/את/היא)", he: "מממנת", t: "Memamenet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מממנים", t: "Memamnim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מממנות", t: "Memamnot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "מימנתי", t: "Mimenti" },
-        { p: "tu masc. (אתה)", he: "מימנת", t: "Mimenta" },
-        { p: "tu fém. (את)", he: "מימנת", t: "Miment" },
         { p: "il (הוא)", he: "מימן", t: "Mimen" },
-        { p: "elle (היא)", he: "מימנה", t: "Mimna" },
-        { p: "nous (אנחנו)", he: "מימננו", t: "Mimennu" },
-        { p: "vous masc. (אתם)", he: "מימנתם", t: "Mmentem" },
-        { p: "vous fém. (אתן)", he: "מימנתן", t: "Mmenten" },
-        { p: "ils / elles (הם/הן)", he: "מימנו", t: "Mimnu" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אממן", t: "eemamen" },
-        { p: "tu masc. (אתה)", he: "תממן", t: "tiemamen" },
-        { p: "tu fém. (את)", he: "תממני", t: "tiemameni" },
         { p: "il (הוא)", he: "יממן", t: "Yemamen" },
-        { p: "elle (היא)", he: "תממן", t: "tiemamen" },
-        { p: "nous (אנחנו)", he: "נממן", t: "niemamen" },
-        { p: "vous (אתם/אתן)", he: "תממנו", t: "tiemamenu" },
-        { p: "ils / elles (הם/הן)", he: "יממנו", t: "yiemamenu" },
       ],
     },
   },
-
-  // Se préparer
   {
     inf: "להתכונן", translit: "Lehitkonen", fr: "Se préparer",
+    racine: "כון", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתכונן", t: "Mitkonen" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתכוננת", t: "Mitkonenet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתכוננים", t: "Mitkonnim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתכוננות", t: "Mitkonnot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "התכוננתי", t: "Hitkonenti" },
-        { p: "tu masc. (אתה)", he: "התכוננת", t: "Hitkonenta" },
-        { p: "tu fém. (את)", he: "התכוננת", t: "Hitkonent" },
         { p: "il (הוא)", he: "התכונן", t: "Hitkonen" },
-        { p: "elle (היא)", he: "התכוננה", t: "Hitkonna" },
-        { p: "nous (אנחנו)", he: "התכונננו", t: "Hitkonennu" },
-        { p: "vous masc. (אתם)", he: "התכוננתם", t: "Hitkonentem" },
-        { p: "vous fém. (אתן)", he: "התכוננתן", t: "Hitkonenten" },
-        { p: "ils / elles (הם/הן)", he: "התכוננו", t: "Hitkonnu" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אתכונן", t: "etkonen" },
-        { p: "tu masc. (אתה)", he: "תתכונן", t: "titkonen" },
-        { p: "tu fém. (את)", he: "תתכונני", t: "titkoneni" },
         { p: "il (הוא)", he: "יתכונן", t: "Yitkonen" },
-        { p: "elle (היא)", he: "תתכונן", t: "titkonen" },
-        { p: "nous (אנחנו)", he: "נתכונן", t: "nitkonen" },
-        { p: "vous (אתם/אתן)", he: "תתכוננו", t: "titkonenu" },
-        { p: "ils / elles (הם/הן)", he: "יתכוננו", t: "yitkonenu" },
       ],
     },
   },
-
-  // Couper
   {
     inf: "לחתוך", translit: "Lakhtor", fr: "Couper",
+    racine: "חתך", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "חותך", t: "Khotekh" },
-        { p: "fém. sing. (אני/את/היא)", he: "חותכת", t: "Khotekhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "חותכים", t: "Khotkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "חותכות", t: "Khotkhot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "חתכתי", t: "Khatakhti" },
-        { p: "tu masc. (אתה)", he: "חתכת", t: "Khatakhta" },
-        { p: "tu fém. (את)", he: "חתכת", t: "Khatakht" },
         { p: "il (הוא)", he: "חתך", t: "Khatakh" },
-        { p: "elle (היא)", he: "חתכה", t: "Khatkha" },
-        { p: "nous (אנחנו)", he: "חתכנו", t: "Khatakhnu" },
-        { p: "vous masc. (אתם)", he: "חתכתם", t: "Khatakhtem" },
-        { p: "vous fém. (אתן)", he: "חתכתן", t: "Khatakhten" },
-        { p: "ils / elles (הם/הן)", he: "חתכו", t: "Khatkhu" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אחתוך", t: "eakhatokh" },
-        { p: "tu masc. (אתה)", he: "תחתוך", t: "tiakhatokh" },
-        { p: "tu fém. (את)", he: "תחתכי", t: "takhtekhi" },
         { p: "il (הוא)", he: "יחתוך", t: "Yakhatokh" },
-        { p: "elle (היא)", he: "תחתוך", t: "tiakhatokh" },
-        { p: "nous (אנחנו)", he: "נחתוך", t: "niakhatokh" },
-        { p: "vous (אתם/אתן)", he: "תחתכו", t: "takhtekhu" },
-        { p: "ils / elles (הם/הן)", he: "יחתכו", t: "yakhtekhu" },
       ],
     },
   },
-
-  // Fournir  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לספק (ל)", translit: "Lesapek (le)", fr: "Fournir",
-    temps: {},
+    racine: "ספק", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מספק", t: "Mesapek" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "סיפק", t: "Sipek" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יספק", t: "Yesapek" },
+      ],
+    },
   },
-
-  // S'entrainer (bé ou lé)  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתאמן", translit: "Lehit'amen", fr: "S'entrainer (bé ou lé)",
-    temps: {},
+    racine: "אמן", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתאמן", t: "Mit'amen" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התאמן", t: "Hit'amen" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתאמן", t: "Yit'amen" },
+      ],
+    },
   },
-
-  // Avoir besoin (plus soutenu)  // À COMPLÉTER : Passé, Futur
   {
     inf: "להזדקק", translit: "Lehizdakek", fr: "Avoir besoin (plus soutenu)",
+    racine: "זקק", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מזדקק", t: "Mizdakek" },
-        { p: "fém. sing. (אני/את/היא)", he: "מזדקקת", t: "Mizdakeket" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מזדקקים", t: "Mizdakkim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מזדקקות", t: "Mizdakkot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הזדקק", t: "Hizdakek" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יזדקק", t: "Yizdakek" },
       ],
     },
   },
-
-  // Accompagner / conduire  // À COMPLÉTER : Passé, Futur
   {
     inf: "ללוות", translit: "Lelavot", fr: "Accompagner / conduire",
+    racine: "לוה", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מלוה", t: "Melave" },
-        { p: "fém. sing. (אני/את/היא)", he: "מלוה", t: "Melava" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מלוים", t: "Melavim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מלוות", t: "Melavot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ליווה", t: "Liva" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ילווה", t: "Yelave" },
       ],
     },
   },
-
-  // Soutenir  // À COMPLÉTER : Passé, Futur
   {
     inf: "לתמוך", translit: "Litmokh", fr: "Soutenir",
+    racine: "תמך", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "תומך", t: "Tomekh" },
-        { p: "fém. sing. (אני/את/היא)", he: "תומכת", t: "Tomekhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "תומכים", t: "Tomkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "תומכות", t: "Tomkhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "תמך", t: "Tamakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתמוך", t: "Yitmokh" },
       ],
     },
   },
-
-  // Aider (plus soutenu)  // À COMPLÉTER : Passé, Futur
   {
     inf: "לסייע", translit: "Lesaya", fr: "Aider (plus soutenu)",
+    racine: "סיע", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מסייע", t: "Mesayea" },
-        { p: "fém. sing. (אני/את/היא)", he: "מסייעת", t: "Mesayeaet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מסייעים", t: "Mesayaim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מסייעות", t: "Mesayaot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "סייע", t: "Siyea" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסייע", t: "Yesaye'a" },
       ],
     },
   },
-
-  // S'exprimer  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתבטא", translit: "Lehitbate", fr: "S'exprimer",
+    racine: "בטא", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתבטא", t: "Mitbate" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתבטאת", t: "Mitbateet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתבטאים", t: "Mitbteim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתבטאות", t: "Mitbteot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התבטא", t: "Hitbate" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתבטא", t: "Yitbate" },
       ],
     },
   },
-
-  // Discuter / débattre  // À COMPLÉTER : Passé, Futur
   {
     inf: "להתווכח", translit: "Lehitvakeakh", fr: "Discuter / débattre",
+    racine: "וכח", binyan: "התפעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתווכח", t: "Mitvakeakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מתווכחת", t: "Mitvakeakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מתווכחים", t: "Mitvakekhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מתווכחות", t: "Mitvakekhot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התווכח", t: "Hitvakeakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתווכח", t: "Yitvakeakh" },
       ],
     },
   },
-
-  // Dégainer / tirer  // À COMPLÉTER : Passé, Futur
   {
     inf: "לשלוף", translit: "Lichlof", fr: "Dégainer / tirer",
+    racine: "שלף", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "שולף", t: "Cholef" },
-        { p: "fém. sing. (אני/את/היא)", he: "שולפת", t: "Cholefet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "שולפים", t: "Cholfim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "שולפות", t: "Cholfot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שלף", t: "Chalaf" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישלוף", t: "Yishlof" },
       ],
     },
   },
-
-  // Souligner / mettre en valeur  // À COMPLÉTER : Passé, Futur
   {
     inf: "להדגיש", translit: "Lehadgich", fr: "Souligner / mettre en valeur",
+    racine: "דגש", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מדגיש", t: "Madgich" },
-        { p: "fém. sing. (אני/את/היא)", he: "מדגישה", t: "Madgicha" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מדגישים", t: "Madgichim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מדגישות", t: "Madgichot" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הדגיש", t: "Hidgish" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידגיש", t: "Yadgish" },
       ],
     },
   },
-
-  // Prouver
   {
     inf: "להוכיח", translit: "Leokhiakh", fr: "Prouver",
+    racine: "יכח", binyan: "הפעיל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מוכיח", t: "Mokhiakh" },
-        { p: "fém. sing. (אני/את/היא)", he: "מוכיחת", t: "Mokhiakhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מוכיחים", t: "Mokhikhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מוכיחות", t: "Mokhikhot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "הוכיחתי", t: "Hokhiakhti" },
-        { p: "tu masc. (אתה)", he: "הוכיחת", t: "Hokhiakhta" },
-        { p: "tu fém. (את)", he: "הוכיחת", t: "Hokhiakht" },
         { p: "il (הוא)", he: "הוכיח", t: "Hokhiakh" },
-        { p: "elle (היא)", he: "הוכיחה", t: "Hokhikha" },
-        { p: "nous (אנחנו)", he: "הוכיחנו", t: "Hokhiakhnu" },
-        { p: "vous masc. (אתם)", he: "הוכיחתם", t: "Hokhiakhtem" },
-        { p: "vous fém. (אתן)", he: "הוכיחתן", t: "Hokhiakhten" },
-        { p: "ils / elles (הם/הן)", he: "הוכיחו", t: "Hokhikhu" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אוכיח", t: "eokhiakh" },
-        { p: "tu masc. (אתה)", he: "תוכיח", t: "tiokhiakh" },
-        { p: "tu fém. (את)", he: "תוכיחי", t: "tiokhiakhi" },
         { p: "il (הוא)", he: "יוכיח", t: "Yokhiakh" },
-        { p: "elle (היא)", he: "תוכיח", t: "tiokhiakh" },
-        { p: "nous (אנחנו)", he: "נוכיח", t: "niokhiakh" },
-        { p: "vous (אתם/אתן)", he: "תוכיחו", t: "tiokhiakhu" },
-        { p: "ils / elles (הם/הן)", he: "יוכיחו", t: "yiokhiakhu" },
       ],
     },
   },
-
-  // Allaiter  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להניק", translit: "Lehenik", fr: "Allaiter",
-    temps: {},
+    racine: "ינק", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מניק", t: "Menik" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הניק", t: "Henik" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יניק", t: "Yanik" },
+      ],
+    },
   },
-
-  // Argumenter  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לטעון", translit: "Lit'on", fr: "Argumenter",
-    temps: {},
+    racine: "טען", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "טוען", t: "Toen" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "טען", t: "Ta'an" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יטען", t: "Yit'an" },
+      ],
+    },
   },
-
-  // Expliquer  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "לנמק", translit: "Lenamek", fr: "Expliquer",
-    temps: {},
+    racine: "נמק", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מנמק", t: "Menamek" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נימק", t: "Nimek" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ינמק", t: "Yenamek" },
+      ],
+    },
   },
-
-  // Détruire  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להרוס", translit: "Laharos", fr: "Détruire",
-    temps: {},
+    racine: "הרס", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "הורס", t: "Hores" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הרס", t: "Haras" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יהרוס", t: "Yaharos" },
+      ],
+    },
   },
-
-  // Parier / risquer  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להמר", translit: "Lehamer", fr: "Parier / risquer",
-    temps: {},
+    racine: "מר", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מהמר", t: "Mehamer" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "המר", t: "Himer" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימר", t: "Yamer" },
+      ],
+    },
   },
-
-  // Exister  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתקיים", translit: "Lehitkayem", fr: "Exister",
-    temps: {},
+    racine: "קים", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתקיים", t: "Mitkayem" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התקיים", t: "Hitkayem" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתקיים", t: "Yitkayem" },
+      ],
+    },
   },
-
-  // Appartenir à  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להשתייך", translit: "Lehichtayakh", fr: "Appartenir à",
-    temps: {},
+    racine: "שייך", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משתייך", t: "Mishtayekh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השתייך", t: "Hishtayekh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישתייך", t: "Yishtayekh" },
+      ],
+    },
   },
-
-  // Considérer / traiter  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתייחס", translit: "Lehityakhes", fr: "Considérer / traiter",
-    temps: {},
+    racine: "יחס", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתייחס", t: "Mityakhes" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התייחס", t: "Hityakhes" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתייחס", t: "Yityakhes" },
+      ],
+    },
   },
-
-  // Affronter / gérer / faire face  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתמודד", translit: "Lehitmoded", fr: "Affronter / gérer / faire face",
-    temps: {},
+    racine: "מודד", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתמודד", t: "Mitmoded" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התמודד", t: "Hitmoded" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתמודד", t: "Yitmoded" },
+      ],
+    },
   },
-
-  // Se plaindre  // À COMPLÉTER : Présent, Passé, Futur
   {
     inf: "להתלונן", translit: "Lehitlonen", fr: "Se plaindre",
-    temps: {},
+    racine: "לונן", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתלונן", t: "Mitlonen" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התלונן", t: "Hitlonen" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתלונן", t: "Yitlonen" },
+      ],
+    },
   },
-
-  // Préparer / organiser
   {
     inf: "לארגן", translit: "Le'argen", fr: "Préparer / organiser",
+    racine: "ארגן", binyan: "פיעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מארגן", t: "Me'argen" },
-        { p: "fém. sing. (אני/את/היא)", he: "מארגנת", t: "Me'argenet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "מארגנים", t: "Me'argnim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "מארגנות", t: "Me'argnot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "ארגנתי", t: "Irgenti" },
-        { p: "tu masc. (אתה)", he: "ארגנת", t: "Irgenta" },
-        { p: "tu fém. (את)", he: "ארגנת", t: "Irgent" },
         { p: "il (הוא)", he: "ארגן", t: "Irgen" },
-        { p: "elle (היא)", he: "ארגנה", t: "Irgna" },
-        { p: "nous (אנחנו)", he: "ארגננו", t: "Irgennu" },
-        { p: "vous masc. (אתם)", he: "ארגנתם", t: "Irgentem" },
-        { p: "vous fém. (אתן)", he: "ארגנתן", t: "Irgenten" },
-        { p: "ils / elles (הם/הן)", he: "ארגנו", t: "Irgnu" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אארגן", t: "ee'argen" },
-        { p: "tu masc. (אתה)", he: "תארגן", t: "tie'argen" },
-        { p: "tu fém. (את)", he: "תארגני", t: "tie'argeni" },
         { p: "il (הוא)", he: "יארגן", t: "Ye'argen" },
-        { p: "elle (היא)", he: "תארגן", t: "tie'argen" },
-        { p: "nous (אנחנו)", he: "נארגן", t: "nie'argen" },
-        { p: "vous (אתם/אתן)", he: "תארגנו", t: "tie'argenu" },
-        { p: "ils / elles (הם/הן)", he: "יארגנו", t: "yie'argenu" },
       ],
     },
   },
-
-  // Devenir
   {
     inf: "להפוך", translit: "Lahafokh", fr: "Devenir",
+    racine: "הפך", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "הופך", t: "Hofekh" },
-        { p: "fém. sing. (אני/את/היא)", he: "הופכת", t: "Hofekhet" },
-        { p: "masc. pluriel (אנחנו/אתם/הם)", he: "הופכים", t: "Hofkhim" },
-        { p: "fém. pluriel (אנחנו/אתן/הן)", he: "הופכות", t: "Hofkhot" },
       ],
       "Passé": [
-        { p: "je (אני)", he: "הפכתי", t: "Hafakhti" },
-        { p: "tu masc. (אתה)", he: "הפכת", t: "Hafakhta" },
-        { p: "tu fém. (את)", he: "הפכת", t: "Hafakht" },
         { p: "il (הוא)", he: "הפך", t: "Hafakh" },
-        { p: "elle (היא)", he: "הפכה", t: "Hafkha" },
-        { p: "nous (אנחנו)", he: "הפכנו", t: "Hafakhnu" },
-        { p: "vous masc. (אתם)", he: "הפכתם", t: "Hafakhtem" },
-        { p: "vous fém. (אתן)", he: "הפכתן", t: "Hafakhten" },
-        { p: "ils / elles (הם/הן)", he: "הפכו", t: "Hafkhu" },
       ],
       "Futur": [
-        { p: "je (אני)", he: "אהפוך", t: "eahafokh" },
-        { p: "tu masc. (אתה)", he: "תהפוך", t: "tiahafokh" },
-        { p: "tu fém. (את)", he: "תהפכי", t: "tahafkhi" },
         { p: "il (הוא)", he: "יהפוך", t: "Yahafokh" },
-        { p: "elle (היא)", he: "תהפוך", t: "tiahafokh" },
-        { p: "nous (אנחנו)", he: "נהפוך", t: "niahafokh" },
-        { p: "vous (אתם/אתן)", he: "תהפכו", t: "tahafkhu" },
-        { p: "ils / elles (הם/הן)", he: "יהפכו", t: "yahafkhu" },
       ],
     },
   },
-
+  {
+    inf: "להתפשר", translit: "Lehipacher", fr: "Faire des compromis",
+    racine: "פשר", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתפשר", t: "Mitpacher" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התפשר", t: "Hitpacher" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתפשר", t: "Yitpacher" },
+      ],
+    },
+  },
+  {
+    inf: "להפטר", translit: "Lehipater", fr: "Mourir / se débarasser",
+    racine: "פטר", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נפטר", t: "Niftar" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נפטר", t: "Niftar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "נפטר", t: "Yipater" },
+      ],
+    },
+  },
+  {
+    inf: "לזרוק", translit: "Lizrok", fr: "Jeter / balancer",
+    racine: "זרק", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "זורק", t: "Zorek" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "זרק", t: "Zarak" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יזרוק", t: "Yizrok" },
+      ],
+    },
+  },
+  {
+    inf: "לשכנע", translit: "Lesakhnea", fr: "Convaincre",
+    racine: "שכנע", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משכנע", t: "Mesakhnea" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שכנע", t: "Sikhnea" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישכנע", t: "Yisakhnea" },
+      ],
+    },
+  },
+  {
+    inf: "לצבוע", translit: "Litsboa", fr: "Peindre",
+    racine: "צבע", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "צובע", t: "Tsovea" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צבע", t: "Tsava" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצבע", t: "Yitseva" },
+      ],
+    },
+  },
 ];

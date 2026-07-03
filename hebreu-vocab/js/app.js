@@ -476,6 +476,7 @@ function renderFlashcards() {
       <span class="word-cat">${word.cat}</span>
       <div class="fr-word">${word.fr}</div>
       <div class="he-word he" style="font-size:1.6rem">${word.he}</div>
+      ${word.note ? `<div class="word-note">💡 ${word.note}</div>` : ""}
     </div>`;
   scene.appendChild(card);
   screen.appendChild(scene);
@@ -693,6 +694,7 @@ function conjQuestionBox(item) {
     <div class="conj-badges">
       <span class="badge badge-tense">${item.tense}</span>
       <span class="badge">${item.personne}</span>
+      ${item.verb.binyan ? `<span class="badge">${item.verb.binyan}</span>` : ""}
     </div>
     <div class="fr-word">${item.verb.fr}</div>
     <div class="translit"><span class="he">${item.verb.inf}</span> · ${item.verb.translit}</div>`;
@@ -719,6 +721,20 @@ function renderConjTables() {
   screen.appendChild(picker);
 
   const verb = VERBES[state.conj.verb];
+  if (verb.racine || verb.binyan) {
+    screen.appendChild(
+      el(
+        "p",
+        "hint",
+        [verb.racine ? `Racine : <span class="he">${verb.racine}</span>` : "", verb.binyan ? `Binyan : <span class="he">${verb.binyan}</span>` : ""]
+          .filter(Boolean)
+          .join(" · ")
+      )
+    );
+  }
+  if (Object.keys(verb.temps).length === 0) {
+    screen.appendChild(el("p", "hint", "Pas encore de formes pour ce verbe — complétez l'Excel ou le fichier verbes.js."));
+  }
   Object.entries(verb.temps).forEach(([tense, forms]) => {
     const block = el("div", "conj-table-block");
     block.appendChild(el("h3", "conj-tense-title", tense));
