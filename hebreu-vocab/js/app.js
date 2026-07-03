@@ -750,20 +750,177 @@ function renderConj() {
   else renderConjWrite();
 }
 
+/* ------------------------------------------------------------
+   Conjugueur français (3e pers. masc. sing.) : affiche « il a
+   prouvé » plutôt que « Prouver, passé, il » dans les questions.
+   En cas de libellé trop inhabituel, on garde l'ancien affichage.
+   ------------------------------------------------------------ */
+
+// Irréguliers : présent 3sg, participe passé, futur 3sg, auxiliaire être ?
+const FR_IRREG = {
+  "être":       ["est", "été", "sera"],
+  "etre":       ["est", "été", "sera"],
+  "avoir":      ["a", "eu", "aura"],
+  "aller":      ["va", "allé", "ira", "être"],
+  "faire":      ["fait", "fait", "fera"],
+  "dire":       ["dit", "dit", "dira"],
+  "prendre":    ["prend", "pris", "prendra"],
+  "comprendre": ["comprend", "compris", "comprendra"],
+  "mettre":     ["met", "mis", "mettra"],
+  "permettre":  ["permet", "permis", "permettra"],
+  "promettre":  ["promet", "promis", "promettra"],
+  "venir":      ["vient", "venu", "viendra", "être"],
+  "devenir":    ["devient", "devenu", "deviendra", "être"],
+  "intervenir": ["intervient", "intervenu", "interviendra", "être"],
+  "appartenir": ["appartient", "appartenu", "appartiendra"],
+  "soutenir":   ["soutient", "soutenu", "soutiendra"],
+  "entretenir": ["entretient", "entretenu", "entretiendra"],
+  "souvenir":   ["souvient", "souvenu", "souviendra", "être"],
+  "voir":       ["voit", "vu", "verra"],
+  "pouvoir":    ["peut", "pu", "pourra"],
+  "vouloir":    ["veut", "voulu", "voudra"],
+  "devoir":     ["doit", "dû", "devra"],
+  "boire":      ["boit", "bu", "boira"],
+  "croire":     ["croit", "cru", "croira"],
+  "lire":       ["lit", "lu", "lira"],
+  "écrire":     ["écrit", "écrit", "écrira"],
+  "ecrire":     ["écrit", "écrit", "écrira"],
+  "décrire":    ["décrit", "décrit", "décrira"],
+  "inscrire":   ["inscrit", "inscrit", "inscrira"],
+  "conduire":   ["conduit", "conduit", "conduira"],
+  "construire": ["construit", "construit", "construira"],
+  "détruire":   ["détruit", "détruit", "détruira"],
+  "connaître":  ["connaît", "connu", "connaîtra"],
+  "naître":     ["naît", "né", "naîtra", "être"],
+  "naitre":     ["naît", "né", "naîtra", "être"],
+  "courir":     ["court", "couru", "courra"],
+  "mourir":     ["meurt", "mort", "mourra", "être"],
+  "dormir":     ["dort", "dormi", "dormira"],
+  "mentir":     ["ment", "menti", "mentira"],
+  "sortir":     ["sort", "sorti", "sortira", "être"],
+  "sentir":     ["sent", "senti", "sentira"],
+  "ressentir":  ["ressent", "ressenti", "ressentira"],
+  "servir":     ["sert", "servi", "servira"],
+  "ouvrir":     ["ouvre", "ouvert", "ouvrira"],
+  "découvrir":  ["découvre", "découvert", "découvrira"],
+  "cueillir":   ["cueille", "cueilli", "cueillera"],
+  "acquérir":   ["acquiert", "acquis", "acquerra"],
+  "recevoir":   ["reçoit", "reçu", "recevra"],
+  "asseoir":    ["assoit", "assis", "assoira"],
+  "rejoindre":  ["rejoint", "rejoint", "rejoindra"],
+  "peindre":    ["peint", "peint", "peindra"],
+  "plaindre":   ["plaint", "plaint", "plaindra"],
+  "convaincre": ["convainc", "convaincu", "convaincra"],
+  "résoudre":   ["résout", "résolu", "résoudra"],
+  "vivre":      ["vit", "vécu", "vivra"],
+  "survivre":   ["survit", "survécu", "survivra"],
+  "sourire":    ["sourit", "souri", "sourira"],
+  "envoyer":    ["envoie", "envoyé", "enverra"],
+  // -er à alternance e/è ou doublement
+  "acheter":    ["achète", "acheté", "achètera"],
+  "appeler":    ["appelle", "appelé", "appellera"],
+  "jeter":      ["jette", "jeté", "jettera"],
+  "lever":      ["lève", "levé", "lèvera"],
+  "peser":      ["pèse", "pesé", "pèsera"],
+  "préférer":     ["préfère", "préféré", "préférera"],
+  "espérer":      ["espère", "espéré", "espérera"],
+  "considérer":   ["considère", "considéré", "considérera"],
+  "compléter":    ["complète", "complété", "complétera"],
+  "interpréter":  ["interprète", "interprété", "interprétera"],
+  "inquiéter":    ["inquiète", "inquiété", "inquiétera"],
+};
+
+// Verbes (non pronominaux) qui se conjuguent avec être au passé composé
+const FR_AUX_ETRE = new Set(["arriver", "entrer", "rentrer", "rester", "tomber", "passer", "descendre"]);
+
+const FR_VOWEL = /^[aeiouhàâäéèêëîïôöùûü]/i;
+
+/* Conjugue un verbe français (infinitif, minuscules) à la 3e pers.
+   du masc. sing. Renvoie { pres, pc, fut, aux } ou null si inconnu. */
+function frVerb(inf) {
+  if (FR_IRREG[inf]) {
+    const [pres, pp, fut, aux] = FR_IRREG[inf];
+    return { pres, pp, fut, aux: aux || (FR_AUX_ETRE.has(inf) ? "être" : "avoir") };
+  }
+  const aux = FR_AUX_ETRE.has(inf) ? "être" : "avoir";
+  if (inf.endsWith("er")) {
+    let stem = inf.slice(0, -2);
+    let pres = stem.endsWith("y") ? stem.slice(0, -1) + "ie" : stem + "e";
+    let fut = stem.endsWith("y") ? stem.slice(0, -1) + "iera" : inf + "a";
+    return { pres, pp: stem + "é", fut, aux };
+  }
+  if (inf.endsWith("ir")) {
+    const stem = inf.slice(0, -2);
+    return { pres: stem + "it", pp: stem + "i", fut: inf + "a", aux };
+  }
+  if (inf.endsWith("re")) {
+    const stem = inf.slice(0, -2);
+    // futur : rendre → rendra (on retire seulement le e final)
+    return { pres: stem.endsWith("d") ? stem : null, pp: stem + "u", fut: inf.slice(0, -1) + "a", aux };
+  }
+  return null;
+}
+
+/* Construit la phrase française conjuguée pour un libellé de verbe.
+   tense : "Présent" | "Passé" | "Futur". Renvoie null si on ne sait
+   pas conjuguer proprement (l'app garde alors l'ancien affichage). */
+function conjugateFrLabel(label, tense) {
+  // parenthèses retirées D'ABORD (elles peuvent contenir des "/"),
+  // puis premier sens seulement
+  let seg = label.replace(/\([^)]*\)/g, "").split("/")[0].replace(/\s+/g, " ").trim();
+  if (!seg) return null;
+  let lower = seg.toLowerCase();
+
+  // pronominal ? (se lever, s'arrêter…) — "s'être …" et les libellés
+  // déjà au participe ("avoir raconté") sont trop tordus : on abandonne
+  let pronominal = false;
+  if (lower.startsWith("s'être")) return null;
+  if (lower.startsWith("avoir raconté")) return null;
+  if (/^se\s+/.test(lower)) { pronominal = true; lower = lower.replace(/^se\s+/, ""); }
+  else if (/^s'/.test(lower)) { pronominal = true; lower = lower.replace(/^s'/, ""); }
+
+  const words = lower.split(" ");
+  const inf = words[0];
+  const rest = words.slice(1).join(" ");
+  const v = frVerb(inf);
+  if (!v || !v.pres) return null;
+
+  const se = (w) => (FR_VOWEL.test(w) ? "s'" : "se ") + w;
+  let phrase;
+  if (tense === "Présent") {
+    phrase = "il " + (pronominal ? se(v.pres) : v.pres);
+  } else if (tense === "Passé") {
+    if (pronominal) phrase = "il s'est " + v.pp;         // il s'est levé
+    else if (v.aux === "être") phrase = "il est " + v.pp; // il est allé
+    else phrase = "il a " + v.pp;                         // il a prouvé
+  } else if (tense === "Futur") {
+    phrase = "il " + (pronominal ? se(v.fut) : v.fut);
+  } else {
+    return null;
+  }
+  return phrase + (rest ? " " + rest : "");
+}
+
 /* Affiche la question : verbe + temps + personne demandés.
    En QCM (hideInf) — et toujours quand la question porte sur
    l'infinitif — on cache l'infinitif hébreu et sa prononciation :
    ils donneraient la réponse. */
 function conjQuestionBox(item, hideInf) {
   const hide = hideInf || item.isInf;
+  // Question en français déjà conjugué ("il a prouvé") quand la forme
+  // demandée est la 3e pers. masc. sing. (c'est le cas de nos données)
+  const phrase =
+    !item.isInf && item.personne.includes("הוא")
+      ? conjugateFrLabel(item.verb.fr, item.tense)
+      : null;
   const q = el("div", "quiz-question");
   q.innerHTML = `
     <div class="conj-badges">
       <span class="badge badge-tense">${item.tense}</span>
-      ${item.isInf ? "" : `<span class="badge">${item.personne}</span>`}
+      ${item.isInf || phrase ? "" : `<span class="badge">${item.personne}</span>`}
       ${item.verb.binyan ? `<span class="badge">${item.verb.binyan}</span>` : ""}
     </div>
-    <div class="fr-word">${item.verb.fr}</div>
+    <div class="fr-word">${phrase || item.verb.fr}</div>
     ${hide ? "" : `<div class="translit"><span class="he">${item.verb.inf}</span> · ${item.verb.translit}</div>`}`;
   return q;
 }
