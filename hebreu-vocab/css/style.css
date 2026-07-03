@@ -494,6 +494,16 @@ body {
 .word-row.struggling .level-dots span.on { background: var(--bad); }
 
 .reset-zone { margin-top: 1.5rem; text-align: center; }
+.backup-text {
+  width: 100%;
+  min-height: 110px;
+  font: 0.78rem/1.4 monospace;
+  padding: 0.6rem;
+  border: 2px solid #e3ded4;
+  border-radius: var(--radius);
+  background: var(--card);
+  resize: vertical;
+}
 
 /* ---------- Affichage compact sur téléphone ----------
    Objectif : le QCM (surtout en conjugaison) tient à l'écran

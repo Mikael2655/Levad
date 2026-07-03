@@ -1240,6 +1240,79 @@ function renderProgress() {
     screen.appendChild(more);
   }
 
+  /* --- Sauvegarde / restauration de la progression ---
+     Utile si le navigateur perd sa mémoire (navigation privée…)
+     ou pour transférer sa progression sur un autre appareil. */
+  const backupZone = el("div", "reset-zone");
+  const backupRow = el("div", "flash-buttons");
+  const saveBtn = el("button", "btn btn-neutral", "💾 Sauvegarder ma progression");
+  const restoreBtn = el("button", "btn btn-neutral", "📥 Restaurer");
+  backupRow.appendChild(saveBtn);
+  backupRow.appendChild(restoreBtn);
+  backupZone.appendChild(backupRow);
+  const backupArea = el("div", "");
+  backupZone.appendChild(backupArea);
+  screen.appendChild(backupZone);
+
+  function showBackupText(data) {
+    backupArea.innerHTML = "";
+    backupArea.appendChild(
+      el("p", "hint", "Copiez ce code et gardez-le (dans vos Notes par exemple) :")
+    );
+    const ta = el("textarea", "backup-text");
+    ta.value = data;
+    ta.readOnly = true;
+    ta.addEventListener("focus", () => ta.select());
+    backupArea.appendChild(ta);
+  }
+
+  saveBtn.addEventListener("click", () => {
+    const data = JSON.stringify({
+      app: "hebreu-vocab",
+      profil: activeProfile,
+      date: new Date().toISOString().slice(0, 10),
+      progress,
+    });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(data)
+        .then(() => {
+          backupArea.innerHTML = "";
+          backupArea.appendChild(
+            el("p", "feedback good", "✔ Progression copiée ! Collez-la dans vos Notes pour la garder en lieu sûr.")
+          );
+        })
+        .catch(() => showBackupText(data));
+    } else {
+      showBackupText(data);
+    }
+  });
+
+  restoreBtn.addEventListener("click", () => {
+    backupArea.innerHTML = "";
+    backupArea.appendChild(el("p", "hint", "Collez ici le code sauvegardé, puis validez :"));
+    const ta = el("textarea", "backup-text");
+    ta.placeholder = '{"app":"hebreu-vocab", …}';
+    backupArea.appendChild(ta);
+    const ok = el("button", "btn btn-primary", "Restaurer cette sauvegarde");
+    ok.style.marginTop = "0.5rem";
+    ok.addEventListener("click", () => {
+      try {
+        const parsed = JSON.parse(ta.value.trim());
+        if (!parsed || parsed.app !== "hebreu-vocab" || typeof parsed.progress !== "object") {
+          throw new Error("format");
+        }
+        if (!confirm(`Remplacer la progression de « ${activeProfile} » par cette sauvegarde${parsed.date ? " du " + parsed.date : ""} ?`)) return;
+        progress = parsed.progress;
+        saveProgress();
+        render();
+      } catch {
+        backupArea.appendChild(el("p", "feedback bad", "✘ Ce code n'est pas une sauvegarde valide — copiez-le en entier, sans le modifier."));
+      }
+    });
+    backupArea.appendChild(ok);
+  });
+
   const resetZone = el("div", "reset-zone");
   const resetBtn = el("button", "btn btn-neutral", "🗑 Remettre ma progression à zéro");
   resetBtn.addEventListener("click", () => {
