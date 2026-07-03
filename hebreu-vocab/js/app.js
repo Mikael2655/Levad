@@ -171,7 +171,7 @@ const state = {
   currentWord: null,
   reverse: false, // sens de la question : false = hébreu→français, true = français→hébreu
   session: { ok: 0, ko: 0 }, // score de la session en cours
-  conj: { mode: "qcm", tense: "Tous", verb: 0, current: null }, // onglet Conjugaison
+  conj: { mode: "qcm", tense: "Tous", scope: "Tous", verb: 0, current: null }, // onglet Conjugaison
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
 };
 
@@ -191,6 +191,15 @@ if (typeof VERBES !== "undefined") {
     );
   });
 }
+
+/* Les derniers éléments des fichiers (= le bas de votre tableau Excel)
+   forment la catégorie « Nouvel ajout » : elle suit automatiquement
+   les derniers mots et verbes ajoutés, sans rien à maintenir. */
+const NEW_COUNT = 25;
+VOCAB.slice(-NEW_COUNT).forEach((w) => {
+  if (w.cat === "Général") w.cat = "🆕 Nouvel ajout";
+});
+const NEW_VERBS = new Set(typeof VERBES !== "undefined" ? VERBES.slice(-NEW_COUNT) : []);
 
 /* On "déplie" les verbes (js/verbes.js) en une liste plate de formes
    conjuguées : chaque forme devient un exercice avec sa propre clé
@@ -694,8 +703,10 @@ function renderWrite() {
 /* ----- Conjugaison ----- */
 
 function conjPool() {
-  if (state.conj.tense === "Tous") return CONJ_ITEMS;
-  return CONJ_ITEMS.filter((c) => c.tense === state.conj.tense);
+  let pool = CONJ_ITEMS;
+  if (state.conj.tense !== "Tous") pool = pool.filter((c) => c.tense === state.conj.tense);
+  if (state.conj.scope === "Nouveaux") pool = pool.filter((c) => NEW_VERBS.has(c.verb));
+  return pool;
 }
 
 function renderConj() {
@@ -726,7 +737,7 @@ function renderConj() {
   });
   screen.appendChild(seg);
 
-  // Filtre par temps (pour les exercices)
+  // Filtres par temps et par ancienneté (pour les exercices)
   if (state.conj.mode !== "tables") {
     const filter = el("div", "conj-filter");
     filter.appendChild(el("span", "hint", "Temps : "));
@@ -743,6 +754,22 @@ function renderConj() {
       render();
     });
     filter.appendChild(sel);
+
+    filter.appendChild(el("span", "hint", " Verbes : "));
+    const scopeSel = el("select", "conj-select");
+    [["Tous", "Tous"], ["Nouveaux", "🆕 Nouveaux ajouts"]].forEach(([value, text]) => {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = text;
+      if (value === state.conj.scope) opt.selected = true;
+      scopeSel.appendChild(opt);
+    });
+    scopeSel.addEventListener("change", () => {
+      state.conj.scope = scopeSel.value;
+      state.conj.current = null;
+      render();
+    });
+    filter.appendChild(scopeSel);
     screen.appendChild(filter);
   }
 
