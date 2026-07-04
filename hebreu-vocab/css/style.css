@@ -534,6 +534,10 @@ body {
   .topbar { padding: 0.5rem 0.8rem; }
   .tab { padding: 0.5rem 0.7rem; font-size: 0.9rem; }
   .footer { display: none; }
+  /* L'onglet actif fait office de titre, et l'astuce est dans le champ :
+     on gagne la place nécessaire quand le clavier est ouvert */
+  .view-title:not(.home-title) { display: none; }
+  .write-hint { display: none; }
 }
 
 /* ---------- Pied de page ---------- */

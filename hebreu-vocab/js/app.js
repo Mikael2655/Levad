@@ -442,7 +442,7 @@ function renderHome() {
   }).length;
   const seen = VOCAB.filter((w) => progress[w.he] && progress[w.he].seen > 0).length;
 
-  screen.appendChild(el("h2", "view-title", `שלום ${activeProfile} ! Prêt(e) à réviser ?`));
+  screen.appendChild(el("h2", "view-title home-title", `שלום ${activeProfile} ! Prêt(e) à réviser ?`));
 
   const banner = el("div", "stats-banner");
   banner.innerHTML = `
@@ -649,7 +649,7 @@ function renderWrite() {
 
   if (reverse) {
     screen.appendChild(
-      el("p", "hint", "Tapez le mot en hébreu ou en prononciation (ex. <em>shalom</em>).")
+      el("p", "hint write-hint", "Tapez le mot en hébreu ou en prononciation (ex. <em>shalom</em>).")
     );
   }
 
@@ -663,6 +663,10 @@ function renderWrite() {
   form.appendChild(input);
   form.appendChild(submit);
   screen.appendChild(form);
+  // Quand le clavier s'ouvre, on garde l'énoncé visible au-dessus
+  input.addEventListener("focus", () => {
+    setTimeout(() => question.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+  });
   input.focus();
 
   let answered = false;
@@ -1102,21 +1106,26 @@ function renderConjWrite() {
   const item = state.conj.current;
 
   screen.appendChild(sessionScoreBar());
-  screen.appendChild(conjQuestionBox(item));
+  const question = conjQuestionBox(item);
+  screen.appendChild(question);
   screen.appendChild(
-    el("p", "hint", "Tapez la forme demandée, en translittération (ex. <em>katavti</em>) ou en hébreu.")
+    el("p", "hint write-hint", "Tapez la forme demandée, en translittération (ex. <em>katavti</em>) ou en hébreu.")
   );
 
   const form = el("form", "write-form");
   const input = el("input", "write-input");
   input.type = "text";
-  input.placeholder = "Forme conjuguée…";
+  input.placeholder = "En hébreu ou en prononciation…";
   input.autocapitalize = "off";
   input.autocomplete = "off";
   const submit = el("button", "btn btn-primary", "Valider");
   form.appendChild(input);
   form.appendChild(submit);
   screen.appendChild(form);
+  // Quand le clavier s'ouvre, on garde l'énoncé visible au-dessus
+  input.addEventListener("focus", () => {
+    setTimeout(() => question.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+  });
   input.focus();
 
   let answered = false;
