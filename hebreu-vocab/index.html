@@ -50,5 +50,11 @@
   <script src="js/vocab.js"></script>
   <script src="js/verbes.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    // Copie hors-ligne de l'app (service worker) — voir sw.js
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+  </script>
 </body>
 </html>
