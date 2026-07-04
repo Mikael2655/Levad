@@ -407,6 +407,29 @@ body {
 .option-he .he { font-size: 1.5rem; font-weight: 700; }
 .option-he { text-align: center; }
 
+.verb-search { margin-bottom: 0.8rem; }
+.verb-search .write-input { width: 100%; }
+.verb-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+.verb-result {
+  font: inherit;
+  font-size: 0.95rem;
+  text-align: left;
+  padding: 0.55rem 0.8rem;
+  background: var(--card);
+  border: 2px solid #e3ded4;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.verb-result:hover { border-color: var(--accent); }
+.verb-result .he { font-size: 1.1rem; }
+
 .conj-table-block {
   background: var(--card);
   border-radius: var(--radius);

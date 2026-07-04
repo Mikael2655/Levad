@@ -959,10 +959,63 @@ function conjQuestionBox(item, hideInf) {
 
 /* --- Mode tableaux : consulter la conjugaison complète d'un verbe --- */
 function renderConjTables() {
+  // Pour comparer sans accents ni majuscules ("écrire" ↔ "ecrire")
+  const fold = (s) => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  // Les verbes triés par ordre alphabétique français
+  const sorted = VERBES.map((_, i) => i).sort((a, b) =>
+    VERBES[a].fr.localeCompare(VERBES[b].fr, "fr")
+  );
+
+  // Recherche intelligente : tape "re" → tous les verbes contenant
+  // "re" (début, milieu ou fin), dans le français, la prononciation
+  // ou l'hébreu
+  const search = el("div", "verb-search");
+  const input = el("input", "write-input");
+  input.type = "search";
+  input.placeholder = "🔍 Chercher un verbe…";
+  input.autocapitalize = "off";
+  input.autocomplete = "off";
+  search.appendChild(input);
+  const results = el("div", "verb-results");
+  search.appendChild(results);
+  screen.appendChild(search);
+
+  input.addEventListener("input", () => {
+    const raw = input.value.trim();
+    const q = fold(raw);
+    results.innerHTML = "";
+    if (!q) return;
+    const matches = sorted.filter((i) => {
+      const v = VERBES[i];
+      return fold(v.fr).includes(q) || fold(v.translit).includes(q) || v.inf.includes(raw);
+    });
+    // Pertinence : ceux qui COMMENCENT par la recherche d'abord,
+    // puis les autres — chaque groupe en ordre alphabétique
+    matches.sort((a, b) => {
+      const pa = fold(VERBES[a].fr).startsWith(q) ? 0 : 1;
+      const pb = fold(VERBES[b].fr).startsWith(q) ? 0 : 1;
+      return pa - pb;
+    });
+    matches.forEach((i) => {
+      const v = VERBES[i];
+      const btn = el("button", "verb-result", `<strong>${v.fr}</strong> — <span class="he">${v.inf}</span> · ${v.translit}`);
+      btn.type = "button";
+      btn.addEventListener("click", () => {
+        state.conj.verb = i;
+        render();
+      });
+      results.appendChild(btn);
+    });
+    if (matches.length === 0) {
+      results.appendChild(el("p", "hint", "Aucun verbe trouvé."));
+    }
+  });
+
   const picker = el("div", "conj-filter");
   picker.appendChild(el("span", "hint", "Verbe : "));
   const sel = el("select", "conj-select");
-  VERBES.forEach((v, i) => {
+  sorted.forEach((i) => {
+    const v = VERBES[i];
     const opt = document.createElement("option");
     opt.value = i;
     opt.textContent = `${v.fr} — ${v.inf} (${v.translit})`;
