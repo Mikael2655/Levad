@@ -1372,6 +1372,12 @@ function renderEmpty() {
    5. INITIALISATION (onglets + filtre de catégories)
    ------------------------------------------------------------ */
 
+/* Demande au navigateur de protéger notre mémoire (progression,
+   profils) contre le nettoyage automatique du système. */
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist().catch(() => {});
+}
+
 document.getElementById("tabs").addEventListener("click", (e) => {
   const tab = e.target.closest(".tab");
   if (tab) switchView(tab.dataset.view);
