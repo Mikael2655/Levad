@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 export default async function PronosticsHubPage() {
   const competitions = await prisma.competition.findMany({
     orderBy: { createdAt: 'desc' },
