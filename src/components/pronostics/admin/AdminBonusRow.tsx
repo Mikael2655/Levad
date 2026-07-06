@@ -12,7 +12,7 @@ interface BonusQuestion {
   correctAnswer: string | null
 }
 
-export function AdminBonusRow({ question }: { question: BonusQuestion }) {
+export function AdminBonusRow({ competitionId, question }: { competitionId: number; question: BonusQuestion }) {
   const router = useRouter()
   const [correctAnswer, setCorrectAnswer] = useState(question.correctAnswer ?? '')
   const [loading, setLoading] = useState(false)
@@ -24,7 +24,7 @@ export function AdminBonusRow({ question }: { question: BonusQuestion }) {
     setError(null)
     setLoading(true)
 
-    const res = await fetch(`/api/pronostics/bonus-questions/${question.id}`, {
+    const res = await fetch(`/api/pronostics/${competitionId}/bonus-questions/${question.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ correctAnswer }),
@@ -44,7 +44,7 @@ export function AdminBonusRow({ question }: { question: BonusQuestion }) {
   async function handleDelete() {
     if (!confirm('Supprimer cette question bonus ?')) return
     setLoading(true)
-    await fetch(`/api/pronostics/bonus-questions/${question.id}`, { method: 'DELETE' })
+    await fetch(`/api/pronostics/${competitionId}/bonus-questions/${question.id}`, { method: 'DELETE' })
     setLoading(false)
     router.refresh()
   }
@@ -54,7 +54,9 @@ export function AdminBonusRow({ question }: { question: BonusQuestion }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="font-semibold">{question.question}</div>
-          <div className="text-xs text-pitch-400">{question.points} pts · {question.type === 'CHOICE' ? 'Choix multiple' : 'Texte libre'}</div>
+          <div className="text-xs text-pitch-400">
+            {question.points} pts · {question.type === 'CHOICE' ? 'Choix multiple' : 'Texte libre'}
+          </div>
         </div>
         <button onClick={handleDelete} disabled={loading} className="text-red-300 hover:text-red-200 text-sm shrink-0">
           Supprimer

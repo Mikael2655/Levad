@@ -1,18 +1,17 @@
 import { prisma } from '@/lib/db'
 
-export const MAX_PLAYERS = 300
-
-export async function getScoringRule() {
-  const existing = await prisma.scoringRule.findFirst()
-  if (existing) return existing
-  return prisma.scoringRule.create({ data: {} })
+interface ScoreLike {
+  homeScore: number
+  awayScore: number
 }
 
-export function computeMatchPoints(
-  pred: { homeScore: number; awayScore: number },
-  actual: { homeScore: number; awayScore: number },
-  rule: { pointsExactScore: number; pointsGoalDifference: number; pointsCorrectOutcome: number }
-) {
+interface PhaseRule {
+  pointsExactScore: number
+  pointsGoalDifference: number
+  pointsCorrectOutcome: number
+}
+
+export function computeMatchPoints(pred: ScoreLike, actual: ScoreLike, rule: PhaseRule) {
   if (pred.homeScore === actual.homeScore && pred.awayScore === actual.awayScore) {
     return rule.pointsExactScore
   }
@@ -20,6 +19,8 @@ export function computeMatchPoints(
   const predDiff = pred.homeScore - pred.awayScore
   const actualDiff = actual.homeScore - actual.awayScore
 
+  // Un nul (diff 0) mal deviné (mauvais score exact) retombe ici, jamais
+  // dans la case "bonne tendance" : diff prédite === diff réelle === 0.
   if (predDiff === actualDiff) {
     return rule.pointsGoalDifference
   }
@@ -32,27 +33,44 @@ export function computeMatchPoints(
   return 0
 }
 
-export async function recomputeMatchPredictions(matchId: number) {
-  const match = await prisma.match.findUnique({ where: { id: matchId } })
-  if (!match || match.homeScore === null || match.awayScore === null) return
+interface MatchWithScores {
+  homeScoreFullTime: number | null
+  awayScoreFullTime: number | null
+  homeScoreExtraTime: number | null
+  awayScoreExtraTime: number | null
+}
 
-  const rule = await getScoringRule()
+/** Score retenu pour le calcul des points : prolongation si elle a été jouée, sinon 90 min. */
+export function getEffectiveScore(match: MatchWithScores): ScoreLike | null {
+  if (match.homeScoreExtraTime !== null && match.awayScoreExtraTime !== null) {
+    return { homeScore: match.homeScoreExtraTime, awayScore: match.awayScoreExtraTime }
+  }
+  if (match.homeScoreFullTime !== null && match.awayScoreFullTime !== null) {
+    return { homeScore: match.homeScoreFullTime, awayScore: match.awayScoreFullTime }
+  }
+  return null
+}
+
+export async function recomputeMatchPredictions(matchId: number) {
+  const match = await prisma.match.findUnique({ where: { id: matchId }, include: { phase: true } })
+  if (!match || match.status !== 'FINISHED') return
+
+  const actual = getEffectiveScore(match)
+  if (!actual) return
+
   const predictions = await prisma.prediction.findMany({ where: { matchId } })
 
   await Promise.all(
     predictions.map((pred) => {
-      const points = computeMatchPoints(
-        { homeScore: pred.homeScore, awayScore: pred.awayScore },
-        { homeScore: match.homeScore!, awayScore: match.awayScore! },
-        rule
-      )
+      const points = computeMatchPoints({ homeScore: pred.homeScore, awayScore: pred.awayScore }, actual, match.phase)
       return prisma.prediction.update({ where: { id: pred.id }, data: { points } })
     })
   )
 }
 
-export async function recomputeAllFinishedMatches() {
-  const finishedMatches = await prisma.match.findMany({ where: { status: 'FINISHED' } })
+/** À appeler quand le barème d'une phase change : recalcule tous ses matchs déjà terminés. */
+export async function recomputePhaseMatches(phaseId: number) {
+  const finishedMatches = await prisma.match.findMany({ where: { phaseId, status: 'FINISHED' } })
   for (const match of finishedMatches) {
     await recomputeMatchPredictions(match.id)
   }
@@ -74,8 +92,18 @@ export async function recomputeBonusAnswers(bonusQuestionId: number) {
   )
 }
 
-export async function getLeaderboard() {
+export interface LeaderboardRow {
+  id: number
+  name: string
+  matchPoints: number
+  bonusPoints: number
+  totalPoints: number
+  rank: number
+}
+
+export async function getLeaderboard(competitionId: number, playerIds?: number[]): Promise<LeaderboardRow[]> {
   const players = await prisma.player.findMany({
+    where: { competitionId, ...(playerIds ? { id: { in: playerIds } } : {}) },
     include: {
       predictions: { select: { points: true } },
       bonusAnswers: { select: { points: true } },

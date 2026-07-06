@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export function AdminBonusForm() {
+export function AdminBonusForm({ competitionId }: { competitionId: number }) {
   const router = useRouter()
   const [question, setQuestion] = useState('')
   const [type, setType] = useState<'TEXT' | 'CHOICE'>('TEXT')
@@ -20,7 +20,7 @@ export function AdminBonusForm() {
 
     const options = type === 'CHOICE' ? optionsText.split('\n').map((o) => o.trim()).filter(Boolean) : undefined
 
-    const res = await fetch('/api/pronostics/bonus-questions', {
+    const res = await fetch(`/api/pronostics/${competitionId}/bonus-questions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question, type, options, points, deadline: deadline || undefined }),

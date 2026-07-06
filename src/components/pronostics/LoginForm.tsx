@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export function LoginForm() {
+export function LoginForm({ competitionId }: { competitionId: number }) {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -15,7 +15,7 @@ export function LoginForm() {
     setError(null)
     setLoading(true)
 
-    const res = await fetch('/api/pronostics/auth/login', {
+    const res = await fetch(`/api/pronostics/${competitionId}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -28,7 +28,7 @@ export function LoginForm() {
       return
     }
 
-    router.push(data.role === 'ADMIN' ? '/pronostics/admin' : '/pronostics/dashboard')
+    router.push(data.role === 'ADMIN' ? `/pronostics/${competitionId}/admin` : `/pronostics/${competitionId}/dashboard`)
     router.refresh()
   }
 

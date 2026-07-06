@@ -3,8 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export function AdminMatchForm() {
+interface Phase {
+  id: number
+  name: string
+}
+
+export function AdminMatchForm({ competitionId, phases }: { competitionId: number; phases: Phase[] }) {
   const router = useRouter()
+  const [phaseId, setPhaseId] = useState<number | ''>(phases[0]?.id ?? '')
   const [homeTeam, setHomeTeam] = useState('')
   const [awayTeam, setAwayTeam] = useState('')
   const [kickoff, setKickoff] = useState('')
@@ -16,10 +22,10 @@ export function AdminMatchForm() {
     setError(null)
     setLoading(true)
 
-    const res = await fetch('/api/pronostics/matches', {
+    const res = await fetch(`/api/pronostics/${competitionId}/matches`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ homeTeam, awayTeam, kickoff }),
+      body: JSON.stringify({ homeTeam, awayTeam, kickoff, phaseId: Number(phaseId) }),
     })
 
     setLoading(false)
@@ -37,7 +43,21 @@ export function AdminMatchForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-pitch-900 border border-pitch-800 rounded-xl p-4 flex flex-col sm:flex-row gap-3 items-end">
+    <form onSubmit={handleSubmit} className="bg-pitch-900 border border-pitch-800 rounded-xl p-4 flex flex-col sm:flex-row gap-3 items-end flex-wrap">
+      <div className="w-full sm:w-40">
+        <label className="block text-xs text-pitch-400 mb-1">Phase</label>
+        <select
+          value={phaseId}
+          onChange={(e) => setPhaseId(e.target.value ? Number(e.target.value) : '')}
+          className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2"
+        >
+          {phases.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="flex-1 w-full">
         <label className="block text-xs text-pitch-400 mb-1">Équipe à domicile</label>
         <input
@@ -68,7 +88,7 @@ export function AdminMatchForm() {
       </div>
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !phaseId}
         className="bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-pitch-950 font-bold px-4 py-2 rounded-lg transition w-full sm:w-auto"
       >
         {loading ? '...' : 'Créer le match'}

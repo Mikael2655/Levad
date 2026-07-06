@@ -32,27 +32,75 @@ model Lead {
 // Pronostics de football
 // ---------------------------------------------------------------------------
 
-model Player {
-  id           Int      @id @default(autoincrement())
-  createdAt    DateTime @default(now())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         String   @default("PLAYER") // "PLAYER" | "ADMIN"
+model Competition {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  name      String
+  joinCode  String   @unique
 
+  phases         Phase[]
+  players        Player[]
+  matches        Match[]
+  bonusQuestions BonusQuestion[]
+}
+
+// Une phase porte son propre barème de points et sa propre règle de
+// prolongation (ex: "Poules", "1/8 de finale", "Finale").
+model Phase {
+  id            Int     @id @default(autoincrement())
+  competitionId Int
+  name          String
+  order         Int     @default(0)
+
+  pointsExactScore     Int     @default(5)
+  pointsGoalDifference Int     @default(3)
+  pointsCorrectOutcome Int     @default(1)
+  allowsExtraTime      Boolean @default(false)
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  matches     Match[]
+}
+
+// Un compte joueur appartient à une seule compétition (inscription par
+// code d'accès propre à chaque compétition).
+model Player {
+  id            Int      @id @default(autoincrement())
+  competitionId Int
+  createdAt     DateTime @default(now())
+  name          String
+  email         String
+  passwordHash  String
+  role          String   @default("PLAYER") // "PLAYER" | "ADMIN"
+
+  competition  Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
   predictions  Prediction[]
   bonusAnswers BonusAnswer[]
+
+  favoritesGiven Favorite[] @relation("FavoriteOwner")
+  favoritedBy    Favorite[] @relation("FavoriteTarget")
+
+  @@unique([competitionId, email])
 }
 
 model Match {
-  id          Int      @id @default(autoincrement())
-  homeTeam    String
-  awayTeam    String
-  kickoff     DateTime
-  homeScore   Int?
-  awayScore   Int?
-  status      String   @default("SCHEDULED") // "SCHEDULED" | "FINISHED"
+  id            Int      @id @default(autoincrement())
+  competitionId Int
+  phaseId       Int
+  homeTeam      String
+  awayTeam      String
+  kickoff       DateTime
+  status        String   @default("SCHEDULED") // "SCHEDULED" | "LIVE" | "FINISHED"
 
+  // Score au terme des 90 minutes (ou du match si pas de prolongation).
+  homeScoreFullTime Int?
+  awayScoreFullTime Int?
+  // Score au terme des 120 minutes, uniquement si la phase autorise les
+  // prolongations et que ce match précis y est allé.
+  homeScoreExtraTime Int?
+  awayScoreExtraTime Int?
+
+  competition Competition  @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  phase       Phase        @relation(fields: [phaseId], references: [id], onDelete: Cascade)
   predictions Prediction[]
 }
 
@@ -72,6 +120,7 @@ model Prediction {
 
 model BonusQuestion {
   id            Int       @id @default(autoincrement())
+  competitionId Int
   createdAt     DateTime  @default(now())
   question      String
   type          String    @default("TEXT") // "TEXT" | "CHOICE"
@@ -80,7 +129,8 @@ model BonusQuestion {
   deadline      DateTime?
   correctAnswer String?
 
-  answers BonusAnswer[]
+  competition Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  answers     BonusAnswer[]
 }
 
 model BonusAnswer {
@@ -96,9 +146,16 @@ model BonusAnswer {
   @@unique([playerId, bonusQuestionId])
 }
 
-model ScoringRule {
-  id                   Int @id @default(autoincrement())
-  pointsExactScore     Int @default(5)
-  pointsGoalDifference Int @default(3)
-  pointsCorrectOutcome Int @default(1)
+// Un joueur marque d'autres joueurs de sa compétition comme favoris pour
+// se comparer à eux dans un classement filtré.
+model Favorite {
+  id              Int      @id @default(autoincrement())
+  playerId        Int
+  favoritePlayerId Int
+  createdAt       DateTime @default(now())
+
+  player         Player @relation("FavoriteOwner", fields: [playerId], references: [id], onDelete: Cascade)
+  favoritePlayer Player @relation("FavoriteTarget", fields: [favoritePlayerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, favoritePlayerId])
 }

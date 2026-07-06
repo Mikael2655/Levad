@@ -10,6 +10,7 @@ export type Role = 'PLAYER' | 'ADMIN'
 
 export interface SessionPayload {
   playerId: number
+  competitionId: number
   role: Role
 }
 
@@ -32,8 +33,14 @@ export async function createSessionToken(payload: SessionPayload) {
 export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, secret)
-    if (typeof payload.playerId !== 'number' || typeof payload.role !== 'string') return null
-    return { playerId: payload.playerId, role: payload.role as Role }
+    if (
+      typeof payload.playerId !== 'number' ||
+      typeof payload.competitionId !== 'number' ||
+      typeof payload.role !== 'string'
+    ) {
+      return null
+    }
+    return { playerId: payload.playerId, competitionId: payload.competitionId, role: payload.role as Role }
   } catch {
     return null
   }
@@ -57,6 +64,13 @@ export async function getSession(): Promise<SessionPayload | null> {
   const token = cookies().get(COOKIE_NAME)?.value
   if (!token) return null
   return verifySessionToken(token)
+}
+
+/** Session valide ET rattachée à cette compétition précise. */
+export async function getCompetitionSession(competitionId: number): Promise<SessionPayload | null> {
+  const session = await getSession()
+  if (!session || session.competitionId !== competitionId) return null
+  return session
 }
 
 export { COOKIE_NAME }

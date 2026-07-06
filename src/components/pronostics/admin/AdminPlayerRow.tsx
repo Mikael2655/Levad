@@ -10,7 +10,15 @@ interface Player {
   role: string
 }
 
-export function AdminPlayerRow({ player, isSelf }: { player: Player; isSelf: boolean }) {
+export function AdminPlayerRow({
+  competitionId,
+  player,
+  isSelf,
+}: {
+  competitionId: number
+  player: Player
+  isSelf: boolean
+}) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -20,7 +28,7 @@ export function AdminPlayerRow({ player, isSelf }: { player: Player; isSelf: boo
     setLoading(true)
     const newRole = player.role === 'ADMIN' ? 'PLAYER' : 'ADMIN'
 
-    const res = await fetch(`/api/pronostics/players/${player.id}`, {
+    const res = await fetch(`/api/pronostics/${competitionId}/players/${player.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: newRole }),
@@ -40,7 +48,7 @@ export function AdminPlayerRow({ player, isSelf }: { player: Player; isSelf: boo
   async function handleDelete() {
     if (!confirm(`Supprimer le joueur ${player.name} ?`)) return
     setLoading(true)
-    const res = await fetch(`/api/pronostics/players/${player.id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/pronostics/${competitionId}/players/${player.id}`, { method: 'DELETE' })
     setLoading(false)
 
     if (!res.ok) {

@@ -19,7 +19,15 @@ interface BonusAnswer {
   points: number | null
 }
 
-export function BonusQuestionCard({ question, answer }: { question: BonusQuestion; answer?: BonusAnswer }) {
+export function BonusQuestionCard({
+  competitionId,
+  question,
+  answer,
+}: {
+  competitionId: number
+  question: BonusQuestion
+  answer?: BonusAnswer
+}) {
   const router = useRouter()
   const [value, setValue] = useState(answer?.answer ?? '')
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +42,7 @@ export function BonusQuestionCard({ question, answer }: { question: BonusQuestio
     setSaved(false)
     setLoading(true)
 
-    const res = await fetch('/api/pronostics/bonus-answers', {
+    const res = await fetch(`/api/pronostics/${competitionId}/bonus-answers`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bonusQuestionId: question.id, answer: value }),

@@ -6,21 +6,33 @@ const secretValue = process.env.AUTH_SECRET || 'dev-only-insecure-secret-change-
 const secret = new TextEncoder().encode(secretValue)
 
 export const config = {
-  matcher: ['/pronostics/dashboard/:path*', '/pronostics/classement/:path*', '/pronostics/admin/:path*'],
+  matcher: [
+    '/pronostics/:competitionId/dashboard/:path*',
+    '/pronostics/:competitionId/resultats/:path*',
+    '/pronostics/:competitionId/classement/:path*',
+    '/pronostics/:competitionId/admin/:path*',
+  ],
 }
 
 export async function middleware(request: NextRequest) {
-  const token = request.cookies.get(COOKIE_NAME)?.value
-  const loginUrl = new URL('/pronostics/login', request.url)
+  const segments = request.nextUrl.pathname.split('/').filter(Boolean) // ["pronostics", "<id>", "dashboard", ...]
+  const competitionId = Number(segments[1])
+  const loginUrl = new URL(`/pronostics/${segments[1]}/login`, request.url)
 
+  const token = request.cookies.get(COOKIE_NAME)?.value
   if (!token) return NextResponse.redirect(loginUrl)
 
   try {
     const { payload } = await jwtVerify(token, secret)
     const role = payload.role as string
+    const sessionCompetitionId = payload.competitionId as number
 
-    if (request.nextUrl.pathname.startsWith('/pronostics/admin') && role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/pronostics/dashboard', request.url))
+    if (sessionCompetitionId !== competitionId) {
+      return NextResponse.redirect(loginUrl)
+    }
+
+    if (segments[2] === 'admin' && role !== 'ADMIN') {
+      return NextResponse.redirect(new URL(`/pronostics/${competitionId}/dashboard`, request.url))
     }
 
     return NextResponse.next()
