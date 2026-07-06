@@ -1,0 +1,39 @@
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import { getSession } from '@/lib/auth'
+
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Non connecté.' }, { status: 401 })
+
+  const predictions = await prisma.prediction.findMany({ where: { playerId: session.playerId } })
+  return NextResponse.json(predictions)
+}
+
+export async function POST(request: Request) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Non connecté.' }, { status: 401 })
+
+  const body = await request.json().catch(() => null)
+  const matchId = Number(body?.matchId)
+  const homeScore = Number(body?.homeScore)
+  const awayScore = Number(body?.awayScore)
+
+  if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore) || homeScore < 0 || awayScore < 0) {
+    return NextResponse.json({ error: 'Scores invalides.' }, { status: 400 })
+  }
+
+  const match = await prisma.match.findUnique({ where: { id: matchId } })
+  if (!match) return NextResponse.json({ error: 'Match introuvable.' }, { status: 404 })
+  if (match.status === 'FINISHED' || new Date(match.kickoff) <= new Date()) {
+    return NextResponse.json({ error: 'Le pronostic pour ce match est clos.' }, { status: 403 })
+  }
+
+  const prediction = await prisma.prediction.upsert({
+    where: { playerId_matchId: { playerId: session.playerId, matchId } },
+    update: { homeScore, awayScore },
+    create: { playerId: session.playerId, matchId, homeScore, awayScore },
+  })
+
+  return NextResponse.json(prediction)
+}

@@ -43,6 +43,7 @@ export default function HomePage() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
             <a href="#services" className="hover:text-blue-200 transition">Nos solutions</a>
             <a href="#contact" className="hover:text-blue-200 transition">Contact</a>
+            <Link href="/pronostics" className="hover:text-blue-200 transition">Pronostics ⚽</Link>
             <Link href="/crm" className="bg-white text-brand-800 px-4 py-2 rounded-lg hover:bg-blue-50 transition font-semibold">
               Espace CRM
             </Link>

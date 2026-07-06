@@ -27,3 +27,78 @@ model Lead {
   notes      String?
   assignedTo String?
 }
+
+// ---------------------------------------------------------------------------
+// Pronostics de football
+// ---------------------------------------------------------------------------
+
+model Player {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("PLAYER") // "PLAYER" | "ADMIN"
+
+  predictions  Prediction[]
+  bonusAnswers BonusAnswer[]
+}
+
+model Match {
+  id          Int      @id @default(autoincrement())
+  homeTeam    String
+  awayTeam    String
+  kickoff     DateTime
+  homeScore   Int?
+  awayScore   Int?
+  status      String   @default("SCHEDULED") // "SCHEDULED" | "FINISHED"
+
+  predictions Prediction[]
+}
+
+model Prediction {
+  id        Int    @id @default(autoincrement())
+  playerId  Int
+  matchId   Int
+  homeScore Int
+  awayScore Int
+  points    Int?
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, matchId])
+}
+
+model BonusQuestion {
+  id            Int       @id @default(autoincrement())
+  createdAt     DateTime  @default(now())
+  question      String
+  type          String    @default("TEXT") // "TEXT" | "CHOICE"
+  options       String? // JSON array of strings, only for CHOICE
+  points        Int       @default(3)
+  deadline      DateTime?
+  correctAnswer String?
+
+  answers BonusAnswer[]
+}
+
+model BonusAnswer {
+  id              Int    @id @default(autoincrement())
+  playerId        Int
+  bonusQuestionId Int
+  answer          String
+  points          Int?
+
+  player        Player        @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  bonusQuestion BonusQuestion @relation(fields: [bonusQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, bonusQuestionId])
+}
+
+model ScoringRule {
+  id                   Int @id @default(autoincrement())
+  pointsExactScore     Int @default(5)
+  pointsGoalDifference Int @default(3)
+  pointsCorrectOutcome Int @default(1)
+}
