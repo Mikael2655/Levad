@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { getEffectiveScore } from '@/lib/scoring'
+import { LiveSyncPoller } from '@/components/pronostics/LiveSyncPoller'
 
 export default async function ResultatsPage({ params }: { params: { competitionId: string } }) {
   const competitionId = Number(params.competitionId)
@@ -22,6 +23,7 @@ export default async function ResultatsPage({ params }: { params: { competitionI
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 space-y-6">
+      <LiveSyncPoller competitionId={competitionId} />
       <h1 className="text-2xl font-bold">Résultats</h1>
       <p className="text-sm text-pitch-400">
         Les pronostics de tous les joueurs apparaissent ici une fois le coup d'envoi donné.

@@ -38,6 +38,11 @@ model Competition {
   name      String
   joinCode  String   @unique
 
+  // Code compétition football-data.org (ex. "WC", "CL") pour la synchronisation
+  // automatique du calendrier et des résultats. Null = synchro désactivée.
+  externalCode String?
+  lastSyncedAt DateTime?
+
   phases         Phase[]
   players        Player[]
   matches        Match[]
@@ -86,6 +91,7 @@ model Match {
   id            Int      @id @default(autoincrement())
   competitionId Int
   phaseId       Int
+  externalId    Int?     @unique // id du match côté football-data.org, si synchronisé
   homeTeam      String
   awayTeam      String
   kickoff       DateTime

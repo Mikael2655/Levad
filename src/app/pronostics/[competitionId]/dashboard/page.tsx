@@ -4,6 +4,7 @@ import { getCompetitionSession } from '@/lib/auth'
 import { getLeaderboard } from '@/lib/scoring'
 import { MatchPredictionCard } from '@/components/pronostics/MatchPredictionCard'
 import { BonusQuestionCard } from '@/components/pronostics/BonusQuestionCard'
+import { LiveSyncPoller } from '@/components/pronostics/LiveSyncPoller'
 
 export default async function DashboardPage({ params }: { params: { competitionId: string } }) {
   const competitionId = Number(params.competitionId)
@@ -32,6 +33,7 @@ export default async function DashboardPage({ params }: { params: { competitionI
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 space-y-10">
+      <LiveSyncPoller competitionId={competitionId} />
       <div className="grid sm:grid-cols-3 gap-4">
         <div className="bg-pitch-900 border border-pitch-800 rounded-xl p-4 text-center">
           <div className="text-xs text-pitch-400 uppercase tracking-wide">Ton total</div>

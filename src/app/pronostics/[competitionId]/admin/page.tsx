@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { MAX_PLAYERS_PER_COMPETITION } from '@/lib/competition'
+import { AdminSyncCard } from '@/components/pronostics/admin/AdminSyncCard'
 
 export default async function AdminHomePage({ params }: { params: { competitionId: string } }) {
   const competitionId = Number(params.competitionId)
@@ -35,6 +36,14 @@ export default async function AdminHomePage({ params }: { params: { competitionI
         <Link href={`${base}/joueurs`} className="text-sm text-gold-400 hover:underline">
           Gérer / régénérer →
         </Link>
+      </div>
+
+      <div className="mb-6">
+        <AdminSyncCard
+          competitionId={competitionId}
+          externalCode={competition.externalCode}
+          lastSyncedAt={competition.lastSyncedAt ? competition.lastSyncedAt.toISOString() : null}
+        />
       </div>
 
       {phaseCount === 0 && (
