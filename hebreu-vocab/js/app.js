@@ -195,7 +195,7 @@ if (typeof VERBES !== "undefined") {
 /* Les derniers éléments des fichiers (= le bas de votre tableau Excel)
    forment la catégorie « Nouvel ajout » : elle suit automatiquement
    les derniers mots et verbes ajoutés, sans rien à maintenir. */
-const NEW_COUNT = 25;
+const NEW_COUNT = 50;
 VOCAB.slice(-NEW_COUNT).forEach((w) => {
   if (w.cat === "Général") w.cat = "🆕 Nouvel ajout";
 });

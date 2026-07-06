@@ -8,7 +8,7 @@ name: Déployer l'app hébreu sur GitHub Pages
 
 on:
   push:
-    branches: [main, claude/hebrew-vocab-app-4h8kmn]
+    branches: [main]
     paths:
       - "hebreu-vocab/**"
       - ".github/workflows/deploy-hebreu-vocab.yml"
