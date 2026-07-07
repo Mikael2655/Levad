@@ -4,6 +4,10 @@ import { verifyPassword, createSessionToken, setSessionCookie } from '@/lib/auth
 
 export async function POST(request: Request, { params }: { params: { competitionId: string } }) {
   const competitionId = Number(params.competitionId)
+  if (!Number.isInteger(competitionId)) {
+    return NextResponse.json({ error: 'Compétition invalide.' }, { status: 400 })
+  }
+
   const body = await request.json().catch(() => null)
   const email = body?.email?.trim().toLowerCase()
   const password = body?.password

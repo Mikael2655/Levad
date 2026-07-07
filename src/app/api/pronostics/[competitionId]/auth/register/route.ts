@@ -5,6 +5,10 @@ import { MAX_PLAYERS_PER_COMPETITION } from '@/lib/competition'
 
 export async function POST(request: Request, { params }: { params: { competitionId: string } }) {
   const competitionId = Number(params.competitionId)
+  if (!Number.isInteger(competitionId)) {
+    return NextResponse.json({ error: 'Compétition invalide.' }, { status: 400 })
+  }
+
   const body = await request.json().catch(() => null)
   const name = body?.name?.trim()
   const email = body?.email?.trim().toLowerCase()

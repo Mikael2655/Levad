@@ -11,6 +11,8 @@ export default async function CompetitionLayout({
   params: { competitionId: string }
 }) {
   const competitionId = Number(params.competitionId)
+  if (!Number.isInteger(competitionId)) notFound()
+
   const competition = await prisma.competition.findUnique({ where: { id: competitionId } })
   if (!competition) notFound()
 
