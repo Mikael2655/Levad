@@ -18,10 +18,12 @@ export function AdminSyncCard({
   competitionId,
   externalCode,
   lastSyncedAt,
+  lastSyncError,
 }: {
   competitionId: number
   externalCode: string | null
   lastSyncedAt: string | null
+  lastSyncError: string | null
 }) {
   const router = useRouter()
   const [code, setCode] = useState(externalCode ?? '')
@@ -116,12 +118,18 @@ export function AdminSyncCard({
 
       {lastSyncedAt && (
         <p className="text-xs text-pitch-400">
-          Dernière synchro :{' '}
+          Dernière synchro réussie :{' '}
           {new Date(lastSyncedAt).toLocaleString('fr-FR', {
             dateStyle: 'medium',
             timeStyle: 'short',
             timeZone: 'Europe/Paris',
           })}
+        </p>
+      )}
+
+      {lastSyncError && (
+        <p className="text-xs text-red-700">
+          Dernière tentative en échec : {lastSyncError}
         </p>
       )}
     </div>

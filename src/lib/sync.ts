@@ -45,87 +45,105 @@ export async function syncCompetition(competitionId: number, options?: { force?:
 
   // Verrou atomique : une seule synchro peut « réclamer » la compétition dans
   // la fenêtre de throttle. updateMany est un UPDATE ... WHERE unique, donc deux
-  // requêtes concurrentes ne peuvent pas la réclamer toutes les deux.
+  // requêtes concurrentes ne peuvent pas la réclamer toutes les deux. On ne
+  // touche qu'à lastSyncAttemptAt ici : lastSyncedAt (affiché à l'admin) n'est
+  // mis à jour qu'en cas de succès, plus bas, pour ne pas laisser croire à une
+  // synchro réussie quand l'appel à football-data.org a échoué.
   if (!options?.force) {
     const threshold = new Date(Date.now() - THROTTLE_MS)
     const claimed = await prisma.competition.updateMany({
       where: {
         id: competitionId,
-        OR: [{ lastSyncedAt: null }, { lastSyncedAt: { lt: threshold } }],
+        OR: [{ lastSyncAttemptAt: null }, { lastSyncAttemptAt: { lt: threshold } }],
       },
-      data: { lastSyncedAt: new Date() },
+      data: { lastSyncAttemptAt: new Date() },
     })
     if (claimed.count === 0) {
       return { synced: false, reason: 'throttled' }
     }
   } else {
-    await prisma.competition.update({ where: { id: competitionId }, data: { lastSyncedAt: new Date() } })
+    await prisma.competition.update({ where: { id: competitionId }, data: { lastSyncAttemptAt: new Date() } })
   }
 
-  await dedupePhases(competitionId)
+  try {
+    await dedupePhases(competitionId)
 
-  const externalMatches = await fetchCompetitionMatches(competition.externalCode)
-  const phaseIdByName = new Map<string, number>()
+    const externalMatches = await fetchCompetitionMatches(competition.externalCode)
+    const phaseIdByName = new Map<string, number>()
 
-  async function resolvePhaseId(stage: string): Promise<number> {
-    const template = getPhaseTemplate(stage)
-    const cached = phaseIdByName.get(template.name)
-    if (cached !== undefined) return cached
+    async function resolvePhaseId(stage: string): Promise<number> {
+      const template = getPhaseTemplate(stage)
+      const cached = phaseIdByName.get(template.name)
+      if (cached !== undefined) return cached
 
-    const existing = await prisma.phase.findFirst({ where: { competitionId, name: template.name } })
-    const phase =
-      existing ??
-      (await prisma.phase.create({
-        data: {
-          competitionId,
-          name: template.name,
-          order: template.order,
-          allowsExtraTime: template.allowsExtraTime,
-        },
-      }))
+      const existing = await prisma.phase.findFirst({ where: { competitionId, name: template.name } })
+      const phase =
+        existing ??
+        (await prisma.phase.create({
+          data: {
+            competitionId,
+            name: template.name,
+            order: template.order,
+            allowsExtraTime: template.allowsExtraTime,
+          },
+        }))
 
-    phaseIdByName.set(template.name, phase.id)
-    return phase.id
-  }
-
-  for (const externalMatch of externalMatches) {
-    const mappedStatus = mapExternalStatus(externalMatch.status)
-    if (!mappedStatus) continue // match annulé : on l'ignore
-
-    const phaseId = await resolvePhaseId(externalMatch.stage)
-
-    const existingMatch = await prisma.match.findUnique({ where: { externalId: externalMatch.id } })
-    const wasFinished = existingMatch?.status === 'FINISHED'
-
-    const data = {
-      competitionId,
-      phaseId,
-      // Équipe pas encore connue (ex. 1/4 avant la fin des 1/8) : nom
-      // provisoire, remplacé automatiquement à une prochaine synchro.
-      homeTeam: externalMatch.homeTeam?.name ?? 'À déterminer',
-      awayTeam: externalMatch.awayTeam?.name ?? 'À déterminer',
-      homeCrest: externalMatch.homeTeam?.crest ?? null,
-      awayCrest: externalMatch.awayTeam?.crest ?? null,
-      kickoff: new Date(externalMatch.utcDate),
-      status: mappedStatus,
-      homeScoreFullTime: externalMatch.score.fullTime.home,
-      awayScoreFullTime: externalMatch.score.fullTime.away,
-      homeScoreExtraTime: externalMatch.score.extraTime?.home ?? null,
-      awayScoreExtraTime: externalMatch.score.extraTime?.away ?? null,
+      phaseIdByName.set(template.name, phase.id)
+      return phase.id
     }
 
-    const saved = await prisma.match.upsert({
-      where: { externalId: externalMatch.id },
-      update: data,
-      create: { ...data, externalId: externalMatch.id },
+    for (const externalMatch of externalMatches) {
+      const mappedStatus = mapExternalStatus(externalMatch.status)
+      if (!mappedStatus) continue // match annulé : on l'ignore
+
+      const phaseId = await resolvePhaseId(externalMatch.stage)
+
+      const existingMatch = await prisma.match.findUnique({ where: { externalId: externalMatch.id } })
+      const wasFinished = existingMatch?.status === 'FINISHED'
+
+      const data = {
+        competitionId,
+        phaseId,
+        // Équipe pas encore connue (ex. 1/4 avant la fin des 1/8) : nom
+        // provisoire, remplacé automatiquement à une prochaine synchro.
+        homeTeam: externalMatch.homeTeam?.name ?? 'À déterminer',
+        awayTeam: externalMatch.awayTeam?.name ?? 'À déterminer',
+        homeCrest: externalMatch.homeTeam?.crest ?? null,
+        awayCrest: externalMatch.awayTeam?.crest ?? null,
+        kickoff: new Date(externalMatch.utcDate),
+        status: mappedStatus,
+        homeScoreFullTime: externalMatch.score.fullTime.home,
+        awayScoreFullTime: externalMatch.score.fullTime.away,
+        homeScoreExtraTime: externalMatch.score.extraTime?.home ?? null,
+        awayScoreExtraTime: externalMatch.score.extraTime?.away ?? null,
+      }
+
+      const saved = await prisma.match.upsert({
+        where: { externalId: externalMatch.id },
+        update: data,
+        create: { ...data, externalId: externalMatch.id },
+      })
+
+      if (mappedStatus === 'FINISHED' && !wasFinished) {
+        await recomputeMatchPredictions(saved.id)
+      }
+    }
+
+    await prisma.competition.update({
+      where: { id: competitionId },
+      data: { lastSyncedAt: new Date(), lastSyncError: null },
     })
 
-    if (mappedStatus === 'FINISHED' && !wasFinished) {
-      await recomputeMatchPredictions(saved.id)
-    }
+    return { synced: true, matchCount: externalMatches.length }
+  } catch (err) {
+    // La tentative est marquée en échec (lastSyncAttemptAt déjà posé plus haut
+    // pour le throttle) mais lastSyncedAt n'avance pas : l'admin voit la vraie
+    // date de la dernière synchro réussie, et le message d'erreur explique pourquoi.
+    const message = err instanceof Error ? err.message : 'Erreur de synchronisation inconnue.'
+    await prisma.competition.update({
+      where: { id: competitionId },
+      data: { lastSyncError: message.slice(0, 300) },
+    })
+    throw err
   }
-
-  await prisma.competition.update({ where: { id: competitionId }, data: { lastSyncedAt: new Date() } })
-
-  return { synced: true, matchCount: externalMatches.length }
 }

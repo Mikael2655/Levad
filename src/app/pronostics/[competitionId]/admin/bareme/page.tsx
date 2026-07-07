@@ -33,6 +33,7 @@ export default async function AdminBaremePage({ params }: { params: { competitio
         competitionId={competitionId}
         externalCode={competition.externalCode}
         lastSyncedAt={competition.lastSyncedAt ? competition.lastSyncedAt.toISOString() : null}
+        lastSyncError={competition.lastSyncError}
       />
 
       <AdminRulesForm competitionId={competitionId} rulesText={competition.rulesText} />
