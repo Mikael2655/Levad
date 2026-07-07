@@ -1,9 +1,19 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { getSession } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
 export default async function PronosticsHubPage() {
+  const session = await getSession()
+  if (session) {
+    const player = await prisma.player.findUnique({ where: { id: session.playerId } })
+    if (player && player.competitionId === session.competitionId) {
+      redirect(`/pronostics/${session.competitionId}`)
+    }
+  }
+
   const competitions = await prisma.competition.findMany({
     orderBy: { createdAt: 'desc' },
     select: { id: true, name: true, createdAt: true, _count: { select: { players: true } } },
