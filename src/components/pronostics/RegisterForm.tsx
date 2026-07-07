@@ -30,7 +30,7 @@ export function RegisterForm({ competitionId }: { competitionId: number }) {
       return
     }
 
-    router.push(`/pronostics/${competitionId}/dashboard`)
+    router.push(`/pronostics/${competitionId}`)
     router.refresh()
   }
 

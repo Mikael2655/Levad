@@ -37,6 +37,18 @@ export function BonusQuestionCard({
   const options: string[] = question.options ? JSON.parse(question.options) : []
   const isLocked = Boolean(question.correctAnswer) || (question.deadline ? new Date(question.deadline) <= new Date() : false)
 
+  function parseCorrect(raw: string | null): string[] {
+    if (!raw) return []
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string')
+    } catch {
+      /* ancienne valeur simple */
+    }
+    return [raw]
+  }
+  const correctAnswers = parseCorrect(question.correctAnswer)
+
   async function handleSave() {
     setError(null)
     setSaved(false)
@@ -74,8 +86,11 @@ export function BonusQuestionCard({
       {isLocked ? (
         <div className="text-sm text-pitch-300">
           Ta réponse : <span className="font-semibold">{answer?.answer ?? '—'}</span>
-          {question.correctAnswer && (
-            <span className="ml-2 text-pitch-400">(bonne réponse : {question.correctAnswer})</span>
+          {correctAnswers.length > 0 && (
+            <span className="ml-2 text-pitch-400">
+              (bonne{correctAnswers.length > 1 ? 's' : ''} réponse{correctAnswers.length > 1 ? 's' : ''} :{' '}
+              {correctAnswers.join(', ')})
+            </span>
           )}
           {answer?.points !== undefined && answer?.points !== null && (
             <span className="ml-2 font-bold text-gold-400">+{answer.points} pts</span>

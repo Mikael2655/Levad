@@ -52,19 +52,19 @@ export default async function ClassementPage({
       )}
 
       <div className="bg-pitch-900 border border-pitch-800 rounded-xl overflow-hidden">
-        <div className="grid grid-cols-[2.5rem_1.5rem_1fr_3.5rem_3.5rem_3.5rem] gap-2 px-4 py-3 text-xs uppercase tracking-wide text-pitch-400 border-b border-pitch-800">
+        <div className="grid grid-cols-[2.5rem_1.5rem_1fr_3.5rem] sm:grid-cols-[2.5rem_1.5rem_1fr_3.5rem_3.5rem_3.5rem] gap-2 px-4 py-3 text-xs uppercase tracking-wide text-pitch-400 border-b border-pitch-800">
           <span>Rang</span>
           <span></span>
           <span>Joueur</span>
-          <span className="text-right">Matchs</span>
-          <span className="text-right">Bonus</span>
+          <span className="text-right hidden sm:block">Matchs</span>
+          <span className="text-right hidden sm:block">Bonus</span>
           <span className="text-right">Total</span>
         </div>
         <div className="divide-y divide-pitch-800">
           {leaderboard.map((row) => (
             <div
               key={row.id}
-              className={`grid grid-cols-[2.5rem_1.5rem_1fr_3.5rem_3.5rem_3.5rem] gap-2 px-4 py-3 items-center ${
+              className={`grid grid-cols-[2.5rem_1.5rem_1fr_3.5rem] sm:grid-cols-[2.5rem_1.5rem_1fr_3.5rem_3.5rem_3.5rem] gap-2 px-4 py-3 items-center ${
                 row.id === session?.playerId ? 'bg-gold-500/10' : ''
               }`}
             >
@@ -80,14 +80,17 @@ export default async function ClassementPage({
                   />
                 )}
               </span>
-              <span className="flex items-center gap-2 min-w-0">
+              <Link
+                href={`/pronostics/${competitionId}/joueur/${row.id}`}
+                className="flex items-center gap-2 min-w-0 hover:underline"
+              >
                 <Avatar name={row.name} avatarUrl={row.avatarUrl} size={28} />
                 <span className={`truncate ${row.id === session?.playerId ? 'font-bold text-gold-500' : ''}`}>
                   {row.name}
                 </span>
-              </span>
-              <span className="text-right text-pitch-300">{row.matchPoints}</span>
-              <span className="text-right text-pitch-300">{row.bonusPoints}</span>
+              </Link>
+              <span className="text-right text-pitch-300 hidden sm:block">{row.matchPoints}</span>
+              <span className="text-right text-pitch-300 hidden sm:block">{row.bonusPoints}</span>
               <span className="text-right font-bold">{row.totalPoints}</span>
             </div>
           ))}

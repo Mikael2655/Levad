@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { getEffectiveScore } from '@/lib/scoring'
 import { LiveSyncPoller } from '@/components/pronostics/LiveSyncPoller'
@@ -74,10 +75,13 @@ export default async function ResultatsPage({ params }: { params: { competitionI
                   <div className="divide-y divide-pitch-800">
                     {match.predictions.map((p) => (
                       <div key={p.id} className="flex items-center justify-between px-4 py-2 text-sm">
-                        <span className="flex items-center gap-2">
+                        <Link
+                          href={`/pronostics/${competitionId}/joueur/${p.player.id}`}
+                          className="flex items-center gap-2 hover:underline"
+                        >
                           <Avatar name={p.player.name} avatarUrl={p.player.avatarUrl} size={24} />
                           {p.player.name}
-                        </span>
+                        </Link>
                         <span className="flex items-center gap-3">
                           <span className="text-pitch-300 tabular-nums">
                             {p.homeScore} - {p.awayScore}

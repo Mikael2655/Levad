@@ -33,6 +33,19 @@ export function computeMatchPoints(pred: ScoreLike, actual: ScoreLike, rule: Pha
   return 0
 }
 
+export type ResultCategory = 'exact' | 'diff' | 'outcome' | 'none'
+
+/** Classe un pronostic par rapport au score réel (indépendamment du barème). */
+export function classifyMatchResult(pred: ScoreLike, actual: ScoreLike): ResultCategory {
+  if (pred.homeScore === actual.homeScore && pred.awayScore === actual.awayScore) return 'exact'
+  const predDiff = pred.homeScore - pred.awayScore
+  const actualDiff = actual.homeScore - actual.awayScore
+  if (predDiff === actualDiff) return 'diff'
+  const sign = (n: number) => (n > 0 ? 1 : n < 0 ? -1 : 0)
+  if (sign(predDiff) === sign(actualDiff)) return 'outcome'
+  return 'none'
+}
+
 interface MatchWithScores {
   homeScoreFullTime: number | null
   awayScoreFullTime: number | null
@@ -76,17 +89,41 @@ export async function recomputePhaseMatches(phaseId: number) {
   }
 }
 
+const normalizeAnswer = (s: string) => s.trim().toLowerCase()
+
+/**
+ * Les bonnes réponses d'une question bonus sont stockées en JSON (tableau)
+ * pour permettre plusieurs réponses acceptées. On tolère aussi l'ancien format
+ * "chaîne simple" pour compatibilité.
+ */
+export function parseCorrectAnswers(raw: string | null): string[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string')
+  } catch {
+    // pas du JSON : ancienne valeur simple
+  }
+  return [raw]
+}
+
+/** La réponse d'un joueur est bonne si elle correspond à l'une des bonnes réponses. */
+export function isBonusAnswerCorrect(answer: string, correctAnswers: string[]): boolean {
+  const norm = normalizeAnswer(answer)
+  return correctAnswers.some((c) => normalizeAnswer(c) === norm)
+}
+
 export async function recomputeBonusAnswers(bonusQuestionId: number) {
   const question = await prisma.bonusQuestion.findUnique({ where: { id: bonusQuestionId } })
-  if (!question || !question.correctAnswer) return
+  if (!question) return
+  const correctAnswers = parseCorrectAnswers(question.correctAnswer)
+  if (correctAnswers.length === 0) return
 
   const answers = await prisma.bonusAnswer.findMany({ where: { bonusQuestionId } })
-  const normalize = (s: string) => s.trim().toLowerCase()
-  const correct = normalize(question.correctAnswer)
 
   await Promise.all(
     answers.map((answer) => {
-      const points = normalize(answer.answer) === correct ? question.points : 0
+      const points = isBonusAnswerCorrect(answer.answer, correctAnswers) ? question.points : 0
       return prisma.bonusAnswer.update({ where: { id: answer.id }, data: { points } })
     })
   )
@@ -99,6 +136,7 @@ export interface LeaderboardRow {
   matchPoints: number
   bonusPoints: number
   totalPoints: number
+  goodResults: number // nombre de pronostics gagnants (score/écart/tendance), départage
   rank: number
 }
 
@@ -115,6 +153,8 @@ export async function getLeaderboard(competitionId: number, playerIds?: number[]
     .map((player) => {
       const matchPoints = player.predictions.reduce((sum, p) => sum + (p.points ?? 0), 0)
       const bonusPoints = player.bonusAnswers.reduce((sum, a) => sum + (a.points ?? 0), 0)
+      // Départage : nombre de pronostics de match ayant rapporté des points.
+      const goodResults = player.predictions.filter((p) => (p.points ?? 0) > 0).length
       return {
         id: player.id,
         name: player.name,
@@ -122,9 +162,11 @@ export async function getLeaderboard(competitionId: number, playerIds?: number[]
         matchPoints,
         bonusPoints,
         totalPoints: matchPoints + bonusPoints,
+        goodResults,
       }
     })
-    .sort((a, b) => b.totalPoints - a.totalPoints)
+    // À égalité de points totaux, le meilleur nombre de bons résultats devance.
+    .sort((a, b) => b.totalPoints - a.totalPoints || b.goodResults - a.goodResults)
 
   return ranked.map((row, index) => ({ ...row, rank: index + 1 }))
 }

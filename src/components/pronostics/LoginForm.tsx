@@ -28,7 +28,7 @@ export function LoginForm({ competitionId }: { competitionId: number }) {
       return
     }
 
-    router.push(data.role === 'ADMIN' ? `/pronostics/${competitionId}/admin` : `/pronostics/${competitionId}/dashboard`)
+    router.push(`/pronostics/${competitionId}`)
     router.refresh()
   }
 
