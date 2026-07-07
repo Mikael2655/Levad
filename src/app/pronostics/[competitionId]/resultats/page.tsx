@@ -1,9 +1,8 @@
-import Link from 'next/link'
 import { prisma } from '@/lib/db'
-import { getEffectiveScore } from '@/lib/scoring'
+import { getEffectiveScore, getLeaderboard } from '@/lib/scoring'
 import { LiveSyncPoller } from '@/components/pronostics/LiveSyncPoller'
+import { MatchPredictionsToggle } from '@/components/pronostics/MatchPredictionsToggle'
 import { TeamCrest } from '@/components/pronostics/TeamCrest'
-import { Avatar } from '@/components/pronostics/Avatar'
 import { translateTeamName } from '@/lib/team-names'
 import { formatKickoff } from '@/lib/format-date'
 
@@ -11,20 +10,30 @@ export default async function ResultatsPage({ params }: { params: { competitionI
   const competitionId = Number(params.competitionId)
   const now = new Date()
 
-  const matches = await prisma.match.findMany({
-    where: {
-      competitionId,
-      OR: [{ status: { in: ['LIVE', 'FINISHED'] } }, { kickoff: { lte: now } }],
-    },
-    orderBy: { kickoff: 'desc' },
-    include: {
-      phase: { select: { name: true } },
-      predictions: {
-        include: { player: { select: { id: true, name: true, avatarUrl: true } } },
-        orderBy: { player: { name: 'asc' } },
+  const [matches, leaderboard] = await Promise.all([
+    prisma.match.findMany({
+      where: {
+        competitionId,
+        OR: [{ status: { in: ['LIVE', 'FINISHED'] } }, { kickoff: { lte: now } }],
       },
-    },
-  })
+      orderBy: { kickoff: 'desc' },
+      include: {
+        phase: { select: { name: true } },
+        predictions: {
+          include: { player: { select: { id: true, name: true, avatarUrl: true } } },
+        },
+      },
+    }),
+    getLeaderboard(competitionId),
+  ])
+
+  // Pronostics de chaque match triés par rang au classement plutôt que par
+  // nom, pour retrouver directement les meilleurs joueurs en haut de la liste.
+  const rankByPlayerId = new Map(leaderboard.map((row) => [row.id, row.rank]))
+  const sortedPredictions = (predictions: typeof matches[number]['predictions']) =>
+    [...predictions].sort(
+      (a, b) => (rankByPlayerId.get(a.player.id) ?? Infinity) - (rankByPlayerId.get(b.player.id) ?? Infinity)
+    )
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 space-y-6">
@@ -71,31 +80,18 @@ export default async function ResultatsPage({ params }: { params: { competitionI
                   </div>
                 </div>
 
-                {match.predictions.length === 0 ? (
-                  <p className="text-sm text-pitch-400 p-4">Personne n'a pronostiqué ce match.</p>
-                ) : (
-                  <div className="divide-y divide-pitch-800">
-                    {match.predictions.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between px-4 py-2 text-sm">
-                        <Link
-                          href={`/pronostics/${competitionId}/joueur/${p.player.id}`}
-                          className="flex items-center gap-2 hover:underline"
-                        >
-                          <Avatar name={p.player.name} avatarUrl={p.player.avatarUrl} size={24} />
-                          {p.player.name}
-                        </Link>
-                        <span className="flex items-center gap-3">
-                          <span className="text-pitch-300 tabular-nums">
-                            {p.homeScore} - {p.awayScore}
-                          </span>
-                          {match.status === 'FINISHED' && p.points !== null && (
-                            <span className="font-bold text-gold-500">+{p.points} pts</span>
-                          )}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <MatchPredictionsToggle
+                  competitionId={competitionId}
+                  showPoints={match.status === 'FINISHED'}
+                  predictions={sortedPredictions(match.predictions).map((p) => ({
+                    playerId: p.player.id,
+                    playerName: p.player.name,
+                    avatarUrl: p.player.avatarUrl,
+                    homeScore: p.homeScore,
+                    awayScore: p.awayScore,
+                    points: p.points,
+                  }))}
+                />
               </div>
             )
           })}
