@@ -1,7 +1,9 @@
 const BASE_URL = 'https://api.football-data.org/v4'
 
 interface FootballDataTeam {
-  name: string
+  // null tant que l'équipe n'est pas déterminée (ex. 1/4 de finale avant la
+  // fin des 1/8), et l'objet entier peut manquer sur certains matchs.
+  name: string | null
 }
 
 interface FootballDataScore {
@@ -14,8 +16,8 @@ export interface FootballDataMatch {
   utcDate: string
   status: string
   stage: string
-  homeTeam: FootballDataTeam
-  awayTeam: FootballDataTeam
+  homeTeam?: FootballDataTeam | null
+  awayTeam?: FootballDataTeam | null
   score: FootballDataScore
 }
 

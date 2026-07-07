@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { syncCompetition } from '@/lib/sync'
-import { FootballDataError } from '@/lib/football-data'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -39,11 +38,12 @@ export async function GET(request: Request) {
         detail: result.synced ? `${result.matchCount} match(s)` : result.reason,
       })
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
       results.push({
         id: competition.id,
         name: competition.name,
         ok: false,
-        detail: err instanceof FootballDataError ? err.message : 'Erreur de synchronisation.',
+        detail: message.slice(0, 300),
       })
     }
   }

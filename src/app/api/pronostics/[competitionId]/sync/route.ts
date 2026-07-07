@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { getCompetitionSession } from '@/lib/auth'
 import { syncCompetition } from '@/lib/sync'
-import { FootballDataError } from '@/lib/football-data'
+
+function errorMessage(err: unknown) {
+  const message = err instanceof Error ? err.message : 'Erreur de synchronisation.'
+  return message.slice(0, 300)
+}
 
 // Appelée par les pages (dashboard/résultats) pendant qu'un joueur les a
 // ouvertes : respecte le throttle interne, donc sans risque pour le quota API
@@ -15,8 +19,7 @@ export async function GET(_request: Request, { params }: { params: { competition
     const result = await syncCompetition(competitionId)
     return NextResponse.json(result)
   } catch (err) {
-    const message = err instanceof FootballDataError ? err.message : 'Erreur de synchronisation.'
-    return NextResponse.json({ error: message }, { status: 502 })
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 })
   }
 }
 
@@ -32,7 +35,6 @@ export async function POST(_request: Request, { params }: { params: { competitio
     const result = await syncCompetition(competitionId, { force: true })
     return NextResponse.json(result)
   } catch (err) {
-    const message = err instanceof FootballDataError ? err.message : 'Erreur de synchronisation.'
-    return NextResponse.json({ error: message }, { status: 502 })
+    return NextResponse.json({ error: errorMessage(err) }, { status: 502 })
   }
 }

@@ -57,8 +57,10 @@ export async function syncCompetition(competitionId: number, options?: { force?:
     const data = {
       competitionId,
       phaseId,
-      homeTeam: externalMatch.homeTeam.name,
-      awayTeam: externalMatch.awayTeam.name,
+      // Équipe pas encore connue (ex. 1/4 avant la fin des 1/8) : nom
+      // provisoire, remplacé automatiquement à une prochaine synchro.
+      homeTeam: externalMatch.homeTeam?.name ?? 'À déterminer',
+      awayTeam: externalMatch.awayTeam?.name ?? 'À déterminer',
       kickoff: new Date(externalMatch.utcDate),
       status: mappedStatus,
       homeScoreFullTime: externalMatch.score.fullTime.home,
