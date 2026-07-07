@@ -2,7 +2,7 @@ import { prisma } from '@/lib/db'
 import { fetchCompetitionMatches, mapExternalStatus, getPhaseTemplate } from '@/lib/football-data'
 import { recomputeMatchPredictions } from '@/lib/scoring'
 
-const THROTTLE_MS = 45_000
+const THROTTLE_MS = 20_000
 
 export interface SyncResult {
   synced: boolean

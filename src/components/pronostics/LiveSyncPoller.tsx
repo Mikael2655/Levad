@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-const POLL_INTERVAL_MS = 30_000
+const POLL_INTERVAL_MS = 20_000
 
 /**
  * Composant invisible : tant que la page est ouverte, déclenche
