@@ -84,7 +84,7 @@ export function AdminSyncCard({
         </p>
       </div>
 
-      {error && <p className="text-sm text-red-300">{error}</p>}
+      {error && <p className="text-sm text-red-700">{error}</p>}
       {message && <p className="text-sm text-pitch-200">{message}</p>}
 
       <div className="flex flex-col sm:flex-row gap-2">

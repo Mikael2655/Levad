@@ -4,7 +4,7 @@ import { CreateCompetitionForm } from '@/components/pronostics/CreateCompetition
 export default function CreateCompetitionPage() {
   return (
     <div className="max-w-md mx-auto px-6 py-16">
-      <Link href="/pronostics" className="text-sm text-pitch-300 hover:text-white transition">
+      <Link href="/pronostics" className="text-sm text-pitch-300 hover:text-gray-900 transition">
         ← Retour
       </Link>
       <div className="bg-pitch-900 border border-pitch-800 rounded-2xl p-8 mt-4">

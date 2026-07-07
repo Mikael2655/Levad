@@ -43,6 +43,9 @@ model Competition {
   externalCode String?
   lastSyncedAt DateTime?
 
+  // Texte libre du règlement affiché sur la page d'accueil, éditable par l'admin.
+  rulesText String?
+
   phases         Phase[]
   players        Player[]
   matches        Match[]
@@ -76,6 +79,7 @@ model Player {
   email         String
   passwordHash  String
   role          String   @default("PLAYER") // "PLAYER" | "ADMIN"
+  avatarUrl     String? // photo de profil (data URL redimensionnée)
 
   competition  Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
   predictions  Prediction[]
@@ -94,6 +98,8 @@ model Match {
   externalId    Int?     @unique // id du match côté football-data.org, si synchronisé
   homeTeam      String
   awayTeam      String
+  homeCrest     String? // URL du logo/drapeau de l'équipe à domicile
+  awayCrest     String? // URL du logo/drapeau de l'équipe à l'extérieur
   kickoff       DateTime
   status        String   @default("SCHEDULED") // "SCHEDULED" | "LIVE" | "FINISHED"
 

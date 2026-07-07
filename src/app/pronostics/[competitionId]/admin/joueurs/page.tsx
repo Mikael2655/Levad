@@ -11,7 +11,7 @@ export default async function AdminPlayersPage({ params }: { params: { competiti
     prisma.player.findMany({
       where: { competitionId },
       orderBy: { createdAt: 'asc' },
-      select: { id: true, name: true, email: true, role: true },
+      select: { id: true, name: true, email: true, role: true, avatarUrl: true },
     }),
     getCompetitionSession(competitionId),
   ])

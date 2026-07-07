@@ -9,9 +9,7 @@ export default function AdminLayout({
 }) {
   const base = `/pronostics/${params.competitionId}/admin`
   const links = [
-    { href: base, label: "Vue d'ensemble" },
-    { href: `${base}/phases`, label: 'Phases & barème' },
-    { href: `${base}/matches`, label: 'Matchs' },
+    { href: `${base}/bareme`, label: 'Barème de points' },
     { href: `${base}/bonus`, label: 'Questions bonus' },
     { href: `${base}/joueurs`, label: 'Joueurs' },
   ]
@@ -24,7 +22,7 @@ export default function AdminLayout({
             <Link
               key={link.href}
               href={link.href}
-              className="whitespace-nowrap text-sm font-medium text-pitch-200 hover:text-white px-3 py-3 transition"
+              className="whitespace-nowrap text-sm font-medium text-pitch-200 hover:text-gray-900 px-3 py-3 transition"
             >
               {link.label}
             </Link>

@@ -58,12 +58,12 @@ export function AdminBonusRow({ competitionId, question }: { competitionId: numb
             {question.points} pts · {question.type === 'CHOICE' ? 'Choix multiple' : 'Texte libre'}
           </div>
         </div>
-        <button onClick={handleDelete} disabled={loading} className="text-red-300 hover:text-red-200 text-sm shrink-0">
+        <button onClick={handleDelete} disabled={loading} className="text-red-700 hover:text-red-800 text-sm shrink-0">
           Supprimer
         </button>
       </div>
 
-      {error && <p className="text-xs text-red-300">{error}</p>}
+      {error && <p className="text-xs text-red-700">{error}</p>}
 
       <div className="flex items-center gap-2">
         {question.type === 'CHOICE' ? (

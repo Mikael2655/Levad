@@ -17,6 +17,11 @@ export async function PATCH(request: Request, { params }: { params: { competitio
     data.externalCode = code || null
   }
 
+  if (body?.rulesText !== undefined) {
+    const rules = typeof body.rulesText === 'string' ? body.rulesText : ''
+    data.rulesText = rules.trim() || null
+  }
+
   const competition = await prisma.competition.update({ where: { id: competitionId }, data })
   return NextResponse.json(competition)
 }

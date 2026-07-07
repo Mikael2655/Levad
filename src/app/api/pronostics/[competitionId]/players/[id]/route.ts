@@ -14,18 +14,31 @@ export async function PATCH(
   }
 
   const body = await request.json().catch(() => null)
-  const role = body?.role
+  const data: Record<string, unknown> = {}
 
-  if (role !== 'ADMIN' && role !== 'PLAYER') {
-    return NextResponse.json({ error: 'Rôle invalide.' }, { status: 400 })
+  if (body?.name !== undefined) {
+    const name = body.name.trim()
+    if (!name) return NextResponse.json({ error: 'Le nom ne peut pas être vide.' }, { status: 400 })
+    data.name = name
   }
-  if (id === session.playerId && role === 'PLAYER') {
-    return NextResponse.json({ error: 'Vous ne pouvez pas retirer vos propres droits admin.' }, { status: 400 })
+
+  if (body?.role !== undefined) {
+    if (body.role !== 'ADMIN' && body.role !== 'PLAYER') {
+      return NextResponse.json({ error: 'Rôle invalide.' }, { status: 400 })
+    }
+    if (id === session.playerId && body.role === 'PLAYER') {
+      return NextResponse.json({ error: 'Vous ne pouvez pas retirer vos propres droits admin.' }, { status: 400 })
+    }
+    data.role = body.role
+  }
+
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: 'Aucune modification.' }, { status: 400 })
   }
 
   const player = await prisma.player.update({
     where: { id },
-    data: { role },
+    data,
     select: { id: true, name: true, email: true, role: true },
   })
 

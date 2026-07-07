@@ -4,6 +4,7 @@ interface FootballDataTeam {
   // null tant que l'équipe n'est pas déterminée (ex. 1/4 de finale avant la
   // fin des 1/8), et l'objet entier peut manquer sur certains matchs.
   name: string | null
+  crest?: string | null // URL du logo/drapeau de l'équipe
 }
 
 interface FootballDataScore {

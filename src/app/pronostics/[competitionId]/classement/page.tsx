@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { getLeaderboard } from '@/lib/scoring'
 import { getCompetitionSession } from '@/lib/auth'
 import { FavoriteStar } from '@/components/pronostics/FavoriteStar'
+import { Avatar } from '@/components/pronostics/Avatar'
 
 export default async function ClassementPage({
   params,
@@ -25,26 +26,20 @@ export default async function ClassementPage({
     : await getLeaderboard(competitionId)
 
   const base = `/pronostics/${competitionId}/classement`
+  const tabClass = (active: boolean) =>
+    `text-sm font-medium px-3 py-2 rounded-lg transition ${
+      active ? 'bg-gold-500 text-white' : 'bg-pitch-900 text-pitch-200 hover:bg-pitch-800'
+    }`
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="text-2xl font-bold">Classement</h1>
         <div className="flex gap-2">
-          <Link
-            href={base}
-            className={`text-sm font-medium px-3 py-2 rounded-lg transition ${
-              !showFavoritesOnly ? 'bg-pitch-700 text-white' : 'bg-pitch-900 text-pitch-200 hover:bg-pitch-800'
-            }`}
-          >
+          <Link href={base} className={tabClass(!showFavoritesOnly)}>
             Général
           </Link>
-          <Link
-            href={`${base}?favoris=1`}
-            className={`text-sm font-medium px-3 py-2 rounded-lg transition ${
-              showFavoritesOnly ? 'bg-pitch-700 text-white' : 'bg-pitch-900 text-pitch-200 hover:bg-pitch-800'
-            }`}
-          >
+          <Link href={`${base}?favoris=1`} className={tabClass(showFavoritesOnly)}>
             ★ Mes favoris
           </Link>
         </div>
@@ -57,7 +52,7 @@ export default async function ClassementPage({
       )}
 
       <div className="bg-pitch-900 border border-pitch-800 rounded-xl overflow-hidden">
-        <div className="grid grid-cols-[2.5rem_2rem_1fr_4rem_4rem_4rem] gap-2 px-4 py-3 text-xs uppercase tracking-wide text-pitch-400 border-b border-pitch-800">
+        <div className="grid grid-cols-[2.5rem_1.5rem_1fr_3.5rem_3.5rem_3.5rem] gap-2 px-4 py-3 text-xs uppercase tracking-wide text-pitch-400 border-b border-pitch-800">
           <span>Rang</span>
           <span></span>
           <span>Joueur</span>
@@ -69,8 +64,8 @@ export default async function ClassementPage({
           {leaderboard.map((row) => (
             <div
               key={row.id}
-              className={`grid grid-cols-[2.5rem_2rem_1fr_4rem_4rem_4rem] gap-2 px-4 py-3 items-center ${
-                row.id === session?.playerId ? 'bg-pitch-800/60' : ''
+              className={`grid grid-cols-[2.5rem_1.5rem_1fr_3.5rem_3.5rem_3.5rem] gap-2 px-4 py-3 items-center ${
+                row.id === session?.playerId ? 'bg-gold-500/10' : ''
               }`}
             >
               <span className="font-bold text-pitch-300">
@@ -78,10 +73,19 @@ export default async function ClassementPage({
               </span>
               <span>
                 {session && row.id !== session.playerId && (
-                  <FavoriteStar competitionId={competitionId} playerId={row.id} initialIsFavorite={favoriteIds.has(row.id)} />
+                  <FavoriteStar
+                    competitionId={competitionId}
+                    playerId={row.id}
+                    initialIsFavorite={favoriteIds.has(row.id)}
+                  />
                 )}
               </span>
-              <span className={row.id === session?.playerId ? 'font-bold text-gold-400' : ''}>{row.name}</span>
+              <span className="flex items-center gap-2 min-w-0">
+                <Avatar name={row.name} avatarUrl={row.avatarUrl} size={28} />
+                <span className={`truncate ${row.id === session?.playerId ? 'font-bold text-gold-500' : ''}`}>
+                  {row.name}
+                </span>
+              </span>
               <span className="text-right text-pitch-300">{row.matchPoints}</span>
               <span className="text-right text-pitch-300">{row.bonusPoints}</span>
               <span className="text-right font-bold">{row.totalPoints}</span>

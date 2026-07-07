@@ -47,7 +47,7 @@ export function AdminPhaseRow({ competitionId, phase }: { competitionId: number;
     <div className="bg-pitch-900 border border-pitch-800 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="font-semibold">{phase.name}</div>
-        <button onClick={handleDelete} disabled={loading} className="text-red-300 hover:text-red-200 text-sm">
+        <button onClick={handleDelete} disabled={loading} className="text-red-700 hover:text-red-800 text-sm">
           Supprimer
         </button>
       </div>

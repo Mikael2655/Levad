@@ -17,7 +17,7 @@ export default async function RegisterPage({ params }: { params: { competitionId
         </p>
 
         {isFull ? (
-          <p className="text-center text-red-300 bg-red-950/50 border border-red-800 rounded-lg px-3 py-3">
+          <p className="text-center text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-3">
             Cette compétition est complète, les inscriptions sont closes.
           </p>
         ) : (

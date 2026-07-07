@@ -95,6 +95,7 @@ export async function recomputeBonusAnswers(bonusQuestionId: number) {
 export interface LeaderboardRow {
   id: number
   name: string
+  avatarUrl: string | null
   matchPoints: number
   bonusPoints: number
   totalPoints: number
@@ -117,6 +118,7 @@ export async function getLeaderboard(competitionId: number, playerIds?: number[]
       return {
         id: player.id,
         name: player.name,
+        avatarUrl: player.avatarUrl,
         matchPoints,
         bonusPoints,
         totalPoints: matchPoints + bonusPoints,

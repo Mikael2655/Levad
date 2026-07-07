@@ -43,7 +43,7 @@ export function AdminBonusForm({ competitionId }: { competitionId: number }) {
 
   return (
     <form onSubmit={handleSubmit} className="bg-pitch-900 border border-pitch-800 rounded-xl p-6 space-y-4">
-      {error && <p className="text-sm text-red-300">{error}</p>}
+      {error && <p className="text-sm text-red-700">{error}</p>}
 
       <div>
         <label className="block text-sm font-medium text-pitch-200 mb-1">Question</label>

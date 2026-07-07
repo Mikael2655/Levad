@@ -10,6 +10,7 @@ export const config = {
     '/pronostics/:competitionId/dashboard/:path*',
     '/pronostics/:competitionId/resultats/:path*',
     '/pronostics/:competitionId/classement/:path*',
+    '/pronostics/:competitionId/profil/:path*',
     '/pronostics/:competitionId/admin/:path*',
   ],
 }

@@ -69,7 +69,7 @@ export function BonusQuestionCard({
         </span>
       </div>
 
-      {error && <p className="text-xs text-red-300 mb-2">{error}</p>}
+      {error && <p className="text-xs text-red-700 mb-2">{error}</p>}
 
       {isLocked ? (
         <div className="text-sm text-pitch-300">

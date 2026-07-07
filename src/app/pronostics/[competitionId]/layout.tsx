@@ -16,11 +16,14 @@ export default async function CompetitionLayout({
 
   const session = await getCompetitionSession(competitionId)
   const player = session
-    ? await prisma.player.findUnique({ where: { id: session.playerId }, select: { id: true, name: true, role: true } })
+    ? await prisma.player.findUnique({
+        where: { id: session.playerId },
+        select: { id: true, name: true, role: true, avatarUrl: true },
+      })
     : null
 
   return (
-    <div className="min-h-screen bg-pitch-950 text-white">
+    <div className="min-h-screen bg-pitch-950 text-gray-900">
       <CompetitionNav competitionId={competitionId} competitionName={competition.name} player={player} />
       <main>{children}</main>
     </div>

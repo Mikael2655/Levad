@@ -36,7 +36,7 @@ export function RegisterForm({ competitionId }: { competitionId: number }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="text-sm text-red-300 bg-red-950/50 border border-red-800 rounded-lg px-3 py-2">{error}</p>}
+      {error && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
       <div>
         <label className="block text-sm font-medium text-pitch-200 mb-1">Code d'accès</label>
@@ -45,7 +45,7 @@ export function RegisterForm({ competitionId }: { competitionId: number }) {
           value={joinCode}
           onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
           placeholder="Donné par l'administrateur"
-          className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-white uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-gold-500"
+          className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-gray-900 uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-gold-500"
         />
       </div>
 
@@ -55,7 +55,7 @@ export function RegisterForm({ competitionId }: { competitionId: number }) {
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+          className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500"
         />
       </div>
 
@@ -66,7 +66,7 @@ export function RegisterForm({ competitionId }: { competitionId: number }) {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+          className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500"
         />
       </div>
 
@@ -78,7 +78,7 @@ export function RegisterForm({ competitionId }: { competitionId: number }) {
           minLength={6}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+          className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500"
         />
         <p className="text-xs text-pitch-400 mt-1">6 caractères minimum</p>
       </div>
