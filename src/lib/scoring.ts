@@ -144,17 +144,52 @@ export async function getLeaderboard(competitionId: number, playerIds?: number[]
   const players = await prisma.player.findMany({
     where: { competitionId, ...(playerIds ? { id: { in: playerIds } } : {}) },
     include: {
-      predictions: { select: { points: true } },
+      // Seuls les matchs commencés comptent : les pronostics des matchs à
+      // venir n'ont pas encore de points (null), inutile de les charger.
+      predictions: {
+        where: { match: { status: { in: ['LIVE', 'FINISHED'] } } },
+        select: {
+          points: true,
+          homeScore: true,
+          awayScore: true,
+          match: {
+            select: {
+              status: true,
+              homeScoreFullTime: true,
+              awayScoreFullTime: true,
+              homeScoreExtraTime: true,
+              awayScoreExtraTime: true,
+              phase: { select: { pointsExactScore: true, pointsGoalDifference: true, pointsCorrectOutcome: true } },
+            },
+          },
+        },
+      },
       bonusAnswers: { select: { points: true } },
     },
   })
 
   const ranked = players
     .map((player) => {
-      const matchPoints = player.predictions.reduce((sum, p) => sum + (p.points ?? 0), 0)
+      let matchPoints = 0
+      let goodResults = 0
+
+      for (const pred of player.predictions) {
+        let points: number | null = null
+        if (pred.match.status === 'FINISHED') {
+          points = pred.points
+        } else {
+          // Match en direct : points provisoires calculés en temps réel à
+          // partir du score actuel, comme sur la page détail d'un joueur.
+          const actual = getEffectiveScore(pred.match)
+          if (actual) {
+            points = computeMatchPoints({ homeScore: pred.homeScore, awayScore: pred.awayScore }, actual, pred.match.phase)
+          }
+        }
+        matchPoints += points ?? 0
+        if ((points ?? 0) > 0) goodResults++
+      }
+
       const bonusPoints = player.bonusAnswers.reduce((sum, a) => sum + (a.points ?? 0), 0)
-      // Départage : nombre de pronostics de match ayant rapporté des points.
-      const goodResults = player.predictions.filter((p) => (p.points ?? 0) > 0).length
       return {
         id: player.id,
         name: player.name,

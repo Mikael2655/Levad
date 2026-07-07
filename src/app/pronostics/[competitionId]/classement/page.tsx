@@ -4,6 +4,7 @@ import { getLeaderboard } from '@/lib/scoring'
 import { getCompetitionSession } from '@/lib/auth'
 import { FavoriteStar } from '@/components/pronostics/FavoriteStar'
 import { Avatar } from '@/components/pronostics/Avatar'
+import { LiveSyncPoller } from '@/components/pronostics/LiveSyncPoller'
 
 export default async function ClassementPage({
   params,
@@ -33,6 +34,7 @@ export default async function ClassementPage({
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
+      <LiveSyncPoller competitionId={competitionId} />
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="text-2xl font-bold">Classement</h1>
         <div className="flex gap-2">
