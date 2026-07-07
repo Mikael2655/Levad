@@ -12,6 +12,7 @@ import {
 import { Avatar } from '@/components/pronostics/Avatar'
 import { TeamCrest } from '@/components/pronostics/TeamCrest'
 import { LiveSyncPoller } from '@/components/pronostics/LiveSyncPoller'
+import { translateTeamName } from '@/lib/team-names'
 
 export default async function PlayerDetailPage({
   params,
@@ -128,7 +129,7 @@ export default async function PlayerDetailPage({
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <div className="flex-1 flex items-center gap-1.5 justify-end text-right min-w-0">
-                    <span className="truncate">{p.match.homeTeam}</span>
+                    <span className="truncate">{translateTeamName(p.match.homeTeam)}</span>
                     <TeamCrest src={p.match.homeCrest} alt={p.match.homeTeam} size={20} />
                   </div>
                   <div className="shrink-0 text-center">
@@ -141,7 +142,7 @@ export default async function PlayerDetailPage({
                   </div>
                   <div className="flex-1 flex items-center gap-1.5 min-w-0">
                     <TeamCrest src={p.match.awayCrest} alt={p.match.awayTeam} size={20} />
-                    <span className="truncate">{p.match.awayTeam}</span>
+                    <span className="truncate">{translateTeamName(p.match.awayTeam)}</span>
                   </div>
                 </div>
                 {points !== null && (

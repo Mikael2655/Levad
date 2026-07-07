@@ -4,6 +4,8 @@ import { getEffectiveScore } from '@/lib/scoring'
 import { LiveSyncPoller } from '@/components/pronostics/LiveSyncPoller'
 import { TeamCrest } from '@/components/pronostics/TeamCrest'
 import { Avatar } from '@/components/pronostics/Avatar'
+import { translateTeamName } from '@/lib/team-names'
+import { formatKickoff } from '@/lib/format-date'
 
 export default async function ResultatsPage({ params }: { params: { competitionId: string } }) {
   const competitionId = Number(params.competitionId)
@@ -53,7 +55,7 @@ export default async function ResultatsPage({ params }: { params: { competitionI
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex-1 flex items-center gap-2 justify-end text-right min-w-0">
-                      <span className="font-semibold truncate">{match.homeTeam}</span>
+                      <span className="font-semibold truncate">{translateTeamName(match.homeTeam)}</span>
                       <TeamCrest src={match.homeCrest} alt={match.homeTeam} size={28} />
                     </div>
                     <div className="text-2xl font-black shrink-0 tabular-nums">
@@ -61,11 +63,11 @@ export default async function ResultatsPage({ params }: { params: { competitionI
                     </div>
                     <div className="flex-1 flex items-center gap-2 min-w-0">
                       <TeamCrest src={match.awayCrest} alt={match.awayTeam} size={28} />
-                      <span className="font-semibold truncate">{match.awayTeam}</span>
+                      <span className="font-semibold truncate">{translateTeamName(match.awayTeam)}</span>
                     </div>
                   </div>
                   <div className="text-xs text-pitch-400 text-center mt-2">
-                    {new Date(match.kickoff).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+                    {formatKickoff(match.kickoff)} <span className="text-pitch-500">(heure de Paris)</span>
                   </div>
                 </div>
 

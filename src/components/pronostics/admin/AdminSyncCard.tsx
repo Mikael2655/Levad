@@ -116,7 +116,12 @@ export function AdminSyncCard({
 
       {lastSyncedAt && (
         <p className="text-xs text-pitch-400">
-          Dernière synchro : {new Date(lastSyncedAt).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
+          Dernière synchro :{' '}
+          {new Date(lastSyncedAt).toLocaleString('fr-FR', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+            timeZone: 'Europe/Paris',
+          })}
         </p>
       )}
     </div>

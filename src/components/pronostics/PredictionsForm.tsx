@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TeamCrest } from '@/components/pronostics/TeamCrest'
+import { translateTeamName } from '@/lib/team-names'
+import { formatKickoff } from '@/lib/format-date'
 
 interface Match {
   id: number
@@ -95,7 +97,7 @@ export function PredictionsForm({
           <div className="text-xs text-gold-500 font-semibold mb-2">{match.phaseName}</div>
           <div className="flex items-center gap-3">
             <div className="flex-1 flex items-center gap-2 justify-end text-right min-w-0">
-              <span className="font-semibold truncate">{match.homeTeam}</span>
+              <span className="font-semibold truncate">{translateTeamName(match.homeTeam)}</span>
               <TeamCrest src={match.homeCrest} alt={match.homeTeam} />
             </div>
 
@@ -121,12 +123,10 @@ export function PredictionsForm({
 
             <div className="flex-1 flex items-center gap-2 min-w-0">
               <TeamCrest src={match.awayCrest} alt={match.awayTeam} />
-              <span className="font-semibold truncate">{match.awayTeam}</span>
+              <span className="font-semibold truncate">{translateTeamName(match.awayTeam)}</span>
             </div>
           </div>
-          <div className="text-xs text-pitch-400 text-center mt-2">
-            {new Date(match.kickoff).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })}
-          </div>
+          <div className="text-xs text-pitch-400 text-center mt-2">{formatKickoff(match.kickoff)}</div>
         </div>
       ))}
 
