@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db'
-import { Lead, LeadProduct, LeadStatus, PRODUCT_LABELS, STATUS_LABELS } from '@/lib/types'
+import { LeadProduct, LeadStatus, PRODUCT_LABELS, STATUS_LABELS } from '@/lib/types'
 import { StatusBadge } from '@/components/StatusBadge'
 import Link from 'next/link'
 
@@ -125,7 +125,7 @@ export default async function CRMPage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {leads.map((lead: Lead) => (
+                  {leads.map((lead) => (
                     <tr key={lead.id} className="hover:bg-gray-50 transition">
                       <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                         {lead.firstName} {lead.lastName}
