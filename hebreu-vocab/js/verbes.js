@@ -475,7 +475,7 @@ const VERBES = [
     racine: "אמן", binyan: "הפעיל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מהמין", t: "Maamin" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מאמין", t: "Maamin" },
       ],
       "Passé": [
         { p: "il (הוא)", he: "האמין", t: "Hehemin" },
@@ -4854,6 +4854,36 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "יצבע", t: "Yitseva" },
+      ],
+    },
+  },
+  {
+    inf: "להקיא", translit: "Lehaki", fr: "Vomir",
+    racine: "קיא", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מקיא", t: "Meki" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הקיא", t: "Heki" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקיא", t: "Yaki" },
+      ],
+    },
+  },
+  {
+    inf: "למשוך", translit: "Limchokh", fr: "Attirer",
+    racine: "משך", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מושך", t: "Mochekh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "משך", t: "Machakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימשוך", t: "Yimchokh" },
       ],
     },
   },
