@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db'
 import { AdminPhaseRow } from '@/components/pronostics/admin/AdminPhaseRow'
 import { AdminSyncCard } from '@/components/pronostics/admin/AdminSyncCard'
 import { AdminRulesForm } from '@/components/pronostics/admin/AdminRulesForm'
+import { DeleteCompetitionCard } from '@/components/pronostics/admin/DeleteCompetitionCard'
 
 export default async function AdminBaremePage({ params }: { params: { competitionId: string } }) {
   const competitionId = Number(params.competitionId)
@@ -37,6 +38,8 @@ export default async function AdminBaremePage({ params }: { params: { competitio
       />
 
       <AdminRulesForm competitionId={competitionId} rulesText={competition.rulesText} />
+
+      <DeleteCompetitionCard competitionId={competitionId} competitionName={competition.name} />
     </div>
   )
 }

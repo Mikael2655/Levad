@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 
 export function RegisterForm({ competitionId }: { competitionId: number }) {
   const router = useRouter()
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [joinCode, setJoinCode] = useState('')
@@ -16,6 +17,8 @@ export function RegisterForm({ competitionId }: { competitionId: number }) {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
+    const name = `${firstName.trim()} ${lastName.trim()}`.trim()
 
     const res = await fetch(`/api/pronostics/${competitionId}/auth/register`, {
       method: 'POST',
@@ -49,14 +52,25 @@ export function RegisterForm({ competitionId }: { competitionId: number }) {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-pitch-200 mb-1">Nom / pseudo</label>
-        <input
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500"
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-pitch-200 mb-1">Prénom</label>
+          <input
+            required
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-pitch-200 mb-1">Nom</label>
+          <input
+            required
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="w-full rounded-lg bg-pitch-950 border border-pitch-700 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gold-500"
+          />
+        </div>
       </div>
 
       <div>
