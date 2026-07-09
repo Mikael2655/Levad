@@ -2331,7 +2331,7 @@ const VERBES = [
     },
   },
   {
-    inf: "למצא", translit: "Lehimatse", fr: "Se trouver",
+    inf: "להימצא", translit: "Lehimatse", fr: "Se trouver",
     racine: "מצא", binyan: "נפעל",
     temps: {
       "Présent": [
