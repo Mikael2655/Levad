@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db'
-import { fetchCompetitionMatches, mapExternalStatus, getPhaseTemplate } from '@/lib/football-data'
+import { fetchCompetitionMatches, mapExternalStatus, getPhaseTemplate, type FootballDataMatch } from '@/lib/football-data'
 import { recomputeMatchPredictions } from '@/lib/scoring'
 
 const THROTTLE_MS = 8_000
@@ -69,13 +69,19 @@ export async function syncCompetition(competitionId: number, options?: { force?:
     await dedupePhases(competitionId)
 
     const externalMatches = await fetchCompetitionMatches(competition.externalCode)
+
+    // Résout toutes les phases nécessaires une bonne fois pour toutes, en
+    // séquentiel (il y en a très peu, une poignée par compétition), avant de
+    // traiter les matchs en parallèle plus bas. Évite à la fois les requêtes
+    // séquentielles inutiles (l'ancienne version faisait 2-3 aller-retours
+    // DB par match, l'un après l'autre : sur une compétition avec beaucoup
+    // de matchs, ça pouvait dépasser le délai d'attente du planificateur
+    // externe) et les races de création de phase en double.
     const phaseIdByName = new Map<string, number>()
-
-    async function resolvePhaseId(stage: string): Promise<number> {
+    const distinctStages = [...new Set(externalMatches.map((m) => m.stage))]
+    for (const stage of distinctStages) {
       const template = getPhaseTemplate(stage)
-      const cached = phaseIdByName.get(template.name)
-      if (cached !== undefined) return cached
-
+      if (phaseIdByName.has(template.name)) continue
       const existing = await prisma.phase.findFirst({ where: { competitionId, name: template.name } })
       const phase =
         existing ??
@@ -87,16 +93,14 @@ export async function syncCompetition(competitionId: number, options?: { force?:
             allowsExtraTime: template.allowsExtraTime,
           },
         }))
-
       phaseIdByName.set(template.name, phase.id)
-      return phase.id
     }
 
-    for (const externalMatch of externalMatches) {
+    async function processMatch(externalMatch: FootballDataMatch) {
       const mappedStatus = mapExternalStatus(externalMatch.status)
-      if (!mappedStatus) continue // match annulé : on l'ignore
+      if (!mappedStatus) return // match annulé : on l'ignore
 
-      const phaseId = await resolvePhaseId(externalMatch.stage)
+      const phaseId = phaseIdByName.get(getPhaseTemplate(externalMatch.stage).name)!
 
       const existingMatch = await prisma.match.findUnique({ where: { externalId: externalMatch.id } })
       const wasFinished = existingMatch?.status === 'FINISHED'
@@ -128,6 +132,8 @@ export async function syncCompetition(competitionId: number, options?: { force?:
         await recomputeMatchPredictions(saved.id)
       }
     }
+
+    await Promise.all(externalMatches.map(processMatch))
 
     await prisma.competition.update({
       where: { id: competitionId },
