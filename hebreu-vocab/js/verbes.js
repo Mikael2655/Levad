@@ -1131,17 +1131,17 @@ const VERBES = [
     },
   },
   {
-    inf: "לנעול דלת", translit: "Linhol delet", fr: "Fermer à clé",
-    racine: "נעל", binyan: "פעל",
+    inf: "לסגור", translit: "Lisgor", fr: "Fermer",
+    racine: "סגר", binyan: "פעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "נועל", t: "No'el" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "סוגר", t: "Soger" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "נעל", t: "Na'al" },
+        { p: "il (הוא)", he: "סגר", t: "Sagar" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ינעל", t: "Yin'al" },
+        { p: "il (הוא)", he: "יסגור", t: "Yisgor" },
       ],
     },
   },
@@ -2316,7 +2316,22 @@ const VERBES = [
     },
   },
   {
-    inf: "למצא", translit: "Limtso", fr: "Se trouver",
+    inf: "למצוא", translit: "Limtso", fr: "Trouver",
+    racine: "מצא", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מוצא", t: "Motse" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "מצא", t: "Matsa" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימצא", t: "Yimtsa" },
+      ],
+    },
+  },
+  {
+    inf: "למצא", translit: "Lehimatse", fr: "Se trouver",
     racine: "מצא", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -2631,7 +2646,7 @@ const VERBES = [
     },
   },
   {
-    inf: "לזכור", translit: "Lizcor", fr: "Se souvenir (passif)",
+    inf: "לזכור", translit: "Lizcor", fr: "Se souvenir (avoir en mémoire)",
     racine: "זכר", binyan: "פעל",
     temps: {
       "Présent": [
@@ -2646,7 +2661,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להיזכר", translit: "Lehizakher (be)", fr: "Se souvenir (actif : action de réflechir)",
+    inf: "להיזכר", translit: "Lehizakher (be)", fr: "Se souvenir (retrouver un souvenir)",
     racine: "זכר", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -3108,13 +3123,6 @@ const VERBES = [
       "Futur": [
         { p: "il (הוא)", he: "ישלים", t: "Yashlim" },
       ],
-    },
-  },
-  {
-    inf: "מסופר", translit: "Mesoupar", fr: "Avoir raconté",
-    racine: "ספר", binyan: "פועל (סביל)",
-    temps: {
-
     },
   },
   {
@@ -4768,7 +4776,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להפוך", translit: "Lahafokh", fr: "Devenir",
+    inf: "להפוך", translit: "Lahafokh", fr: "Transformer",
     racine: "הפך", binyan: "פעל",
     temps: {
       "Présent": [
@@ -4808,7 +4816,7 @@ const VERBES = [
         { p: "il (הוא)", he: "נפטר", t: "Niftar" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "נפטר", t: "Yipater" },
+        { p: "il (הוא)", he: "ייפטר", t: "Yipater" },
       ],
     },
   },
@@ -4884,6 +4892,186 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "ימשוך", t: "Yimchokh" },
+      ],
+    },
+  },
+  {
+    inf: "להשתעל", translit: "Lehichtael", fr: "Tousser",
+    racine: "שעל", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משתעל", t: "Michtael" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השתעל", t: "Hichtael" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישתעל", t: "Yichtael" },
+      ],
+    },
+  },
+  {
+    inf: "להמאס", translit: "Lehima'es", fr: "En avoir marre",
+    racine: "מאס", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נמאס", t: "Nim'as" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נמאס", t: "Nim'as" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יימאס", t: "Yim'as" },
+      ],
+    },
+  },
+  {
+    inf: "להשמע", translit: "Lehichamea", fr: "Être entendu / avoir l'air",
+    racine: "שמע", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נשמע", t: "Nichma" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נשמע", t: "Nichma" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יישמע", t: "Yichama" },
+      ],
+    },
+  },
+  {
+    inf: "להסגר", translit: "Lehisager", fr: "Se fermer",
+    racine: "סגר", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נסגר", t: "Nisgar" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נסגר", t: "Nisgar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייסגר", t: "Yisgar" },
+      ],
+    },
+  },
+  {
+    inf: "להשבר", translit: "Lehichaver", fr: "Se casser",
+    racine: "שבר", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נשבר", t: "Nichbar" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נשבר", t: "Nichbar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יישבר", t: "Yichaver" },
+      ],
+    },
+  },
+  {
+    inf: "להפתר", translit: "Lehipater", fr: "Etre résolu",
+    racine: "פתר", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נפתר", t: "Niftar" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נפתר", t: "Niftar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייפתר", t: "Yipater" },
+      ],
+    },
+  },
+  {
+    inf: "להפרד", translit: "Lehipared", fr: "Se séparer / dire au revoir",
+    racine: "פרד", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נפרד", t: "Nifrad" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נפרד", t: "Nifrad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייפרד", t: "Yifrad" },
+      ],
+    },
+  },
+  {
+    inf: "להעשות", translit: "Leheasot", fr: "Devenir / être fait",
+    racine: "עשה", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נעשה", t: "Naase" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נעשה", t: "Naase" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייעשה", t: "Yease" },
+      ],
+    },
+  },
+  {
+    inf: "להיהפך", translit: "Leheafekh", fr: "Se transformer",
+    racine: "הפך", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נהפך", t: "Neefakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נהפך", t: "Neefakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יהפך", t: "Yeafekh" },
+      ],
+    },
+  },
+  {
+    inf: "להלמד", translit: "Lehilamed", fr: "S'apprendre / s'étudier",
+    racine: "למד", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נלמד", t: "Nilmad" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נלמד", t: "Nilmad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יילמד", t: "Yilamed" },
+      ],
+    },
+  },
+  {
+    inf: "להשכח", translit: "Lehisakakh", fr: "Etre oublié",
+    racine: "שכח", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נשכח", t: "Nichkakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נשכח", t: "Nichkakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יישכח", t: "Yichakakh" },
+      ],
+    },
+  },
+  {
+    inf: "להפתח", translit: "Lehipateakh", fr: "S'ouvrir",
+    racine: "פתח", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נפתח", t: "Niftakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נפתח", t: "Niftakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייפתח", t: "Yipateakh" },
       ],
     },
   },

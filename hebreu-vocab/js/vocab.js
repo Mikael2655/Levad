@@ -242,7 +242,7 @@ const VOCAB = [
   { he: "תחרות", translit: "Takharout", fr: "Compétition", cat: "Général" },
   { he: "דפוק בראש", translit: "Dafouk baroch", fr: "Complètement fou", cat: "Général" },
   { he: "לגמרי", translit: "Legamrei", fr: "Complètement/tout à fait", cat: "Général", note: "s'utilise au négatif avec לא pour dire pas du tout…" },
-  { he: "מסובך / מורכב", translit: "Mesoubakh / Mourkav", fr: "Compliqué / diffcile", cat: "Général" },
+  { he: "מסובך / מורכב", translit: "Mesoubakh / Mourkav", fr: "Compliqué / difficile", cat: "Général" },
   { he: "רוא חשבון", translit: "Roe khechbon", fr: "Comptable", cat: "Général" },
   { he: "טמבל", translit: "Tembel", fr: "Con", cat: "Général" },
   { he: "דפוק", translit: "Dafouk", fr: "Con / débile", cat: "Général" },
@@ -1342,4 +1342,6 @@ const VOCAB = [
   { he: "מטורף", translit: "Metoraf", fr: "Fou / folie", cat: "Général" },
   { he: "אנושיות", translit: "Enochiout", fr: "Humanité", cat: "Général" },
   { he: "חדש דנדש", translit: "Khadach dandach", fr: "Flambant neuf", cat: "Général" },
+  { he: "נשבר לי", translit: "Nichbar li", fr: "J'en ai marre (+ fort que nim'as)", cat: "Général", note: "Quelque chose s'est cassé en moi : je craque" },
+  { he: "נפלא", translit: "Nifla", fr: "Merveilleux", cat: "Général" },
 ];
