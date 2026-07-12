@@ -4,6 +4,26 @@ import { recomputeMatchPredictions } from '@/lib/scoring'
 
 const THROTTLE_MS = 8_000
 
+// Neon (comme la plupart des Postgres serverless en pooling) ne donne qu'un
+// tout petit pool de connexions. Traiter tous les matchs en parallèle sans
+// limite (Promise.all direct) épuise le pool et fait échouer la synchro
+// (`Timed out fetching a new connection from the connection pool`). Cette
+// limite garde le bénéfice du parallélisme (plus rapide qu'un par un,
+// nécessaire pour ne pas dépasser le délai du planificateur externe) sans
+// dépasser la capacité du pool.
+const MATCH_CONCURRENCY = 3
+
+async function mapWithConcurrency<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>) {
+  let index = 0
+  async function worker() {
+    while (index < items.length) {
+      const item = items[index++]
+      await fn(item)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker))
+}
+
 export interface SyncResult {
   synced: boolean
   reason?: 'not-configured' | 'throttled'
@@ -133,7 +153,7 @@ export async function syncCompetition(competitionId: number, options?: { force?:
       }
     }
 
-    await Promise.all(externalMatches.map(processMatch))
+    await mapWithConcurrency(externalMatches, MATCH_CONCURRENCY, processMatch)
 
     await prisma.competition.update({
       where: { id: competitionId },

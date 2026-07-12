@@ -26,25 +26,25 @@ export async function GET(request: Request) {
     select: { id: true, name: true },
   })
 
-  // Les compétitions sont indépendantes : les synchroniser en parallèle
-  // plutôt qu'une par une évite que le temps total ne s'additionne et ne
-  // dépasse le délai d'attente du planificateur externe.
-  const results = await Promise.all(
-    competitions.map(async (competition) => {
-      try {
-        const result = await syncCompetition(competition.id)
-        return {
-          id: competition.id,
-          name: competition.name,
-          ok: true,
-          detail: result.synced ? `${result.matchCount} match(s)` : result.reason,
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err)
-        return { id: competition.id, name: competition.name, ok: false, detail: message.slice(0, 300) }
-      }
-    })
-  )
+  // Séquentiel entre compétitions : chaque synchro utilise déjà plusieurs
+  // connexions DB en parallèle en interne (voir MATCH_CONCURRENCY dans
+  // lib/sync.ts). Les lancer aussi en parallèle entre elles multiplierait la
+  // pression sur le pool de connexions, qui est petit sur Neon.
+  const results: Array<{ id: number; name: string; ok: boolean; detail?: string }> = []
+  for (const competition of competitions) {
+    try {
+      const result = await syncCompetition(competition.id)
+      results.push({
+        id: competition.id,
+        name: competition.name,
+        ok: true,
+        detail: result.synced ? `${result.matchCount} match(s)` : result.reason,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      results.push({ id: competition.id, name: competition.name, ok: false, detail: message.slice(0, 300) })
+    }
+  }
 
   return NextResponse.json({ syncedAt: new Date().toISOString(), results })
 }
