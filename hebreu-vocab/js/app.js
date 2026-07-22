@@ -1062,14 +1062,48 @@ function renderConjTables() {
   });
 }
 
-/* --- QCM de conjugaison : 4 formes hébraïques, une seule est bonne --- */
+/* Représentation française d'une forme (pour le sens inversé du QCM) :
+   verbe déjà conjugué (« il a parlé »), ou l'infinitif pour les
+   questions d'infinitif. */
+function frOfConj(c) {
+  if (c.isInf) return c.verb.fr;
+  return conjugateFrLabel(c.verb.fr, c.tense) || c.verb.fr;
+}
+
+/* Prend une nouvelle question de conjugaison et tire son sens au sort. */
+function pickConj(pool, avoid) {
+  state.conj.current = pickWord(pool, avoid);
+  state.conj.reverse = Math.random() < 0.5;
+}
+
+/* Question hébraïque affichée (sens inversé : on cherche le français). */
+function conjQuestionBoxHe(item) {
+  const q = el("div", "quiz-question");
+  q.innerHTML = `
+    <div class="conj-badges">
+      <span class="badge badge-tense">${item.tense}</span>
+      ${item.isInf ? "" : `<span class="badge">${item.personne}</span>`}
+      ${item.verb.binyan ? `<span class="badge">${item.verb.binyan}</span>` : ""}
+    </div>
+    <div class="he-word he">${item.he}</div>
+    <div class="translit">${item.translit}</div>`;
+  return q;
+}
+
+/* --- QCM de conjugaison : sens tiré au sort à chaque question ---
+   français conjugué → 4 formes hébraïques, OU forme hébraïque → 4
+   traductions françaises. --- */
 function renderConjQuiz() {
   const pool = conjPool();
-  if (!state.conj.current) state.conj.current = pickWord(pool, null);
+  if (!state.conj.current) pickConj(pool, null);
   const item = state.conj.current;
+  const reverse = state.conj.reverse; // true : hébreu affiché, on cherche le français
 
   screen.appendChild(sessionScoreBar());
-  screen.appendChild(conjQuestionBox(item, true));
+  screen.appendChild(reverse ? conjQuestionBoxHe(item) : conjQuestionBox(item, true));
+
+  // Ce qui distingue les options à l'écran, selon le sens
+  const displayOf = (c) => (reverse ? frOfConj(c) : c.he);
 
   // Distracteurs : tous AU MÊME TEMPS que la question, en préférant
   // les verbes qui ressemblent à la bonne réponse (même binyan,
@@ -1090,23 +1124,23 @@ function renderConjQuiz() {
     }
     return s;
   }
-  const seen = new Set([item.he]);
+  const seen = new Set([displayOf(item)]);
   const distractors = [];
   CONJ_ITEMS
     .filter((c) => c.tense === item.tense && c.verb !== item.verb)
     .map((c) => [ressemblance(c), c])
     .sort((a, b) => b[0] - a[0])
     .forEach(([, c]) => {
-      if (distractors.length < 3 && !seen.has(c.he)) {
-        seen.add(c.he);
+      if (distractors.length < 3 && !seen.has(displayOf(c))) {
+        seen.add(displayOf(c));
         distractors.push(c);
       }
     });
   // Sécurité : si un temps a trop peu de verbes, on complète ailleurs
   if (distractors.length < 3) {
     shuffle(CONJ_ITEMS).forEach((c) => {
-      if (distractors.length < 3 && !seen.has(c.he)) {
-        seen.add(c.he);
+      if (distractors.length < 3 && !seen.has(displayOf(c))) {
+        seen.add(displayOf(c));
         distractors.push(c);
       }
     });
@@ -1117,18 +1151,22 @@ function renderConjQuiz() {
   screen.appendChild(optionsBox);
 
   let answered = false;
+  const buttons = [];
   options.forEach((option) => {
-    const btn = el("button", "quiz-option option-he", `<span class="he">${option.he}</span>`);
+    const btn = reverse
+      ? el("button", "quiz-option", frOfConj(option))
+      : el("button", "quiz-option option-he", `<span class="he">${option.he}</span>`);
+    buttons.push({ btn, option });
     btn.addEventListener("click", () => {
       if (answered) return;
       answered = true;
-      const isCorrect = option.he === item.he;
+      const isCorrect = option === item;
       recordAnswer(item, isCorrect);
       state.session[isCorrect ? "ok" : "ko"] += 1;
 
-      optionsBox.querySelectorAll(".quiz-option").forEach((b) => {
+      buttons.forEach(({ btn: b, option: o }) => {
         b.disabled = true;
-        if (b.textContent.trim() === item.he) b.classList.add("correct");
+        if (o === item) b.classList.add("correct");
       });
       if (!isCorrect) btn.classList.add("wrong");
 
@@ -1136,14 +1174,14 @@ function renderConjQuiz() {
         el(
           "div",
           "feedback " + (isCorrect ? "good" : "bad"),
-          `${isCorrect ? "✔" : "✘"} <span class="he">${item.he}</span> (<em>${item.translit}</em>)`
+          `${isCorrect ? "✔" : "✘"} <strong>${frOfConj(item)}</strong> — <span class="he">${item.he}</span> (<em>${item.translit}</em>)`
         )
       );
 
       // Enchaînement automatique
       setTimeout(() => {
         if (state.view === "conj" && state.conj.mode === "qcm" && state.conj.current === item) {
-          state.conj.current = pickWord(pool, item);
+          pickConj(pool, item);
           render();
         }
       }, isCorrect ? QCM_DELAY_OK : QCM_DELAY_KO);
