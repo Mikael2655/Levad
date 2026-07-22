@@ -194,9 +194,16 @@ const VERBES = [
   },
   {
     inf: "להיות צריך", translit: "Lihiyot tsarikh", fr: "Avoir besoin / devoir",
+    racine: "צרך",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "צריך", t: "Tsarikh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "היה צריך", t: "Haya tsarikh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יהיה צריך", t: "Yihye tsarikh" },
       ],
     },
   },
@@ -3456,7 +3463,7 @@ const VERBES = [
     },
   },
   {
-    inf: "לההילחם", translit: "Lehilakhem", fr: "Faire la guerre",
+    inf: "להילחם", translit: "Lehilakhem", fr: "Faire la guerre",
     racine: "לחם", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -4806,7 +4813,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להפטר", translit: "Lehipater", fr: "Mourir / se débarasser",
+    inf: "להפטר", translit: "Lehipater", fr: "Se débarasser / décéder",
     racine: "פטר", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5046,7 +5053,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להשכח", translit: "Lehisakakh", fr: "Etre oublié",
+    inf: "להשכח", translit: "Lehichakakh", fr: "Etre oublié",
     racine: "שכח", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5061,7 +5068,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להפתח", translit: "Lehipateakh", fr: "S'ouvrir",
+    inf: "להפתח", translit: "Lehipatakh", fr: "S'ouvrir",
     racine: "פתח", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5072,6 +5079,246 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "ייפתח", t: "Yipateakh" },
+      ],
+    },
+  },
+  {
+    inf: "להסתיר", translit: "Lehastir", fr: "Cacher / dissimuler",
+    racine: "סתר", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מסתיר", t: "Mastir" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הסתיר", t: "Histir" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסתיר", t: "Yastir" },
+      ],
+    },
+  },
+  {
+    inf: "להישבע", translit: "Lehishava", fr: "Jurer",
+    racine: "שבע", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נשבע", t: "Nishba" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נשבע", t: "Nishba" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יישבע", t: "Yishava" },
+      ],
+    },
+  },
+  {
+    inf: "להוריש", translit: "Lehorish", fr: "Léguer",
+    racine: "ירש", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מוריש", t: "Morish" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הוריש", t: "Horish" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יוריש", t: "Yorish" },
+      ],
+    },
+  },
+  {
+    inf: "להתנצל", translit: "Lehitnatsel", fr: "S'excuser",
+    racine: "נצל", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתנצל", t: "Mitnatsel" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התנצל", t: "Hitnatsel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתנצל", t: "Yitnatsel" },
+      ],
+    },
+  },
+  {
+    inf: "להודיע", translit: "Lehodia", fr: "Prévenir / informer",
+    racine: "ידע", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מודיע", t: "Modia" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הודיע", t: "Hodia" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יודיע", t: "Yodia" },
+      ],
+    },
+  },
+  {
+    inf: "להטות", translit: "Lehatot", fr: "Conjuguer / incliner",
+    racine: "נטה", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מטה", t: "Mate" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הטה", t: "Hita" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יטה", t: "Yate" },
+      ],
+    },
+  },
+  {
+    inf: "להיעלב", translit: "Lehealev", fr: "Se vexer",
+    racine: "עלב", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נעלב", t: "Ne'elav" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נעלב", t: "Ne'elav" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייעלב", t: "Ye'alev" },
+      ],
+    },
+  },
+  {
+    inf: "לטפס", translit: "Letapes", fr: "Grimper / monter",
+    racine: "טפס", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מטפס", t: "Metapes" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "טיפס", t: "Tipes" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יטפס", t: "Yetapes" },
+      ],
+    },
+  },
+  {
+    inf: "להיתקע", translit: "Lehitaka", fr: "Être coincé / se bloquer",
+    racine: "תקע", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נתקע", t: "Nitka" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נתקע", t: "Nitka" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייתקע", t: "Yitaka" },
+      ],
+    },
+  },
+  {
+    inf: "להיבהל", translit: "Lehibahel", fr: "Paniquer / s'effrayer",
+    racine: "בהל", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נבהל", t: "Nivhal" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נבהל", t: "Nivhal" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייבהל", t: "Yibahel" },
+      ],
+    },
+  },
+  {
+    inf: "להישלח", translit: "Lehishalach", fr: "Être envoyé",
+    racine: "שלח", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נשלח", t: "Nishlach" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נשלח", t: "Nishlach" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יישלח", t: "Yishalach" },
+      ],
+    },
+  },
+  {
+    inf: "להישמר", translit: "Lehishamer", fr: "Rester / garder / se conserver",
+    racine: "שמר", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נשמר", t: "Nishmar" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נשמר", t: "Nishmar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יישמר", t: "Yishamer" },
+      ],
+    },
+  },
+  {
+    inf: "להיצמד", translit: "Lehitsamed", fr: "Se rapprocher",
+    racine: "צמד", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נצמד", t: "Nitsmad" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נצמד", t: "Nitsmad" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייצמד", t: "Yitsamed" },
+      ],
+    },
+  },
+  {
+    inf: "להיעלם", translit: "Lehealem", fr: "Disparaitre",
+    racine: "עלם", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נעלם", t: "Ne'elam" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נעלם", t: "Ne'elam" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייעלם", t: "Ye'alem" },
+      ],
+    },
+  },
+  {
+    inf: "להירדם", translit: "Lehiradem", fr: "S'endormir",
+    racine: "רדם", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נרדם", t: "Nirdam" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נרדם", t: "Nirdam" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יירדם", t: "Yiradem" },
+      ],
+    },
+  },
+  {
+    inf: "להיראות", translit: "Lehera'ot", fr: "Sembler",
+    racine: "ראה", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נראה", t: "Nir'e" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נראה", t: "Nir'a" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייראה", t: "Yera'e" },
       ],
     },
   },
