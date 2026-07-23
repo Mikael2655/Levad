@@ -2803,21 +2803,6 @@ const VERBES = [
     },
   },
   {
-    inf: "לשחוט", translit: "Lichkot", fr: "Egorger",
-    racine: "שחט", binyan: "פעל",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "שוקט", t: "Choket" },
-      ],
-      "Passé": [
-        { p: "il (הוא)", he: "שחט", t: "Chakhat" },
-      ],
-      "Futur": [
-        { p: "il (הוא)", he: "ישחט", t: "Yishkhat" },
-      ],
-    },
-  },
-  {
     inf: "לגנוב", translit: "Lignov", fr: "Voler (dérober)",
     racine: "גנב", binyan: "פעל",
     temps: {
