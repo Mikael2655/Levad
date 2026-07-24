@@ -210,6 +210,70 @@ body {
 .stats-banner .big { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
 .stats-banner .label { font-size: 0.8rem; color: var(--muted); }
 
+/* ---------- Panneau « du jour » (accueil) ---------- */
+.daily-panel {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.8rem;
+}
+.daily-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+.daily-streak strong { font-size: 1.2rem; color: var(--gold); }
+.daily-streak span { color: var(--muted); font-size: 0.8rem; }
+.daily-goal strong { color: var(--accent); font-size: 1.1rem; }
+.daily-bar {
+  height: 8px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.daily-bar-fill {
+  height: 100%;
+  background: var(--good);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.daily-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+.daily-actions .btn { flex: 1; min-width: 45%; }
+.pill {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.85em;
+  margin-inline-start: 0.3rem;
+}
+.btn-neutral .pill { background: rgba(0, 0, 0, 0.12); }
+.goal-row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 1rem; }
+
+/* ---------- Session de révision ---------- */
+.review-progress { margin-bottom: 0.8rem; }
+.review-count { text-align: center; font-weight: 700; color: var(--muted); margin-bottom: 0.3rem; }
+.review-score { display: flex; justify-content: center; gap: 1.2rem; margin-top: 0.4rem; font-weight: 700; }
+.review-score .ok { color: var(--good); }
+.review-score .ko { color: var(--bad); }
+.btn-link {
+  display: block;
+  margin: 1rem auto 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* ---------- Choix du profil ---------- */
 .profile-list {
   display: flex;

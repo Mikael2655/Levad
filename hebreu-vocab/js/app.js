@@ -89,6 +89,7 @@ function selectProfile(name) {
   activeProfile = name;
   localStorage.setItem(ACTIVE_PROFILE_KEY, name);
   progress = loadProgress();
+  stats = loadStats();
   updateProfileChip();
   switchView("home");
 }
@@ -119,6 +120,19 @@ function getWordStats(word) {
   return progress[k];
 }
 
+/* Répétition espacée « à date » : après une bonne réponse, le mot est
+   reprogrammé à un intervalle qui grandit avec sa boîte (1, 2, 4, 9,
+   20 jours) ; après une erreur, il redevient dû aujourd'hui. */
+const SRS_INTERVALS = [1, 2, 4, 9, 20];
+
+function todayNum() {
+  const d = new Date();
+  return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
+}
+function todayStr() {
+  return new Date().toLocaleDateString("fr-CA"); // AAAA-MM-JJ
+}
+
 function recordAnswer(word, isCorrect) {
   const s = getWordStats(word);
   s.seen += 1;
@@ -129,7 +143,58 @@ function recordAnswer(word, isCorrect) {
     s.ko += 1;
     s.box = 0; // le mot raté revient au début : il ressortira souvent
   }
+  s.due = todayNum() + (isCorrect ? SRS_INTERVALS[s.box] : 0);
   saveProgress();
+  bumpDailyCount();
+}
+
+/* Un élément est « à réviser aujourd'hui » s'il a déjà été vu et que
+   sa date de révision est atteinte (ou absente, pour les anciennes
+   sauvegardes d'avant la planification). */
+function isDue(s) {
+  return s && s.seen > 0 && (s.due == null || s.due <= todayNum());
+}
+
+/* ---- Statistiques quotidiennes : objectif + série (streak) ---- */
+const STATS_PREFIX = "hebreu-vocab-stats-";
+function statsKey() {
+  return STATS_PREFIX + activeProfile;
+}
+function loadStats() {
+  if (!activeProfile) return { goal: 20, days: {} };
+  try {
+    const s = JSON.parse(localStorage.getItem(statsKey())) || {};
+    return { goal: s.goal || 20, days: s.days || {} };
+  } catch {
+    return { goal: 20, days: {} };
+  }
+}
+function saveStats() {
+  if (activeProfile) localStorage.setItem(statsKey(), JSON.stringify(stats));
+}
+function bumpDailyCount() {
+  const d = todayStr();
+  stats.days[d] = (stats.days[d] || 0) + 1;
+  saveStats();
+}
+function todayCount() {
+  return stats.days[todayStr()] || 0;
+}
+/* Série : nombre de jours consécutifs (jusqu'à aujourd'hui ou hier)
+   où au moins une réponse a été donnée. */
+function currentStreak() {
+  let streak = 0;
+  const d = new Date();
+  // Si rien aujourd'hui, la série peut encore tenir depuis hier
+  if (!stats.days[todayStr()]) d.setDate(d.getDate() - 1);
+  while (true) {
+    const key = d.toLocaleDateString("fr-CA");
+    if (stats.days[key]) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else break;
+  }
+  return streak;
 }
 
 /* Tirage pondéré : plus la boîte est basse, plus le mot a de
@@ -164,6 +229,7 @@ function pickWord(pool, avoid) {
 let activeProfile = localStorage.getItem(ACTIVE_PROFILE_KEY) || null;
 if (activeProfile && !getProfiles().includes(activeProfile)) activeProfile = null;
 let progress = loadProgress();
+let stats = loadStats();
 
 const state = {
   view: "home",
@@ -174,6 +240,7 @@ const state = {
   conj: { mode: "qcm", tense: "Tous", scope: "Tous", verb: 0, current: null }, // onglet Conjugaison
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
   search: { q: "" }, // onglet Recherche
+  review: { active: false, mode: "due", queue: [], idx: 0, ok: 0, ko: 0, missed: [], flipped: false }, // révision du jour
 };
 
 /* Nettoyage des données au chargement : on corrige les lettres
@@ -362,6 +429,7 @@ function render() {
     write: renderWrite,
     conj: renderConj,
     search: renderSearch,
+    review: renderReview,
     progress: renderProgress,
   };
   views[state.view]();
@@ -372,6 +440,7 @@ function switchView(view) {
   state.currentWord = null;
   state.conj.current = null;
   state.session = { ok: 0, ko: 0 };
+  state.review.active = false;
   render();
 }
 
@@ -446,6 +515,59 @@ function renderHome() {
 
   screen.appendChild(el("h2", "view-title home-title", `שלום ${activeProfile} ! Prêt(e) à réviser ?`));
 
+  // ---- Panneau « du jour » : objectif, série, et lancement rapide ----
+  const goal = stats.goal;
+  const doneToday = todayCount();
+  const streak = currentStreak();
+  const dueCount = VOCAB.filter((w) => isDue(progress[w.he])).length;
+  const errCount = VOCAB.filter((w) => {
+    const s = progress[w.he];
+    return s && s.seen >= 2 && s.ko > s.ok;
+  }).length;
+  const pct = Math.min(100, Math.round((doneToday / goal) * 100));
+
+  const daily = el("div", "daily-panel");
+  daily.innerHTML = `
+    <div class="daily-top">
+      <div class="daily-streak">🔥 <strong>${streak}</strong> <span>jour${streak > 1 ? "s" : ""}</span></div>
+      <div class="daily-goal">Aujourd'hui : <strong>${doneToday}</strong> / ${goal}</div>
+    </div>
+    <div class="daily-bar"><div class="daily-bar-fill" style="width:${pct}%"></div></div>`;
+  screen.appendChild(daily);
+
+  const reviewBtns = el("div", "daily-actions");
+  const btnDue = el(
+    "button",
+    "btn btn-primary",
+    `📅 Ma révision du jour${dueCount ? ` <span class="pill">${dueCount}</span>` : ""}`
+  );
+  btnDue.addEventListener("click", () => startReview("due"));
+  reviewBtns.appendChild(btnDue);
+  if (errCount > 0) {
+    const btnErr = el("button", "btn btn-neutral", `🔴 Réviser mes erreurs <span class="pill">${errCount}</span>`);
+    btnErr.addEventListener("click", () => startReview("errors"));
+    reviewBtns.appendChild(btnErr);
+  }
+  screen.appendChild(reviewBtns);
+
+  // Réglage de l'objectif quotidien
+  const goalRow = el("label", "goal-row hint", "🎯 Objectif du jour : ");
+  const goalSel = el("select", "conj-select");
+  [10, 15, 20, 30, 50].forEach((n) => {
+    const opt = document.createElement("option");
+    opt.value = n;
+    opt.textContent = n + " mots";
+    if (n === goal) opt.selected = true;
+    goalSel.appendChild(opt);
+  });
+  goalSel.addEventListener("change", () => {
+    stats.goal = Number(goalSel.value);
+    saveStats();
+    render();
+  });
+  goalRow.appendChild(goalSel);
+  screen.appendChild(goalRow);
+
   const banner = el("div", "stats-banner");
   banner.innerHTML = `
     <div><div class="big">${total}</div><div class="label">mots au total</div></div>
@@ -486,6 +608,164 @@ function renderHome() {
 function nextWord(pool, avoid) {
   state.currentWord = pickWord(pool, avoid);
   state.reverse = Math.random() < 0.5;
+}
+
+/* ------------------------------------------------------------
+   📅 Révision du jour (session bornée, en flashcards, avec récap)
+   ------------------------------------------------------------ */
+function startReview(mode) {
+  const today = todayNum();
+  let queue;
+  if (mode === "errors") {
+    queue = VOCAB.filter((w) => {
+      const s = progress[w.he];
+      return s && s.seen >= 2 && s.ko > s.ok;
+    });
+    queue = shuffle(queue);
+  } else {
+    // Les mots dus aujourd'hui, complétés par des nouveaux jusqu'à l'objectif
+    const due = shuffle(VOCAB.filter((w) => isDue(progress[w.he])));
+    const neuf = shuffle(VOCAB.filter((w) => !progress[w.he] || progress[w.he].seen === 0));
+    queue = due.slice(0, stats.goal);
+    if (queue.length < stats.goal) queue = queue.concat(neuf.slice(0, stats.goal - queue.length));
+  }
+  state.review = { active: true, mode, queue, idx: 0, ok: 0, ko: 0, missed: [], flipped: false };
+  state.view = "review";
+  render();
+}
+
+function renderReview() {
+  const r = state.review;
+
+  // Rien à réviser
+  if (r.active && r.queue.length === 0) {
+    screen.appendChild(el("h2", "view-title", r.mode === "errors" ? "🔴 Réviser mes erreurs" : "📅 Révision du jour"));
+    screen.appendChild(
+      el(
+        "p",
+        "hint",
+        r.mode === "errors"
+          ? "Aucun mot en difficulté pour l'instant — bravo ! 🎉"
+          : "Rien à réviser aujourd'hui : vous êtes à jour ! 🎉 Revenez demain, ou entraînez-vous librement dans les autres onglets."
+      )
+    );
+    const back = el("button", "btn btn-primary", "← Retour à l'accueil");
+    back.style.marginTop = "1rem";
+    back.addEventListener("click", () => switchView("home"));
+    screen.appendChild(back);
+    return;
+  }
+
+  // Fin de session → récap
+  if (r.idx >= r.queue.length) return renderReviewRecap();
+
+  const word = r.queue[r.idx];
+  const reverse = r.reverse === undefined ? false : r.reverse;
+
+  screen.appendChild(
+    el("h2", "view-title", `${r.mode === "errors" ? "🔴 Mes erreurs" : "📅 Révision du jour"}`)
+  );
+
+  // Barre de progression de la session
+  const prog = el("div", "review-progress");
+  prog.innerHTML = `
+    <div class="review-count">${r.idx + 1} / ${r.queue.length}</div>
+    <div class="daily-bar"><div class="daily-bar-fill" style="width:${Math.round((r.idx / r.queue.length) * 100)}%"></div></div>
+    <div class="review-score"><span class="ok">✔ ${r.ok}</span> <span class="ko">✘ ${r.ko}</span></div>`;
+  screen.appendChild(prog);
+
+  // Flashcard
+  const scene = el("div", "flash-scene");
+  const card = el("div", "flash-card" + (r.flipped ? " flipped" : ""));
+  card.innerHTML = `
+    <div class="flash-face front">
+      <span class="word-cat">${word.cat}</span>
+      <div class="he-word he">${word.he} ${speakBtn(word.he)}</div>
+      <div class="translit">${word.translit}</div>
+      <div class="tap-hint">👆 Touchez pour voir la traduction</div>
+    </div>
+    <div class="flash-face back">
+      <span class="word-cat">${word.cat}</span>
+      <div class="fr-word" style="font-size:1.6rem">${word.fr}</div>
+      <div class="he-word he" style="font-size:1.8rem">${word.he} ${speakBtn(word.he)}</div>
+      ${word.note ? `<div class="word-note">💡 ${word.note}</div>` : ""}
+    </div>`;
+  scene.appendChild(card);
+  screen.appendChild(scene);
+
+  const buttons = el("div", "flash-buttons");
+  const btnKo = el("button", "btn btn-bad", "😕 Je ne savais pas");
+  const btnOk = el("button", "btn btn-good", "😀 Je savais !");
+  btnKo.disabled = btnOk.disabled = !r.flipped;
+  buttons.appendChild(btnKo);
+  buttons.appendChild(btnOk);
+  screen.appendChild(buttons);
+
+  card.addEventListener("click", () => {
+    r.flipped = true;
+    render();
+  });
+
+  function answer(correct) {
+    recordAnswer(word, correct);
+    r[correct ? "ok" : "ko"] += 1;
+    if (!correct) r.missed.push(word);
+    r.idx += 1;
+    r.flipped = false;
+    render();
+  }
+  btnOk.addEventListener("click", () => answer(true));
+  btnKo.addEventListener("click", () => answer(false));
+
+  const quit = el("button", "btn-link", "Arrêter la session");
+  quit.addEventListener("click", () => switchView("home"));
+  screen.appendChild(quit);
+}
+
+function renderReviewRecap() {
+  const r = state.review;
+  const total = r.ok + r.ko;
+  screen.appendChild(el("h2", "view-title", "🎉 Session terminée !"));
+
+  const recap = el("div", "stats-banner");
+  recap.innerHTML = `
+    <div><div class="big">${total}</div><div class="label">révisés</div></div>
+    <div><div class="big" style="color:var(--good)">${r.ok}</div><div class="label">réussis</div></div>
+    <div><div class="big" style="color:var(--bad)">${r.ko}</div><div class="label">à revoir</div></div>`;
+  screen.appendChild(recap);
+
+  const streak = currentStreak();
+  screen.appendChild(
+    el("p", "hint", `🔥 Série : ${streak} jour${streak > 1 ? "s" : ""} d'affilée. Aujourd'hui : ${todayCount()} / ${stats.goal}.`)
+  );
+
+  if (r.missed.length > 0) {
+    screen.appendChild(el("p", "hint", "À revoir :"));
+    const list = el("div", "word-list");
+    r.missed.forEach((w) => {
+      const row = el("div", "word-row struggling");
+      row.innerHTML = `
+        <div class="he">${w.he} ${speakBtn(w.he)}</div>
+        <div class="infos"><div class="fr">${w.fr}</div><div class="translit">${w.translit}</div></div>`;
+      list.appendChild(row);
+    });
+    screen.appendChild(list);
+  }
+
+  const actions = el("div", "daily-actions");
+  if (r.missed.length > 0) {
+    const again = el("button", "btn btn-primary", "🔁 Revoir mes erreurs");
+    again.addEventListener("click", () => {
+      const missed = r.missed.slice();
+      state.review = { active: true, mode: "errors", queue: shuffle(missed), idx: 0, ok: 0, ko: 0, missed: [], flipped: false };
+      render();
+    });
+    actions.appendChild(again);
+  }
+  const home = el("button", "btn btn-neutral", "← Accueil");
+  home.addEventListener("click", () => switchView("home"));
+  actions.appendChild(home);
+  screen.appendChild(actions);
 }
 
 /* ----- Flashcards ----- */
