@@ -515,7 +515,7 @@ function renderFlashcards() {
     <div class="flash-face front">${front}</div>
     <div class="flash-face back">
       <span class="word-cat">${word.cat}</span>
-      <div class="he-word he" style="font-size:2.1rem">${word.he}</div>
+      <div class="he-word he" style="font-size:2.1rem">${word.he} ${speakBtn(word.he)}</div>
       <div class="translit">${word.translit}</div>
       <div class="fr-word" style="font-size:1.3rem">${word.fr}</div>
       ${word.note ? `<div class="word-note">💡 ${word.note}</div>` : ""}
@@ -1056,7 +1056,7 @@ function renderConjTables() {
         (f) => `<tr>
           <td class="personne">${f.p}</td>
           <td class="he form">${f.he}</td>
-          <td class="translit">${f.t}</td>
+          <td class="translit">${f.t} ${speakBtn(f.he)}</td>
         </tr>`
       )
       .join("");
@@ -1342,6 +1342,7 @@ function renderSearch() {
           <div class="fr">${it.fr}</div>
           <div class="translit">${it.translit}${it.note ? ` · 💡 ${it.note}` : ""}</div>
         </div>
+        ${speakBtn(it.he)}
         <span class="search-tag">${it.tag}</span>`;
       if (it.type === "verbe") {
         row.classList.add("is-verb");
@@ -1581,6 +1582,72 @@ function renderEmpty() {
 if (navigator.storage && navigator.storage.persist) {
   navigator.storage.persist().catch(() => {});
 }
+
+/* ------------------------------------------------------------
+   🔊 Prononciation audio (voix hébraïque du navigateur)
+   ------------------------------------------------------------
+   Un clic sur n'importe quel bouton [data-speak] lit le mot en
+   hébreu. Écouté en capture pour ne pas déclencher le clic de
+   l'élément qui l'entoure (carte, ligne de résultat…). */
+function speak(text) {
+  if (!("speechSynthesis" in window) || !text) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "he-IL";
+    const voices = speechSynthesis.getVoices() || [];
+    const he = voices.find((v) => /he([-_]?IL)?/i.test(v.lang));
+    if (he) u.voice = he;
+    u.rate = 0.9;
+    speechSynthesis.speak(u);
+  } catch {
+    /* pas de synthèse vocale disponible : on ignore silencieusement */
+  }
+}
+// getVoices() est parfois vide au démarrage : on force son chargement
+if ("speechSynthesis" in window) {
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+}
+document.addEventListener(
+  "click",
+  (e) => {
+    const btn = e.target.closest("[data-speak]");
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      speak(btn.getAttribute("data-speak"));
+    }
+  },
+  true // capture : passe avant le clic de la carte / de la ligne
+);
+
+/* Petit bouton haut-parleur à insérer près d'un mot hébreu. */
+function speakBtn(he) {
+  return `<button class="speak-btn" data-speak="${String(he).replace(/"/g, "&quot;")}" title="Écouter" aria-label="Écouter">🔊</button>`;
+}
+
+/* ------------------------------------------------------------
+   🌙 Mode clair / sombre
+   ------------------------------------------------------------ */
+const THEME_KEY = "hebreu-vocab-theme";
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  const btn = document.getElementById("theme-toggle");
+  if (btn) btn.textContent = theme === "dark" ? "☀️" : "🌙";
+}
+(function initTheme() {
+  let theme = localStorage.getItem(THEME_KEY);
+  if (!theme) {
+    theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  applyTheme(theme);
+})();
+document.getElementById("theme-toggle").addEventListener("click", () => {
+  const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+});
 
 document.getElementById("tabs").addEventListener("click", (e) => {
   const tab = e.target.closest(".tab");
