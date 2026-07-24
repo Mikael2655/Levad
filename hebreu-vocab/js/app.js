@@ -173,6 +173,7 @@ const state = {
   session: { ok: 0, ko: 0 }, // score de la session en cours
   conj: { mode: "qcm", tense: "Tous", scope: "Tous", verb: 0, current: null }, // onglet Conjugaison
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
+  search: { q: "" }, // onglet Recherche
 };
 
 /* Nettoyage des données au chargement : on corrige les lettres
@@ -360,6 +361,7 @@ function render() {
     quiz: renderQuiz,
     write: renderWrite,
     conj: renderConj,
+    search: renderSearch,
     progress: renderProgress,
   };
   views[state.view]();
@@ -457,6 +459,7 @@ function renderHome() {
     ["quiz", "✅", "QCM", "Un mot, quatre traductions : trouvez la bonne."],
     ["write", "✍️", "Écrire la traduction", "Tapez la traduction française du mot affiché."],
     ["conj", "🔤", "Conjugaison", "Tableaux, QCM et écriture des verbes aux différents temps."],
+    ["search", "🔍", "Recherche", "Cherchez un mot ou un verbe, en français ou en hébreu."],
     ["progress", "📊", "Progrès", "Vos scores mot par mot, et les mots à retravailler."],
   ];
   games.forEach(([view, emoji, title, desc]) => {
@@ -1251,6 +1254,116 @@ function renderConjWrite() {
     screen.appendChild(next);
     next.focus();
   });
+}
+
+/* ----- Recherche globale (mots + verbes, français / hébreu / prononciation) ----- */
+function renderSearch() {
+  // Comparaison souple : minuscules, sans accents ("écrire" ↔ "ecrire")
+  const fold = (s) => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+  // Index unifié des mots et des verbes, construit une fois
+  if (!renderSearch.index) {
+    const idx = [];
+    VOCAB.forEach((w) => {
+      idx.push({
+        type: "mot",
+        he: w.he,
+        translit: w.translit,
+        fr: w.fr,
+        tag: w.cat,
+        note: w.note || "",
+        hay: fold(w.fr) + " | " + fold(w.translit),
+        heRaw: w.he,
+      });
+    });
+    VERBES.forEach((v, i) => {
+      idx.push({
+        type: "verbe",
+        he: v.inf,
+        translit: v.translit,
+        fr: v.fr,
+        tag: "🔤 verbe" + (v.binyan ? " · " + v.binyan : ""),
+        verbIndex: i,
+        hay: fold(v.fr) + " | " + fold(v.translit),
+        heRaw: v.inf,
+      });
+    });
+    renderSearch.index = idx;
+  }
+  const index = renderSearch.index;
+
+  screen.appendChild(el("h2", "view-title", "🔍 Recherche"));
+
+  const search = el("div", "verb-search");
+  const input = el("input", "write-input");
+  input.type = "search";
+  input.placeholder = "🔍 Mot ou verbe, en français ou en hébreu…";
+  input.autocapitalize = "off";
+  input.autocomplete = "off";
+  input.value = state.search.q;
+  search.appendChild(input);
+  const results = el("div", "verb-results search-results");
+  search.appendChild(results);
+  screen.appendChild(search);
+
+  screen.appendChild(
+    el("p", "hint", "Tapez en français, en prononciation (ex. <em>shalom</em>) ou en hébreu. La recherche trouve le texte où qu'il se trouve dans le mot.")
+  );
+
+  function runSearch() {
+    const raw = input.value.trim();
+    state.search.q = raw;
+    const q = fold(raw);
+    const qHe = hebrewLetters(raw); // partie hébraïque éventuelle
+    results.innerHTML = "";
+    if (!q && !qHe) return;
+
+    const matches = index.filter((it) => {
+      if (qHe) return hebrewLetters(it.heRaw).includes(qHe);
+      return it.hay.includes(q);
+    });
+    // Pertinence : ce qui commence par la recherche d'abord, puis A→Z
+    matches.sort((a, b) => {
+      const pa = fold(a.fr).startsWith(q) ? 0 : 1;
+      const pb = fold(b.fr).startsWith(q) ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      return a.fr.localeCompare(b.fr, "fr");
+    });
+
+    results.appendChild(
+      el("p", "hint", `${matches.length} résultat${matches.length > 1 ? "s" : ""}${matches.length > 200 ? " (200 affichés)" : ""}.`)
+    );
+    matches.slice(0, 200).forEach((it) => {
+      const row = el("button", "search-row");
+      row.type = "button";
+      row.innerHTML = `
+        <div class="he">${it.he}</div>
+        <div class="infos">
+          <div class="fr">${it.fr}</div>
+          <div class="translit">${it.translit}${it.note ? ` · 💡 ${it.note}` : ""}</div>
+        </div>
+        <span class="search-tag">${it.tag}</span>`;
+      if (it.type === "verbe") {
+        row.classList.add("is-verb");
+        row.title = "Voir la conjugaison";
+        row.addEventListener("click", () => {
+          state.conj.mode = "tables";
+          state.conj.verb = it.verbIndex;
+          switchView("conj");
+        });
+      } else {
+        row.disabled = true; // un mot n'est pas cliquable (rien à ouvrir)
+      }
+      results.appendChild(row);
+    });
+    if (matches.length === 0) {
+      results.appendChild(el("p", "hint", "Aucun mot ni verbe trouvé."));
+    }
+  }
+
+  input.addEventListener("input", runSearch);
+  if (state.search.q) runSearch();
+  input.focus();
 }
 
 /* ----- Page Progrès ----- */
