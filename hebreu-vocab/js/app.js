@@ -1940,6 +1940,11 @@ document.querySelector(".logo").addEventListener("click", () => switchView("home
 document.getElementById("profile-chip").addEventListener("click", () => switchView("profiles"));
 updateProfileChip();
 
+// Accès rapide à la recherche depuis le bandeau
+document.getElementById("search-btn").addEventListener("click", () => {
+  if (activeProfile) switchView("search");
+});
+
 const categorySelect = document.getElementById("category-select");
 ["Tous", ...new Set(VOCAB.map((w) => w.cat))].forEach((cat) => {
   const opt = document.createElement("option");
