@@ -610,6 +610,26 @@ function nextWord(pool, avoid) {
   state.reverse = Math.random() < 0.5;
 }
 
+/* Filtre par thème, affiché en haut des jeux de vocabulaire. */
+function categoryFilter() {
+  const wrap = el("div", "conj-filter");
+  wrap.appendChild(el("span", "hint", "Thème : "));
+  const sel = el("select", "conj-select");
+  ["Tous", ...new Set(VOCAB.map((w) => w.cat))].forEach((cat) => {
+    const opt = document.createElement("option");
+    opt.value = opt.textContent = cat;
+    if (cat === state.category) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener("change", () => {
+    state.category = sel.value;
+    state.currentWord = null;
+    render();
+  });
+  wrap.appendChild(sel);
+  return wrap;
+}
+
 /* ------------------------------------------------------------
    📅 Révision du jour (session bornée, en flashcards, avec récap)
    ------------------------------------------------------------ */
@@ -777,6 +797,7 @@ function renderFlashcards() {
   const word = state.currentWord;
 
   screen.appendChild(el("h2", "view-title", "🃏 Flashcards"));
+  screen.appendChild(categoryFilter());
   screen.appendChild(sessionScoreBar());
 
   // Le recto varie selon le sens tiré au sort ; le verso montre tout
@@ -843,6 +864,7 @@ function renderQuiz() {
   const reverse = state.reverse; // true : question en français, choix en hébreu
 
   screen.appendChild(el("h2", "view-title", "✅ QCM"));
+  screen.appendChild(categoryFilter());
   screen.appendChild(sessionScoreBar());
 
   const question = el("div", "quiz-question");
@@ -919,6 +941,7 @@ function renderWrite() {
   const reverse = state.reverse; // true : le français est affiché, on écrit l'hébreu
 
   screen.appendChild(el("h2", "view-title", "✍️ Écrire la traduction"));
+  screen.appendChild(categoryFilter());
   screen.appendChild(sessionScoreBar());
 
   const question = el("div", "quiz-question");
@@ -1943,18 +1966,6 @@ updateProfileChip();
 // Accès rapide à la recherche depuis le bandeau
 document.getElementById("search-btn").addEventListener("click", () => {
   if (activeProfile) switchView("search");
-});
-
-const categorySelect = document.getElementById("category-select");
-["Tous", ...new Set(VOCAB.map((w) => w.cat))].forEach((cat) => {
-  const opt = document.createElement("option");
-  opt.value = opt.textContent = cat;
-  categorySelect.appendChild(opt);
-});
-categorySelect.addEventListener("change", () => {
-  state.category = categorySelect.value;
-  state.currentWord = null;
-  render();
 });
 
 render();
