@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/pronostics/cron-sync",
-      "schedule": "23 5 * * *"
-    }
-  ]
-}
