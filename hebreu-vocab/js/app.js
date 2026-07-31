@@ -230,6 +230,7 @@ let activeProfile = localStorage.getItem(ACTIVE_PROFILE_KEY) || null;
 if (activeProfile && !getProfiles().includes(activeProfile)) activeProfile = null;
 let progress = loadProgress();
 let stats = loadStats();
+let reviewScope = localStorage.getItem("hebreu-vocab-review-scope") || "tout"; // Tout / mots / verbes
 
 const state = {
   view: "home",
@@ -519,9 +520,10 @@ function renderHome() {
   const goal = stats.goal;
   const doneToday = todayCount();
   const streak = currentStreak();
-  const dueCount = VOCAB.filter((w) => isDue(progress[w.he])).length;
-  const errCount = VOCAB.filter((w) => {
-    const s = progress[w.he];
+  const dailyPool = reviewCards();
+  const dueCount = dailyPool.filter((c) => isDue(progress[c.key])).length;
+  const errCount = dailyPool.filter((c) => {
+    const s = progress[c.key];
     return s && s.seen >= 2 && s.ko > s.ok;
   }).length;
   const pct = Math.min(100, Math.round((doneToday / goal) * 100));
@@ -550,13 +552,35 @@ function renderHome() {
   }
   screen.appendChild(reviewBtns);
 
+  // Portée de la révision : mots, verbes à l'infinitif, ou tout
+  const scopeRow = el("label", "goal-row hint", "🃏 Réviser : ");
+  const scopeSel = el("select", "conj-select");
+  [
+    ["tout", "Tout (mots + verbes)"],
+    ["mots", "Mots seulement"],
+    ["verbes", "Verbes à l'infinitif"],
+  ].forEach(([value, text]) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = text;
+    if (value === reviewScope) opt.selected = true;
+    scopeSel.appendChild(opt);
+  });
+  scopeSel.addEventListener("change", () => {
+    reviewScope = scopeSel.value;
+    localStorage.setItem("hebreu-vocab-review-scope", reviewScope);
+    render();
+  });
+  scopeRow.appendChild(scopeSel);
+  screen.appendChild(scopeRow);
+
   // Réglage de l'objectif quotidien
   const goalRow = el("label", "goal-row hint", "🎯 Objectif du jour : ");
   const goalSel = el("select", "conj-select");
   [10, 15, 20, 30, 50].forEach((n) => {
     const opt = document.createElement("option");
     opt.value = n;
-    opt.textContent = n + " mots";
+    opt.textContent = n + " cartes";
     if (n === goal) opt.selected = true;
     goalSel.appendChild(opt);
   });
@@ -633,19 +657,48 @@ function categoryFilter() {
 /* ------------------------------------------------------------
    📅 Révision du jour (session bornée, en flashcards, avec récap)
    ------------------------------------------------------------ */
+
+/* Pool de cartes à réviser selon la portée choisie : mots de
+   vocabulaire et/ou verbes à l'infinitif. Chaque carte porte une clé
+   de progression ; pour les infinitifs, c'est la même que le QCM de
+   conjugaison, donc la mémoire est partagée. */
+function reviewCards(scope) {
+  const s = scope || reviewScope;
+  const cards = [];
+  if (s !== "verbes") {
+    VOCAB.forEach((w) =>
+      cards.push({ he: w.he, translit: w.translit, fr: w.fr, cat: w.cat, note: w.note || "", key: w.he })
+    );
+  }
+  if (s !== "mots" && typeof CONJ_ITEMS !== "undefined") {
+    CONJ_ITEMS.filter((c) => c.isInf).forEach((c) =>
+      cards.push({
+        he: c.he,
+        translit: c.translit,
+        fr: c.verb.fr,
+        cat: "🔤 Verbe (infinitif)",
+        note: c.verb.binyan ? "Binyan " + c.verb.binyan : "",
+        key: c.key,
+      })
+    );
+  }
+  return cards;
+}
+
 function startReview(mode) {
-  const today = todayNum();
+  const pool = reviewCards();
   let queue;
   if (mode === "errors") {
-    queue = VOCAB.filter((w) => {
-      const s = progress[w.he];
-      return s && s.seen >= 2 && s.ko > s.ok;
-    });
-    queue = shuffle(queue);
+    queue = shuffle(
+      pool.filter((c) => {
+        const s = progress[c.key];
+        return s && s.seen >= 2 && s.ko > s.ok;
+      })
+    );
   } else {
-    // Les mots dus aujourd'hui, complétés par des nouveaux jusqu'à l'objectif
-    const due = shuffle(VOCAB.filter((w) => isDue(progress[w.he])));
-    const neuf = shuffle(VOCAB.filter((w) => !progress[w.he] || progress[w.he].seen === 0));
+    // Les cartes dues aujourd'hui, complétées par des nouvelles jusqu'à l'objectif
+    const due = shuffle(pool.filter((c) => isDue(progress[c.key])));
+    const neuf = shuffle(pool.filter((c) => !progress[c.key] || progress[c.key].seen === 0));
     queue = due.slice(0, stats.goal);
     if (queue.length < stats.goal) queue = queue.concat(neuf.slice(0, stats.goal - queue.length));
   }
