@@ -679,10 +679,28 @@ function reviewCards(scope) {
         cat: "🔤 Verbe (infinitif)",
         note: c.verb.binyan ? "Binyan " + c.verb.binyan : "",
         key: c.key,
+        verb: c.verb, // pour afficher la conjugaison au verso
       })
     );
   }
   return cards;
+}
+
+/* Mini-tableau de conjugaison (formes de référence des 3 temps),
+   affiché au dos d'une carte de verbe pendant la révision. */
+function conjMini(verb) {
+  const rows = Object.entries(verb.temps)
+    .map(([tense, forms]) => {
+      const f = forms[0];
+      if (!f) return "";
+      return `<tr>
+        <td class="cm-tense">${tense}</td>
+        <td class="he cm-he">${f.he} ${speakBtn(f.he)}</td>
+        <td class="cm-tr">${f.t}</td>
+      </tr>`;
+    })
+    .join("");
+  return rows ? `<table class="conj-mini">${rows}</table>` : "";
 }
 
 function startReview(mode) {
@@ -749,7 +767,7 @@ function renderReview() {
 
   // Flashcard
   const scene = el("div", "flash-scene");
-  const card = el("div", "flash-card" + (r.flipped ? " flipped" : ""));
+  const card = el("div", "flash-card" + (r.flipped ? " flipped" : "") + (word.verb ? " has-conj" : ""));
   card.innerHTML = `
     <div class="flash-face front">
       <span class="word-cat">${word.cat}</span>
@@ -759,9 +777,10 @@ function renderReview() {
     </div>
     <div class="flash-face back">
       <span class="word-cat">${word.cat}</span>
-      <div class="fr-word" style="font-size:1.6rem">${word.fr}</div>
-      <div class="he-word he" style="font-size:1.8rem">${word.he} ${speakBtn(word.he)}</div>
-      ${word.note ? `<div class="word-note">💡 ${word.note}</div>` : ""}
+      <div class="fr-word" style="font-size:1.4rem">${word.fr}</div>
+      <div class="he-word he" style="font-size:1.6rem">${word.he} ${speakBtn(word.he)}</div>
+      ${word.verb ? conjMini(word.verb) : ""}
+      ${!word.verb && word.note ? `<div class="word-note">💡 ${word.note}</div>` : ""}
     </div>`;
   scene.appendChild(card);
   screen.appendChild(scene);

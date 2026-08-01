@@ -324,6 +324,22 @@ body {
   transition: transform 0.5s ease;
 }
 .flash-card.flipped { transform: rotateY(180deg); }
+.flash-card.has-conj { min-height: 380px; } /* place pour la conjugaison au verso */
+
+/* Mini-tableau de conjugaison au dos d'une carte de verbe */
+.conj-mini {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.4rem;
+}
+.conj-mini td {
+  padding: 0.3rem 0.3rem;
+  border-top: 1px solid var(--line);
+  vertical-align: middle;
+}
+.conj-mini .cm-tense { font-size: 0.8rem; color: var(--accent); font-weight: 700; text-align: left; }
+.conj-mini .cm-he { font-size: 1.25rem; font-weight: 700; text-align: right; white-space: nowrap; }
+.conj-mini .cm-tr { font-size: 0.82rem; color: var(--muted); font-style: italic; text-align: right; }
 .flash-face {
   position: absolute;
   inset: 0;
