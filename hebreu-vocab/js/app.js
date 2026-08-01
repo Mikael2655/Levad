@@ -1973,7 +1973,7 @@ function speak(text) {
     const voices = speechSynthesis.getVoices() || [];
     const he = voices.find((v) => /he([-_]?IL)?/i.test(v.lang));
     if (he) u.voice = he;
-    u.rate = 0.9;
+    u.rate = 0.75; // un peu plus lent pour bien détacher les syllabes
     speechSynthesis.speak(u);
   } catch {
     /* pas de synthèse vocale disponible : on ignore silencieusement */
