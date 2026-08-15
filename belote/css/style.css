@@ -185,6 +185,15 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .seg.team button.on[data-team="0"] { background: var(--team1); }
 .seg.team button.on[data-team="1"] { background: var(--team2); }
 
+/* Sélecteur de couleur (atout) */
+.seg.suits button { font-size: 1.25rem; padding: 0.5rem 0.2rem; }
+.seg button.red { color: var(--team2); }
+.seg.suits button.on { color: #fff; }
+
+/* Petit symbole de couleur sur chaque donne */
+.suit-tag { font-size: 1.05rem; font-weight: 800; margin-right: 0.15rem; vertical-align: baseline; }
+.suit-tag.red { color: var(--team2); }
+
 .field-row { display: flex; gap: 0.8rem; flex-wrap: wrap; }
 .field-row > div { flex: 1; min-width: 130px; }
 

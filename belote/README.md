@@ -15,9 +15,11 @@ l'écran d'accueil de votre téléphone pour l'utiliser comme une appli).
 1. **Nouvelle partie** : choisissez l'objectif (1500 ou 2000), nommez les
    deux équipes et les joueurs **dans l'ordre de distribution** (chacun
    rattaché à son équipe).
-2. **＋ Donne** : pour chaque donne, indiquez qui prend, le contrat, les
-   points réalisés par le preneur (0–162), la belote éventuelle et si la
-   donne est contrée/surcontrée. Le score de la donne s'affiche en direct.
+2. **＋ Donne** : pour chaque donne, indiquez qui prend, la **couleur**
+   (atout, juste pour le suivi), le contrat, les **points de cartes** —
+   vous pouvez saisir **ceux du preneur ou ceux de la défense** (l'autre
+   camp est déduit automatiquement, total 160) — la belote éventuelle et si
+   la donne est contrée/surcontrée. Le score s'affiche en direct.
 3. Le **cumul** de chaque équipe est en haut, et le **graphe** montre
    l'évolution donne après donne. Le nom du **distributeur** apparaît sur
    chaque ligne.
@@ -27,22 +29,27 @@ Touchez une donne existante pour la **modifier** ou la **supprimer**.
 
 ## Règles de calcul appliquées
 
-Pour chaque donne, une équipe prend un contrat et l'on saisit ses points de
-cartes (0 à 162) :
+Pour chaque donne, une équipe prend un contrat et l'on saisit les points de
+cartes d'un camp (au choix : le preneur **ou** la défense). Le total des
+cartes est **160** (arrondi à la dizaine), donc l'autre camp = 160 − saisi :
 
 - **Contrat réussi** (points du preneur + belote ≥ contrat)
   - Preneur = arrondi(**contrat + points du preneur**)
-  - Défense = arrondi(162 − points du preneur)
+  - Défense = arrondi(**160 − points du preneur**)
 - **Contrat chuté**
   - Preneur = 0
   - Défense = arrondi(**160 + contrat**)
 - **Belote** (Roi + Dame d'atout) : **+20** au porteur si le contrat est
   réussi ; **en cas de chute, la belote va à l'adversaire** (la défense).
-- **Contré** : l'équipe qui **gagne la donne** marque **2 × contrat + 162**
+- **Contré** : l'équipe qui **gagne la donne** marque **2 × contrat + 160**
   (le preneur s'il réussit, sinon l'adversaire qui l'a fait chuter).
-  **Surcontré** : **4 × contrat + 162**. La belote est doublée / quadruplée
-  et suit la même règle (au vainqueur / à l'adversaire en cas de chute).
+  **Surcontré** : **3 × contrat + 160**. La belote est doublée (contré) /
+  triplée (surcontré) et suit la même règle (au vainqueur, ou à l'adversaire
+  en cas de chute).
 - Tout est **arrondi à la dizaine** (la belote s'ajoute après l'arrondi).
+
+La **couleur** (♠ ♥ ♦ ♣, sans-atout, tout-atout) est purement indicative :
+elle n'a **aucun effet sur les points**, c'est juste pour suivre les donnes.
 
 La partie est signalée gagnée dès qu'une équipe atteint l'objectif tout en
 menant au score.

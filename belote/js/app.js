@@ -118,37 +118,56 @@
     $("#theme-toggle").textContent = saved === "dark" ? "☀️" : "🌙";
   })();
 
+  // Base de points de cartes utilisée (arrondie à la dizaine : 160, pas 162).
+  const BASE = 160;
+
+  // Couleurs (atout) — purement pour le suivi, sans effet sur les points.
+  const SUITS = {
+    pique: { sym: "♠", label: "Pique", red: false },
+    coeur: { sym: "♥", label: "Cœur", red: true },
+    carreau: { sym: "♦", label: "Carreau", red: true },
+    trefle: { sym: "♣", label: "Trèfle", red: false },
+    sa: { sym: "SA", label: "Sans-atout", red: false },
+    ta: { sym: "TA", label: "Tout-atout", red: false },
+  };
+
   // ---------------------------------------------------------
   // Moteur de calcul d'une donne
-  //   d = { preneur, contrat, points, belote(-1|0|1), mode }
-  //   Renvoie { pts:[s0,s1], realise:bool, dealerIdx }
+  //   d = { preneur, contrat, points, pointsSide, belote(-1|0|1),
+  //         mode, couleur }
+  //   `points` = points de cartes d'un camp (celui choisi via
+  //   `pointsSide`) ; l'autre camp = 160 − points.
+  //   Renvoie { pts:[s0,s1], realise, ppreneur, pdefense }
   // ---------------------------------------------------------
   function scoreDonne(d) {
     const C = Number(d.contrat) || 0;
-    const P = Math.max(0, Math.min(162, Number(d.points) || 0));
+    const entered = Math.max(0, Math.min(BASE, Number(d.points) || 0));
     const preneur = d.preneur;
     const defense = 1 - preneur;
+    // De quel camp sont les points saisis ? (preneur par défaut)
+    const ppreneur = d.pointsSide === "defense" ? BASE - entered : entered;
+    const pdefense = BASE - ppreneur;
     const bel = d.belote; // -1, 0 ou 1
     const pts = [0, 0];
-    // 1 = normale, 2 = contré, 4 = surcontré
-    const facteur = d.mode === "surcontre" ? 4 : d.mode === "contre" ? 2 : 1;
+    // 1 = normale, 2 = contré, 3 = surcontré
+    const facteur = d.mode === "surcontre" ? 3 : d.mode === "contre" ? 2 : 1;
 
     // La belote compte pour atteindre le contrat du preneur.
     const beloteAuPreneur = bel === preneur ? 20 : 0;
-    const realise = P + beloteAuPreneur >= C;
+    const realise = ppreneur + beloteAuPreneur >= C;
 
     if (facteur > 1) {
       // Contré / surcontré : tout va à l'équipe qui gagne la donne —
       // le preneur s'il réussit, sinon l'adversaire qui l'a fait chuter.
       const gagnant = realise ? preneur : defense;
-      pts[gagnant] = facteur * C + 162;
+      pts[gagnant] = facteur * C + BASE;
     } else {
       if (realise) {
-        pts[preneur] = roundTen(C + P);
-        pts[defense] = roundTen(162 - P);
+        pts[preneur] = roundTen(C + ppreneur);
+        pts[defense] = roundTen(pdefense);
       } else {
         pts[preneur] = 0;
-        pts[defense] = roundTen(160 + C);
+        pts[defense] = roundTen(BASE + C);
       }
     }
     // Belote (×facteur) : au porteur si le contrat est réussi,
@@ -157,7 +176,7 @@
       const beneficiaire = realise ? bel : defense;
       pts[beneficiaire] += 20 * facteur;
     }
-    return { pts, realise };
+    return { pts, realise, ppreneur, pdefense };
   }
 
   // Totaux cumulés après chaque donne : renvoie tableau de [cum0, cum1]
@@ -452,6 +471,11 @@
         const resTag = r.realise
           ? `<span class="tag ok">réussi</span>`
           : `<span class="tag ko">chuté</span>`;
+        const suit = SUITS[d.couleur];
+        const suitTag = suit
+          ? `<span class="suit-tag ${suit.red ? "red" : ""}">${suit.sym}</span>`
+          : "";
+        const sideTxt = d.pointsSide === "defense" ? "déf." : "pren.";
         return `
         <div class="donne ${r.realise ? "" : "chute"}" data-edit="${i}">
           <div class="line1">
@@ -460,8 +484,9 @@
           </div>
           <div class="line2">
             <div class="contract">
+              ${suitTag}
               <span class="taker t${d.preneur}">${esc(takerName)}</span>
-              prend <b>${d.contrat}</b> · ${d.points} pts
+              prend <b>${d.contrat}</b> · ${d.points} pts (${sideTxt})
               ${modeTag} ${resTag} ${belTag}
             </div>
             <div class="pts">
@@ -562,8 +587,19 @@
     const isEdit = editIndex !== null && editIndex !== undefined;
     const nextNum = isEdit ? editIndex + 1 : game.donnes.length + 1;
     const draft = isEdit
-      ? Object.assign({}, game.donnes[editIndex])
-      : { preneur: 0, contrat: 90, points: 90, belote: -1, mode: "normal" };
+      ? Object.assign(
+          { pointsSide: "preneur", couleur: "pique" },
+          game.donnes[editIndex]
+        )
+      : {
+          preneur: 0,
+          contrat: 90,
+          points: 90,
+          pointsSide: "preneur",
+          belote: -1,
+          mode: "normal",
+          couleur: "pique",
+        };
 
     function draw() {
       const r = scoreDonne(draft);
@@ -580,14 +616,30 @@
           <button data-team="1" data-v="1" class="${draft.preneur === 1 ? "on" : ""}">${esc(game.teams[1])}</button>
         </div>
 
-        <div class="field-row">
+        <label>Couleur (atout)</label>
+        <div class="seg suits" id="couleur">
+          ${Object.keys(SUITS)
+            .map(
+              (k) =>
+                `<button data-v="${k}" class="${draft.couleur === k ? "on" : ""} ${SUITS[k].red ? "red" : ""}">${SUITS[k].sym}</button>`
+            )
+            .join("")}
+        </div>
+
+        <label>Contrat</label>
+        <input type="number" id="contrat" value="${draft.contrat}" min="80" max="270" step="10" inputmode="numeric">
+
+        <label>Points de cartes réalisés — je saisis ceux de&nbsp;:</label>
+        <div class="seg" id="side">
+          <button data-v="preneur" class="${draft.pointsSide !== "defense" ? "on" : ""}">le preneur</button>
+          <button data-v="defense" class="${draft.pointsSide === "defense" ? "on" : ""}">la défense</button>
+        </div>
+        <div class="field-row" style="margin-top:.5rem;align-items:flex-end">
           <div>
-            <label>Contrat</label>
-            <input type="number" id="contrat" value="${draft.contrat}" min="80" max="270" step="10" inputmode="numeric">
+            <input type="number" id="points" value="${draft.points}" min="0" max="160" step="1" inputmode="numeric">
           </div>
-          <div>
-            <label>Points du preneur (0–162)</label>
-            <input type="number" id="points" value="${draft.points}" min="0" max="162" step="1" inputmode="numeric">
+          <div style="flex:0 0 auto;padding-bottom:.6rem;color:var(--muted);font-size:.85rem" id="other-side">
+            → ${draft.pointsSide === "defense" ? esc(game.teams[draft.preneur]) : esc(game.teams[1 - draft.preneur])} : <b>${BASE - Math.max(0, Math.min(BASE, Number(draft.points) || 0))}</b>
           </div>
         </div>
 
@@ -631,6 +683,8 @@
 
       $("#mclose").addEventListener("click", closeModal);
       $("#preneur").addEventListener("click", (e) => pick(e, "preneur", true));
+      $("#couleur").addEventListener("click", (e) => pick(e, "couleur", false));
+      $("#side").addEventListener("click", (e) => pick(e, "pointsSide", false));
       $("#belote").addEventListener("click", (e) => pick(e, "belote", true));
       $("#mode").addEventListener("click", (e) => pick(e, "mode", false));
       $("#contrat").addEventListener("input", (e) => {
@@ -665,6 +719,16 @@
         note.textContent = "Contrat " + (r.realise ? "réussi ✅" : "chuté ❌");
         note.style.color = r.realise ? "var(--good)" : "var(--bad)";
       }
+      // Met à jour le complément affiché (points de l'autre camp).
+      const other = modal.querySelector("#other-side");
+      if (other) {
+        const entered = Math.max(0, Math.min(BASE, Number(draft.points) || 0));
+        const otherTeam =
+          draft.pointsSide === "defense"
+            ? game.teams[draft.preneur]
+            : game.teams[1 - draft.preneur];
+        other.innerHTML = "→ " + esc(otherTeam) + " : <b>" + (BASE - entered) + "</b>";
+      }
     }
 
     function saveDonne() {
@@ -674,7 +738,7 @@
         return;
       }
       draft.contrat = c;
-      draft.points = Math.max(0, Math.min(162, Number(draft.points) || 0));
+      draft.points = Math.max(0, Math.min(BASE, Number(draft.points) || 0));
       if (isEdit) game.donnes[editIndex] = draft;
       else game.donnes.push(draft);
       persist();
