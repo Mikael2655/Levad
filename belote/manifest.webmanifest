@@ -1,0 +1,15 @@
+{
+  "name": "Belote — Compteur de points",
+  "short_name": "Belote",
+  "description": "Compte les points de belote (parties en 1500 ou 2000), donne par donne, avec cumul et évolution.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#123a24",
+  "theme_color": "#1e7a46",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

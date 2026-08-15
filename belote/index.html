@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>♠ Belote — Compteur de points</title>
+  <meta name="theme-color" content="#1e7a46">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Belote">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" href="icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <h1 class="logo" data-action="home" role="button" tabindex="0">
+      <span class="logo-suit">♠</span> Belote
+    </h1>
+    <div class="topbar-right">
+      <span id="target-chip" class="target-chip" hidden></span>
+      <button id="theme-toggle" class="icon-btn" title="Mode clair / sombre" aria-label="Mode clair / sombre">🌙</button>
+    </div>
+  </header>
+
+  <!-- Chaque écran est rendu ici par app.js -->
+  <main id="screen"></main>
+
+  <footer class="footer">
+    Compteur de points de belote — fonctionne hors-ligne.
+  </footer>
+
+  <!-- Fenêtre modale générique (ajout / édition de donne, réglages…) -->
+  <div id="modal-backdrop" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" id="modal"></div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>

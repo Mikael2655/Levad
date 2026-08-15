@@ -1,0 +1,828 @@
+/* ============================================================
+   Belote — Compteur de points
+   -----------------------------------------------------------
+   Application 100 % locale (aucun serveur). Tout est enregistré
+   dans le navigateur (localStorage) : la partie en cours reprend
+   automatiquement, et les parties terminées sont archivées.
+
+   RÈGLES DE CALCUL (2 équipes)
+   ----------------------------
+   Une « donne » : une équipe prend un contrat (ex. 100). On saisit
+   les points de cartes réalisés par cette équipe (0 à 162).
+
+   • Contrat RÉUSSI (points du preneur + belote éventuelle ≥ contrat)
+       Preneur  = arrondi(contrat + points du preneur)
+       Défense  = arrondi(162 − points du preneur)
+   • Contrat CHUTÉ
+       Preneur  = 0
+       Défense  = arrondi(160 + contrat)
+   • La belote (le porteur possède Roi + Dame d'atout) : +20 au porteur,
+     dans tous les cas.
+   • CONTRE : l'équipe gagnante de la donne marque  2 × contrat + 162.
+     SURCONTRE : 4 × contrat + 162. La belote est doublée (contre) ou
+     quadruplée (surcontre) au porteur.
+   • Tout est arrondi à la dizaine (la belote s'ajoute après l'arrondi).
+
+   Ces règles suivent les choix indiqués par l'utilisateur.
+   ============================================================ */
+
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------
+  // Petits utilitaires
+  // ---------------------------------------------------------
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const screen = $("#screen");
+  const K_GAME = "belote.game";
+  const K_HIST = "belote.history";
+  const K_THEME = "belote.theme";
+
+  const esc = (s) =>
+    String(s).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+    );
+
+  const roundTen = (n) => Math.round(n / 10) * 10;
+
+  function load(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+  function save(key, val) {
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch (e) {}
+  }
+
+  // ---------------------------------------------------------
+  // État
+  // ---------------------------------------------------------
+  let game = load(K_GAME, null);     // partie en cours (ou null)
+  let history = load(K_HIST, []);    // parties terminées
+
+  function persist() {
+    save(K_GAME, game);
+    save(K_HIST, history);
+  }
+
+  // ---------------------------------------------------------
+  // Thème clair / sombre
+  // ---------------------------------------------------------
+  (function initTheme() {
+    const saved = load(K_THEME, null);
+    if (saved) document.documentElement.setAttribute("data-theme", saved);
+    $("#theme-toggle").addEventListener("click", () => {
+      const now =
+        document.documentElement.getAttribute("data-theme") === "dark" ? null : "dark";
+      if (now) document.documentElement.setAttribute("data-theme", now);
+      else document.documentElement.removeAttribute("data-theme");
+      save(K_THEME, now);
+      $("#theme-toggle").textContent = now ? "☀️" : "🌙";
+    });
+    $("#theme-toggle").textContent = saved === "dark" ? "☀️" : "🌙";
+  })();
+
+  // ---------------------------------------------------------
+  // Moteur de calcul d'une donne
+  //   d = { preneur, contrat, points, belote(-1|0|1), mode }
+  //   Renvoie { pts:[s0,s1], realise:bool, dealerIdx }
+  // ---------------------------------------------------------
+  function scoreDonne(d) {
+    const C = Number(d.contrat) || 0;
+    const P = Math.max(0, Math.min(162, Number(d.points) || 0));
+    const preneur = d.preneur;
+    const defense = 1 - preneur;
+    const bel = d.belote; // -1, 0 ou 1
+    const pts = [0, 0];
+
+    // La belote compte pour atteindre le contrat du preneur.
+    const beloteAuPreneur = bel === preneur ? 20 : 0;
+    const realise = P + beloteAuPreneur >= C;
+
+    if (d.mode === "contre" || d.mode === "surcontre") {
+      const facteur = d.mode === "contre" ? 2 : 4;
+      const gagnant = realise ? preneur : defense;
+      pts[gagnant] = facteur * C + 162;
+      if (bel === 0 || bel === 1) pts[bel] += 20 * facteur;
+    } else {
+      if (realise) {
+        pts[preneur] = roundTen(C + P);
+        pts[defense] = roundTen(162 - P);
+      } else {
+        pts[preneur] = 0;
+        pts[defense] = roundTen(160 + C);
+      }
+      if (bel === 0 || bel === 1) pts[bel] += 20;
+    }
+    return { pts, realise };
+  }
+
+  // Totaux cumulés après chaque donne : renvoie tableau de [cum0, cum1]
+  function cumulatives() {
+    const cum = [];
+    let a = 0,
+      b = 0;
+    for (const d of game.donnes) {
+      const r = scoreDonne(d);
+      a += r.pts[0];
+      b += r.pts[1];
+      cum.push([a, b]);
+    }
+    return cum;
+  }
+
+  function totals() {
+    const cum = cumulatives();
+    return cum.length ? cum[cum.length - 1] : [0, 0];
+  }
+
+  function dealerName(index) {
+    if (!game.players.length) return "—";
+    return game.players[index % game.players.length].name;
+  }
+
+  // La partie est-elle gagnée ? (une équipe a atteint la cible et mène)
+  function winnerOf(g) {
+    const t = (function () {
+      const saved = game;
+      game = g;
+      const r = totals();
+      game = saved;
+      return r;
+    })();
+    const [a, b] = t;
+    if (Math.max(a, b) < g.target) return -1;
+    if (a === b) return -1; // égalité : on continue
+    return a > b ? 0 : 1;
+  }
+
+  // ---------------------------------------------------------
+  // Rendu : aiguillage
+  // ---------------------------------------------------------
+  function render() {
+    if (!game) renderSetup();
+    else renderGame();
+    updateTargetChip();
+  }
+
+  function updateTargetChip() {
+    const chip = $("#target-chip");
+    if (game) {
+      chip.hidden = false;
+      chip.textContent = "Partie en " + game.target;
+    } else {
+      chip.hidden = true;
+    }
+  }
+
+  // ---------------------------------------------------------
+  // Écran de configuration (nouvelle partie)
+  // ---------------------------------------------------------
+  let setupDraft = null;
+
+  function freshDraft() {
+    return {
+      target: 1500,
+      teams: ["Nous", "Eux"],
+      players: [
+        { name: "", team: 0 },
+        { name: "", team: 1 },
+        { name: "", team: 0 },
+        { name: "", team: 1 },
+      ],
+    };
+  }
+
+  function renderSetup() {
+    if (!setupDraft) setupDraft = freshDraft();
+    const d = setupDraft;
+
+    const hasHistory = history.length > 0;
+
+    screen.innerHTML = `
+      <div class="panel">
+        <h2>Nouvelle partie</h2>
+
+        <label>Objectif de points</label>
+        <div class="big-choice" id="target-choice">
+          <button data-target="1500" class="${d.target === 1500 ? "on" : ""}">1500<small>partie courte</small></button>
+          <button data-target="2000" class="${d.target === 2000 ? "on" : ""}">2000<small>partie longue</small></button>
+        </div>
+
+        <h3>Équipes</h3>
+        <div class="field-row">
+          <div>
+            <label style="color:var(--team1)">Équipe 1</label>
+            <input type="text" id="team0" value="${esc(d.teams[0])}" maxlength="18" placeholder="Nous">
+          </div>
+          <div>
+            <label style="color:var(--team2)">Équipe 2</label>
+            <input type="text" id="team1" value="${esc(d.teams[1])}" maxlength="18" placeholder="Eux">
+          </div>
+        </div>
+
+        <h3>Joueurs — dans l'ordre de distribution</h3>
+        <p class="muted" style="font-size:0.82rem;margin:.2rem 0 .8rem">
+          Le premier joueur distribue la 1ʳᵉ donne, puis on tourne. Choisissez l'équipe de chacun (bleu / rouge).
+        </p>
+        <div id="players"></div>
+        <div class="btn-row" style="margin-top:.6rem">
+          <button class="btn ghost" id="add-player" ${d.players.length >= 6 ? "disabled" : ""}>+ Joueur</button>
+        </div>
+      </div>
+
+      <button class="btn big block" id="start">Commencer la partie ♠</button>
+
+      ${hasHistory ? `<button class="btn secondary block" id="see-history" style="margin-top:.7rem">Historique des parties (${history.length})</button>` : ""}
+    `;
+
+    renderPlayerRows();
+
+    $("#target-choice").addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-target]");
+      if (!b) return;
+      d.target = Number(b.dataset.target);
+      renderSetup();
+    });
+    $("#team0").addEventListener("input", (e) => (d.teams[0] = e.target.value));
+    $("#team1").addEventListener("input", (e) => (d.teams[1] = e.target.value));
+    $("#add-player").addEventListener("click", () => {
+      if (d.players.length >= 6) return;
+      d.players.push({ name: "", team: d.players.length % 2 });
+      renderSetup();
+    });
+    $("#start").addEventListener("click", startGame);
+    if (hasHistory) $("#see-history").addEventListener("click", renderHistory);
+  }
+
+  function renderPlayerRows() {
+    const wrap = $("#players");
+    const d = setupDraft;
+    wrap.innerHTML = d.players
+      .map(
+        (p, i) => `
+      <div class="player-row" data-i="${i}">
+        <span class="idx">${i + 1}</span>
+        <input type="text" value="${esc(p.name)}" maxlength="14" placeholder="Joueur ${i + 1}" data-name="${i}">
+        <div class="team-pick" data-team-pick="${i}">
+          <button data-team="0" class="${p.team === 0 ? "on" : ""}">1</button>
+          <button data-team="1" class="${p.team === 1 ? "on" : ""}">2</button>
+        </div>
+        ${d.players.length > 2 ? `<button class="btn ghost" data-del="${i}" title="Retirer" style="padding:.4rem .6rem">✕</button>` : ""}
+      </div>`
+      )
+      .join("");
+
+    wrap.querySelectorAll("input[data-name]").forEach((inp) =>
+      inp.addEventListener("input", (e) => {
+        d.players[Number(e.target.dataset.name)].name = e.target.value;
+      })
+    );
+    wrap.querySelectorAll("[data-team-pick]").forEach((grp) =>
+      grp.addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-team]");
+        if (!b) return;
+        d.players[Number(grp.dataset.teamPick)].team = Number(b.dataset.team);
+        renderPlayerRows();
+      })
+    );
+    wrap.querySelectorAll("[data-del]").forEach((b) =>
+      b.addEventListener("click", () => {
+        d.players.splice(Number(b.dataset.del), 1);
+        renderSetup();
+      })
+    );
+  }
+
+  function startGame() {
+    const d = setupDraft;
+    const teams = [d.teams[0].trim() || "Nous", d.teams[1].trim() || "Eux"];
+    const players = d.players
+      .map((p, i) => ({ name: p.name.trim() || "Joueur " + (i + 1), team: p.team }))
+      .filter((p) => true);
+    game = {
+      target: d.target,
+      teams,
+      players,
+      donnes: [],
+      startedAt: new Date().toISOString(),
+    };
+    setupDraft = null;
+    persist();
+    render();
+  }
+
+  // ---------------------------------------------------------
+  // Écran de jeu
+  // ---------------------------------------------------------
+  function membersOf(team) {
+    return game.players
+      .filter((p) => p.team === team)
+      .map((p) => p.name)
+      .join(", ");
+  }
+
+  function renderGame() {
+    const [a, b] = totals();
+    const win = winnerOf(game);
+    const pct = (v) => Math.min(100, Math.round((v / game.target) * 100));
+    const lead = a === b ? -1 : a > b ? 0 : 1;
+
+    screen.innerHTML = `
+      ${
+        win >= 0
+          ? `<div class="winner-banner">🏆 ${esc(game.teams[win])} remporte la partie ! (${win === 0 ? a : b} pts)</div>`
+          : ""
+      }
+
+      <div class="scoreboard">
+        <div class="score-card t0 ${lead === 0 ? "leader" : ""}">
+          <div class="name">${esc(game.teams[0])}</div>
+          <div class="members">${esc(membersOf(0))}</div>
+          <div class="total">${a}</div>
+          <div class="target">/ ${game.target}</div>
+          <div class="bar"><span style="width:${pct(a)}%"></span></div>
+        </div>
+        <div class="score-card t1 ${lead === 1 ? "leader" : ""}">
+          <div class="name">${esc(game.teams[1])}</div>
+          <div class="members">${esc(membersOf(1))}</div>
+          <div class="total">${b}</div>
+          <div class="target">/ ${game.target}</div>
+          <div class="bar"><span style="width:${pct(b)}%"></span></div>
+        </div>
+      </div>
+
+      <div id="chart-area"></div>
+
+      <div class="btn-row" style="margin:.2rem 0 1rem">
+        <button class="btn ${win >= 0 ? "" : "secondary"}" id="finish">Terminer &amp; archiver</button>
+        <button class="btn ghost" id="menu">⋯ Menu</button>
+      </div>
+
+      <h3 style="margin-top:.4rem">Donnes (${game.donnes.length})</h3>
+      <div class="donnes" id="donnes"></div>
+
+      <button class="fab" id="fab">＋ Donne</button>
+    `;
+
+    renderChart($("#chart-area"));
+    renderDonnes($("#donnes"));
+
+    $("#fab").addEventListener("click", () => openDonneModal(null));
+    $("#finish").addEventListener("click", finishGame);
+    $("#menu").addEventListener("click", openMenu);
+  }
+
+  function renderDonnes(wrap) {
+    if (!game.donnes.length) {
+      wrap.innerHTML = `<div class="empty">Aucune donne pour l'instant.<br>Touchez « ＋ Donne » pour commencer.</div>`;
+      return;
+    }
+    const cum = cumulatives();
+    // Plus récente en haut
+    wrap.innerHTML = game.donnes
+      .map((d, i) => {
+        const r = scoreDonne(d);
+        const takerName = game.teams[d.preneur];
+        const modeTag =
+          d.mode === "contre"
+            ? `<span class="tag contre">CONTRÉ</span>`
+            : d.mode === "surcontre"
+            ? `<span class="tag contre">SURCONTRÉ</span>`
+            : "";
+        const belTag =
+          d.belote === 0 || d.belote === 1
+            ? `<span class="tag belote">Belote ${esc(game.teams[d.belote])}</span>`
+            : "";
+        const resTag = r.realise
+          ? `<span class="tag ok">réussi</span>`
+          : `<span class="tag ko">chuté</span>`;
+        return `
+        <div class="donne ${r.realise ? "" : "chute"}" data-edit="${i}">
+          <div class="line1">
+            <span class="dealer">Donne ${i + 1} · distrib. <b>${esc(dealerName(i))}</b></span>
+            <span class="num">#${i + 1}</span>
+          </div>
+          <div class="line2">
+            <div class="contract">
+              <span class="taker t${d.preneur}">${esc(takerName)}</span>
+              prend <b>${d.contrat}</b> · ${d.points} pts
+              ${modeTag} ${resTag} ${belTag}
+            </div>
+            <div class="pts">
+              <div class="p t0"><div class="d">+${r.pts[0]}</div><div class="c">${cum[i][0]}</div></div>
+              <div class="p t1"><div class="d">+${r.pts[1]}</div><div class="c">${cum[i][1]}</div></div>
+            </div>
+          </div>
+        </div>`;
+      })
+      .reverse()
+      .join("");
+
+    wrap.querySelectorAll("[data-edit]").forEach((row) =>
+      row.addEventListener("click", () => openDonneModal(Number(row.dataset.edit)))
+    );
+  }
+
+  // ---------------------------------------------------------
+  // Graphe d'évolution (SVG maison)
+  // ---------------------------------------------------------
+  function renderChart(host) {
+    const n = game.donnes.length;
+    if (n < 1) {
+      host.innerHTML = "";
+      return;
+    }
+    const cum = cumulatives();
+    const W = 700,
+      H = 220,
+      padL = 38,
+      padR = 12,
+      padT = 12,
+      padB = 22;
+    const maxY = Math.max(game.target, cum[cum.length - 1][0], cum[cum.length - 1][1]);
+    const x = (i) => padL + (i / Math.max(1, n)) * (W - padL - padR);
+    const y = (v) => H - padB - (v / maxY) * (H - padT - padB);
+
+    const path = (idx) => {
+      let dstr = `M ${x(0).toFixed(1)} ${y(0).toFixed(1)}`;
+      cum.forEach((c, i) => (dstr += ` L ${x(i + 1).toFixed(1)} ${y(c[idx]).toFixed(1)}`));
+      return dstr;
+    };
+    const dots = (idx, color) =>
+      cum
+        .map((c, i) => `<circle cx="${x(i + 1).toFixed(1)}" cy="${y(c[idx]).toFixed(1)}" r="2.6" fill="${color}"/>`)
+        .join("");
+
+    // graduations horizontales
+    const step = maxY <= 1500 ? 500 : 500;
+    let grid = "";
+    for (let v = 0; v <= maxY; v += step) {
+      const yy = y(v).toFixed(1);
+      grid += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="var(--line)" stroke-width="1"/>
+               <text x="4" y="${(y(v) + 4).toFixed(1)}" font-size="11" fill="var(--muted)">${v}</text>`;
+    }
+    // ligne cible
+    const yt = y(game.target).toFixed(1);
+    const targetLine = `<line x1="${padL}" y1="${yt}" x2="${W - padR}" y2="${yt}" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+
+    const c1 = "var(--team1)",
+      c2 = "var(--team2)";
+
+    host.innerHTML = `
+      <div class="panel" style="padding:.8rem">
+        <div class="chart-wrap">
+          <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Évolution des scores">
+            ${grid}
+            ${targetLine}
+            <path d="${path(0)}" fill="none" stroke="${c1}" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="${path(1)}" fill="none" stroke="${c2}" stroke-width="2.5" stroke-linejoin="round"/>
+            ${dots(0, c1)}
+            ${dots(1, c2)}
+          </svg>
+        </div>
+        <div class="chart-legend">
+          <span><span class="dot" style="background:${c1}"></span>${esc(game.teams[0])}</span>
+          <span><span class="dot" style="background:${c2}"></span>${esc(game.teams[1])}</span>
+          <span><span class="dot" style="background:var(--gold)"></span>Objectif ${game.target}</span>
+        </div>
+      </div>`;
+  }
+
+  // ---------------------------------------------------------
+  // Modale : ajout / édition d'une donne
+  // ---------------------------------------------------------
+  const backdrop = $("#modal-backdrop");
+  const modal = $("#modal");
+
+  function closeModal() {
+    backdrop.hidden = true;
+    modal.innerHTML = "";
+  }
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeModal();
+  });
+
+  function openDonneModal(editIndex) {
+    const isEdit = editIndex !== null && editIndex !== undefined;
+    const nextNum = isEdit ? editIndex + 1 : game.donnes.length + 1;
+    const draft = isEdit
+      ? Object.assign({}, game.donnes[editIndex])
+      : { preneur: 0, contrat: 90, points: 90, belote: -1, mode: "normal" };
+
+    function draw() {
+      const r = scoreDonne(draft);
+      modal.innerHTML = `
+        <div class="modal-head">
+          <h2>${isEdit ? "Modifier la donne " + nextNum : "Donne " + nextNum}</h2>
+          <button class="modal-close" id="mclose" aria-label="Fermer">✕</button>
+        </div>
+        <p class="muted" style="margin:.1rem 0 .6rem;font-size:.85rem">Distribution : <b>${esc(dealerName(nextNum - 1))}</b></p>
+
+        <label>Qui prend ?</label>
+        <div class="seg team" id="preneur">
+          <button data-team="0" data-v="0" class="${draft.preneur === 0 ? "on" : ""}">${esc(game.teams[0])}</button>
+          <button data-team="1" data-v="1" class="${draft.preneur === 1 ? "on" : ""}">${esc(game.teams[1])}</button>
+        </div>
+
+        <div class="field-row">
+          <div>
+            <label>Contrat</label>
+            <input type="number" id="contrat" value="${draft.contrat}" min="80" max="270" step="10" inputmode="numeric">
+          </div>
+          <div>
+            <label>Points du preneur (0–162)</label>
+            <input type="number" id="points" value="${draft.points}" min="0" max="162" step="1" inputmode="numeric">
+          </div>
+        </div>
+
+        <label>Belote (Roi + Dame d'atout)</label>
+        <div class="seg" id="belote">
+          <button data-v="-1" class="${draft.belote === -1 ? "on" : ""}">Aucune</button>
+          <button data-v="0" class="${draft.belote === 0 ? "on" : ""}">${esc(game.teams[0])}</button>
+          <button data-v="1" class="${draft.belote === 1 ? "on" : ""}">${esc(game.teams[1])}</button>
+        </div>
+
+        <label>Enchère</label>
+        <div class="seg" id="mode">
+          <button data-v="normal" class="${draft.mode === "normal" ? "on" : ""}">Normale</button>
+          <button data-v="contre" class="${draft.mode === "contre" ? "on" : ""}">Contré</button>
+          <button data-v="surcontre" class="${draft.mode === "surcontre" ? "on" : ""}">Surcontré</button>
+        </div>
+
+        <div class="result-preview">
+          <div class="rp t0">
+            <div class="lbl">${esc(game.teams[0])}</div>
+            <div class="val">+${r.pts[0]}</div>
+          </div>
+          <div class="rp t1">
+            <div class="lbl">${esc(game.teams[1])}</div>
+            <div class="val">+${r.pts[1]}</div>
+          </div>
+        </div>
+        <div class="result-note" style="color:${r.realise ? "var(--good)" : "var(--bad)"}">
+          Contrat ${r.realise ? "réussi ✅" : "chuté ❌"}
+        </div>
+
+        <div class="btn-row" style="margin-top:1rem">
+          <button class="btn block" id="msave">${isEdit ? "Enregistrer" : "Ajouter la donne"}</button>
+        </div>
+        ${
+          isEdit
+            ? `<button class="btn danger block" id="mdel" style="margin-top:.6rem">Supprimer cette donne</button>`
+            : ""
+        }
+      `;
+
+      $("#mclose").addEventListener("click", closeModal);
+      $("#preneur").addEventListener("click", (e) => pick(e, "preneur", true));
+      $("#belote").addEventListener("click", (e) => pick(e, "belote", true));
+      $("#mode").addEventListener("click", (e) => pick(e, "mode", false));
+      $("#contrat").addEventListener("input", (e) => {
+        draft.contrat = Number(e.target.value);
+        refreshPreview();
+      });
+      $("#points").addEventListener("input", (e) => {
+        draft.points = Number(e.target.value);
+        refreshPreview();
+      });
+      $("#msave").addEventListener("click", saveDonne);
+      if (isEdit) $("#mdel").addEventListener("click", delDonne);
+    }
+
+    function pick(e, field, numeric) {
+      const b = e.target.closest("button[data-v]");
+      if (!b) return;
+      draft[field] = numeric ? Number(b.dataset.v) : b.dataset.v;
+      draw(); // redessine (met à jour l'aperçu + les états « on »)
+    }
+
+    // Met à jour seulement l'aperçu sans perdre le focus des champs nombre
+    function refreshPreview() {
+      const r = scoreDonne(draft);
+      const rp = modal.querySelectorAll(".result-preview .val");
+      if (rp.length === 2) {
+        rp[0].textContent = "+" + r.pts[0];
+        rp[1].textContent = "+" + r.pts[1];
+      }
+      const note = modal.querySelector(".result-note");
+      if (note) {
+        note.textContent = "Contrat " + (r.realise ? "réussi ✅" : "chuté ❌");
+        note.style.color = r.realise ? "var(--good)" : "var(--bad)";
+      }
+    }
+
+    function saveDonne() {
+      const c = Number(draft.contrat);
+      if (!c || c < 80) {
+        alert("Le contrat doit être d'au moins 80.");
+        return;
+      }
+      draft.contrat = c;
+      draft.points = Math.max(0, Math.min(162, Number(draft.points) || 0));
+      if (isEdit) game.donnes[editIndex] = draft;
+      else game.donnes.push(draft);
+      persist();
+      closeModal();
+      render();
+    }
+
+    function delDonne() {
+      if (!confirm("Supprimer cette donne ?")) return;
+      game.donnes.splice(editIndex, 1);
+      persist();
+      closeModal();
+      render();
+    }
+
+    draw();
+    backdrop.hidden = false;
+  }
+
+  // ---------------------------------------------------------
+  // Menu (annuler dernière donne, réglages, nouvelle partie…)
+  // ---------------------------------------------------------
+  function openMenu() {
+    modal.innerHTML = `
+      <div class="modal-head">
+        <h2>Menu</h2>
+        <button class="modal-close" id="mclose" aria-label="Fermer">✕</button>
+      </div>
+      <div class="btn-row" style="flex-direction:column;gap:.6rem">
+        <button class="btn secondary block" id="undo" ${game.donnes.length ? "" : "disabled"}>↩︎ Annuler la dernière donne</button>
+        <button class="btn secondary block" id="rename">✏️ Renommer les équipes / joueurs</button>
+        <button class="btn secondary block" id="hist">📚 Historique des parties (${history.length})</button>
+        <button class="btn danger block" id="newgame">＋ Nouvelle partie (sans archiver)</button>
+      </div>
+    `;
+    $("#mclose").addEventListener("click", closeModal);
+    $("#undo").addEventListener("click", () => {
+      if (!game.donnes.length) return;
+      game.donnes.pop();
+      persist();
+      closeModal();
+      render();
+    });
+    $("#rename").addEventListener("click", openRename);
+    $("#hist").addEventListener("click", () => {
+      closeModal();
+      renderHistory();
+    });
+    $("#newgame").addEventListener("click", () => {
+      if (!confirm("Démarrer une nouvelle partie ? La partie en cours ne sera pas archivée.")) return;
+      game = null;
+      setupDraft = null;
+      persist();
+      closeModal();
+      render();
+    });
+    backdrop.hidden = false;
+  }
+
+  function openRename() {
+    modal.innerHTML = `
+      <div class="modal-head">
+        <h2>Équipes &amp; joueurs</h2>
+        <button class="modal-close" id="mclose" aria-label="Fermer">✕</button>
+      </div>
+      <div class="field-row">
+        <div><label style="color:var(--team1)">Équipe 1</label><input type="text" id="rt0" value="${esc(game.teams[0])}" maxlength="18"></div>
+        <div><label style="color:var(--team2)">Équipe 2</label><input type="text" id="rt1" value="${esc(game.teams[1])}" maxlength="18"></div>
+      </div>
+      <h3>Joueurs (ordre de distribution)</h3>
+      <div id="rplayers"></div>
+      <button class="btn block" id="rsave" style="margin-top:1rem">Enregistrer</button>
+    `;
+    const rp = $("#rplayers");
+    rp.innerHTML = game.players
+      .map(
+        (p, i) => `
+      <div class="player-row">
+        <span class="idx">${i + 1}</span>
+        <input type="text" value="${esc(p.name)}" maxlength="14" data-rn="${i}">
+        <div class="team-pick" data-rtp="${i}">
+          <button data-team="0" class="${p.team === 0 ? "on" : ""}">1</button>
+          <button data-team="1" class="${p.team === 1 ? "on" : ""}">2</button>
+        </div>
+      </div>`
+      )
+      .join("");
+    rp.querySelectorAll("[data-rtp]").forEach((grp) =>
+      grp.addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-team]");
+        if (!b) return;
+        const i = Number(grp.dataset.rtp);
+        game.players[i].team = Number(b.dataset.team);
+        openRename();
+      })
+    );
+    $("#mclose").addEventListener("click", closeModal);
+    $("#rsave").addEventListener("click", () => {
+      game.teams[0] = ($("#rt0").value.trim() || "Nous");
+      game.teams[1] = ($("#rt1").value.trim() || "Eux");
+      rp.querySelectorAll("[data-rn]").forEach((inp) => {
+        const i = Number(inp.dataset.rn);
+        game.players[i].name = inp.value.trim() || "Joueur " + (i + 1);
+      });
+      persist();
+      closeModal();
+      render();
+    });
+    backdrop.hidden = false;
+  }
+
+  // ---------------------------------------------------------
+  // Terminer / archiver la partie
+  // ---------------------------------------------------------
+  function finishGame() {
+    if (!game.donnes.length) {
+      if (!confirm("Aucune donne jouée. Abandonner cette partie ?")) return;
+      game = null;
+      persist();
+      render();
+      return;
+    }
+    const [a, b] = totals();
+    const w = a === b ? -1 : a > b ? 0 : 1;
+    const archived = Object.assign({}, game, {
+      finishedAt: new Date().toISOString(),
+      final: [a, b],
+      winner: w,
+    });
+    history.unshift(archived);
+    if (history.length > 50) history = history.slice(0, 50);
+    game = null;
+    setupDraft = null;
+    persist();
+    render();
+  }
+
+  // ---------------------------------------------------------
+  // Historique des parties terminées
+  // ---------------------------------------------------------
+  function renderHistory() {
+    const back = () => (game ? renderGame() : renderSetup());
+    screen.innerHTML = `
+      <div class="panel">
+        <div class="modal-head">
+          <h2>Historique des parties</h2>
+          <button class="btn ghost" id="back">← Retour</button>
+        </div>
+        ${
+          history.length === 0
+            ? `<div class="empty">Aucune partie archivée pour l'instant.</div>`
+            : `<div id="hlist"></div>
+               <button class="btn danger" id="clearhist" style="margin-top:.5rem">Vider l'historique</button>`
+        }
+      </div>
+    `;
+    $("#back").addEventListener("click", back);
+
+    if (history.length) {
+      $("#hlist").innerHTML = history
+        .map((g, i) => {
+          const d = new Date(g.finishedAt || g.startedAt);
+          const date = d.toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+          const wname =
+            g.winner === -1 ? "Égalité" : "🏆 " + esc(g.teams[g.winner]);
+          return `
+          <div class="hist-game">
+            <div class="h1">
+              <span>${esc(g.teams[0])} <b style="color:var(--team1)">${g.final[0]}</b> — <b style="color:var(--team2)">${g.final[1]}</b> ${esc(g.teams[1])}</span>
+              <span>${wname}</span>
+            </div>
+            <div class="meta">Partie en ${g.target} · ${g.donnes.length} donnes · ${date}</div>
+          </div>`;
+        })
+        .join("");
+      $("#clearhist").addEventListener("click", () => {
+        if (!confirm("Supprimer définitivement tout l'historique ?")) return;
+        history = [];
+        persist();
+        renderHistory();
+      });
+    }
+  }
+
+  // ---------------------------------------------------------
+  // Retour à l'accueil via le logo
+  // ---------------------------------------------------------
+  document.querySelector('[data-action="home"]').addEventListener("click", () => {
+    closeModal();
+    render();
+  });
+
+  // ---------------------------------------------------------
+  // Démarrage
+  // ---------------------------------------------------------
+  render();
+})();
