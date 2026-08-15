@@ -1,16 +1,18 @@
-# Publie l'application de vocabulaire hébreu sur GitHub Pages.
-# Seul le dossier hebreu-vocab/ est mis en ligne — le reste du dépôt
-# (projet Next.js) n'est pas publié.
+# Publie les applications statiques du dépôt sur GitHub Pages.
+#   • hebreu-vocab/  → à la racine du site (https://<user>.github.io/Levad/)
+#   • belote/        → sous /belote/     (https://<user>.github.io/Levad/belote/)
+# Le reste du dépôt (projet Next.js) n'est pas publié.
 #
 # Activation (une seule fois) : Settings → Pages → Source : "GitHub Actions"
 
-name: Déployer l'app hébreu sur GitHub Pages
+name: Déployer les apps sur GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
       - "hebreu-vocab/**"
+      - "belote/**"
       - ".github/workflows/deploy-hebreu-vocab.yml"
   workflow_dispatch:
 
@@ -31,12 +33,18 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Assembler le site (hébreu à la racine, belote dans /belote)
+        run: |
+          mkdir -p _site
+          cp -r hebreu-vocab/. _site/
+          mkdir -p _site/belote
+          cp -r belote/. _site/belote/
       - uses: actions/configure-pages@v5
         with:
           # Active GitHub Pages automatiquement si le compte le permet
           enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: hebreu-vocab
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
