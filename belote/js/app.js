@@ -127,8 +127,6 @@
     coeur: { sym: "♥", label: "Cœur", red: true },
     carreau: { sym: "♦", label: "Carreau", red: true },
     trefle: { sym: "♣", label: "Trèfle", red: false },
-    sa: { sym: "SA", label: "Sans-atout", red: false },
-    ta: { sym: "TA", label: "Tout-atout", red: false },
   };
 
   // ---------------------------------------------------------
@@ -149,8 +147,8 @@
     const pdefense = BASE - ppreneur;
     const bel = d.belote; // -1, 0 ou 1
     const pts = [0, 0];
-    // 1 = normale, 2 = contré, 3 = surcontré
-    const facteur = d.mode === "surcontre" ? 3 : d.mode === "contre" ? 2 : 1;
+    // 1 = normale, 2 = contré, 4 = surcontré
+    const facteur = d.mode === "surcontre" ? 4 : d.mode === "contre" ? 2 : 1;
 
     // La belote compte pour atteindre le contrat du preneur.
     const beloteAuPreneur = bel === preneur ? 20 : 0;
@@ -159,8 +157,12 @@
     if (facteur > 1) {
       // Contré / surcontré : tout va à l'équipe qui gagne la donne —
       // le preneur s'il réussit, sinon l'adversaire qui l'a fait chuter.
+      // Le contrat et la belote sont toujours multipliés par le facteur ;
+      // le forfait de 160 ne l'est qu'en partie à 2000 (en 1500 il reste
+      // à 160). Ex. 2000 contré = contrat×2 + 160×2 + belote×2.
       const gagnant = realise ? preneur : defense;
-      pts[gagnant] = facteur * C + BASE;
+      const forfait = game.target >= 2000 ? facteur * BASE : BASE;
+      pts[gagnant] = facteur * C + forfait;
     } else {
       if (realise) {
         pts[preneur] = roundTen(C + ppreneur);

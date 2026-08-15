@@ -41,15 +41,22 @@ cartes est **160** (arrondi à la dizaine), donc l'autre camp = 160 − saisi :
   - Défense = arrondi(**160 + contrat**)
 - **Belote** (Roi + Dame d'atout) : **+20** au porteur si le contrat est
   réussi ; **en cas de chute, la belote va à l'adversaire** (la défense).
-- **Contré** : l'équipe qui **gagne la donne** marque **2 × contrat + 160**
-  (le preneur s'il réussit, sinon l'adversaire qui l'a fait chuter).
-  **Surcontré** : **3 × contrat + 160**. La belote est doublée (contré) /
-  triplée (surcontré) et suit la même règle (au vainqueur, ou à l'adversaire
-  en cas de chute).
+- **Contré / surcontré** : l'équipe qui **gagne la donne** (le preneur s'il
+  réussit, sinon l'adversaire qui l'a fait chuter) marque, selon l'objectif :
+
+  | Enchère    | Partie en 1500        | Partie en 2000              |
+  | ---------- | --------------------- | --------------------------- |
+  | Contré     | contrat × 2 + 160     | contrat × 2 + 160 × 2       |
+  | Surcontré  | contrat × 4 + 160     | contrat × 4 + 160 × 4       |
+
+  La **belote** est multipliée par le même facteur (× 2 en contré, × 4 en
+  surcontré) et suit la même règle (au vainqueur, ou à l'adversaire en cas
+  de chute). Autrement dit : le contrat et la belote sont toujours
+  multipliés ; le forfait de 160 ne l'est **qu'en partie à 2000**.
 - Tout est **arrondi à la dizaine** (la belote s'ajoute après l'arrondi).
 
-La **couleur** (♠ ♥ ♦ ♣, sans-atout, tout-atout) est purement indicative :
-elle n'a **aucun effet sur les points**, c'est juste pour suivre les donnes.
+La **couleur** (♠ ♥ ♦ ♣) est purement indicative : elle n'a **aucun effet
+sur les points**, c'est juste pour suivre les donnes.
 
 La partie est signalée gagnée dès qu'une équipe atteint l'objectif tout en
 menant au score.
