@@ -237,6 +237,43 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
   position: absolute; top: 6px; right: 9px; font-size: 0.9rem; color: #ffd97a;
 }
 
+/* ---------- Bandeau « manches gagnées » (revanche / belle) ---------- */
+.series {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.55rem 0.8rem;
+  margin-bottom: 1rem;
+}
+.series-lbl {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.series-score { font-size: 1.05rem; font-weight: 800; }
+.series-score .t0 { color: var(--team1); }
+.series-score .t1 { color: var(--team2); }
+.series-score .sep { color: var(--muted); margin: 0 0.35rem; }
+.series-reset {
+  margin-left: auto;
+  font-size: 1rem;
+  line-height: 1;
+  border: none;
+  background: var(--bg);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+}
+.series-reset:hover { background: var(--line); }
+
 .winner-banner {
   background: var(--good-bg);
   color: var(--good);

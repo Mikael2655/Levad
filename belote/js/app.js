@@ -37,6 +37,7 @@
   const K_GAME = "belote.game";
   const K_HIST = "belote.history";
   const K_THEME = "belote.theme";
+  const K_SERIES = "belote.series";
 
   const esc = (s) =>
     String(s).replace(/[&<>"']/g, (c) =>
@@ -64,10 +65,40 @@
   // ---------------------------------------------------------
   let game = load(K_GAME, null);     // partie en cours (ou null)
   let history = load(K_HIST, []);    // parties terminées
+  // Compteur de manches gagnées (revanche, belle…) par équipe.
+  let series = load(K_SERIES, { wins: [0, 0], teams: ["", ""] });
+  if (!series.wins) series = { wins: [0, 0], teams: ["", ""] };
 
   function persist() {
     save(K_GAME, game);
     save(K_HIST, history);
+    save(K_SERIES, series);
+  }
+
+  // Bandeau « manches gagnées » (affiché dès qu'une manche a été gagnée).
+  function seriesHtml(teams) {
+    const w = series.wins;
+    if (w[0] + w[1] === 0) return "";
+    const belle = w[0] >= 1 && w[0] === w[1];
+    return `
+      <div class="series">
+        <span class="series-lbl">Manches gagnées</span>
+        <span class="series-score">
+          <b class="t0">${esc(teams[0])} ${w[0]}</b>
+          <span class="sep">—</span>
+          <b class="t1">${w[1]} ${esc(teams[1])}</b>
+        </span>
+        ${belle ? `<span class="tag contre">Belle !</span>` : ""}
+        <button class="series-reset" id="series-reset" title="Remettre les victoires à zéro">↺</button>
+      </div>`;
+  }
+
+  function resetSeries() {
+    if (!confirm("Remettre les compteurs de victoires à zéro ?")) return;
+    series = { wins: [0, 0], teams: series.teams || ["", ""] };
+    persist();
+    closeModal();
+    render();
   }
 
   // ---------------------------------------------------------
@@ -99,16 +130,18 @@
     const defense = 1 - preneur;
     const bel = d.belote; // -1, 0 ou 1
     const pts = [0, 0];
+    // 1 = normale, 2 = contré, 4 = surcontré
+    const facteur = d.mode === "surcontre" ? 4 : d.mode === "contre" ? 2 : 1;
 
     // La belote compte pour atteindre le contrat du preneur.
     const beloteAuPreneur = bel === preneur ? 20 : 0;
     const realise = P + beloteAuPreneur >= C;
 
-    if (d.mode === "contre" || d.mode === "surcontre") {
-      const facteur = d.mode === "contre" ? 2 : 4;
+    if (facteur > 1) {
+      // Contré / surcontré : tout va à l'équipe qui gagne la donne —
+      // le preneur s'il réussit, sinon l'adversaire qui l'a fait chuter.
       const gagnant = realise ? preneur : defense;
       pts[gagnant] = facteur * C + 162;
-      if (bel === 0 || bel === 1) pts[bel] += 20 * facteur;
     } else {
       if (realise) {
         pts[preneur] = roundTen(C + P);
@@ -117,7 +150,12 @@
         pts[preneur] = 0;
         pts[defense] = roundTen(160 + C);
       }
-      if (bel === 0 || bel === 1) pts[bel] += 20;
+    }
+    // Belote (×facteur) : au porteur si le contrat est réussi,
+    // mais à l'adversaire (la défense) en cas de chute.
+    if (bel === 0 || bel === 1) {
+      const beneficiaire = realise ? bel : defense;
+      pts[beneficiaire] += 20 * facteur;
     }
     return { pts, realise };
   }
@@ -203,8 +241,11 @@
     const d = setupDraft;
 
     const hasHistory = history.length > 0;
+    const seriesTeams =
+      series.teams && series.teams[0] ? series.teams : d.teams;
 
     screen.innerHTML = `
+      ${seriesHtml(seriesTeams)}
       <div class="panel">
         <h2>Nouvelle partie</h2>
 
@@ -258,6 +299,8 @@
     });
     $("#start").addEventListener("click", startGame);
     if (hasHistory) $("#see-history").addEventListener("click", renderHistory);
+    const sr = $("#series-reset");
+    if (sr) sr.addEventListener("click", resetSeries);
   }
 
   function renderPlayerRows() {
@@ -334,9 +377,11 @@
     const lead = a === b ? -1 : a > b ? 0 : 1;
 
     screen.innerHTML = `
+      ${seriesHtml(game.teams)}
+
       ${
         win >= 0
-          ? `<div class="winner-banner">🏆 ${esc(game.teams[win])} remporte la partie ! (${win === 0 ? a : b} pts)</div>`
+          ? `<div class="winner-banner">🏆 ${esc(game.teams[win])} remporte la manche ! (${win === 0 ? a : b} pts)</div>`
           : ""
       }
 
@@ -360,7 +405,8 @@
       <div id="chart-area"></div>
 
       <div class="btn-row" style="margin:.2rem 0 1rem">
-        <button class="btn ${win >= 0 ? "" : "secondary"}" id="finish">Terminer &amp; archiver</button>
+        ${win >= 0 ? `<button class="btn" id="revanche">🔁 Revanche</button>` : ""}
+        <button class="btn secondary" id="finish">Terminer &amp; archiver</button>
         <button class="btn ghost" id="menu">⋯ Menu</button>
       </div>
 
@@ -376,6 +422,10 @@
     $("#fab").addEventListener("click", () => openDonneModal(null));
     $("#finish").addEventListener("click", finishGame);
     $("#menu").addEventListener("click", openMenu);
+    const rev = $("#revanche");
+    if (rev) rev.addEventListener("click", revanche);
+    const sr = $("#series-reset");
+    if (sr) sr.addEventListener("click", resetSeries);
   }
 
   function renderDonnes(wrap) {
@@ -655,8 +705,14 @@
       </div>
       <div class="btn-row" style="flex-direction:column;gap:.6rem">
         <button class="btn secondary block" id="undo" ${game.donnes.length ? "" : "disabled"}>↩︎ Annuler la dernière donne</button>
+        <button class="btn secondary block" id="revanche2">🔁 Revanche (mêmes équipes)</button>
         <button class="btn secondary block" id="rename">✏️ Renommer les équipes / joueurs</button>
         <button class="btn secondary block" id="hist">📚 Historique des parties (${history.length})</button>
+        ${
+          series.wins[0] + series.wins[1] > 0
+            ? `<button class="btn secondary block" id="resetseries">🏆 Remettre les victoires à 0 (${series.wins[0]}–${series.wins[1]})</button>`
+            : ""
+        }
         <button class="btn danger block" id="newgame">＋ Nouvelle partie (sans archiver)</button>
       </div>
     `;
@@ -668,6 +724,9 @@
       closeModal();
       render();
     });
+    $("#revanche2").addEventListener("click", revanche);
+    const rs = $("#resetseries");
+    if (rs) rs.addEventListener("click", resetSeries);
     $("#rename").addEventListener("click", openRename);
     $("#hist").addEventListener("click", () => {
       closeModal();
@@ -739,6 +798,29 @@
   // ---------------------------------------------------------
   // Terminer / archiver la partie
   // ---------------------------------------------------------
+  // Archive la partie en cours dans l'historique. Compte une manche
+  // gagnée seulement si l'objectif a été atteint (vraie victoire).
+  function archiveCurrent() {
+    const [a, b] = totals();
+    const w = a === b ? -1 : a > b ? 0 : 1;
+    const reached = Math.max(a, b) >= game.target;
+    const counted = w >= 0 && reached;
+    history.unshift(
+      Object.assign({}, game, {
+        finishedAt: new Date().toISOString(),
+        final: [a, b],
+        winner: w,
+        counted,
+      })
+    );
+    if (history.length > 50) history = history.slice(0, 50);
+    if (counted) {
+      series.wins[w]++;
+      series.teams = game.teams.slice();
+    }
+    return w;
+  }
+
   function finishGame() {
     if (!game.donnes.length) {
       if (!confirm("Aucune donne jouée. Abandonner cette partie ?")) return;
@@ -747,18 +829,28 @@
       render();
       return;
     }
-    const [a, b] = totals();
-    const w = a === b ? -1 : a > b ? 0 : 1;
-    const archived = Object.assign({}, game, {
-      finishedAt: new Date().toISOString(),
-      final: [a, b],
-      winner: w,
-    });
-    history.unshift(archived);
-    if (history.length > 50) history = history.slice(0, 50);
+    archiveCurrent();
     game = null;
     setupDraft = null;
     persist();
+    render();
+  }
+
+  // Revanche : archive la partie puis en relance une avec les mêmes
+  // équipes et joueurs. Le compteur de manches continue.
+  function revanche() {
+    const cfg = game;
+    if (cfg.donnes.length) archiveCurrent();
+    game = {
+      target: cfg.target,
+      teams: cfg.teams.slice(),
+      players: cfg.players.map((p) => ({ name: p.name, team: p.team })),
+      donnes: [],
+      startedAt: new Date().toISOString(),
+    };
+    setupDraft = null;
+    persist();
+    closeModal();
     render();
   }
 

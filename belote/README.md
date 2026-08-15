@@ -36,13 +36,24 @@ cartes (0 à 162) :
 - **Contrat chuté**
   - Preneur = 0
   - Défense = arrondi(**160 + contrat**)
-- **Belote** (Roi + Dame d'atout) : **+20** au porteur, dans tous les cas.
-- **Contré** : l'équipe qui gagne la donne marque **2 × contrat + 162**.
-  **Surcontré** : **4 × contrat + 162**. La belote est doublée / quadruplée.
+- **Belote** (Roi + Dame d'atout) : **+20** au porteur si le contrat est
+  réussi ; **en cas de chute, la belote va à l'adversaire** (la défense).
+- **Contré** : l'équipe qui **gagne la donne** marque **2 × contrat + 162**
+  (le preneur s'il réussit, sinon l'adversaire qui l'a fait chuter).
+  **Surcontré** : **4 × contrat + 162**. La belote est doublée / quadruplée
+  et suit la même règle (au vainqueur / à l'adversaire en cas de chute).
 - Tout est **arrondi à la dizaine** (la belote s'ajoute après l'arrondi).
 
 La partie est signalée gagnée dès qu'une équipe atteint l'objectif tout en
 menant au score.
+
+## Manches, revanche et belle
+
+Un **compteur de manches gagnées** est affiché en haut (ex. `Nous 2 — 1 Eux`)
+et se met à jour à chaque partie remportée. Quand le score est de **1–1**, un
+badge **« Belle ! »** apparaît. Le bouton **🔁 Revanche** relance une partie
+avec les mêmes équipes et joueurs (le compteur continue), et le bouton **↺**
+(ou le menu) permet de **remettre les compteurs à zéro**.
 
 ## Fichiers
 
