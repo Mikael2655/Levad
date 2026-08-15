@@ -330,6 +330,7 @@ svg.chart { display: block; width: 100%; height: auto; }
   vertical-align: middle;
 }
 .tag.contre { background: var(--gold); color: #3a2a00; }
+.tag.capot { background: var(--gold); color: #3a2a00; }
 .tag.belote { background: var(--accent-soft); color: var(--accent-dark); }
 .tag.ok { background: var(--good-bg); color: var(--good); }
 .tag.ko { background: var(--bad-bg); color: var(--bad); }

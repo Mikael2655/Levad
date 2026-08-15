@@ -150,6 +150,24 @@
     // 1 = normale, 2 = contré, 4 = surcontré
     const facteur = d.mode === "surcontre" ? 4 : d.mode === "contre" ? 2 : 1;
 
+    // --- Capot (indépendant de l'objectif de la partie) ---
+    const capot = d.capot || "";
+    if (capot === "annonce") {
+      // Capot annoncé = 500 (×2 si contré, ×4 si surcontré).
+      // Réussi = le preneur a pris tous les plis (160 points).
+      const reussiCapot = ppreneur >= BASE;
+      const gagnant = reussiCapot ? preneur : defense;
+      pts[gagnant] = 500 * facteur;
+      if (bel === 0 || bel === 1) pts[reussiCapot ? bel : defense] += 20 * facteur;
+      return { pts, realise: reussiCapot, ppreneur, pdefense };
+    }
+    if (capot === "realise") {
+      // Capot non annoncé = contrat + 250 pour le preneur.
+      pts[preneur] = C + 250;
+      if (bel === 0 || bel === 1) pts[bel] += 20;
+      return { pts, realise: true, ppreneur, pdefense };
+    }
+
     // La belote compte pour atteindre le contrat du preneur.
     const beloteAuPreneur = bel === preneur ? 20 : 0;
     const realise = ppreneur + beloteAuPreneur >= C;
@@ -478,6 +496,18 @@
           ? `<span class="suit-tag ${suit.red ? "red" : ""}">${suit.sym}</span>`
           : "";
         const sideTxt = d.pointsSide === "defense" ? "déf." : "pren.";
+        const capotTag =
+          d.capot === "annonce"
+            ? `<span class="tag capot">CAPOT annoncé</span>`
+            : d.capot === "realise"
+            ? `<span class="tag capot">CAPOT +250</span>`
+            : "";
+        const contractText =
+          d.capot === "annonce"
+            ? ``
+            : d.capot === "realise"
+            ? `prend <b>${d.contrat}</b>`
+            : `prend <b>${d.contrat}</b> · ${d.points} pts (${sideTxt})`;
         return `
         <div class="donne ${r.realise ? "" : "chute"}" data-edit="${i}">
           <div class="line1">
@@ -488,8 +518,8 @@
             <div class="contract">
               ${suitTag}
               <span class="taker t${d.preneur}">${esc(takerName)}</span>
-              prend <b>${d.contrat}</b> · ${d.points} pts (${sideTxt})
-              ${modeTag} ${resTag} ${belTag}
+              ${contractText}
+              ${capotTag} ${modeTag} ${resTag} ${belTag}
             </div>
             <div class="pts">
               <div class="p t0"><div class="d">+${r.pts[0]}</div><div class="c">${cum[i][0]}</div></div>
@@ -590,7 +620,7 @@
     const nextNum = isEdit ? editIndex + 1 : game.donnes.length + 1;
     const draft = isEdit
       ? Object.assign(
-          { pointsSide: "preneur", couleur: "pique" },
+          { pointsSide: "preneur", couleur: "pique", capot: "" },
           game.donnes[editIndex]
         )
       : {
@@ -601,10 +631,59 @@
           belote: -1,
           mode: "normal",
           couleur: "pique",
+          capot: "",
         };
+
+    function facteurOf() {
+      return draft.mode === "surcontre" ? 4 : draft.mode === "contre" ? 2 : 1;
+    }
+    function noteText(r) {
+      const cap = draft.capot || "";
+      if (cap === "annonce")
+        return (
+          "Capot annoncé (" +
+          500 * facteurOf() +
+          " pts) — " +
+          (r.realise ? "réussi ✅" : "chuté ❌")
+        );
+      if (cap === "realise") return "Capot réalisé : contrat + 250 ✅";
+      return "Contrat " + (r.realise ? "réussi ✅" : "chuté ❌");
+    }
 
     function draw() {
       const r = scoreDonne(draft);
+      const capot = draft.capot || "";
+      const contratField = `
+        <label>Contrat</label>
+        <input type="number" id="contrat" value="${draft.contrat}" min="80" max="270" step="10" inputmode="numeric">`;
+      const pointsField = `
+        <label>Points de cartes réalisés — je saisis ceux de&nbsp;:</label>
+        <div class="seg" id="side">
+          <button data-v="preneur" class="${draft.pointsSide !== "defense" ? "on" : ""}">le preneur</button>
+          <button data-v="defense" class="${draft.pointsSide === "defense" ? "on" : ""}">la défense</button>
+        </div>
+        <div class="field-row" style="margin-top:.5rem;align-items:flex-end">
+          <div>
+            <input type="number" id="points" value="${draft.points}" min="0" max="160" step="1" inputmode="numeric">
+          </div>
+          <div style="flex:0 0 auto;padding-bottom:.6rem;color:var(--muted);font-size:.85rem" id="other-side">
+            → ${draft.pointsSide === "defense" ? esc(game.teams[draft.preneur]) : esc(game.teams[1 - draft.preneur])} : <b>${BASE - Math.max(0, Math.min(BASE, Number(draft.points) || 0))}</b>
+          </div>
+        </div>`;
+      let middle;
+      if (capot === "annonce") {
+        const ok = (Number(draft.points) || 0) >= BASE;
+        middle = `
+        <label>Résultat du capot annoncé</label>
+        <div class="seg" id="capotres">
+          <button data-v="ok" class="${ok ? "on" : ""}">Réussi</button>
+          <button data-v="ko" class="${!ok ? "on" : ""}">Chuté</button>
+        </div>`;
+      } else if (capot === "realise") {
+        middle = contratField;
+      } else {
+        middle = contratField + pointsField;
+      }
       modal.innerHTML = `
         <div class="modal-head">
           <h2>${isEdit ? "Modifier la donne " + nextNum : "Donne " + nextNum}</h2>
@@ -628,22 +707,14 @@
             .join("")}
         </div>
 
-        <label>Contrat</label>
-        <input type="number" id="contrat" value="${draft.contrat}" min="80" max="270" step="10" inputmode="numeric">
+        <label>Capot</label>
+        <div class="seg" id="capot">
+          <button data-v="" class="${capot === "" ? "on" : ""}">Non</button>
+          <button data-v="annonce" class="${capot === "annonce" ? "on" : ""}">Annoncé (500)</button>
+          <button data-v="realise" class="${capot === "realise" ? "on" : ""}">Réalisé (+250)</button>
+        </div>
 
-        <label>Points de cartes réalisés — je saisis ceux de&nbsp;:</label>
-        <div class="seg" id="side">
-          <button data-v="preneur" class="${draft.pointsSide !== "defense" ? "on" : ""}">le preneur</button>
-          <button data-v="defense" class="${draft.pointsSide === "defense" ? "on" : ""}">la défense</button>
-        </div>
-        <div class="field-row" style="margin-top:.5rem;align-items:flex-end">
-          <div>
-            <input type="number" id="points" value="${draft.points}" min="0" max="160" step="1" inputmode="numeric">
-          </div>
-          <div style="flex:0 0 auto;padding-bottom:.6rem;color:var(--muted);font-size:.85rem" id="other-side">
-            → ${draft.pointsSide === "defense" ? esc(game.teams[draft.preneur]) : esc(game.teams[1 - draft.preneur])} : <b>${BASE - Math.max(0, Math.min(BASE, Number(draft.points) || 0))}</b>
-          </div>
-        </div>
+        ${middle}
 
         <label>Belote (Roi + Dame d'atout)</label>
         <div class="seg" id="belote">
@@ -670,7 +741,7 @@
           </div>
         </div>
         <div class="result-note" style="color:${r.realise ? "var(--good)" : "var(--bad)"}">
-          Contrat ${r.realise ? "réussi ✅" : "chuté ❌"}
+          ${noteText(r)}
         </div>
 
         <div class="btn-row" style="margin-top:1rem">
@@ -686,17 +757,43 @@
       $("#mclose").addEventListener("click", closeModal);
       $("#preneur").addEventListener("click", (e) => pick(e, "preneur", true));
       $("#couleur").addEventListener("click", (e) => pick(e, "couleur", false));
-      $("#side").addEventListener("click", (e) => pick(e, "pointsSide", false));
       $("#belote").addEventListener("click", (e) => pick(e, "belote", true));
       $("#mode").addEventListener("click", (e) => pick(e, "mode", false));
-      $("#contrat").addEventListener("input", (e) => {
-        draft.contrat = Number(e.target.value);
-        refreshPreview();
+      // Sélecteur Capot : passe en 160/preneur pour un capot réussi par défaut.
+      $("#capot").addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-v]");
+        if (!b) return;
+        draft.capot = b.dataset.v;
+        if (draft.capot === "annonce" || draft.capot === "realise") {
+          draft.points = BASE;
+          draft.pointsSide = "preneur";
+        }
+        draw();
       });
-      $("#points").addEventListener("input", (e) => {
-        draft.points = Number(e.target.value);
-        refreshPreview();
-      });
+      // Champs présents seulement dans certains états — on les protège.
+      const side = $("#side");
+      if (side) side.addEventListener("click", (e) => pick(e, "pointsSide", false));
+      const capotres = $("#capotres");
+      if (capotres)
+        capotres.addEventListener("click", (e) => {
+          const b = e.target.closest("button[data-v]");
+          if (!b) return;
+          draft.points = b.dataset.v === "ok" ? BASE : 0;
+          draft.pointsSide = "preneur";
+          draw();
+        });
+      const contratEl = $("#contrat");
+      if (contratEl)
+        contratEl.addEventListener("input", (e) => {
+          draft.contrat = Number(e.target.value);
+          refreshPreview();
+        });
+      const pointsEl = $("#points");
+      if (pointsEl)
+        pointsEl.addEventListener("input", (e) => {
+          draft.points = Number(e.target.value);
+          refreshPreview();
+        });
       $("#msave").addEventListener("click", saveDonne);
       if (isEdit) $("#mdel").addEventListener("click", delDonne);
     }
@@ -718,7 +815,7 @@
       }
       const note = modal.querySelector(".result-note");
       if (note) {
-        note.textContent = "Contrat " + (r.realise ? "réussi ✅" : "chuté ❌");
+        note.textContent = noteText(r);
         note.style.color = r.realise ? "var(--good)" : "var(--bad)";
       }
       // Met à jour le complément affiché (points de l'autre camp).

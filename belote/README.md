@@ -53,6 +53,12 @@ cartes est **160** (arrondi à la dizaine), donc l'autre camp = 160 − saisi :
   surcontré) et suit la même règle (au vainqueur, ou à l'adversaire en cas
   de chute). Autrement dit : le contrat et la belote sont toujours
   multipliés ; le forfait de 160 ne l'est **qu'en partie à 2000**.
+- **Capot** (le preneur remporte tous les plis), **quel que soit l'objectif
+  de la partie** :
+  - **Annoncé** aux enchères : **500** (contré → 500 × 2 = 1000,
+    surcontré → 500 × 4 = 2000). S'il est annoncé mais **chuté**, les 500
+    (× facteur) vont à l'adversaire.
+  - **Non annoncé** (réalisé sans l'annoncer) : **contrat + 250**.
 - Tout est **arrondi à la dizaine** (la belote s'ajoute après l'arrondi).
 
 La **couleur** (♠ ♥ ♦ ♣) est purement indicative : elle n'a **aucun effet
