@@ -15,11 +15,12 @@ l'écran d'accueil de votre téléphone pour l'utiliser comme une appli).
 1. **Nouvelle partie** : choisissez l'objectif (1500 ou 2000), nommez les
    deux équipes et les joueurs **dans l'ordre de distribution** (chacun
    rattaché à son équipe).
-2. **＋ Donne** : pour chaque donne, indiquez qui prend, la **couleur**
-   (atout, juste pour le suivi), le contrat, les **points de cartes** —
-   vous pouvez saisir **ceux du preneur ou ceux de la défense** (l'autre
-   camp est déduit automatiquement, total 160) — la belote éventuelle et si
-   la donne est contrée/surcontrée. Le score s'affiche en direct.
+2. **＋ Donne** : pour chaque donne, indiquez qui prend, le **contrat**
+   (liste déroulante 80…160 ou **Capot**), la **couleur** (atout, juste
+   pour le suivi), les **points de cartes** — vous pouvez saisir **ceux du
+   preneur ou ceux de la défense** (l'autre camp est déduit automatiquement)
+   — la belote éventuelle et si la donne est contrée/surcontrée. Le score
+   s'affiche en direct, et tout tient sans avoir à faire défiler l'écran.
 3. Le **cumul** de chaque équipe est en haut, et le **graphe** montre
    l'évolution donne après donne. Le nom du **distributeur** apparaît sur
    chaque ligne.
@@ -53,12 +54,13 @@ cartes est **160** (arrondi à la dizaine), donc l'autre camp = 160 − saisi :
   surcontré) et suit la même règle (au vainqueur, ou à l'adversaire en cas
   de chute). Autrement dit : le contrat et la belote sont toujours
   multipliés ; le forfait de 160 ne l'est **qu'en partie à 2000**.
-- **Capot** (le preneur remporte tous les plis), **quel que soit l'objectif
-  de la partie** :
-  - **Annoncé** aux enchères : **500** (contré → 500 × 2 = 1000,
-    surcontré → 500 × 4 = 2000). S'il est annoncé mais **chuté**, les 500
-    (× facteur) vont à l'adversaire.
-  - **Non annoncé** (réalisé sans l'annoncer) : **contrat + 250**.
+- **Capot** (un camp remporte tous les plis = **162 points**), **quel que
+  soit l'objectif de la partie** :
+  - **Annoncé** aux enchères : choisir **« Capot »** dans la liste des
+    contrats. Vaut **500** (contré → 1000, surcontré → 2000). Annoncé mais
+    **chuté**, la valeur va à l'adversaire.
+  - **Non annoncé** : il suffit de saisir **162** pour le camp qui a tout
+    ramassé — l'appli compte automatiquement **contrat + 250**.
 - Tout est **arrondi à la dizaine** (la belote s'ajoute après l'arrondi).
 
 La **couleur** (♠ ♥ ♦ ♣) est purement indicative : elle n'a **aucun effet
