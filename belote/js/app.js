@@ -146,11 +146,13 @@
     // Capot annoncé = contrat "capot" choisi aux enchères.
     const annonce = d.contrat === "capot";
     const C = annonce ? 0 : Number(d.contrat) || 0;
-    // Points de cartes saisis (0 à 162). 162 = tous les plis = capot.
+    // Points de cartes saisis (0 à 162), ramenés aux points du preneur
+    // sur base 162. Un camp fait capot quand il a TOUT : 162 d'un côté,
+    // donc 0 de l'autre — peu importe la case remplie (preneur ou défense).
     const entered = Math.max(0, Math.min(162, Number(d.points) || 0));
-    const enteredSide = d.pointsSide === "defense" ? defense : preneur;
-    // Un camp a-t-il fait capot (162) ?
-    const capotBy = entered === 162 ? enteredSide : -1;
+    const ppreneur162 = d.pointsSide === "defense" ? 162 - entered : entered;
+    const capotBy =
+      ppreneur162 === 162 ? preneur : ppreneur162 === 0 ? defense : -1;
 
     // --- Capot ANNONCÉ (500 ; ×2 contré, ×4 surcontré ; indép. objectif) ---
     if (annonce) {
@@ -670,7 +672,9 @@
     function draw() {
       const r = scoreDonne(draft);
       const enteredNow = Math.max(0, Math.min(162, Number(draft.points) || 0));
-      const complement = enteredNow === 162 ? 0 : Math.max(0, BASE - enteredNow);
+      const isCapotNow = enteredNow === 162 || enteredNow === 0;
+      const complement =
+        enteredNow === 162 ? 0 : enteredNow === 0 ? 162 : Math.max(0, BASE - enteredNow);
       const otherTeam =
         draft.pointsSide === "defense"
           ? game.teams[draft.preneur]
@@ -737,7 +741,7 @@
             <input type="number" id="points" value="${draft.points}" min="0" max="162" step="1" inputmode="numeric">
           </div>
           <div style="flex:0 0 auto;padding-bottom:.6rem;color:var(--muted);font-size:.85rem" id="other-side">
-            → ${esc(otherTeam)} : <b>${complement}</b>${enteredNow === 162 ? " · capot 🃏" : ""}
+            → ${esc(otherTeam)} : <b>${complement}</b>${isCapotNow ? " · capot 🃏" : ""}
           </div>
         </div>
 
@@ -817,14 +821,15 @@
       const other = modal.querySelector("#other-side");
       if (other) {
         const entered = Math.max(0, Math.min(162, Number(draft.points) || 0));
-        const complement = entered === 162 ? 0 : Math.max(0, BASE - entered);
+        const complement =
+          entered === 162 ? 0 : entered === 0 ? 162 : Math.max(0, BASE - entered);
         const otherTeam =
           draft.pointsSide === "defense"
             ? game.teams[draft.preneur]
             : game.teams[1 - draft.preneur];
         other.innerHTML =
           "→ " + esc(otherTeam) + " : <b>" + complement + "</b>" +
-          (entered === 162 ? " · capot 🃏" : "");
+          (entered === 162 || entered === 0 ? " · capot 🃏" : "");
       }
     }
 
