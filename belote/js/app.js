@@ -665,6 +665,17 @@
         draft.pointsSide === "defense"
           ? game.teams[draft.preneur]
           : game.teams[1 - draft.preneur];
+      // Ligne récap du contrat, ex. « 90 ♥ cœur · contré ».
+      const suit = SUITS[draft.couleur];
+      const contratLabel = draft.contrat === "capot" ? "Capot" : draft.contrat;
+      const modeLabel =
+        draft.mode === "contre" ? "contré" : draft.mode === "surcontre" ? "surcontré" : "normal";
+      const recap = `
+        <div class="recap">
+          <b>${esc(String(contratLabel))}</b>
+          ${suit ? `<span class="suit-tag ${suit.red ? "red" : ""}">${suit.sym}</span> ${suit.label.toLowerCase()}` : ""}
+          · ${modeLabel}
+        </div>`;
       modal.innerHTML = `
         <div class="modal-head">
           <h2>${isEdit ? "Modifier la donne " + nextNum : "Donne " + nextNum}</h2>
@@ -697,6 +708,15 @@
             .join("")}
         </div>
 
+        <label>Enchère</label>
+        <div class="seg" id="mode">
+          <button data-v="normal" class="${draft.mode === "normal" ? "on" : ""}">Normale</button>
+          <button data-v="contre" class="${draft.mode === "contre" ? "on" : ""}">Contré</button>
+          <button data-v="surcontre" class="${draft.mode === "surcontre" ? "on" : ""}">Surcontré</button>
+        </div>
+
+        ${recap}
+
         <label>Points de cartes réalisés — je saisis ceux de&nbsp;:</label>
         <div class="seg" id="side">
           <button data-v="preneur" class="${draft.pointsSide !== "defense" ? "on" : ""}">le preneur</button>
@@ -716,13 +736,6 @@
           <button data-v="-1" class="${draft.belote === -1 ? "on" : ""}">Aucune</button>
           <button data-v="0" class="${draft.belote === 0 ? "on" : ""}">${esc(game.teams[0])}</button>
           <button data-v="1" class="${draft.belote === 1 ? "on" : ""}">${esc(game.teams[1])}</button>
-        </div>
-
-        <label>Enchère</label>
-        <div class="seg" id="mode">
-          <button data-v="normal" class="${draft.mode === "normal" ? "on" : ""}">Normale</button>
-          <button data-v="contre" class="${draft.mode === "contre" ? "on" : ""}">Contré</button>
-          <button data-v="surcontre" class="${draft.mode === "surcontre" ? "on" : ""}">Surcontré</button>
         </div>
 
         <div class="result-preview">
