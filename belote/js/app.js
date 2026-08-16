@@ -81,7 +81,7 @@
     const belle = w[0] >= 1 && w[0] === w[1];
     return `
       <div class="series">
-        <span class="series-lbl">Manches gagnées</span>
+        <span class="series-lbl">Points des manches</span>
         <span class="series-score">
           <b class="t0">${esc(teams[0])} ${w[0]}</b>
           <span class="sep">—</span>
@@ -227,7 +227,8 @@
     return game.players[index % game.players.length].name;
   }
 
-  // La partie est-elle gagnée ? (une équipe a atteint la cible et mène)
+  // La partie est-elle gagnée ? Il faut DÉPASSER l'objectif (1510 / 2010)
+  // et mener au score.
   function winnerOf(g) {
     const t = (function () {
       const saved = game;
@@ -237,9 +238,15 @@
       return r;
     })();
     const [a, b] = t;
-    if (Math.max(a, b) < g.target) return -1;
+    if (Math.max(a, b) <= g.target) return -1; // pas encore dépassé
     if (a === b) return -1; // égalité : on continue
     return a > b ? 0 : 1;
+  }
+
+  // Points de manche gagnés : 2 si le vainqueur a au moins le double des
+  // points du perdant, sinon 1.
+  function manchePoints(winnerTotal, loserTotal) {
+    return winnerTotal >= 2 * loserTotal ? 2 : 1;
   }
 
   // ---------------------------------------------------------
@@ -424,7 +431,10 @@
 
       ${
         win >= 0
-          ? `<div class="winner-banner">🏆 ${esc(game.teams[win])} remporte la manche ! (${win === 0 ? a : b} pts)</div>`
+          ? (() => {
+              const mp = manchePoints(win === 0 ? a : b, win === 0 ? b : a);
+              return `<div class="winner-banner">🏆 ${esc(game.teams[win])} remporte la manche ! (${win === 0 ? a : b} pts) — +${mp} point${mp > 1 ? "s" : ""}${mp === 2 ? " (double !)" : ""}</div>`;
+            })()
           : ""
       }
 
@@ -951,24 +961,26 @@
   // ---------------------------------------------------------
   // Terminer / archiver la partie
   // ---------------------------------------------------------
-  // Archive la partie en cours dans l'historique. Compte une manche
-  // gagnée seulement si l'objectif a été atteint (vraie victoire).
+  // Archive la partie en cours dans l'historique. Compte les points de
+  // manche seulement si l'objectif a été DÉPASSÉ (vraie victoire).
   function archiveCurrent() {
     const [a, b] = totals();
     const w = a === b ? -1 : a > b ? 0 : 1;
-    const reached = Math.max(a, b) >= game.target;
+    const reached = Math.max(a, b) > game.target;
     const counted = w >= 0 && reached;
+    const pts = counted ? manchePoints(w === 0 ? a : b, w === 0 ? b : a) : 0;
     history.unshift(
       Object.assign({}, game, {
         finishedAt: new Date().toISOString(),
         final: [a, b],
         winner: w,
         counted,
+        manchePoints: pts,
       })
     );
     if (history.length > 50) history = history.slice(0, 50);
     if (counted) {
-      series.wins[w]++;
+      series.wins[w] += pts;
       series.teams = game.teams.slice();
     }
     return w;
@@ -1037,8 +1049,11 @@
             month: "short",
             year: "numeric",
           });
+          const mp = g.manchePoints || (g.counted ? 1 : 0);
           const wname =
-            g.winner === -1 ? "Égalité" : "🏆 " + esc(g.teams[g.winner]);
+            g.winner === -1
+              ? "Égalité"
+              : "🏆 " + esc(g.teams[g.winner]) + (mp ? ` +${mp}` : "");
           return `
           <div class="hist-game">
             <div class="h1">

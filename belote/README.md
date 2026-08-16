@@ -66,14 +66,19 @@ cartes est **160** (arrondi à la dizaine), donc l'autre camp = 160 − saisi :
 La **couleur** (♠ ♥ ♦ ♣) est purement indicative : elle n'a **aucun effet
 sur les points**, c'est juste pour suivre les donnes.
 
-La partie est signalée gagnée dès qu'une équipe atteint l'objectif tout en
-menant au score.
+Pour gagner la partie, il faut **dépasser** l'objectif (donc **≥ 1510** ou
+**≥ 2010**) tout en menant au score : à 1500 ou 2000 pile, ce n'est pas
+encore gagné.
 
 ## Manches, revanche et belle
 
-Un **compteur de manches gagnées** est affiché en haut (ex. `Nous 2 — 1 Eux`)
-et se met à jour à chaque partie remportée. Quand le score est de **1–1**, un
-badge **« Belle ! »** apparaît. Le bouton **🔁 Revanche** relance une partie
+Chaque manche remportée rapporte des **points** :
+
+- **2 points** si le vainqueur a **au moins le double** des points du perdant,
+- **1 point** sinon.
+
+Le **compteur de points** est affiché en haut (ex. `Nous 3 — 1 Eux`) et se met
+à jour à chaque partie remportée. Le bouton **🔁 Revanche** relance une partie
 avec les mêmes équipes et joueurs (le compteur continue), et le bouton **↺**
 (ou le menu) permet de **remettre les compteurs à zéro**.
 
