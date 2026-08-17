@@ -158,9 +158,11 @@ h3 { font-size: 1rem; margin: 1.2rem 0 0.6rem; }
 /* ---------- Formulaires ---------- */
 label { display: block; font-weight: 700; font-size: 0.9rem; margin: 0.8rem 0 0.3rem; }
 /* Formulaire de donne compact : tout tient sans défiler */
-.modal label { margin: 0.55rem 0 0.25rem; }
+.modal label { margin: 0.5rem 0 0.22rem; }
 .modal .seg button { padding: 0.5rem 0.4rem; }
 .modal input, .modal select { padding: 0.5rem 0.7rem; }
+.modal .result-preview { margin-top: 0.6rem; padding: 0.6rem; }
+.modal .recap { margin: 0.4rem 0 0.15rem; }
 input[type="text"], input[type="number"], select {
   font: inherit;
   width: 100%;
@@ -380,7 +382,7 @@ svg.chart { display: block; width: 100%; height: auto; }
   background: var(--card);
   width: 100%;
   max-width: 560px;
-  max-height: 92vh;
+  max-height: 95vh;
   overflow-y: auto;
   border-radius: 18px 18px 0 0;
   padding: 1.2rem 1.1rem;
@@ -419,6 +421,9 @@ svg.chart { display: block; width: 100%; height: auto; }
 .result-preview .rp { flex: 1; }
 .result-preview .rp .lbl { font-size: 0.78rem; color: var(--muted); font-weight: 700; }
 .result-preview .rp .val { font-size: 1.6rem; font-weight: 800; }
+.result-preview .rp .sub { font-size: 0.75rem; color: var(--muted); font-weight: 600; margin-top: 0.1rem; }
+.result-preview .rp.t0 .sub b { color: var(--team1); }
+.result-preview .rp.t1 .sub b { color: var(--team2); }
 .result-preview .rp.t0 .val { color: var(--team1); }
 .result-preview .rp.t1 .val { color: var(--team2); }
 .result-note { text-align: center; font-size: 0.82rem; font-weight: 700; margin-top: 0.5rem; }

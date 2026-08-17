@@ -648,6 +648,20 @@
           couleur: "pique",
         };
 
+    // Cumul des autres donnes (hors celle en cours d'édition), pour
+    // afficher les scores actuels et le total après cette donne.
+    const baseTotals = (function () {
+      let a = 0,
+        b = 0;
+      game.donnes.forEach((dd, idx) => {
+        if (isEdit && idx === editIndex) return;
+        const rr = scoreDonne(dd);
+        a += rr.pts[0];
+        b += rr.pts[1];
+      });
+      return [a, b];
+    })();
+
     function facteurOf() {
       return draft.mode === "surcontre" ? 4 : draft.mode === "contre" ? 2 : 1;
     }
@@ -755,11 +769,13 @@
         <div class="result-preview">
           <div class="rp t0">
             <div class="lbl">${esc(game.teams[0])}</div>
-            <div class="val">+${r.pts[0]}</div>
+            <div class="val">${baseTotals[0] + r.pts[0]}</div>
+            <div class="sub">${baseTotals[0]} <b>+${r.pts[0]}</b></div>
           </div>
           <div class="rp t1">
             <div class="lbl">${esc(game.teams[1])}</div>
-            <div class="val">+${r.pts[1]}</div>
+            <div class="val">${baseTotals[1] + r.pts[1]}</div>
+            <div class="sub">${baseTotals[1]} <b>+${r.pts[1]}</b></div>
           </div>
         </div>
         <div class="result-note" style="color:${noteColor(r)}">
@@ -809,8 +825,13 @@
       const r = scoreDonne(draft);
       const rp = modal.querySelectorAll(".result-preview .val");
       if (rp.length === 2) {
-        rp[0].textContent = "+" + r.pts[0];
-        rp[1].textContent = "+" + r.pts[1];
+        rp[0].textContent = baseTotals[0] + r.pts[0];
+        rp[1].textContent = baseTotals[1] + r.pts[1];
+      }
+      const sub = modal.querySelectorAll(".result-preview .sub");
+      if (sub.length === 2) {
+        sub[0].innerHTML = baseTotals[0] + " <b>+" + r.pts[0] + "</b>";
+        sub[1].innerHTML = baseTotals[1] + " <b>+" + r.pts[1] + "</b>";
       }
       const note = modal.querySelector(".result-note");
       if (note) {
@@ -999,6 +1020,7 @@
       render();
       return;
     }
+    if (!confirm("Terminer et archiver cette partie ?")) return;
     archiveCurrent();
     game = null;
     setupDraft = null;
