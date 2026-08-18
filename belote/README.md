@@ -69,6 +69,11 @@ sur les points**, c'est juste pour suivre les donnes.
 Si **personne ne prend**, choisissez **« Passe »** en haut de la liste des
 contrats : la donne vaut **0 – 0** et la distribution passe au joueur suivant.
 
+Pour une **saisie libre**, choisissez **« ✎ Saisie libre »** dans la liste des
+contrats : vous entrez directement les points à ajouter à chaque équipe
+(valeurs libres, **négatives possibles**). Pratique pour **corriger une
+erreur** ou **reporter un score** noté sur une feuille avant de reprendre.
+
 Pour gagner la partie, il faut **dépasser** l'objectif (donc **≥ 1510** ou
 **≥ 2010**) tout en menant au score : à 1500 ou 2000 pile, ce n'est pas
 encore gagné.

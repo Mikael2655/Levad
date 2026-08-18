@@ -319,6 +319,8 @@ svg.chart { display: block; width: 100%; height: auto; }
 .donne.chute { border-left-color: var(--bad); }
 .donne.passe { border-left-color: var(--muted); opacity: 0.85; }
 .tag.passe { background: var(--line); color: var(--muted); }
+.donne.libre { border-left-color: var(--gold); }
+.tag.libre { background: var(--gold); color: #3a2a00; }
 .donne .line1 { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
 .donne .dealer { font-size: 0.78rem; color: var(--muted); }
 .donne .dealer b { color: var(--ink); }

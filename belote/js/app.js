@@ -145,6 +145,13 @@
     const facteur = d.mode === "surcontre" ? 4 : d.mode === "contre" ? 2 : 1;
     // Donne passée : personne ne prend, aucun point.
     if (d.contrat === "passe") return { pts: [0, 0], realise: false, passe: true };
+    // Saisie libre : points ajoutés directement à chaque équipe.
+    if (d.contrat === "libre")
+      return {
+        pts: [Number(d.libre0) || 0, Number(d.libre1) || 0],
+        realise: false,
+        libre: true,
+      };
     // Capot annoncé = contrat "capot" choisi aux enchères.
     const annonce = d.contrat === "capot";
     const C = annonce ? 0 : Number(d.contrat) || 0;
@@ -528,8 +535,9 @@
           ? `prend <b>${d.contrat}</b>`
           : `prend <b>${d.contrat}</b> · ${d.points} pts (${sideTxt})`;
         const passe = d.contrat === "passe";
+        const libre = d.contrat === "libre";
         return `
-        <div class="donne ${passe ? "passe" : r.realise ? "" : "chute"}" data-edit="${i}">
+        <div class="donne ${passe ? "passe" : libre ? "libre" : r.realise ? "" : "chute"}" data-edit="${i}">
           <div class="line1">
             <span class="dealer">Donne ${i + 1} · distrib. <b>${esc(dealerName(i))}</b></span>
             <span class="num">#${i + 1}</span>
@@ -539,6 +547,8 @@
               ${
                 passe
                   ? `<span class="muted">Personne ne prend</span> <span class="tag passe">Passe</span>`
+                  : libre
+                  ? `<span class="muted">Ajustement</span> <span class="tag libre">✎ Libre</span>`
                   : `${suitTag}
               <span class="taker t${d.preneur}">${esc(takerName)}</span>
               ${contractText}
@@ -546,8 +556,8 @@
               }
             </div>
             <div class="pts">
-              <div class="p t0"><div class="d">+${r.pts[0]}</div><div class="c">${cum[i][0]}</div></div>
-              <div class="p t1"><div class="d">+${r.pts[1]}</div><div class="c">${cum[i][1]}</div></div>
+              <div class="p t0"><div class="d">${r.pts[0] < 0 ? "" : "+"}${r.pts[0]}</div><div class="c">${cum[i][0]}</div></div>
+              <div class="p t1"><div class="d">${r.pts[1] < 0 ? "" : "+"}${r.pts[1]}</div><div class="c">${cum[i][1]}</div></div>
             </div>
           </div>
         </div>`;
@@ -699,6 +709,7 @@
     function draw() {
       const r = scoreDonne(draft);
       const isPasse = draft.contrat === "passe"; // personne ne prend
+      const isLibre = draft.contrat === "libre"; // saisie libre des points
       const rawEmpty = draft.points === "" || draft.points == null;
       const enteredNow = Math.max(0, Math.min(162, Number(draft.points) || 0));
       const isCapotNow = r.capot === "realise" || r.capot === "annonce";
@@ -736,7 +747,7 @@
         </div>
 
         ${
-          isPasse
+          isPasse || isLibre
             ? ""
             : `<label>Qui prend ?</label>
         <div class="seg team" id="preneur">
@@ -753,11 +764,25 @@
               `<option value="${n}" ${Number(draft.contrat) === n ? "selected" : ""}>${n}</option>`
           ).join("")}
           <option value="capot" ${draft.contrat === "capot" ? "selected" : ""}>Capot (annoncé)</option>
+          <option value="libre" ${isLibre ? "selected" : ""}>✎ Saisie libre (correction / report)</option>
         </select>
 
         ${
           isPasse
             ? `<div class="result-note" style="color:var(--muted)">Personne ne prend — donne passée (0 – 0). La distribution passe au joueur suivant.</div>`
+            : isLibre
+            ? `<label>Saisie libre — points à ajouter (négatif possible)</label>
+        <div class="field-row">
+          <div>
+            <label style="color:var(--team1);margin-top:.2rem">${esc(game.teams[0])}</label>
+            <input type="number" id="libre0" value="${draft.libre0 == null ? "" : draft.libre0}" step="10" inputmode="numeric" placeholder="0">
+          </div>
+          <div>
+            <label style="color:var(--team2);margin-top:.2rem">${esc(game.teams[1])}</label>
+            <input type="number" id="libre1" value="${draft.libre1 == null ? "" : draft.libre1}" step="10" inputmode="numeric" placeholder="0">
+          </div>
+        </div>
+        <div class="result-note" style="color:var(--muted)">Ajoute directement ces points (report d'une feuille, correction…).</div>`
             : `<label>Couleur (atout)</label>
         <div class="seg suits" id="couleur">
           ${Object.keys(SUITS)
@@ -824,15 +849,22 @@
       on("#side", "click", (e) => pick(e, "pointsSide", false));
       on("#belote", "click", (e) => pick(e, "belote", true));
       on("#mode", "click", (e) => pick(e, "mode", false));
-      // Contrat = menu déroulant ("passe" et "capot" sont des cas spéciaux).
+      // Contrat = menu déroulant ("passe"/"capot"/"libre" = cas spéciaux).
       $("#contrat").addEventListener("change", (e) => {
         const v = e.target.value;
-        draft.contrat = v === "capot" || v === "passe" ? v : Number(v);
+        draft.contrat =
+          v === "capot" || v === "passe" || v === "libre" ? v : Number(v);
         draw();
       });
       on("#points", "input", (e) => {
         draft.points = e.target.value; // valeur brute (permet le champ vide)
         refreshPreview();
+      });
+      on("#libre0", "input", (e) => {
+        draft.libre0 = e.target.value;
+      });
+      on("#libre1", "input", (e) => {
+        draft.libre1 = e.target.value;
       });
       $("#msave").addEventListener("click", saveDonne);
       if (isEdit) $("#mdel").addEventListener("click", delDonne);
@@ -874,7 +906,10 @@
     }
 
     function saveDonne() {
-      if (draft.contrat !== "capot" && draft.contrat !== "passe") {
+      if (draft.contrat === "libre") {
+        draft.libre0 = Number(draft.libre0) || 0;
+        draft.libre1 = Number(draft.libre1) || 0;
+      } else if (draft.contrat !== "capot" && draft.contrat !== "passe") {
         const c = Number(draft.contrat);
         if (!c || c < 80) {
           alert("Le contrat doit être d'au moins 80.");
