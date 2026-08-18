@@ -66,6 +66,9 @@ cartes est **160** (arrondi à la dizaine), donc l'autre camp = 160 − saisi :
 La **couleur** (♠ ♥ ♦ ♣) est purement indicative : elle n'a **aucun effet
 sur les points**, c'est juste pour suivre les donnes.
 
+Si **personne ne prend**, choisissez **« Passe »** en haut de la liste des
+contrats : la donne vaut **0 – 0** et la distribution passe au joueur suivant.
+
 Pour gagner la partie, il faut **dépasser** l'objectif (donc **≥ 1510** ou
 **≥ 2010**) tout en menant au score : à 1500 ou 2000 pile, ce n'est pas
 encore gagné.

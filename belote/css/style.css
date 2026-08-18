@@ -317,6 +317,8 @@ svg.chart { display: block; width: 100%; height: auto; }
   cursor: pointer;
 }
 .donne.chute { border-left-color: var(--bad); }
+.donne.passe { border-left-color: var(--muted); opacity: 0.85; }
+.tag.passe { background: var(--line); color: var(--muted); }
 .donne .line1 { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
 .donne .dealer { font-size: 0.78rem; color: var(--muted); }
 .donne .dealer b { color: var(--ink); }

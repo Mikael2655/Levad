@@ -143,6 +143,8 @@
     const pts = [0, 0];
     // 1 = normale, 2 = contré, 4 = surcontré
     const facteur = d.mode === "surcontre" ? 4 : d.mode === "contre" ? 2 : 1;
+    // Donne passée : personne ne prend, aucun point.
+    if (d.contrat === "passe") return { pts: [0, 0], realise: false, passe: true };
     // Capot annoncé = contrat "capot" choisi aux enchères.
     const annonce = d.contrat === "capot";
     const C = annonce ? 0 : Number(d.contrat) || 0;
@@ -523,18 +525,23 @@
           : r.capot === "realise"
           ? `prend <b>${d.contrat}</b>`
           : `prend <b>${d.contrat}</b> · ${d.points} pts (${sideTxt})`;
+        const passe = d.contrat === "passe";
         return `
-        <div class="donne ${r.realise ? "" : "chute"}" data-edit="${i}">
+        <div class="donne ${passe ? "passe" : r.realise ? "" : "chute"}" data-edit="${i}">
           <div class="line1">
             <span class="dealer">Donne ${i + 1} · distrib. <b>${esc(dealerName(i))}</b></span>
             <span class="num">#${i + 1}</span>
           </div>
           <div class="line2">
             <div class="contract">
-              ${suitTag}
+              ${
+                passe
+                  ? `<span class="muted">Personne ne prend</span> <span class="tag passe">Passe</span>`
+                  : `${suitTag}
               <span class="taker t${d.preneur}">${esc(takerName)}</span>
               ${contractText}
-              ${capotTag} ${modeTag} ${resTag} ${belTag}
+              ${capotTag} ${modeTag} ${resTag} ${belTag}`
+              }
             </div>
             <div class="pts">
               <div class="p t0"><div class="d">+${r.pts[0]}</div><div class="c">${cum[i][0]}</div></div>
@@ -685,6 +692,7 @@
 
     function draw() {
       const r = scoreDonne(draft);
+      const isPasse = draft.contrat === "passe"; // personne ne prend
       const enteredNow = Math.max(0, Math.min(162, Number(draft.points) || 0));
       const isCapotNow = enteredNow === 162 || enteredNow === 0;
       const complement =
@@ -717,14 +725,19 @@
           <span class="cs t1"><b>${baseTotals[1]}</b> ${esc(game.teams[1])}</span>
         </div>
 
-        <label>Qui prend ?</label>
+        ${
+          isPasse
+            ? ""
+            : `<label>Qui prend ?</label>
         <div class="seg team" id="preneur">
           <button data-team="0" data-v="0" class="${draft.preneur === 0 ? "on" : ""}">${esc(game.teams[0])}</button>
           <button data-team="1" data-v="1" class="${draft.preneur === 1 ? "on" : ""}">${esc(game.teams[1])}</button>
-        </div>
+        </div>`
+        }
 
         <label>Contrat</label>
         <select id="contrat">
+          <option value="passe" ${isPasse ? "selected" : ""}>Passe (personne ne prend)</option>
           ${CONTRATS.map(
             (n) =>
               `<option value="${n}" ${Number(draft.contrat) === n ? "selected" : ""}>${n}</option>`
@@ -732,7 +745,10 @@
           <option value="capot" ${draft.contrat === "capot" ? "selected" : ""}>Capot (annoncé)</option>
         </select>
 
-        <label>Couleur (atout)</label>
+        ${
+          isPasse
+            ? `<div class="result-note" style="color:var(--muted)">Personne ne prend — donne passée (0 – 0). La distribution passe au joueur suivant.</div>`
+            : `<label>Couleur (atout)</label>
         <div class="seg suits" id="couleur">
           ${Object.keys(SUITS)
             .map(
@@ -774,7 +790,8 @@
 
         <div class="result-note" style="color:${noteColor(r)}">
           ${noteText(r)}
-        </div>
+        </div>`
+        }
 
         <div class="btn-row" style="margin-top:1rem">
           <button class="btn block" id="msave">${isEdit ? "Enregistrer" : "Ajouter la donne"}</button>
@@ -787,19 +804,23 @@
       `;
 
       $("#mclose").addEventListener("click", closeModal);
-      $("#preneur").addEventListener("click", (e) => pick(e, "preneur", true));
-      $("#couleur").addEventListener("click", (e) => pick(e, "couleur", false));
-      $("#side").addEventListener("click", (e) => pick(e, "pointsSide", false));
-      $("#belote").addEventListener("click", (e) => pick(e, "belote", true));
-      $("#mode").addEventListener("click", (e) => pick(e, "mode", false));
-      // Contrat = menu déroulant (valeur "capot" = capot annoncé). Un
-      // changement redessine (l'aperçu et l'état capot peuvent changer).
+      // Champs masqués en mode « Passe » — on protège chaque écouteur.
+      const on = (sel, ev, fn) => {
+        const el = $(sel);
+        if (el) el.addEventListener(ev, fn);
+      };
+      on("#preneur", "click", (e) => pick(e, "preneur", true));
+      on("#couleur", "click", (e) => pick(e, "couleur", false));
+      on("#side", "click", (e) => pick(e, "pointsSide", false));
+      on("#belote", "click", (e) => pick(e, "belote", true));
+      on("#mode", "click", (e) => pick(e, "mode", false));
+      // Contrat = menu déroulant ("passe" et "capot" sont des cas spéciaux).
       $("#contrat").addEventListener("change", (e) => {
         const v = e.target.value;
-        draft.contrat = v === "capot" ? "capot" : Number(v);
+        draft.contrat = v === "capot" || v === "passe" ? v : Number(v);
         draw();
       });
-      $("#points").addEventListener("input", (e) => {
+      on("#points", "input", (e) => {
         draft.points = Number(e.target.value);
         refreshPreview();
       });
@@ -839,7 +860,7 @@
     }
 
     function saveDonne() {
-      if (draft.contrat !== "capot") {
+      if (draft.contrat !== "capot" && draft.contrat !== "passe") {
         const c = Number(draft.contrat);
         if (!c || c < 80) {
           alert("Le contrat doit être d'au moins 80.");
