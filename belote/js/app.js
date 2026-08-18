@@ -709,7 +709,13 @@
           <h2>${isEdit ? "Modifier la donne " + nextNum : "Donne " + nextNum}</h2>
           <button class="modal-close" id="mclose" aria-label="Fermer">✕</button>
         </div>
-        <p class="muted" style="margin:.1rem 0 .6rem;font-size:.85rem">Distribution : <b>${esc(dealerName(nextNum - 1))}</b></p>
+        <p class="muted" style="margin:.1rem 0 .5rem;font-size:.85rem">Distribution : <b>${esc(dealerName(nextNum - 1))}</b></p>
+
+        <div class="cur-scores">
+          <span class="cs t0">${esc(game.teams[0])} <b>${baseTotals[0]}</b></span>
+          <span class="cs-sep">—</span>
+          <span class="cs t1"><b>${baseTotals[1]}</b> ${esc(game.teams[1])}</span>
+        </div>
 
         <label>Qui prend ?</label>
         <div class="seg team" id="preneur">
@@ -766,18 +772,6 @@
           <button data-v="1" class="${draft.belote === 1 ? "on" : ""}">${esc(game.teams[1])}</button>
         </div>
 
-        <div class="result-preview">
-          <div class="rp t0">
-            <div class="lbl">${esc(game.teams[0])}</div>
-            <div class="val">${baseTotals[0] + r.pts[0]}</div>
-            <div class="sub">${baseTotals[0]} <b>+${r.pts[0]}</b></div>
-          </div>
-          <div class="rp t1">
-            <div class="lbl">${esc(game.teams[1])}</div>
-            <div class="val">${baseTotals[1] + r.pts[1]}</div>
-            <div class="sub">${baseTotals[1]} <b>+${r.pts[1]}</b></div>
-          </div>
-        </div>
         <div class="result-note" style="color:${noteColor(r)}">
           ${noteText(r)}
         </div>
@@ -823,16 +817,6 @@
     // Met à jour seulement l'aperçu sans perdre le focus des champs nombre
     function refreshPreview() {
       const r = scoreDonne(draft);
-      const rp = modal.querySelectorAll(".result-preview .val");
-      if (rp.length === 2) {
-        rp[0].textContent = baseTotals[0] + r.pts[0];
-        rp[1].textContent = baseTotals[1] + r.pts[1];
-      }
-      const sub = modal.querySelectorAll(".result-preview .sub");
-      if (sub.length === 2) {
-        sub[0].innerHTML = baseTotals[0] + " <b>+" + r.pts[0] + "</b>";
-        sub[1].innerHTML = baseTotals[1] + " <b>+" + r.pts[1] + "</b>";
-      }
       const note = modal.querySelector(".result-note");
       if (note) {
         note.textContent = noteText(r);

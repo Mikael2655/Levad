@@ -409,6 +409,23 @@ svg.chart { display: block; width: 100%; height: auto; }
   text-align: center;
 }
 
+/* Score cumulé actuel, affiché en haut du formulaire de donne */
+.cur-scores {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 0.45rem 0.7rem;
+  margin: 0 0 0.6rem;
+}
+.cur-scores .cs { font-weight: 700; font-size: 0.95rem; }
+.cur-scores .cs b { font-size: 1.3rem; }
+.cur-scores .t0 b { color: var(--team1); }
+.cur-scores .t1 b { color: var(--team2); }
+.cur-scores .cs-sep { color: var(--muted); font-weight: 800; }
+
 .result-preview {
   background: var(--bg);
   border-radius: 12px;
