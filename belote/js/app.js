@@ -148,25 +148,27 @@
     // Capot annoncé = contrat "capot" choisi aux enchères.
     const annonce = d.contrat === "capot";
     const C = annonce ? 0 : Number(d.contrat) || 0;
-    // Points de cartes saisis (0 à 162), ramenés aux points du preneur
-    // sur base 162. Un camp fait capot quand il a TOUT : 162 d'un côté,
-    // donc 0 de l'autre — peu importe la case remplie (preneur ou défense).
+    // Points de cartes saisis (0 à 162). Points du preneur sur base 162
+    // (162 - saisi si l'on saisit la défense).
     const entered = Math.max(0, Math.min(162, Number(d.points) || 0));
     const ppreneur162 = d.pointsSide === "defense" ? 162 - entered : entered;
-    const capotBy =
-      ppreneur162 === 162 ? preneur : ppreneur162 === 0 ? defense : -1;
 
     // --- Capot ANNONCÉ (500 ; ×2 contré, ×4 surcontré ; indép. objectif) ---
+    // Réussi = le preneur a pris tous les plis, que l'on saisisse « 162 au
+    // preneur » ou « 0 à la défense ».
     if (annonce) {
-      const reussi = capotBy === preneur; // le preneur a pris tous les plis
+      const reussi = ppreneur162 === 162;
       const gagnant = reussi ? preneur : defense;
       pts[gagnant] = 500 * facteur;
       if (bel === 0 || bel === 1) pts[reussi ? bel : defense] += 20 * facteur;
       return { pts, realise: reussi, capot: "annonce" };
     }
 
-    // --- Capot NON annoncé (un camp a fait 162) = contrat + 250 ---
-    if (capotBy >= 0) {
+    // --- Capot NON annoncé = contrat + 250 ---
+    // Détecté uniquement si l'on SAISIT explicitement 162 pour un camp
+    // (le 0 par défaut ne déclenche donc pas de capot).
+    if (entered === 162) {
+      const capotBy = d.pointsSide === "defense" ? defense : preneur;
       pts[capotBy] = C + 250;
       if (bel === 0 || bel === 1) pts[bel] += 20;
       return { pts, realise: capotBy === preneur, capot: "realise", capotBy };
@@ -648,7 +650,7 @@
       : {
           preneur: 0,
           contrat: 90,
-          points: 90,
+          points: 0,
           pointsSide: "preneur",
           belote: -1,
           mode: "normal",
@@ -694,9 +696,8 @@
       const r = scoreDonne(draft);
       const isPasse = draft.contrat === "passe"; // personne ne prend
       const enteredNow = Math.max(0, Math.min(162, Number(draft.points) || 0));
-      const isCapotNow = enteredNow === 162 || enteredNow === 0;
-      const complement =
-        enteredNow === 162 ? 0 : enteredNow === 0 ? 162 : Math.max(0, BASE - enteredNow);
+      const isCapotNow = r.capot === "realise" || r.capot === "annonce";
+      const complement = enteredNow === 162 ? 0 : Math.max(0, BASE - enteredNow);
       const otherTeam =
         draft.pointsSide === "defense"
           ? game.teams[draft.preneur]
@@ -847,15 +848,14 @@
       const other = modal.querySelector("#other-side");
       if (other) {
         const entered = Math.max(0, Math.min(162, Number(draft.points) || 0));
-        const complement =
-          entered === 162 ? 0 : entered === 0 ? 162 : Math.max(0, BASE - entered);
+        const complement = entered === 162 ? 0 : Math.max(0, BASE - entered);
         const otherTeam =
           draft.pointsSide === "defense"
             ? game.teams[draft.preneur]
             : game.teams[1 - draft.preneur];
         other.innerHTML =
           "→ " + esc(otherTeam) + " : <b>" + complement + "</b>" +
-          (entered === 162 || entered === 0 ? " · capot 🃏" : "");
+          (r.capot === "realise" || r.capot === "annonce" ? " · capot 🃏" : "");
       }
     }
 
