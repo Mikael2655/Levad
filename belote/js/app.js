@@ -650,7 +650,7 @@
       : {
           preneur: 0,
           contrat: 90,
-          points: 0,
+          points: "",
           pointsSide: "preneur",
           belote: -1,
           mode: "normal",
@@ -674,6 +674,7 @@
     function facteurOf() {
       return draft.mode === "surcontre" ? 4 : draft.mode === "contre" ? 2 : 1;
     }
+    const pointsVides = () => draft.points === "" || draft.points == null;
     function noteText(r) {
       if (draft.contrat === "capot")
         return (
@@ -683,9 +684,12 @@
           (r.realise ? "réussi ✅" : "chuté ❌")
         );
       if (r.capot === "realise") return "Capot ! (contrat + 250)";
+      if (pointsVides()) return "Points à saisir…";
       return "Contrat " + (r.realise ? "réussi ✅" : "chuté ❌");
     }
     function noteColor(r) {
+      if (draft.contrat !== "capot" && r.capot !== "realise" && pointsVides())
+        return "var(--muted)";
       return r.capot === "realise" || r.realise ? "var(--good)" : "var(--bad)";
     }
 
@@ -695,9 +699,14 @@
     function draw() {
       const r = scoreDonne(draft);
       const isPasse = draft.contrat === "passe"; // personne ne prend
+      const rawEmpty = draft.points === "" || draft.points == null;
       const enteredNow = Math.max(0, Math.min(162, Number(draft.points) || 0));
       const isCapotNow = r.capot === "realise" || r.capot === "annonce";
-      const complement = enteredNow === 162 ? 0 : Math.max(0, BASE - enteredNow);
+      const complement = rawEmpty
+        ? "—"
+        : enteredNow === 162
+        ? 0
+        : Math.max(0, BASE - enteredNow);
       const otherTeam =
         draft.pointsSide === "defense"
           ? game.teams[draft.preneur]
@@ -775,7 +784,7 @@
         </div>
         <div class="field-row" style="margin-top:.5rem;align-items:flex-end">
           <div>
-            <input type="number" id="points" value="${draft.points}" min="0" max="162" step="1" inputmode="numeric">
+            <input type="number" id="points" value="${draft.points}" min="0" max="162" step="1" inputmode="numeric" placeholder="0 – 162">
           </div>
           <div style="flex:0 0 auto;padding-bottom:.6rem;color:var(--muted);font-size:.85rem" id="other-side">
             → ${esc(otherTeam)} : <b>${complement}</b>${isCapotNow ? " · capot 🃏" : ""}
@@ -822,7 +831,7 @@
         draw();
       });
       on("#points", "input", (e) => {
-        draft.points = Number(e.target.value);
+        draft.points = e.target.value; // valeur brute (permet le champ vide)
         refreshPreview();
       });
       $("#msave").addEventListener("click", saveDonne);
@@ -847,8 +856,13 @@
       // Met à jour le complément affiché (points de l'autre camp).
       const other = modal.querySelector("#other-side");
       if (other) {
+        const rawEmpty = draft.points === "" || draft.points == null;
         const entered = Math.max(0, Math.min(162, Number(draft.points) || 0));
-        const complement = entered === 162 ? 0 : Math.max(0, BASE - entered);
+        const complement = rawEmpty
+          ? "—"
+          : entered === 162
+          ? 0
+          : Math.max(0, BASE - entered);
         const otherTeam =
           draft.pointsSide === "defense"
             ? game.teams[draft.preneur]
