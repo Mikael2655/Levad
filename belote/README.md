@@ -14,7 +14,10 @@ l'écran d'accueil de votre téléphone pour l'utiliser comme une appli).
 
 1. **Nouvelle partie** : choisissez l'objectif (1500 ou 2000), nommez les
    deux équipes et les joueurs **dans l'ordre de distribution** (chacun
-   rattaché à son équipe).
+   rattaché à son équipe). Les flèches **↑ ↓** permettent de réordonner les
+   joueurs (donc de changer qui distribue en premier) ; on peut aussi
+   changer les équipes. Ces réglages sont modifiables à tout moment via le
+   menu **⋯ → Équipes, joueurs & ordre** (utile entre deux manches).
 2. **＋ Donne** : pour chaque donne, indiquez qui prend, le **contrat**
    (liste déroulante 80…160 ou **Capot**), la **couleur** (atout, juste
    pour le suivi), les **points de cartes** — vous pouvez saisir **ceux du
@@ -50,17 +53,18 @@ cartes est **160** (arrondi à la dizaine), donc l'autre camp = 160 − saisi :
   | Contré     | contrat × 2 + 160     | contrat × 2 + 160 × 2       |
   | Surcontré  | contrat × 4 + 160     | contrat × 4 + 160 × 4       |
 
-  La **belote** est multipliée par le même facteur (× 2 en contré, × 4 en
-  surcontré) et suit la même règle (au vainqueur, ou à l'adversaire en cas
-  de chute). Autrement dit : le contrat et la belote sont toujours
-  multipliés ; le forfait de 160 ne l'est **qu'en partie à 2000**.
+  Seul le **contrat** est multiplié par le facteur ; le forfait de 160 ne
+  l'est **qu'en partie à 2000**. La **belote** n'est **jamais multipliée** :
+  elle reste à **+20** (au vainqueur, ou à l'adversaire en cas de chute).
 - **Capot** (un camp remporte tous les plis = **162 points**), **quel que
   soit l'objectif de la partie** :
   - **Annoncé** aux enchères : choisir **« Capot »** dans la liste des
     contrats. Vaut **500** (contré → 1000, surcontré → 2000). Annoncé mais
     **chuté**, la valeur va à l'adversaire.
-  - **Non annoncé** : il suffit de saisir **162** pour le camp qui a tout
-    ramassé — l'appli compte automatiquement **contrat + 250**.
+  - **Non annoncé** : il suffit de saisir **162** au camp qui a tout ramassé
+    (ou **0** à l'autre camp, c'est équivalent) — l'appli compte
+    automatiquement **contrat + 250**. Le champ **laissé vide** reste neutre
+    (aucun capot déduit tant qu'on n'a rien saisi).
 - Tout est **arrondi à la dizaine** (la belote s'ajoute après l'arrondi).
 
 La **couleur** (♠ ♥ ♦ ♣) est purement indicative : elle n'a **aucun effet

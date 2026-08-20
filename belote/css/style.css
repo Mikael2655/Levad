@@ -220,8 +220,16 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .big-choice button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
 .big-choice button small { display: block; font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-top: 0.25rem; }
 
-.player-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.55rem; }
-.player-row .idx { width: 1.6rem; text-align: center; color: var(--muted); font-weight: 800; }
+.player-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; }
+.player-row .move { display: flex; flex-direction: column; gap: 2px; }
+.player-row .move button {
+  font: inherit; font-weight: 800; line-height: 0.9;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--card); color: var(--ink); cursor: pointer;
+}
+.player-row .move button:disabled { opacity: 0.3; cursor: default; }
+.player-row .idx { width: 1.2rem; text-align: center; color: var(--muted); font-weight: 800; }
 .player-row input { flex: 1; }
 .player-row .team-pick { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .player-row .team-pick button { font: inherit; font-weight: 800; padding: 0.5rem 0.7rem; border: none; background: var(--card); color: var(--muted); cursor: pointer; }

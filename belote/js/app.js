@@ -155,27 +155,34 @@
     // Capot annoncé = contrat "capot" choisi aux enchères.
     const annonce = d.contrat === "capot";
     const C = annonce ? 0 : Number(d.contrat) || 0;
-    // Points de cartes saisis (0 à 162). Points du preneur sur base 162
-    // (162 - saisi si l'on saisit la défense).
+    // Points de cartes saisis (0 à 162). Le champ vide (non saisi) reste
+    // neutre : aucun capot n'est déduit tant qu'on n'a rien tapé.
+    const rawEmpty = d.points === "" || d.points == null;
     const entered = Math.max(0, Math.min(162, Number(d.points) || 0));
     const ppreneur162 = d.pointsSide === "defense" ? 162 - entered : entered;
+    // Un camp a-t-il fait capot (162) ? 162 d'un côté = 0 de l'autre.
+    const capotBy = rawEmpty
+      ? -1
+      : ppreneur162 === 162
+      ? preneur
+      : ppreneur162 === 0
+      ? defense
+      : -1;
 
     // --- Capot ANNONCÉ (500 ; ×2 contré, ×4 surcontré ; indép. objectif) ---
     // Réussi = le preneur a pris tous les plis, que l'on saisisse « 162 au
-    // preneur » ou « 0 à la défense ».
+    // preneur » ou « 0 à la défense ». La belote reste à 20.
     if (annonce) {
-      const reussi = ppreneur162 === 162;
+      const reussi = capotBy === preneur;
       const gagnant = reussi ? preneur : defense;
       pts[gagnant] = 500 * facteur;
-      if (bel === 0 || bel === 1) pts[reussi ? bel : defense] += 20 * facteur;
+      if (bel === 0 || bel === 1) pts[reussi ? bel : defense] += 20;
       return { pts, realise: reussi, capot: "annonce" };
     }
 
     // --- Capot NON annoncé = contrat + 250 ---
-    // Détecté uniquement si l'on SAISIT explicitement 162 pour un camp
-    // (le 0 par défaut ne déclenche donc pas de capot).
-    if (entered === 162) {
-      const capotBy = d.pointsSide === "defense" ? defense : preneur;
+    // Un camp a tout ramassé (162 saisi pour lui, ou 0 saisi pour l'autre).
+    if (capotBy >= 0) {
       pts[capotBy] = C + 250;
       if (bel === 0 || bel === 1) pts[bel] += 20;
       return { pts, realise: capotBy === preneur, capot: "realise", capotBy };
@@ -192,9 +199,9 @@
     if (facteur > 1) {
       // Contré / surcontré : tout va à l'équipe qui gagne la donne —
       // le preneur s'il réussit, sinon l'adversaire qui l'a fait chuter.
-      // Le contrat et la belote sont toujours multipliés par le facteur ;
-      // le forfait de 160 ne l'est qu'en partie à 2000 (en 1500 il reste
-      // à 160). Ex. 2000 contré = contrat×2 + 160×2 + belote×2.
+      // Le contrat est multiplié par le facteur ; le forfait de 160 ne l'est
+      // qu'en partie à 2000 (en 1500 il reste à 160). La belote reste à 20.
+      // Ex. 2000 contré = contrat×2 + 160×2 (+ belote 20).
       const gagnant = realise ? preneur : defense;
       const forfait = game.target >= 2000 ? facteur * BASE : BASE;
       pts[gagnant] = facteur * C + forfait;
@@ -207,11 +214,11 @@
         pts[defense] = roundTen(BASE + C);
       }
     }
-    // Belote (×facteur) : au porteur si le contrat est réussi,
-    // mais à l'adversaire (la défense) en cas de chute.
+    // Belote : toujours +20 (jamais multipliée, même sur contré/surcontré) —
+    // au porteur si le contrat est réussi, sinon à l'adversaire (chute).
     if (bel === 0 || bel === 1) {
       const beneficiaire = realise ? bel : defense;
-      pts[beneficiaire] += 20 * facteur;
+      pts[beneficiaire] += 20;
     }
     return { pts, realise, ppreneur, pdefense };
   }
@@ -366,43 +373,76 @@
     if (sr) sr.addEventListener("click", resetSeries);
   }
 
-  function renderPlayerRows() {
-    const wrap = $("#players");
-    const d = setupDraft;
-    wrap.innerHTML = d.players
+  // Déplace un joueur dans l'ordre de distribution (dir = -1 ↑, +1 ↓).
+  function movePlayer(players, i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= players.length) return;
+    const tmp = players[i];
+    players[i] = players[j];
+    players[j] = tmp;
+  }
+
+  function playerRowsHtml(players) {
+    return players
       .map(
         (p, i) => `
       <div class="player-row" data-i="${i}">
+        <div class="move">
+          <button data-up="${i}" ${i === 0 ? "disabled" : ""} title="Monter" aria-label="Monter">↑</button>
+          <button data-down="${i}" ${i === players.length - 1 ? "disabled" : ""} title="Descendre" aria-label="Descendre">↓</button>
+        </div>
         <span class="idx">${i + 1}</span>
         <input type="text" value="${esc(p.name)}" maxlength="14" placeholder="Joueur ${i + 1}" data-name="${i}">
         <div class="team-pick" data-team-pick="${i}">
           <button data-team="0" class="${p.team === 0 ? "on" : ""}">1</button>
           <button data-team="1" class="${p.team === 1 ? "on" : ""}">2</button>
         </div>
-        ${d.players.length > 2 ? `<button class="btn ghost" data-del="${i}" title="Retirer" style="padding:.4rem .6rem">✕</button>` : ""}
+        ${players.length > 2 ? `<button class="btn ghost" data-del="${i}" title="Retirer" style="padding:.4rem .5rem">✕</button>` : ""}
       </div>`
       )
       .join("");
+  }
 
+  // Câble les écouteurs des lignes joueurs. onStruct = re-rendu complet
+  // (ajout/suppression/déplacement), onLight = maj légère (nom/équipe).
+  function wirePlayerRows(wrap, players, rerender) {
     wrap.querySelectorAll("input[data-name]").forEach((inp) =>
       inp.addEventListener("input", (e) => {
-        d.players[Number(e.target.dataset.name)].name = e.target.value;
+        players[Number(e.target.dataset.name)].name = e.target.value;
       })
     );
     wrap.querySelectorAll("[data-team-pick]").forEach((grp) =>
       grp.addEventListener("click", (e) => {
         const b = e.target.closest("button[data-team]");
         if (!b) return;
-        d.players[Number(grp.dataset.teamPick)].team = Number(b.dataset.team);
-        renderPlayerRows();
+        players[Number(grp.dataset.teamPick)].team = Number(b.dataset.team);
+        rerender();
+      })
+    );
+    wrap.querySelectorAll("[data-up]").forEach((b) =>
+      b.addEventListener("click", () => {
+        movePlayer(players, Number(b.dataset.up), -1);
+        rerender();
+      })
+    );
+    wrap.querySelectorAll("[data-down]").forEach((b) =>
+      b.addEventListener("click", () => {
+        movePlayer(players, Number(b.dataset.down), +1);
+        rerender();
       })
     );
     wrap.querySelectorAll("[data-del]").forEach((b) =>
       b.addEventListener("click", () => {
-        d.players.splice(Number(b.dataset.del), 1);
-        renderSetup();
+        players.splice(Number(b.dataset.del), 1);
+        rerender();
       })
     );
+  }
+
+  function renderPlayerRows() {
+    const wrap = $("#players");
+    wrap.innerHTML = playerRowsHtml(setupDraft.players);
+    wirePlayerRows(wrap, setupDraft.players, renderSetup);
   }
 
   function startGame() {
@@ -690,16 +730,19 @@
         return (
           "Capot annoncé (" +
           500 * facteurOf() +
-          " pts) — " +
-          (r.realise ? "réussi ✅" : "chuté ❌")
+          " pts)" +
+          (pointsVides()
+            ? " — à confirmer"
+            : r.realise
+            ? " — réussi ✅"
+            : " — chuté ❌")
         );
       if (r.capot === "realise") return "Capot ! (contrat + 250)";
       if (pointsVides()) return "Points à saisir…";
       return "Contrat " + (r.realise ? "réussi ✅" : "chuté ❌");
     }
     function noteColor(r) {
-      if (draft.contrat !== "capot" && r.capot !== "realise" && pointsVides())
-        return "var(--muted)";
+      if (r.capot !== "realise" && pointsVides()) return "var(--muted)";
       return r.capot === "realise" || r.realise ? "var(--good)" : "var(--bad)";
     }
 
@@ -917,7 +960,11 @@
         }
         draft.contrat = c;
       }
-      draft.points = Math.max(0, Math.min(162, Number(draft.points) || 0));
+      // On garde « vide » distinct de « 0 » (un 0 saisi = capot adverse).
+      draft.points =
+        draft.points === "" || draft.points == null
+          ? ""
+          : Math.max(0, Math.min(162, Number(draft.points) || 0));
       if (isEdit) game.donnes[editIndex] = draft;
       else game.donnes.push(draft);
       persist();
@@ -949,7 +996,7 @@
       <div class="btn-row" style="flex-direction:column;gap:.6rem">
         <button class="btn secondary block" id="undo" ${game.donnes.length ? "" : "disabled"}>↩︎ Annuler la dernière donne</button>
         <button class="btn secondary block" id="revanche2">🔁 Revanche (mêmes équipes)</button>
-        <button class="btn secondary block" id="rename">✏️ Renommer les équipes / joueurs</button>
+        <button class="btn secondary block" id="rename">✏️ Équipes, joueurs &amp; ordre de distribution</button>
         <button class="btn secondary block" id="hist">📚 Historique des parties (${history.length})</button>
         ${
           series.wins[0] + series.wins[1] > 0
@@ -987,54 +1034,41 @@
   }
 
   function openRename() {
-    modal.innerHTML = `
-      <div class="modal-head">
-        <h2>Équipes &amp; joueurs</h2>
-        <button class="modal-close" id="mclose" aria-label="Fermer">✕</button>
-      </div>
-      <div class="field-row">
-        <div><label style="color:var(--team1)">Équipe 1</label><input type="text" id="rt0" value="${esc(game.teams[0])}" maxlength="18"></div>
-        <div><label style="color:var(--team2)">Équipe 2</label><input type="text" id="rt1" value="${esc(game.teams[1])}" maxlength="18"></div>
-      </div>
-      <h3>Joueurs (ordre de distribution)</h3>
-      <div id="rplayers"></div>
-      <button class="btn block" id="rsave" style="margin-top:1rem">Enregistrer</button>
-    `;
-    const rp = $("#rplayers");
-    rp.innerHTML = game.players
-      .map(
-        (p, i) => `
-      <div class="player-row">
-        <span class="idx">${i + 1}</span>
-        <input type="text" value="${esc(p.name)}" maxlength="14" data-rn="${i}">
-        <div class="team-pick" data-rtp="${i}">
-          <button data-team="0" class="${p.team === 0 ? "on" : ""}">1</button>
-          <button data-team="1" class="${p.team === 1 ? "on" : ""}">2</button>
+    // Copie de travail : validée seulement à l'enregistrement.
+    const dp = game.players.map((p) => ({ name: p.name, team: p.team }));
+    const dt = [game.teams[0], game.teams[1]];
+
+    function draw() {
+      modal.innerHTML = `
+        <div class="modal-head">
+          <h2>Équipes &amp; joueurs</h2>
+          <button class="modal-close" id="mclose" aria-label="Fermer">✕</button>
         </div>
-      </div>`
-      )
-      .join("");
-    rp.querySelectorAll("[data-rtp]").forEach((grp) =>
-      grp.addEventListener("click", (e) => {
-        const b = e.target.closest("button[data-team]");
-        if (!b) return;
-        const i = Number(grp.dataset.rtp);
-        game.players[i].team = Number(b.dataset.team);
-        openRename();
-      })
-    );
-    $("#mclose").addEventListener("click", closeModal);
-    $("#rsave").addEventListener("click", () => {
-      game.teams[0] = ($("#rt0").value.trim() || "Nous");
-      game.teams[1] = ($("#rt1").value.trim() || "Eux");
-      rp.querySelectorAll("[data-rn]").forEach((inp) => {
-        const i = Number(inp.dataset.rn);
-        game.players[i].name = inp.value.trim() || "Joueur " + (i + 1);
+        <div class="field-row">
+          <div><label style="color:var(--team1)">Équipe 1</label><input type="text" id="rt0" value="${esc(dt[0])}" maxlength="18"></div>
+          <div><label style="color:var(--team2)">Équipe 2</label><input type="text" id="rt1" value="${esc(dt[1])}" maxlength="18"></div>
+        </div>
+        <h3>Joueurs — ordre de distribution (↑ ↓)</h3>
+        <div id="rplayers">${playerRowsHtml(dp)}</div>
+        <button class="btn block" id="rsave" style="margin-top:1rem">Enregistrer</button>
+      `;
+      wirePlayerRows($("#rplayers"), dp, draw);
+      $("#rt0").addEventListener("input", (e) => (dt[0] = e.target.value));
+      $("#rt1").addEventListener("input", (e) => (dt[1] = e.target.value));
+      $("#mclose").addEventListener("click", closeModal);
+      $("#rsave").addEventListener("click", () => {
+        game.teams = [dt[0].trim() || "Nous", dt[1].trim() || "Eux"];
+        game.players = dp.map((p, i) => ({
+          name: p.name.trim() || "Joueur " + (i + 1),
+          team: p.team,
+        }));
+        persist();
+        closeModal();
+        render();
       });
-      persist();
-      closeModal();
-      render();
-    });
+    }
+
+    draw();
     backdrop.hidden = false;
   }
 
