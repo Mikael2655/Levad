@@ -329,6 +329,41 @@ svg.chart { display: block; width: 100%; height: auto; }
 .tag.passe { background: var(--line); color: var(--muted); }
 .donne.libre { border-left-color: var(--gold); }
 .tag.libre { background: var(--gold); color: #3a2a00; }
+
+/* ---------- Saisie d'une donne en ligne ---------- */
+.donne.pending {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  cursor: default;
+}
+.pend-grid { display: flex; flex-wrap: wrap; gap: 0.4rem 0.5rem; margin-top: 0.5rem; }
+.pl {
+  display: flex; flex-direction: column; gap: 0.15rem;
+  font-size: 0.68rem; font-weight: 800; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.02em;
+  flex: 1 1 calc(50% - 0.25rem); min-width: calc(50% - 0.25rem);
+}
+.pl-wide { flex-basis: 100%; min-width: 100%; text-transform: none; }
+.pl select, .pl input {
+  font: inherit; font-weight: 600; text-transform: none; letter-spacing: 0;
+  width: 100%; padding: 0.45rem 0.5rem;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); color: var(--ink);
+}
+.pend-recap { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin: 0.5rem 0 0; }
+.linkbtn { background: none; border: none; color: var(--accent); font: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; padding: 0; white-space: nowrap; }
+.pend-result {
+  display: flex; justify-content: space-around; text-align: center;
+  margin-top: 0.6rem; background: var(--card); border-radius: 10px; padding: 0.5rem;
+}
+.pend-result .pr { flex: 1; }
+.pend-result .pr-lbl { font-size: 0.75rem; color: var(--muted); font-weight: 700; }
+.pend-result .pr-val { font-size: 1.5rem; font-weight: 800; }
+.pend-result .pr.t0 .pr-val { color: var(--team1); }
+.pend-result .pr.t1 .pr-val { color: var(--team2); }
+.pend-result .pr-sub { font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+.pend-result .pr.t0 .pr-sub b { color: var(--team1); }
+.pend-result .pr.t1 .pr-sub b { color: var(--team2); }
 .donne .line1 { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
 .donne .dealer { font-size: 0.78rem; color: var(--muted); }
 .donne .dealer b { color: var(--ink); }

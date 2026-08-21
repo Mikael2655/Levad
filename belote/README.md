@@ -18,12 +18,18 @@ l'écran d'accueil de votre téléphone pour l'utiliser comme une appli).
    joueurs (donc de changer qui distribue en premier) ; on peut aussi
    changer les équipes. Ces réglages sont modifiables à tout moment via le
    menu **⋯ → Équipes, joueurs & ordre** (utile entre deux manches).
-2. **＋ Donne** : pour chaque donne, indiquez qui prend, le **contrat**
-   (liste déroulante 80…160 ou **Capot**), la **couleur** (atout, juste
-   pour le suivi), les **points de cartes** — vous pouvez saisir **ceux du
-   preneur ou ceux de la défense** (l'autre camp est déduit automatiquement)
-   — la belote éventuelle et si la donne est contrée/surcontrée. Le score
-   s'affiche en direct, et tout tient sans avoir à faire défiler l'écran.
+2. **＋ Donne** : ajoute une ligne de saisie directement dans la liste, en
+   deux temps :
+   1. **Le contrat** — quatre menus déroulants compacts : **Contrat**
+      (80…160, Passe, Capot ou Saisie libre), **Couleur** (atout),
+      **Qui prend** et **Enchère** (normale / contré / surcontré). On
+      **valide** : le contrat se fige.
+   2. **Les points** — on saisit les **points d'une équipe** (au choix, le
+      preneur ou la défense) **+ la belote**. Le **nouveau total** de chaque
+      équipe s'affiche en direct, puis on **ajoute la donne**.
+
+   Le bouton **✎ modifier** revient au contrat. Toucher une **donne déjà
+   enregistrée** ouvre sa fiche pour la corriger ou la supprimer.
 3. Le **cumul** de chaque équipe est en haut, et le **graphe** montre
    l'évolution donne après donne. Le nom du **distributeur** apparaît sur
    chaque ligne.

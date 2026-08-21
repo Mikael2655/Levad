@@ -292,6 +292,7 @@
   // Écran de configuration (nouvelle partie)
   // ---------------------------------------------------------
   let setupDraft = null;
+  let pendingDonne = null; // donne en cours de saisie inline (ou null)
 
   function freshDraft() {
     return {
@@ -519,13 +520,14 @@
       <h3 style="margin-top:.4rem">Donnes (${game.donnes.length})</h3>
       <div class="donnes" id="donnes"></div>
 
-      <button class="fab" id="fab">＋ Donne</button>
+      ${pendingDonne ? "" : `<button class="fab" id="fab">＋ Donne</button>`}
     `;
 
     renderChart($("#chart-area"));
     renderDonnes($("#donnes"));
 
-    $("#fab").addEventListener("click", () => openDonneModal(null));
+    const fab = $("#fab");
+    if (fab) fab.addEventListener("click", startPendingDonne);
     $("#finish").addEventListener("click", finishGame);
     $("#menu").addEventListener("click", openMenu);
     const rev = $("#revanche");
@@ -535,13 +537,13 @@
   }
 
   function renderDonnes(wrap) {
-    if (!game.donnes.length) {
+    if (!game.donnes.length && !pendingDonne) {
       wrap.innerHTML = `<div class="empty">Aucune donne pour l'instant.<br>Touchez « ＋ Donne » pour commencer.</div>`;
       return;
     }
     const cum = cumulatives();
     // Plus récente en haut
-    wrap.innerHTML = game.donnes
+    const donnesHtml = game.donnes
       .map((d, i) => {
         const r = scoreDonne(d);
         const takerName = game.teams[d.preneur];
@@ -605,9 +607,257 @@
       .reverse()
       .join("");
 
+    // La donne en cours de saisie (inline) s'affiche en tête.
+    wrap.innerHTML = (pendingDonne ? pendingCardHtml() : "") + donnesHtml;
+
+    if (pendingDonne) wirePendingCard(wrap);
     wrap.querySelectorAll("[data-edit]").forEach((row) =>
       row.addEventListener("click", () => openDonneModal(Number(row.dataset.edit)))
     );
+  }
+
+  // ---------------------------------------------------------
+  // Saisie d'une donne EN LIGNE (sans modale), en deux temps :
+  //   1) le contrat (contrat, couleur, preneur, enchère) → on fige
+  //   2) les points réalisés + la belote → on ajoute la donne
+  // ---------------------------------------------------------
+  function startPendingDonne() {
+    if (pendingDonne) return;
+    pendingDonne = {
+      phase: "contract",
+      preneur: 0,
+      contrat: 90,
+      couleur: "pique",
+      mode: "normal",
+      pointsSide: "preneur",
+      points: "",
+      belote: -1,
+      libre0: "",
+      libre1: "",
+    };
+    render();
+    scrollToPending();
+  }
+
+  function scrollToPending() {
+    const card = document.querySelector(".donne.pending");
+    if (card) card.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+
+  function contractOptions(current) {
+    const nums = [80, 90, 100, 110, 120, 130, 140, 150, 160];
+    return (
+      `<option value="passe" ${current === "passe" ? "selected" : ""}>Passe</option>` +
+      nums
+        .map(
+          (n) =>
+            `<option value="${n}" ${Number(current) === n ? "selected" : ""}>${n}</option>`
+        )
+        .join("") +
+      `<option value="capot" ${current === "capot" ? "selected" : ""}>Capot (annoncé)</option>` +
+      `<option value="libre" ${current === "libre" ? "selected" : ""}>✎ Saisie libre</option>`
+    );
+  }
+  function suitOptions(current) {
+    return Object.keys(SUITS)
+      .map(
+        (k) =>
+          `<option value="${k}" ${current === k ? "selected" : ""}>${SUITS[k].sym} ${SUITS[k].label}</option>`
+      )
+      .join("");
+  }
+
+  // Récap figé du contrat (affiché en phase « points »).
+  function pendRecap(p) {
+    if (p.contrat === "libre") return `<b>Saisie libre</b>`;
+    const suit = SUITS[p.couleur];
+    const cLabel = p.contrat === "capot" ? "Capot" : p.contrat;
+    const modeLabel =
+      p.mode === "contre" ? "contré" : p.mode === "surcontre" ? "surcontré" : "normal";
+    return (
+      `<b>${esc(String(cLabel))}</b> ` +
+      (suit ? `<span class="suit-tag ${suit.red ? "red" : ""}">${suit.sym}</span> ` : "") +
+      `<span class="taker t${p.preneur}">${esc(game.teams[p.preneur])}</span> · ${modeLabel}`
+    );
+  }
+
+  // Bloc « résultat » : total cumulé de chaque équipe après cette donne.
+  function pendResultHtml() {
+    const r = scoreDonne(pendingDonne);
+    const [a, b] = totals();
+    const sg = (n) => (n < 0 ? "" : "+") + n;
+    return `
+      <div class="pr t0">
+        <div class="pr-lbl">${esc(game.teams[0])}</div>
+        <div class="pr-val">${a + r.pts[0]}</div>
+        <div class="pr-sub">${a} <b>${sg(r.pts[0])}</b></div>
+      </div>
+      <div class="pr t1">
+        <div class="pr-lbl">${esc(game.teams[1])}</div>
+        <div class="pr-val">${b + r.pts[1]}</div>
+        <div class="pr-sub">${b} <b>${sg(r.pts[1])}</b></div>
+      </div>`;
+  }
+
+  function pendingCardHtml() {
+    const p = pendingDonne;
+    const num = game.donnes.length + 1;
+    const dealer = dealerName(game.donnes.length);
+    const head = `<div class="line1"><span class="dealer">Donne ${num} · distrib. <b>${esc(dealer)}</b></span><span class="num">#${num}</span></div>`;
+
+    if (p.phase === "contract") {
+      const special = p.contrat === "passe" || p.contrat === "libre";
+      return `
+      <div class="donne pending">
+        ${head}
+        <div class="pend-grid">
+          <label class="pl">Contrat<select id="pd-contrat">${contractOptions(p.contrat)}</select></label>
+          ${
+            special
+              ? ""
+              : `<label class="pl">Couleur<select id="pd-couleur">${suitOptions(p.couleur)}</select></label>
+          <label class="pl">Qui prend<select id="pd-preneur">
+            <option value="0" ${p.preneur === 0 ? "selected" : ""}>${esc(game.teams[0])}</option>
+            <option value="1" ${p.preneur === 1 ? "selected" : ""}>${esc(game.teams[1])}</option>
+          </select></label>
+          <label class="pl">Enchère<select id="pd-mode">
+            <option value="normal" ${p.mode === "normal" ? "selected" : ""}>Normale</option>
+            <option value="contre" ${p.mode === "contre" ? "selected" : ""}>Contré</option>
+            <option value="surcontre" ${p.mode === "surcontre" ? "selected" : ""}>Surcontré</option>
+          </select></label>`
+          }
+        </div>
+        <div class="btn-row" style="margin-top:.55rem">
+          <button class="btn" id="pd-valider">${p.contrat === "passe" ? "Ajouter (passe) ✓" : "Valider le contrat ✓"}</button>
+          <button class="btn ghost" id="pd-cancel">Annuler</button>
+        </div>
+      </div>`;
+    }
+
+    // --- phase « points » ---
+    const isLibre = p.contrat === "libre";
+    const fields = isLibre
+      ? `<div class="pend-grid">
+          <label class="pl" style="color:var(--team1)">${esc(game.teams[0])}<input type="number" id="pd-libre0" value="${p.libre0}" step="10" inputmode="numeric" placeholder="0"></label>
+          <label class="pl" style="color:var(--team2)">${esc(game.teams[1])}<input type="number" id="pd-libre1" value="${p.libre1}" step="10" inputmode="numeric" placeholder="0"></label>
+        </div>`
+      : `<div class="pend-grid">
+          <label class="pl pl-wide">Je saisis les points de
+            <select id="pd-side">
+              <option value="preneur" ${p.pointsSide !== "defense" ? "selected" : ""}>${esc(game.teams[p.preneur])} (preneur)</option>
+              <option value="defense" ${p.pointsSide === "defense" ? "selected" : ""}>${esc(game.teams[1 - p.preneur])} (défense)</option>
+            </select>
+          </label>
+          <label class="pl">Points<input type="number" id="pd-points" value="${p.points}" min="0" max="162" step="1" inputmode="numeric" placeholder="0 – 162"></label>
+          <label class="pl">Belote<select id="pd-belote">
+            <option value="-1" ${p.belote === -1 ? "selected" : ""}>Aucune</option>
+            <option value="0" ${p.belote === 0 ? "selected" : ""}>${esc(game.teams[0])}</option>
+            <option value="1" ${p.belote === 1 ? "selected" : ""}>${esc(game.teams[1])}</option>
+          </select></label>
+        </div>`;
+    return `
+      <div class="donne pending">
+        ${head}
+        <div class="recap pend-recap">${pendRecap(p)} <button class="linkbtn" id="pd-back">✎ modifier</button></div>
+        ${fields}
+        <div class="pend-result" id="pd-result">${pendResultHtml()}</div>
+        <div class="btn-row" style="margin-top:.55rem">
+          <button class="btn" id="pd-commit">Ajouter la donne ✓</button>
+          <button class="btn ghost" id="pd-cancel">Annuler</button>
+        </div>
+      </div>`;
+  }
+
+  function wirePendingCard(wrap) {
+    const p = pendingDonne;
+    const q = (sel) => wrap.querySelector(sel);
+    const on = (sel, ev, fn) => {
+      const el = q(sel);
+      if (el) el.addEventListener(ev, fn);
+    };
+    const refreshResult = () => {
+      const box = q("#pd-result");
+      if (box) box.innerHTML = pendResultHtml();
+    };
+
+    if (p.phase === "contract") {
+      on("#pd-contrat", "change", (e) => {
+        const v = e.target.value;
+        p.contrat = v === "capot" || v === "passe" || v === "libre" ? v : Number(v);
+        render(); // la mise en page dépend du type de contrat
+      });
+      on("#pd-couleur", "change", (e) => (p.couleur = e.target.value));
+      on("#pd-preneur", "change", (e) => (p.preneur = Number(e.target.value)));
+      on("#pd-mode", "change", (e) => (p.mode = e.target.value));
+      on("#pd-valider", "click", () => {
+        if (p.contrat === "passe") commitPending();
+        else {
+          p.phase = "points";
+          render();
+          scrollToPending();
+        }
+      });
+      on("#pd-cancel", "click", cancelPending);
+      return;
+    }
+
+    // phase points
+    on("#pd-back", "click", () => {
+      p.phase = "contract";
+      render();
+    });
+    on("#pd-side", "change", (e) => {
+      p.pointsSide = e.target.value;
+      refreshResult();
+    });
+    on("#pd-points", "input", (e) => {
+      p.points = e.target.value;
+      refreshResult();
+    });
+    on("#pd-belote", "change", (e) => {
+      p.belote = Number(e.target.value);
+      refreshResult();
+    });
+    on("#pd-libre0", "input", (e) => {
+      p.libre0 = e.target.value;
+      refreshResult();
+    });
+    on("#pd-libre1", "input", (e) => {
+      p.libre1 = e.target.value;
+      refreshResult();
+    });
+    on("#pd-commit", "click", commitPending);
+    on("#pd-cancel", "click", cancelPending);
+  }
+
+  function cancelPending() {
+    pendingDonne = null;
+    render();
+  }
+
+  function commitPending() {
+    const p = pendingDonne;
+    const d = {
+      preneur: p.preneur,
+      contrat: p.contrat,
+      couleur: p.couleur,
+      mode: p.mode,
+      pointsSide: p.pointsSide,
+      belote: p.belote,
+    };
+    if (p.contrat === "libre") {
+      d.libre0 = Number(p.libre0) || 0;
+      d.libre1 = Number(p.libre1) || 0;
+    } else {
+      d.points =
+        p.points === "" || p.points == null
+          ? ""
+          : Math.max(0, Math.min(162, Number(p.points) || 0));
+    }
+    game.donnes.push(d);
+    pendingDonne = null;
+    persist();
+    render();
   }
 
   // ---------------------------------------------------------
