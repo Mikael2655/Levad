@@ -86,7 +86,9 @@ erreur** ou **reporter un score** noté sur une feuille avant de reprendre.
 
 Pour gagner la partie, il faut **dépasser** l'objectif (donc **≥ 1510** ou
 **≥ 2010**) tout en menant au score : à 1500 ou 2000 pile, ce n'est pas
-encore gagné.
+encore gagné. Dès qu'une équipe l'emporte, une **fenêtre de victoire**
+s'affiche (avec les points de la manche) et propose **Revanche** ou
+**Terminer & archiver**.
 
 ## Manches, revanche et belle
 

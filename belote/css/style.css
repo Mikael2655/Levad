@@ -308,6 +308,22 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
   margin-bottom: 1rem;
 }
 
+/* ---------- Pop-up de victoire ---------- */
+.victory { text-align: center; padding: 0.4rem 0.3rem 0.2rem; }
+.victory-emoji { font-size: 3.6rem; line-height: 1; animation: pop 0.4s ease; }
+@keyframes pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  70% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.victory-title { font-size: 1.45rem; margin: 0.5rem 0 0.4rem; }
+.victory-score { font-size: 2.1rem; font-weight: 800; margin: 0.2rem 0; }
+.victory-score .t0 { color: var(--team1); }
+.victory-score .t1 { color: var(--team2); }
+.victory-score .vs { color: var(--muted); font-size: 1rem; font-weight: 700; margin: 0 0.45rem; vertical-align: middle; }
+.victory-pts { color: var(--muted); font-weight: 700; font-size: 0.95rem; }
+.victory-pts b { color: var(--good); }
+
 /* ---------- Graphe d'évolution ---------- */
 .chart-wrap { overflow-x: auto; }
 svg.chart { display: block; width: 100%; height: auto; }
@@ -345,7 +361,10 @@ svg.chart { display: block; width: 100%; height: auto; }
 }
 .pl-wide { flex-basis: 100%; min-width: 100%; text-transform: none; }
 .pl select, .pl input {
-  font: inherit; font-weight: 600; text-transform: none; letter-spacing: 0;
+  font-family: inherit;
+  /* 16px minimum : empêche le zoom automatique de Safari iOS au focus */
+  font-size: 16px;
+  font-weight: 600; text-transform: none; letter-spacing: 0;
   width: 100%; padding: 0.45rem 0.5rem;
   border: 1px solid var(--line); border-radius: 8px;
   background: var(--card); color: var(--ink);

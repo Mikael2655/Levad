@@ -534,6 +534,50 @@
     if (rev) rev.addEventListener("click", revanche);
     const sr = $("#series-reset");
     if (sr) sr.addEventListener("click", resetSeries);
+
+    // Pop-up de victoire : dès qu'une équipe l'emporte (une seule fois).
+    if (win >= 0 && !game.victoryShown && !pendingDonne) {
+      game.victoryShown = true;
+      persist();
+      showVictoryModal(win);
+    } else if (win < 0 && game.victoryShown) {
+      game.victoryShown = false;
+      persist();
+    }
+  }
+
+  function showVictoryModal(w) {
+    const [a, b] = totals();
+    const wt = w === 0 ? a : b;
+    const lt = w === 0 ? b : a;
+    const mp = manchePoints(wt, lt);
+    modal.innerHTML = `
+      <div class="victory">
+        <div class="victory-emoji">🏆</div>
+        <h2 class="victory-title">${esc(game.teams[w])} gagne la manche !</h2>
+        <div class="victory-score">
+          <span class="t${w}">${wt}</span>
+          <span class="vs">à</span>
+          <span>${lt}</span>
+        </div>
+        <div class="victory-pts">Cette manche vaut <b>+${mp} point${mp > 1 ? "s" : ""}</b>${mp === 2 ? " — le double !" : ""}</div>
+        <div class="btn-row" style="flex-direction:column;gap:.6rem;margin-top:1.2rem">
+          <button class="btn big block" id="vic-revanche">🔁 Revanche (mêmes équipes)</button>
+          <button class="btn secondary block" id="vic-finish">🏁 Terminer &amp; archiver</button>
+          <button class="btn ghost block" id="vic-close">Continuer à afficher</button>
+        </div>
+      </div>
+    `;
+    $("#vic-revanche").addEventListener("click", () => {
+      closeModal();
+      revanche();
+    });
+    $("#vic-finish").addEventListener("click", () => {
+      closeModal();
+      finishGame();
+    });
+    $("#vic-close").addEventListener("click", closeModal);
+    backdrop.hidden = false;
   }
 
   function renderDonnes(wrap) {
