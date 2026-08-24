@@ -155,6 +155,13 @@
     // Capot annoncé = contrat "capot" choisi aux enchères.
     const annonce = d.contrat === "capot";
     const C = annonce ? 0 : Number(d.contrat) || 0;
+
+    // Contrat marqué chuté (bouton raccourci) — contrat chiffré uniquement.
+    if (d.chute && !annonce) {
+      pts[defense] = roundTen(BASE + C);
+      if (bel === 0 || bel === 1) pts[defense] += 20; // belote → adversaire
+      return { pts, realise: false, chute: true };
+    }
     // Points de cartes saisis (0 à 162). Le champ vide (non saisi) reste
     // neutre : aucun capot n'est déduit tant qu'on n'a rien tapé.
     const rawEmpty = d.points === "" || d.points == null;
@@ -188,10 +195,12 @@
       return { pts, realise: capotBy === preneur, capot: "realise", capotBy };
     }
 
-    // --- Donne normale (base 160, arrondie à la dizaine) ---
-    const e = Math.min(BASE, entered);
-    const ppreneur = d.pointsSide === "defense" ? BASE - e : e;
-    const pdefense = BASE - ppreneur;
+    // --- Donne normale ---
+    // Le total réel des cartes est 162 : si la défense fait 72, le preneur
+    // a fait 162 − 72 = 90 (contrat de 90 réussi). Les scores sont ensuite
+    // arrondis à la dizaine.
+    const ppreneur = ppreneur162;
+    const pdefense = 162 - ppreneur;
     // La belote compte pour atteindre le contrat du preneur.
     const beloteAuPreneur = bel === preneur ? 20 : 0;
     const realise = ppreneur + beloteAuPreneur >= C;
@@ -617,7 +626,7 @@
           : "";
         const contractText = annonce
           ? ``
-          : r.capot === "realise"
+          : r.capot === "realise" || d.chute
           ? `prend <b>${d.contrat}</b>`
           : `prend <b>${d.contrat}</b> · ${d.points} pts (${sideTxt})`;
         const passe = d.contrat === "passe";
@@ -799,6 +808,7 @@
             <option value="1" ${p.belote === 1 ? "selected" : ""}>${esc(game.teams[1])}</option>
           </select></label>
         </div>`;
+    const isNumeric = !isLibre && p.contrat !== "capot";
     return `
       <div class="donne pending">
         ${head}
@@ -809,6 +819,11 @@
           <button class="btn" id="pd-commit">Ajouter la donne ✓</button>
           <button class="btn ghost" id="pd-cancel">Annuler</button>
         </div>
+        ${
+          isNumeric
+            ? `<button class="btn danger block" id="pd-chute" style="margin-top:.5rem">✗ Contrat chuté (sans saisir les points)</button>`
+            : ""
+        }
       </div>`;
   }
 
@@ -872,6 +887,10 @@
     });
     on("#pd-commit", "click", commitPending);
     on("#pd-cancel", "click", cancelPending);
+    on("#pd-chute", "click", () => {
+      p.chute = true; // le contrat est chuté sans saisir les points
+      commitPending();
+    });
   }
 
   function cancelPending() {
@@ -892,6 +911,8 @@
     if (p.contrat === "libre") {
       d.libre0 = Number(p.libre0) || 0;
       d.libre1 = Number(p.libre1) || 0;
+    } else if (p.chute) {
+      d.chute = true; // contrat chuté (raccourci)
     } else {
       d.points =
         p.points === "" || p.points == null
@@ -1032,10 +1053,12 @@
             : " — chuté ❌")
         );
       if (r.capot === "realise") return "Capot ! (contrat + 250)";
+      if (draft.chute) return "Contrat chuté ❌ (raccourci)";
       if (pointsVides()) return "Points à saisir…";
       return "Contrat " + (r.realise ? "réussi ✅" : "chuté ❌");
     }
     function noteColor(r) {
+      if (draft.chute) return "var(--bad)";
       if (r.capot !== "realise" && pointsVides()) return "var(--muted)";
       return r.capot === "realise" || r.realise ? "var(--good)" : "var(--bad)";
     }
@@ -1050,11 +1073,8 @@
       const rawEmpty = draft.points === "" || draft.points == null;
       const enteredNow = Math.max(0, Math.min(162, Number(draft.points) || 0));
       const isCapotNow = r.capot === "realise" || r.capot === "annonce";
-      const complement = rawEmpty
-        ? "—"
-        : enteredNow === 162
-        ? 0
-        : Math.max(0, BASE - enteredNow);
+      // Complément = points réels de l'autre camp (total des cartes = 162).
+      const complement = rawEmpty ? "—" : Math.max(0, 162 - enteredNow);
       const otherTeam =
         draft.pointsSide === "defense"
           ? game.teams[draft.preneur]
@@ -1165,6 +1185,12 @@
         </div>`
         }
 
+        ${
+          !isPasse && !isLibre && draft.contrat !== "capot"
+            ? `<button class="btn ghost block" id="mchute" style="margin-top:.8rem">${draft.chute ? "↩︎ Annuler « chuté »" : "✗ Contrat chuté (sans les points)"}</button>`
+            : ""
+        }
+
         <div class="btn-row" style="margin-top:1rem">
           <button class="btn block" id="msave">${isEdit ? "Enregistrer" : "Ajouter la donne"}</button>
         </div>
@@ -1195,7 +1221,12 @@
       });
       on("#points", "input", (e) => {
         draft.points = e.target.value; // valeur brute (permet le champ vide)
+        draft.chute = false; // saisir des points annule le « chuté »
         refreshPreview();
+      });
+      on("#mchute", "click", () => {
+        draft.chute = !draft.chute;
+        draw();
       });
       on("#libre0", "input", (e) => {
         draft.libre0 = e.target.value;
@@ -1227,11 +1258,7 @@
       if (other) {
         const rawEmpty = draft.points === "" || draft.points == null;
         const entered = Math.max(0, Math.min(162, Number(draft.points) || 0));
-        const complement = rawEmpty
-          ? "—"
-          : entered === 162
-          ? 0
-          : Math.max(0, BASE - entered);
+        const complement = rawEmpty ? "—" : Math.max(0, 162 - entered);
         const otherTeam =
           draft.pointsSide === "defense"
             ? game.teams[draft.preneur]

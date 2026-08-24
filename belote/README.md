@@ -40,12 +40,15 @@ Touchez une donne existante pour la **modifier** ou la **supprimer**.
 ## Règles de calcul appliquées
 
 Pour chaque donne, une équipe prend un contrat et l'on saisit les points de
-cartes d'un camp (au choix : le preneur **ou** la défense). Le total des
-cartes est **160** (arrondi à la dizaine), donc l'autre camp = 160 − saisi :
+cartes d'un camp (au choix : le preneur **ou** la défense). Le total réel
+des cartes est **162** (donc l'autre camp = 162 − saisi ; ex. défense 72 ⟹
+preneur 90). Les scores sont ensuite **arrondis à la dizaine**. Un bouton
+**« Contrat chuté »** évite d'avoir à saisir les points quand le contrat
+tombe.
 
 - **Contrat réussi** (points du preneur + belote ≥ contrat)
   - Preneur = arrondi(**contrat + points du preneur**)
-  - Défense = arrondi(**160 − points du preneur**)
+  - Défense = arrondi(**points de la défense**)
 - **Contrat chuté**
   - Preneur = 0
   - Défense = arrondi(**160 + contrat**)
