@@ -518,8 +518,6 @@
         </div>
       </div>
 
-      <div id="chart-area"></div>
-
       <div class="btn-row" style="margin:.2rem 0 1rem">
         ${win >= 0 ? `<button class="btn" id="revanche">🔁 Revanche</button>` : ""}
         <button class="btn secondary" id="finish">Terminer &amp; archiver</button>
@@ -532,7 +530,6 @@
       ${pendingDonne ? "" : `<button class="fab" id="fab">＋ Donne</button>`}
     `;
 
-    renderChart($("#chart-area"));
     renderDonnes($("#donnes"));
 
     const fab = $("#fab");
