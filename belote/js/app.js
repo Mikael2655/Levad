@@ -712,10 +712,13 @@
     );
   }
   function suitOptions(current) {
+    // Symboles emoji : ♥️ et ♦️ s'affichent en rouge nativement (y compris
+    // dans un <select> sur iOS, où la couleur CSS des <option> est ignorée).
+    const emoji = { pique: "♠️", coeur: "♥️", carreau: "♦️", trefle: "♣️" };
     return Object.keys(SUITS)
       .map(
         (k) =>
-          `<option value="${k}" ${current === k ? "selected" : ""}>${SUITS[k].sym} ${SUITS[k].label}</option>`
+          `<option value="${k}" ${current === k ? "selected" : ""} ${SUITS[k].red ? 'style="color:#d32f2f"' : ""}>${emoji[k] || SUITS[k].sym} ${SUITS[k].label}</option>`
       )
       .join("");
   }
