@@ -679,7 +679,7 @@
       contrat: 90,
       couleur: "pique",
       mode: "normal",
-      pointsSide: "preneur",
+      pointsSide: "defense",
       points: "",
       belote: -1,
       libre0: "",
@@ -734,21 +734,17 @@
     );
   }
 
-  // Bloc « résultat » : total cumulé de chaque équipe après cette donne.
+  // Bloc « résultat » : score ACTUEL de chaque équipe (hors donne en cours).
   function pendResultHtml() {
-    const r = scoreDonne(pendingDonne);
     const [a, b] = totals();
-    const sg = (n) => (n < 0 ? "" : "+") + n;
     return `
       <div class="pr t0">
         <div class="pr-lbl">${esc(game.teams[0])}</div>
-        <div class="pr-val">${a + r.pts[0]}</div>
-        <div class="pr-sub">${a} <b>${sg(r.pts[0])}</b></div>
+        <div class="pr-val">${a}</div>
       </div>
       <div class="pr t1">
         <div class="pr-lbl">${esc(game.teams[1])}</div>
-        <div class="pr-val">${b + r.pts[1]}</div>
-        <div class="pr-sub">${b} <b>${sg(r.pts[1])}</b></div>
+        <div class="pr-val">${b}</div>
       </div>`;
   }
 
