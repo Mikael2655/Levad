@@ -4,50 +4,54 @@
    ============================================================ */
 
 :root {
-  --bg: #f4f2ec;            /* papier chaud */
-  --card: #fffdfa;
-  --ink: #262a2f;           /* ardoise profonde */
-  --muted: #8a8d92;
-  --accent: #2d5348;        /* vert profond feutré */
-  --accent-dark: #1f3a32;
-  --accent-soft: #e8efe9;
-  --gold: #b08a3f;
-  --good: #3f7a5c;          /* contrat réussi */
-  --good-bg: #e7f0ea;
-  --bad: #b04a3d;           /* contrat chuté */
-  --bad-bg: #f4e7e3;
-  --team1: #35608c;         /* bleu ardoise — équipe 1 */
-  --team1-dark: #274866;
-  --team1-bg: #e9eef4;
-  --team2: #97514a;         /* terracotta feutré — équipe 2 */
-  --team2-dark: #6f3a34;
-  --team2-bg: #f2e8e5;
+  --bg: #f5f4f0;            /* blanc cassé chaud */
+  --card: #ffffff;
+  --ink: #23252b;           /* noir doux */
+  --muted: #8b8a85;
+  --accent: #2a2c31;        /* charbon — actions principales */
+  --accent-dark: #16171a;
+  --accent-soft: #eeece7;
+  --gold: #b0904c;          /* or */
+  --gold-soft: #e3d4ac;
+  --silver: #6c747e;        /* argent */
+  --good: #5f8a6b;          /* contrat réussi (vert feutré) */
+  --good-bg: #e9efe9;
+  --bad: #a8564a;           /* contrat chuté (terre feutrée) */
+  --bad-bg: #f2e7e4;
+  --team1: #a67c39;         /* OR — équipe 1 */
+  --team1-dark: #7c5b28;
+  --team1-bg: #f3ecdd;
+  --team2: #656d77;         /* ARGENT — équipe 2 */
+  --team2-dark: #464c55;
+  --team2-bg: #ecedf0;
   --radius: 14px;
-  --shadow: 0 1px 2px rgba(30, 35, 40, 0.05), 0 6px 18px rgba(30, 35, 40, 0.06);
-  --line: #e7e3da;
+  --shadow: 0 1px 2px rgba(20, 20, 25, 0.05), 0 8px 22px rgba(20, 20, 25, 0.07);
+  --line: #e6e3db;
 }
 
 :root[data-theme="dark"] {
-  --bg: #14171a;
-  --card: #1e2226;
-  --ink: #e9e7e2;
-  --muted: #979a9f;
-  --accent: #3f6f60;
-  --accent-dark: #23342e;
-  --accent-soft: #1d2a25;
-  --gold: #cba659;
-  --good: #5aa27e;
-  --good-bg: #1d3128;
-  --bad: #c8776b;
-  --bad-bg: #33241f;
-  --team1: #7aa2ce;
-  --team1-dark: #3a5b7d;
-  --team1-bg: #1b2734;
-  --team2: #c98a7f;
-  --team2-dark: #6f4640;
-  --team2-bg: #2e211e;
-  --line: #33383d;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.4);
+  --bg: #0f0f11;            /* presque noir */
+  --card: #1a1b1e;
+  --ink: #ecebe6;
+  --muted: #96958e;
+  --accent: #3a3d44;        /* graphite */
+  --accent-dark: #26282d;
+  --accent-soft: #232428;
+  --gold: #c9a860;
+  --gold-soft: #e4cf95;
+  --silver: #9aa1ab;
+  --good: #7fa585;
+  --good-bg: #1c2a20;
+  --bad: #c5786b;
+  --bad-bg: #2e211e;
+  --team1: #c6a35c;         /* OR */
+  --team1-dark: #8c6d33;
+  --team1-bg: #241f13;
+  --team2: #828993;         /* ARGENT */
+  --team2-dark: #50565f;
+  --team2-bg: #1d2024;
+  --line: #2c2d31;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 22px rgba(0, 0, 0, 0.5);
 }
 
 * { box-sizing: border-box; }
@@ -83,7 +87,7 @@ body {
   cursor: pointer;
   user-select: none;
 }
-.logo-suit { color: #d9b978; }
+.logo-suit { color: var(--gold-soft); }
 .topbar-right { display: flex; align-items: center; gap: 0.6rem; }
 
 .target-chip {
@@ -122,8 +126,8 @@ main {
   padding: 1rem;
 }
 
-h2 { font-size: 1.2rem; margin: 0.2rem 0 0.9rem; }
-h3 { font-size: 1rem; margin: 1.2rem 0 0.6rem; }
+h2 { font-size: 1.2rem; margin: 0.2rem 0 0.7rem; }
+h3 { font-size: 1rem; margin: 0.9rem 0 0.5rem; }
 .muted { color: var(--muted); }
 
 /* ---------- Cartes / panneaux ---------- */
@@ -208,42 +212,44 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .field-row > div { flex: 1; min-width: 130px; }
 
 /* ---------- Écran d'accueil / réglages ---------- */
-.big-choice { display: flex; gap: 0.8rem; }
+.big-choice { display: flex; gap: 0.7rem; }
 .big-choice button {
   flex: 1;
   font: inherit;
   font-weight: 800;
-  font-size: 1.4rem;
-  padding: 1.4rem 0.5rem;
+  font-size: 1.2rem;
+  padding: 0.75rem 0.5rem;
   border: 2px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 12px;
   background: var(--card);
   color: var(--ink);
   cursor: pointer;
 }
-.big-choice button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
-.big-choice button small { display: block; font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-top: 0.25rem; }
+.big-choice button.on { border-color: var(--gold); background: var(--gold-soft); color: var(--accent-dark); }
+.big-choice button small { display: block; font-size: 0.7rem; font-weight: 600; color: var(--muted); margin-top: 0.1rem; }
 
 /* Boîtes de saisie par équipe */
 .team-box {
-  display: flex; flex-wrap: wrap; gap: 0.5rem;
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
   border: 1px solid var(--line); border-left: 4px solid;
-  border-radius: 12px; padding: 0.6rem 0.7rem; margin-bottom: 0.7rem;
+  border-radius: 12px; padding: 0.5rem 0.55rem; margin-bottom: 0.5rem;
 }
 .team-box.t0 { border-left-color: var(--team1); }
 .team-box.t1 { border-left-color: var(--team2); }
 .team-box .team-name { flex-basis: 100%; font-weight: 800; }
 .team-box.t0 .team-name { color: var(--team1); }
 .team-box.t1 .team-name { color: var(--team2); }
-.team-box input:not(.team-name) { flex: 1; min-width: 120px; }
+.team-box input { padding: 0.45rem 0.6rem; }
+.team-box input:not(.team-name) { flex: 1; min-width: 110px; }
 
-/* Poignée de glissement (≡) */
+/* Poignée de glissement (≡) — grande zone tactile pour le mobile */
 .drag-handle {
-  font-size: 1.25rem; line-height: 1; color: var(--muted);
+  font-size: 1.35rem; line-height: 1; color: var(--muted);
   background: none; border: none; cursor: grab;
-  padding: 0.15rem 0.35rem; touch-action: none; user-select: none;
+  padding: 0.5rem 0.55rem; margin: -0.35rem 0; touch-action: none;
+  user-select: none; -webkit-user-select: none;
 }
-.drag-handle:active { cursor: grabbing; }
+.drag-handle:active { cursor: grabbing; color: var(--ink); }
 
 /* Liste « ordre de distribution » */
 #order-list { display: flex; flex-direction: column; gap: 0.45rem; }
@@ -254,7 +260,7 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 }
 .order-row.t0 { border-left-color: var(--team1); }
 .order-row.t1 { border-left-color: var(--team2); }
-.order-row.dragging { opacity: 0.9; box-shadow: var(--shadow); }
+.order-row.dragging { box-shadow: var(--shadow); border-color: var(--gold); transform: scale(1.015); }
 .order-row .opos { width: 1.2rem; text-align: center; color: var(--muted); font-weight: 800; }
 .order-row .oname { flex: 1; font-weight: 700; }
 .order-row.t0 .oname { color: var(--team1); }
@@ -290,7 +296,7 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .score-card .bar span { display: block; height: 100%; background: #fff; border-radius: 3px; transition: width 0.4s; }
 .score-card.leader::after {
   content: "★";
-  position: absolute; top: 6px; right: 9px; font-size: 0.9rem; color: #e7cf94;
+  position: absolute; top: 6px; right: 9px; font-size: 0.9rem; color: var(--gold-soft);
 }
 
 /* ---------- Bandeau « manches gagnées » (revanche / belle) ---------- */
@@ -341,6 +347,23 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
   margin-bottom: 1rem;
 }
 
+/* ---------- Choix du distributeur (revanche) ---------- */
+#rev-dealers { display: flex; flex-direction: column; gap: 0.5rem; }
+.rev-dealer {
+  display: flex; align-items: center; gap: 0.5rem;
+  font: inherit; font-weight: 700; text-align: left;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line); border-left: 4px solid;
+  border-radius: 10px; background: var(--card); color: var(--ink);
+  cursor: pointer;
+}
+.rev-dealer.t0 { border-left-color: var(--team1); }
+.rev-dealer.t1 { border-left-color: var(--team2); }
+.rev-dealer.t0 .rev-name { color: var(--team1); }
+.rev-dealer.t1 .rev-name { color: var(--team2); }
+.rev-dealer .rev-badge { width: 1.4rem; text-align: center; font-size: 1.05rem; }
+.rev-dealer.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-soft) inset; }
+
 /* ---------- Pop-up de victoire ---------- */
 .victory { text-align: center; padding: 0.4rem 0.3rem 0.2rem; }
 .victory-emoji { font-size: 3.6rem; line-height: 1; animation: pop 0.4s ease; }
@@ -377,7 +400,7 @@ svg.chart { display: block; width: 100%; height: auto; }
 .donne.passe { border-left-color: var(--muted); opacity: 0.85; }
 .tag.passe { background: var(--line); color: var(--muted); }
 .donne.libre { border-left-color: var(--gold); }
-.tag.libre { background: var(--gold); color: #fff; }
+.tag.libre { background: var(--gold); color: var(--accent-dark); }
 
 /* ---------- Saisie d'une donne en ligne ---------- */
 .donne.pending {
@@ -434,8 +457,8 @@ svg.chart { display: block; width: 100%; height: auto; }
   margin-left: 0.3rem;
   vertical-align: middle;
 }
-.tag.contre { background: var(--gold); color: #fff; }
-.tag.capot { background: var(--gold); color: #fff; }
+.tag.contre { background: var(--gold); color: var(--accent-dark); }
+.tag.capot { background: var(--gold); color: var(--accent-dark); }
 .tag.belote { background: var(--accent-soft); color: var(--accent-dark); }
 .tag.ok { background: var(--good-bg); color: var(--good); }
 .tag.ko { background: var(--bad-bg); color: var(--bad); }

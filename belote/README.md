@@ -101,8 +101,9 @@ Chaque manche remportée rapporte des **points** :
 
 Le **compteur de points** est affiché en haut (ex. `Nous 3 — 1 Eux`) et se met
 à jour à chaque partie remportée. Le bouton **🔁 Revanche** relance une partie
-avec les mêmes équipes et joueurs (le compteur continue), et le bouton **↺**
-(ou le menu) permet de **remettre les compteurs à zéro**.
+avec les mêmes équipes et joueurs (le compteur continue) et vous laisse
+**choisir qui distribue** la première donne ; le bouton **↺** (ou le menu)
+permet de **remettre les compteurs à zéro**.
 
 ## Fichiers
 

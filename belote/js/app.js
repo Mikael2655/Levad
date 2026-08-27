@@ -328,10 +328,15 @@
         const row = handle.closest("[data-key]");
         if (!row) return;
         row.classList.add("dragging");
+        // On garde le doigt « capté » ET on écoute au niveau de la fenêtre :
+        // sur mobile (iOS notamment) la capture seule peut lâcher dès que le
+        // doigt quitte la petite poignée — les écouteurs globaux fiabilisent
+        // le suivi du mouvement.
         try {
           handle.setPointerCapture(e.pointerId);
         } catch (err) {}
         const move = (ev) => {
+          if (ev.cancelable) ev.preventDefault(); // empêche le scroll pendant le glissé
           const others = [
             ...container.querySelectorAll("[data-key]:not(.dragging)"),
           ];
@@ -347,18 +352,18 @@
           if (!placed) container.appendChild(row);
         };
         const end = () => {
-          handle.removeEventListener("pointermove", move);
-          handle.removeEventListener("pointerup", end);
-          handle.removeEventListener("pointercancel", end);
+          window.removeEventListener("pointermove", move, { passive: false });
+          window.removeEventListener("pointerup", end);
+          window.removeEventListener("pointercancel", end);
           row.classList.remove("dragging");
           const keys = [...container.querySelectorAll("[data-key]")].map(
             (r) => r.dataset.key
           );
           onDrop(keys);
         };
-        handle.addEventListener("pointermove", move);
-        handle.addEventListener("pointerup", end);
-        handle.addEventListener("pointercancel", end);
+        window.addEventListener("pointermove", move, { passive: false });
+        window.addEventListener("pointerup", end);
+        window.addEventListener("pointercancel", end);
       });
     });
   }
@@ -1472,15 +1477,67 @@
     render();
   }
 
-  // Revanche : archive la partie puis en relance une avec les mêmes
-  // équipes et joueurs. Le compteur de manches continue.
+  // Revanche : on laisse d'abord choisir qui distribue en premier, puis on
+  // relance une partie avec les mêmes équipes et joueurs (l'ordre tourne à
+  // partir du distributeur choisi, en gardant l'alternance des équipes). Le
+  // compteur de manches continue.
   function revanche() {
+    openRevancheDialog();
+  }
+
+  function openRevancheDialog() {
+    const players = game.players;
+    // Distributeur proposé par défaut : le suivant dans l'ordre (rotation
+    // naturelle d'une manche à l'autre).
+    let pick = players.length ? 1 % players.length : 0;
+    const render = () => {
+      modal.innerHTML = `
+        <div class="modal-head">
+          <h2>Revanche</h2>
+          <button class="modal-close" id="rev-x" aria-label="Fermer">×</button>
+        </div>
+        <p class="muted" style="margin:.1rem 0 .8rem">Qui distribue la première donne ?</p>
+        <div id="rev-dealers">
+          ${players
+            .map(
+              (p, i) => `
+            <button class="rev-dealer t${p.team} ${i === pick ? "on" : ""}" data-i="${i}">
+              <span class="rev-badge">${i === pick ? "🃏" : ""}</span>
+              <span class="rev-name">${esc(p.name)}</span>
+            </button>`
+            )
+            .join("")}
+        </div>
+        <button class="btn big block" id="rev-go" style="margin-top:1rem">Commencer la revanche ♠</button>
+      `;
+      modal.querySelectorAll(".rev-dealer").forEach((b) =>
+        b.addEventListener("click", () => {
+          pick = Number(b.dataset.i);
+          render();
+        })
+      );
+      $("#rev-x").addEventListener("click", closeModal);
+      $("#rev-go").addEventListener("click", () => startRevanche(pick));
+    };
+    render();
+    backdrop.hidden = false;
+  }
+
+  function startRevanche(dealerIndex) {
     const cfg = game;
     if (cfg.donnes.length) archiveCurrent();
+    // On fait tourner l'ordre pour que le distributeur choisi passe en tête.
+    const src = cfg.players;
+    const n = src.length;
+    const players = [];
+    for (let k = 0; k < n; k++) {
+      const p = src[(dealerIndex + k) % n];
+      players.push({ name: p.name, team: p.team });
+    }
     game = {
       target: cfg.target,
       teams: cfg.teams.slice(),
-      players: cfg.players.map((p) => ({ name: p.name, team: p.team })),
+      players,
       donnes: [],
       startedAt: new Date().toISOString(),
     };
