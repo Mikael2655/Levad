@@ -225,7 +225,7 @@
     var cols = resolved.rounds.map(function (rd) {
       var title = rd.key === 'final' ? 'Finale' : L.roundLabel(rd.key);
       var inner = rd.key === 'final' ? finalColumn(resolved)
-        : rd.matches.map(function (m) { return bmatch(m.teamA, m.teamB, m.result, m.winner); }).join('');
+        : rd.matches.map(function (m) { return bmatch(m.teamA, m.teamB, m.result, m.winner, m.bye); }).join('');
       return '<div class="bround"><h4>' + title + '</h4>' + inner + '</div>';
     }).join('');
     var extra = '';
@@ -238,15 +238,16 @@
       ? '<div class="champion">🏆 Vainqueur : ' + teamName(teamById(resolved.champion)) + '</div>' : '';
     return '<div class="bracket-scroll"><div class="bracket">' + cols + '</div></div>' + extra + champ;
   }
-  function bmatch(a, b, res, winner) {
+  function bmatch(a, b, res, winner, bye) {
     var sc = L.scoreOf(res);
+    var empty = bye ? 'Exempt' : 'à définir';
     return '<div class="bmatch">' +
-      bteamRow(a, sc ? sc.a : null, winner === a && a) +
-      bteamRow(b, sc ? sc.b : null, winner === b && b) + '</div>';
+      bteamRow(a, bye ? null : (sc ? sc.a : null), winner === a && a, empty) +
+      bteamRow(b, bye ? null : (sc ? sc.b : null), winner === b && b, empty) + '</div>';
   }
-  function bteamRow(id, score, isWin) {
+  function bteamRow(id, score, isWin, empty) {
     var t = id ? teamById(id) : null;
-    var nm = t ? (teamTag(id) + ' ' + (t.name ? esc(t.name) : 'Éq.' + t.slot)) : '<span>à définir</span>';
+    var nm = t ? (teamTag(id) + ' ' + (t.name ? esc(t.name) : 'Éq.' + t.slot)) : '<span>' + (empty || 'à définir') + '</span>';
     return '<div class="bteam ' + (isWin ? 'w' : '') + (id ? '' : ' tbd') + '">' +
       '<span class="nm">' + nm + '</span><span class="sc">' + (score == null ? '' : score) + '</span></div>';
   }
