@@ -735,11 +735,12 @@
           : r.capot === "realise"
           ? `<span class="tag capot">CAPOT +250</span>`
           : "";
+        // Ordre d'affichage : « Nous prend 80 ♥ · … » (couleur après le contrat).
         const contractText = annonce
-          ? ``
+          ? `prend ${suitTag}`
           : r.capot === "realise" || d.chute
-          ? `prend <b>${d.contrat}</b>`
-          : `prend <b>${d.contrat}</b> · ${d.points} pts (${sideTxt})`;
+          ? `prend <b>${d.contrat}</b> ${suitTag}`
+          : `prend <b>${d.contrat}</b> ${suitTag} · ${d.points} pts (${sideTxt})`;
         const passe = d.contrat === "passe";
         const libre = d.contrat === "libre";
         return `
@@ -761,8 +762,7 @@
                   ? `<span class="muted">Report du score initial</span> <span class="tag libre">Départ</span>`
                   : libre
                   ? `<span class="muted">Ajustement</span> <span class="tag libre">✎ Libre</span>`
-                  : `${suitTag}
-              <span class="taker t${d.preneur}">${esc(takerName)}</span>
+                  : `<span class="taker t${d.preneur}">${esc(takerName)}</span>
               ${contractText}
               ${capotTag} ${modeTag} ${resTag} ${belTag}`
               }
@@ -809,6 +809,26 @@
     scrollToPending();
   }
 
+  // Saisie libre : on ajoute directement des points à chaque équipe
+  // (correction, report d'un score…). On saute la phase « contrat ».
+  function startLibre() {
+    if (pendingDonne) return;
+    pendingDonne = {
+      phase: "points",
+      contrat: "libre",
+      preneur: 0,
+      couleur: "pique",
+      mode: "normal",
+      pointsSide: "defense",
+      points: "",
+      belote: -1,
+      libre0: "",
+      libre1: "",
+    };
+    render();
+    scrollToPending();
+  }
+
   function scrollToPending() {
     const card = document.querySelector(".donne.pending");
     if (card) card.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -822,9 +842,10 @@
     const modeLabel =
       p.mode === "contre" ? "contré" : p.mode === "surcontre" ? "surcontré" : "normal";
     return (
-      `<b>${esc(String(cLabel))}</b> ` +
+      `<span class="taker t${p.preneur}">${esc(game.teams[p.preneur])}</span> ` +
+      `prend <b>${esc(String(cLabel))}</b> ` +
       (suit ? `<span class="suit-tag ${suit.red ? "red" : ""}">${suit.sym}</span> ` : "") +
-      `<span class="taker t${p.preneur}">${esc(game.teams[p.preneur])}</span> · ${modeLabel}`
+      `· ${modeLabel}`
     );
   }
 
@@ -940,7 +961,7 @@
     return `
       <div class="donne pending">
         ${head}
-        <div class="recap pend-recap">${pendRecap(p)} <button class="linkbtn" id="pd-back">✎ modifier</button></div>
+        <div class="recap pend-recap">${pendRecap(p)} ${isLibre ? "" : `<button class="linkbtn" id="pd-back">✎ modifier</button>`}</div>
         ${fields}
         <div class="btn-row" style="margin-top:.55rem">
           <button class="btn" id="pd-commit">Ajouter la donne ✓</button>
@@ -1443,6 +1464,7 @@
       <div class="btn-row" style="flex-direction:column;gap:.6rem">
         <button class="btn secondary block" id="undo" ${game.donnes.length ? "" : "disabled"}>↩︎ Annuler la dernière donne</button>
         <button class="btn secondary block" id="revanche2">🔁 Revanche (mêmes équipes)</button>
+        <button class="btn secondary block" id="libre" ${pendingDonne ? "disabled" : ""}>✎ Saisie libre (ajuster / reporter un score)</button>
         <button class="btn secondary block" id="rename">✏️ Équipes, joueurs &amp; ordre de distribution</button>
         <button class="btn secondary block" id="hist">📚 Historique des parties (${history.length})</button>
         ${
@@ -1462,6 +1484,10 @@
       render();
     });
     $("#revanche2").addEventListener("click", revanche);
+    $("#libre").addEventListener("click", () => {
+      closeModal();
+      startLibre();
+    });
     const rs = $("#resetseries");
     if (rs) rs.addEventListener("click", resetSeries);
     $("#rename").addEventListener("click", openRename);

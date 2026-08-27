@@ -201,12 +201,12 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 
 /* Sélecteur de couleur (atout) */
 .seg.suits button { font-size: 1.25rem; padding: 0.5rem 0.2rem; }
-.seg button.red { color: var(--team2); }
+.seg button.red { color: #d32f2f; }
 .seg.suits button.on { color: #fff; }
 
 /* Petit symbole de couleur sur chaque donne */
-.suit-tag { font-size: 1.05rem; font-weight: 800; margin-right: 0.15rem; vertical-align: baseline; }
-.suit-tag.red { color: var(--team2); }
+.suit-tag { font-size: 1.05rem; font-weight: 800; margin: 0 0.1rem; vertical-align: baseline; }
+.suit-tag.red { color: #d32f2f; }
 
 .field-row { display: flex; gap: 0.8rem; flex-wrap: wrap; }
 .field-row > div { flex: 1; min-width: 130px; }
