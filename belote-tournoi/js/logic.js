@@ -170,26 +170,69 @@
 
   // Place les qualifiés dans les positions du tableau.
   // Ordre des têtes : 1ers de poule (classés), puis 2es, puis meilleurs 3es.
+  // Contrainte : au 1er tour, deux équipes d'une même poule ne se rencontrent
+  // jamais (réparation par échanges de positions après le placement standard).
   // Renvoie { size, slots:[teamId|null …] } (par position de tableau).
   function seedBracket(numPools, standings) {
     var q = qualifiers(numPools, standings);
-    var order = [];
-    q.winners.forEach(function (r) { order.push(r.teamId); });
-    q.runners.forEach(function (r) { order.push(r.teamId); });
-    q.thirds.forEach(function (r) { order.push(r.teamId); });
-    while (order.length < q.size) order.push(null); // byes éventuels
+    var seeds = q.winners.concat(q.runners).concat(q.thirds); // rangs -> lignes
+    var order = seeds.map(function (r) { return r.teamId; });
+    var pools = seeds.map(function (r) { return r.pool; });
+    while (order.length < q.size) { order.push(null); pools.push(null); } // byes
 
     var pos = standardSeedPositions(q.size);
-    var slots = new Array(q.size).fill(null);
-    for (var i = 0; i < q.size; i++) slots[i] = order[pos[i]] || null;
+    var slots = new Array(q.size);
+    var slotPool = new Array(q.size);
+    for (var i = 0; i < q.size; i++) { slots[i] = order[pos[i]]; slotPool[i] = pools[pos[i]]; }
+
+    avoidSamePoolFirstRound(slots, slotPool);
     return { size: q.size, slots: slots, seededAt: Date.now() };
+  }
+
+  // Échange des positions du 1er tour pour qu'aucun match n'oppose deux
+  // équipes de la même poule. Faisable tant qu'aucune poule ne fournit plus
+  // de la moitié des qualifiés (toujours vrai ici : 3 max par poule).
+  function avoidSamePoolFirstRound(slots, slotPool) {
+    var matches = slots.length / 2;
+    function samePool(k) {
+      var a = slotPool[2 * k], b = slotPool[2 * k + 1];
+      return a != null && b != null && a === b;
+    }
+    function swap(x, y) {
+      var t = slots[x]; slots[x] = slots[y]; slots[y] = t;
+      var u = slotPool[x]; slotPool[x] = slotPool[y]; slotPool[y] = u;
+    }
+    // Plusieurs passes pour absorber d'éventuelles cascades.
+    for (var pass = 0; pass < slots.length; pass++) {
+      var conflicts = 0;
+      for (var k = 0; k < matches; k++) {
+        if (!samePool(k)) continue;
+        conflicts++;
+        var fixed = false;
+        // On tente d'échanger l'une des deux positions du match k avec une
+        // position d'un autre match, sans créer de nouveau conflit.
+        var here = [2 * k, 2 * k + 1];
+        for (var hi = 0; hi < 2 && !fixed; hi++) {
+          for (var j = 0; j < matches && !fixed; j++) {
+            if (j === k) continue;
+            for (var off = 0; off < 2 && !fixed; off++) {
+              var there = 2 * j + off;
+              swap(here[hi], there);
+              if (!samePool(k) && !samePool(j)) fixed = true;
+              else swap(here[hi], there); // annule
+            }
+          }
+        }
+      }
+      if (conflicts === 0) break;
+    }
   }
 
   /* ---- Résolution du tableau (gagnants, tours suivants) ------------ */
 
-  var ROUND_BY_TEAMS = { 32: 'r32', 16: 'r16', 8: 'qf', 4: 'sf', 2: 'final' };
+  var ROUND_BY_TEAMS = { 64: 'r64', 32: 'r32', 16: 'r16', 8: 'qf', 4: 'sf', 2: 'final' };
   var ROUND_LABEL = {
-    r32: '1/16 de finale', r16: '1/8 de finale', qf: '1/4 de finale',
+    r64: '1/32 de finale', r32: '1/16 de finale', r16: '1/8 de finale', qf: '1/4 de finale',
     sf: '1/2 finale', final: 'Finale', p3: 'Petite finale (3e place)'
   };
   function roundLabel(key) { return ROUND_LABEL[key] || key; }
@@ -227,6 +270,7 @@
     var rounds = [];
     var current = bracket.slots.slice();  // teamIds par position (tour 1)
     var teamsIn = size;
+    var rIdx = 0;
     var sfLosers = null;
     var champion = null, finalInfo = null;
 
@@ -255,11 +299,13 @@
         var ta = current[2 * k], tb = current[2 * k + 1];
         var id = key + '-' + k;
         var res = results[id] || null;
-        var w = winnerOf(res, ta, tb);
+        // Exempt (bye) au 1er tour : l'équipe présente passe d'office.
+        var bye = (rIdx === 0) && ((ta && !tb) || (tb && !ta));
+        var w = bye ? (ta || tb) : winnerOf(res, ta, tb);
         matches.push({
           id: id, key: key, index: k, target: target, bestOf: 1,
-          teamA: ta, teamB: tb, result: res, winner: w,
-          loser: loserOf(res, ta, tb)
+          teamA: ta, teamB: tb, result: res, winner: w, bye: bye,
+          loser: bye ? null : loserOf(res, ta, tb)
         });
         nextParticipants.push(w);
       }
@@ -267,6 +313,7 @@
       if (teamsIn === 4) sfLosers = matches.map(function (mm) { return mm.loser; });
       current = nextParticipants;
       teamsIn = teamsIn / 2;
+      rIdx++;
     }
 
     // Petite finale (3e place) entre les 2 perdants de 1/2.
