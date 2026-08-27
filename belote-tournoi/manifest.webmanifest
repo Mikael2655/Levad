@@ -1,0 +1,13 @@
+{
+  "name": "Tournoi de belote",
+  "short_name": "Tournoi belote",
+  "description": "Gestion d'un tournoi de belote : poules, classement et tableau final.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14181a",
+  "theme_color": "#15321f",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
