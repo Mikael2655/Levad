@@ -40,7 +40,19 @@
   <script src="js/app.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
+      // updateViaCache:"none" — le navigateur ne met pas sw.js en cache, la
+      // nouvelle version est détectée dès la prochaine ouverture.
+      navigator.serviceWorker
+        .register("sw.js", { updateViaCache: "none" })
+        .catch(() => {});
+      // Quand un nouveau service worker prend la main, on recharge une seule
+      // fois pour afficher tout de suite la version fraîche.
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (reloaded) return;
+        reloaded = true;
+        location.reload();
+      });
     }
   </script>
 </body>

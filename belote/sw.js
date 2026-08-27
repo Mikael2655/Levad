@@ -5,7 +5,7 @@
    si le serveur répond une erreur — on sert la copie locale.
    ============================================================ */
 
-const CACHE = "belote-v27";
+const CACHE = "belote-v28";
 const CORE = [
   "./",
   "index.html",
@@ -32,8 +32,11 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  // « no-store » : on court-circuite le cache HTTP du navigateur (GitHub
+  // Pages sert avec un cache de 10 min) pour toujours récupérer la version
+  // fraîche quand on est en ligne ; hors-ligne, on retombe sur notre cache.
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: "no-store" })
       .then((resp) => {
         if (resp && (resp.ok || resp.type === "opaque")) {
           const copy = resp.clone();
