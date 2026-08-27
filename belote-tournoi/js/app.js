@@ -58,6 +58,45 @@
     return (store.config ? esc(store.config.name) + ' · ' : '') + m;
   }
 
+  /* ---- Fenêtres modales (remplacent prompt/confirm natifs, bloqués en
+   *      iframe sandboxée et peu ergonomiques sur mobile). --------------- */
+  function openModal(html) {
+    var o = document.createElement('div');
+    o.className = 'modal-overlay';
+    o.innerHTML = '<div class="modal">' + html + '</div>';
+    document.body.appendChild(o);
+    return o;
+  }
+  function modalConfirm(msg, okLabel) {
+    return new Promise(function (res) {
+      var o = openModal('<p>' + esc(msg) + '</p><div class="btn-row">' +
+        '<button class="btn small" data-m="0">Annuler</button>' +
+        '<button class="btn primary small" data-m="1">' + esc(okLabel || 'Confirmer') + '</button></div>');
+      function done(v) { if (o.parentNode) document.body.removeChild(o); res(v); }
+      o.addEventListener('click', function (e) {
+        if (e.target === o) return done(false);
+        var b = e.target.closest('[data-m]'); if (b) done(b.getAttribute('data-m') === '1');
+      });
+    });
+  }
+  function modalPrompt(msg, initial) {
+    return new Promise(function (res) {
+      var o = openModal('<p>' + esc(msg) + '</p><input id="modal-input" value="' + esc(initial || '') + '">' +
+        '<div class="btn-row"><button class="btn small" data-m="0">Annuler</button>' +
+        '<button class="btn primary small" data-m="1">Valider</button></div>');
+      var inp = o.querySelector('#modal-input'); inp.focus(); inp.select();
+      function done(ok) { var v = inp.value; if (o.parentNode) document.body.removeChild(o); res(ok ? v : null); }
+      o.addEventListener('click', function (e) {
+        if (e.target === o) return done(false);
+        var b = e.target.closest('[data-m]'); if (b) done(b.getAttribute('data-m') === '1');
+      });
+      inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); done(true); }
+        else if (e.key === 'Escape') done(false);
+      });
+    });
+  }
+
   /* ---- Navigation -------------------------------------------------- */
   function go(hash) { if (location.hash === hash) render(); else location.hash = hash; }
   window.addEventListener('hashchange', render);
@@ -470,14 +509,16 @@
     }
     if (act === 'rename-team') {
       var t2 = teamById(a.getAttribute('data-team')); if (!t2) return;
-      var nn = prompt('Nouveau nom de l\'équipe ' + t2.pool + t2.slot + ' :', t2.name || '');
-      if (nn != null && nn.trim()) DB.renameTeam(tid, t2.id, nn.trim()).then(function () { toast('Équipe renommée.'); });
+      modalPrompt('Nouveau nom de l\'équipe ' + t2.pool + t2.slot + ' :', t2.name || '').then(function (nn) {
+        if (nn != null && nn.trim()) DB.renameTeam(tid, t2.id, nn.trim()).then(function () { toast('Équipe renommée.'); });
+      });
       return;
     }
     if (act === 'remove-team') {
       var t3 = teamById(a.getAttribute('data-team')); if (!t3) return;
-      if (confirm('Retirer l\'équipe ' + (t3.name || t3.pool + t3.slot) + ' ? Sa place redeviendra libre.'))
-        DB.removeTeam(tid, t3.id).then(function () { toast('Équipe retirée.'); });
+      modalConfirm('Retirer l\'équipe « ' + (t3.name || t3.pool + t3.slot) + ' » ? Sa place redeviendra libre.', 'Retirer').then(function (ok) {
+        if (ok) DB.removeTeam(tid, t3.id).then(function () { toast('Équipe retirée.'); });
+      });
       return;
     }
     if (act === 'admin-set') {
@@ -496,8 +537,10 @@
     if (act === 'set-phase') { DB.setPhase(tid, a.getAttribute('data-phase')).then(function () { toast('Phase mise à jour.'); }); return; }
     if (act === 'lock-admin') { sessionStorage.removeItem('bt:admin:' + tid); go('#/'); return; }
     if (act === 'reset') {
-      if (!confirm('Réinitialiser TOUT le tournoi ? Action irréversible.')) return;
-      DB.resetTournament(tid).then(function () { sessionStorage.removeItem('bt:admin:' + tid); toast('Tournoi réinitialisé.'); go('#/admin'); });
+      modalConfirm('Réinitialiser TOUT le tournoi (équipes, scores, réglages) ? Action irréversible.', 'Réinitialiser').then(function (ok) {
+        if (!ok) return;
+        DB.resetTournament(tid).then(function () { sessionStorage.removeItem('bt:admin:' + tid); toast('Tournoi réinitialisé.'); go('#/admin'); });
+      });
       return;
     }
   }
@@ -527,11 +570,14 @@
     var c = store.config;
     var standings = L.allStandings(c.numPools, store.teams, store.matches);
     var q = L.qualifiers(c.numPools, standings);
-    if (q.winners.length + q.runners.length + q.thirds.length < q.size) {
-      if (!confirm('Toutes les places qualificatives ne sont pas encore déterminées. Générer quand même ?')) return;
-    }
-    var bracket = L.seedBracket(c.numPools, standings);
-    DB.startBracket(tid, bracket).then(function () { ui.adminTab = 'tableau'; toast('Tableau généré !'); render(); });
+    var enough = q.winners.length + q.runners.length + q.thirds.length >= q.size;
+    var ask = enough ? Promise.resolve(true)
+      : modalConfirm('Toutes les places qualificatives ne sont pas encore déterminées (poules incomplètes). Générer le tableau quand même ?', 'Générer');
+    ask.then(function (ok) {
+      if (!ok) return;
+      var bracket = L.seedBracket(c.numPools, standings);
+      DB.startBracket(tid, bracket).then(function () { ui.adminTab = 'tableau'; toast('Tableau généré !'); render(); });
+    });
   }
 
   /* ---- Thème ------------------------------------------------------- */

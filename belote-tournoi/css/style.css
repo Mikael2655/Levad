@@ -173,4 +173,18 @@ input[type="number"] { -moz-appearance: textfield; }
 .pool-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .hidden { display: none !important; }
 .muted { color: var(--muted); }
+
+/* Fenêtre modale (remplace prompt/confirm) */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 20px; width: 100%; max-width: 380px; box-shadow: 0 12px 40px rgba(0,0,0,.35);
+}
+.modal p { margin: 0 0 14px; }
+.modal input { margin-bottom: 14px; }
+.modal .btn-row { margin-top: 4px; }
 .big-num { font-size: 2rem; font-weight: 800; text-align: center; }
