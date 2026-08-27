@@ -23,7 +23,7 @@
       for (var s = 1; s <= 4; s++) {
         teams.push({
           id: poolLabel(p) + s, pool: poolLabel(p), slot: s,
-          captainName: '', partnerName: '', claimed: false, uid: null
+          name: '', assigned: false
         });
       }
     }

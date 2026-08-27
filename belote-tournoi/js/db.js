@@ -96,32 +96,31 @@
     return Promise.all([delAll('teams'), delAll('matches')])
       .then(function () { return doc.delete(); });
   };
-  FirebaseDB.prototype.claimRandomTeam = function (tid) {
+  // L'admin saisit un nom d'équipe : tirage au sort d'une place libre.
+  FirebaseDB.prototype.addTeam = function (tid, name) {
     var self = this, col = this._doc(tid).collection('teams');
-    // 1) Cet appareil possède-t-il déjà une équipe ?
-    return col.where('uid', '==', self.uid).limit(1).get().then(function (qs) {
-      if (!qs.empty) return qs.docs[0].data();
-      // 2) Sinon, on choisit une place libre au hasard (transaction).
-      return col.where('claimed', '==', false).get().then(function (free) {
-        var ids = shuffle(free.docs.map(function (d) { return d.id; }));
-        function tryNext(i) {
-          if (i >= ids.length) throw new Error('COMPLET');
-          var ref = col.doc(ids[i]);
-          return self.fb.runTransaction(function (tx) {
-            return tx.get(ref).then(function (d) {
-              if (!d.exists || d.data().claimed) return null;
-              tx.update(ref, { claimed: true, uid: self.uid, claimedAt: now() });
-              return Object.assign({}, d.data(), { claimed: true, uid: self.uid });
-            });
-          }).then(function (res) { return res || tryNext(i + 1); });
-        }
-        return tryNext(0);
-      });
+    return col.where('assigned', '==', false).get().then(function (free) {
+      var ids = shuffle(free.docs.map(function (d) { return d.id; }));
+      function tryNext(i) {
+        if (i >= ids.length) throw new Error('COMPLET');
+        var ref = col.doc(ids[i]);
+        return self.fb.runTransaction(function (tx) {
+          return tx.get(ref).then(function (d) {
+            if (!d.exists || d.data().assigned) return null;
+            tx.update(ref, { assigned: true, name: name, assignedAt: now() });
+            return Object.assign({}, d.data(), { assigned: true, name: name });
+          });
+        }).then(function (res) { return res || tryNext(i + 1); });
+      }
+      return tryNext(0);
     });
   };
-  FirebaseDB.prototype.updateTeamNames = function (tid, teamId, cap, partner) {
+  FirebaseDB.prototype.renameTeam = function (tid, teamId, name) {
+    return this._doc(tid).collection('teams').doc(teamId).update({ name: name, updatedAt: now() });
+  };
+  FirebaseDB.prototype.removeTeam = function (tid, teamId) {
     return this._doc(tid).collection('teams').doc(teamId)
-      .update({ captainName: cap, partnerName: partner, updatedAt: now() });
+      .update({ name: '', assigned: false, assignedAt: null, updatedAt: now() });
   };
   FirebaseDB.prototype.propose = function (tid, matchId, base, sa, sb, byTeamId) {
     return this._doc(tid).collection('matches').doc(matchId).set(Object.assign({}, base, {
@@ -220,22 +219,23 @@
     this._notify(); if (this.chan) try { this.chan.postMessage(1); } catch (e) {}
     return Promise.resolve();
   };
-  LocalDB.prototype.claimRandomTeam = function (tid) {
+  LocalDB.prototype.addTeam = function (tid, name) {
     var teams = this._read(tid, 'teams', []);
-    var mine = teams.filter(function (t) { return t.uid === this.uid; }, this)[0];
-    if (mine) return Promise.resolve(mine);
-    var free = shuffle(teams.filter(function (t) { return !t.claimed; }));
+    var free = shuffle(teams.filter(function (t) { return !t.assigned; }));
     if (!free.length) return Promise.reject(new Error('COMPLET'));
     var chosen = free[0];
-    chosen.claimed = true; chosen.uid = this.uid; chosen.claimedAt = now();
+    chosen.assigned = true; chosen.name = name; chosen.assignedAt = now();
     this._write(tid, 'teams', teams);
     return Promise.resolve(chosen);
   };
-  LocalDB.prototype.updateTeamNames = function (tid, teamId, cap, partner) {
+  LocalDB.prototype.renameTeam = function (tid, teamId, name) {
     var teams = this._read(tid, 'teams', []);
-    teams.forEach(function (t) {
-      if (t.id === teamId) { t.captainName = cap; t.partnerName = partner; t.updatedAt = now(); }
-    });
+    teams.forEach(function (t) { if (t.id === teamId) { t.name = name; t.updatedAt = now(); } });
+    return this._write(tid, 'teams', teams);
+  };
+  LocalDB.prototype.removeTeam = function (tid, teamId) {
+    var teams = this._read(tid, 'teams', []);
+    teams.forEach(function (t) { if (t.id === teamId) { t.name = ''; t.assigned = false; t.assignedAt = null; } });
     return this._write(tid, 'teams', teams);
   };
   LocalDB.prototype._setMatch = function (tid, matchId, fields) {

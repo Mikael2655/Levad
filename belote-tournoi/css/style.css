@@ -172,4 +172,5 @@ input[type="number"] { -moz-appearance: textfield; }
 .pill.active { background: var(--green); color: #fff; border-color: transparent; }
 .pool-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
 .hidden { display: none !important; }
+.muted { color: var(--muted); }
 .big-num { font-size: 2rem; font-weight: 800; text-align: center; }

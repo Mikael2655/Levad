@@ -1,25 +1,27 @@
 # ♠ Tournoi de belote
 
-Application web pour organiser un **tournoi de belote** : poules, saisie des
-scores par les chefs d'équipe (via QR code), classement automatique
-(points + goal-average) et tableau final jusqu'à la finale.
+Application web pour organiser un **tournoi de belote** géré par un seul
+**administrateur** : saisie des équipes avec **tirage au sort** de la poule et
+du numéro, saisie des scores, classement automatique (points + goal-average) et
+tableau final jusqu'à la finale.
 
 Aucune installation serveur : c'est un site statique (déployable sur GitHub
-Pages). La synchronisation temps réel entre les téléphones passe par
-**Firebase** (offre gratuite).
+Pages) qui **fonctionne hors-ligne**. Les données sont enregistrées dans le
+navigateur. Firebase est **optionnel** (sauvegarde en ligne + accès depuis
+plusieurs appareils).
 
 ## Comment ça marche
 
-- **L'organisateur** ouvre **Administration**, crée le tournoi (nom, nombre de
-  poules, code secret) et affiche le **QR code d'inscription**.
-- **Chaque chef d'équipe** scanne ce QR : il se voit attribuer **au hasard**
-  une poule (A, B, C, …) et une place (équipe 1 à 4). Il saisit son nom et
-  celui de son partenaire. Les poules sont donc constituées aléatoirement.
-- Dans sa mini-appli, chaque chef **saisit les scores** de ses matchs. Un score
-  n'est validé que lorsque **les chefs des deux équipes** sont d'accord : l'un
-  propose, l'autre valide.
-- L'appli **Classement** (publique) et l'espace **Administration** affichent en
-  direct le classement de chaque poule et le tableau final.
+- **Administration** (protégée par un code) :
+  1. **Créer le tournoi** : nom, nombre de poules, code administrateur.
+  2. **Saisir les équipes** : on tape le nom d'une équipe ; l'appli **tire au
+     sort** sa poule (A, B, C, …) et son numéro (1 à 4) dès la saisie. Les
+     poules sont donc constituées aléatoirement.
+  3. **Saisir les scores** de chaque match de poule.
+  4. **Clôturer les poules** : l'appli génère le tableau final (têtes de série
+     tirées du classement) ; on saisit les scores jusqu'à la finale.
+- **Classement** (vue publique, partageable) : classement de chaque poule,
+  meilleurs 3es, et tableau final en direct.
 
 ## Règles du tournoi
 
@@ -32,19 +34,21 @@ Pages). La synchronisation temps réel entre les téléphones passe par
 - Les **2 premiers** de chaque poule + les **meilleurs 3es** (autant que
   nécessaire) sont qualifiés. Le tableau a une taille en puissance de 2 :
   **6 poules → 1/8 de finale à 16 équipes**.
-- **1/8** et **1/4** en 1500 points : seule la victoire compte (pas de
-  différence).
+- **1/8** et **1/4** en 1500 points : seule la victoire compte.
 - **1/2** en **2000 points**. **Petite finale** (3e place) en 2000 points.
 - **Finale** : match **aller / retour**, plus la **belle** si 1 partout. Il faut
   **2 victoires** pour être sacré.
 
-## Configurer Firebase (multi-téléphone)
+## Sauvegarde en ligne (optionnel : Firebase)
 
-Tant que Firebase n'est pas configuré, l'appli tourne en **mode démo** (données
-locales à un seul appareil, synchro entre onglets du même navigateur). Pour un
-vrai tournoi :
+Par défaut, tout est stocké **localement dans le navigateur** de
+l'administrateur (badge « LOCAL »). C'est suffisant pour un tournoi géré depuis
+un seul appareil — pensez simplement à ne pas vider les données du navigateur.
 
-1. Créez un projet sur <https://console.firebase.google.com> (gratuit).
+Pour une **sauvegarde en ligne** et l'accès **depuis plusieurs appareils** (ex.
+téléphone + ordinateur), branchez Firebase (gratuit) :
+
+1. Créez un projet sur <https://console.firebase.google.com>.
 2. Ajoutez une application **Web** et copiez l'objet `firebaseConfig`.
 3. **Authentication → Sign-in method → Anonyme** : activez.
 4. **Firestore Database** : créez la base (mode production).
@@ -52,33 +56,28 @@ vrai tournoi :
 6. **Firestore → Règles** : collez le contenu de
    [`firestore.rules`](firestore.rules) et publiez.
 
-Rechargez la page : le badge « DÉMO » disparaît, la synchro temps réel est
-active.
+Le badge « LOCAL » disparaît : les données sont désormais synchronisées en
+ligne.
 
 ## Déploiement
 
-Le workflow GitHub Actions publie automatiquement l'appli sur GitHub Pages sous
+Le workflow GitHub Actions publie l'appli sur GitHub Pages sous
 `/belote-tournoi/` à chaque push sur `main`. Adresse type :
 `https://<utilisateur>.github.io/Levad/belote-tournoi/`.
-
-Le **QR code d'inscription** pointe vers cette adresse : imprimez-le ou
-affichez-le le jour J.
 
 ## Gérer plusieurs tournois
 
 Ajoutez `?t=<identifiant>` à l'URL (ex. `…/belote-tournoi/?t=2026`) pour gérer
-un tournoi distinct. Le QR code reprend automatiquement cet identifiant.
+un tournoi distinct.
 
 ## Détails techniques
 
 | Fichier | Rôle |
 |---|---|
 | `js/logic.js` | Règles pures : points, classement, qualification, tableau (testable) |
-| `js/db.js` | Couche données : Firestore temps réel **ou** mode démo local |
-| `js/app.js` | Interface, navigation, écrans (accueil, chef, classement, admin) |
-| `js/config.js` | Configuration Firebase et identifiant du tournoi |
-| `js/qrcode.js` | Génération du QR code (hors-ligne, MIT — Kazuhiko Arase) |
-| `firestore.rules` | Règles de sécurité Firestore |
+| `js/db.js` | Couche données : stockage local **ou** Firestore temps réel |
+| `js/app.js` | Interface, navigation, écrans (accueil, classement, administration) |
+| `js/config.js` | Configuration Firebase (optionnelle) et identifiant du tournoi |
+| `firestore.rules` | Règles de sécurité Firestore (si Firebase activé) |
 
-Tout est en JavaScript sans dépendance de build. Aucune donnée n'est envoyée
-ailleurs que dans votre propre projet Firebase.
+Tout est en JavaScript sans dépendance de build.
