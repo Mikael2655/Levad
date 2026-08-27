@@ -4,46 +4,50 @@
    ============================================================ */
 
 :root {
-  --bg: #f4f1ea;
-  --card: #ffffff;
-  --ink: #1f2420;
-  --muted: #6b6f69;
-  --accent: #1e7a46;        /* vert feutrine */
-  --accent-dark: #145c34;
-  --accent-soft: #e4f2e9;
-  --gold: #c99a2e;
-  --good: #2e7d4f;
-  --good-bg: #e2f3e8;
-  --bad: #b3372f;
-  --bad-bg: #fbe7e5;
-  --team1: #2b5fa3;         /* bleu — équipe 1 */
-  --team1-bg: #e6eefa;
-  --team2: #b3372f;         /* rouge — équipe 2 */
-  --team2-bg: #fbe7e5;
+  --bg: #f4f2ec;            /* papier chaud */
+  --card: #fffdfa;
+  --ink: #262a2f;           /* ardoise profonde */
+  --muted: #8a8d92;
+  --accent: #2d5348;        /* vert profond feutré */
+  --accent-dark: #1f3a32;
+  --accent-soft: #e8efe9;
+  --gold: #b08a3f;
+  --good: #3f7a5c;          /* contrat réussi */
+  --good-bg: #e7f0ea;
+  --bad: #b04a3d;           /* contrat chuté */
+  --bad-bg: #f4e7e3;
+  --team1: #35608c;         /* bleu ardoise — équipe 1 */
+  --team1-dark: #274866;
+  --team1-bg: #e9eef4;
+  --team2: #97514a;         /* terracotta feutré — équipe 2 */
+  --team2-dark: #6f3a34;
+  --team2-bg: #f2e8e5;
   --radius: 14px;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.09);
-  --line: #e3ded4;
+  --shadow: 0 1px 2px rgba(30, 35, 40, 0.05), 0 6px 18px rgba(30, 35, 40, 0.06);
+  --line: #e7e3da;
 }
 
 :root[data-theme="dark"] {
   --bg: #14171a;
-  --card: #20252a;
-  --ink: #e8e6e1;
-  --muted: #9a978f;
-  --accent: #3fa06a;
-  --accent-dark: #1d3b2a;
-  --accent-soft: #1c2f25;
-  --gold: #e0b354;
-  --good: #55b37e;
-  --good-bg: #1e3a2b;
-  --bad: #e0736b;
-  --bad-bg: #3a2321;
-  --team1: #6fa2e0;
-  --team1-bg: #1b2a3e;
-  --team2: #e0736b;
-  --team2-bg: #3a2321;
-  --line: #343a40;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  --card: #1e2226;
+  --ink: #e9e7e2;
+  --muted: #979a9f;
+  --accent: #3f6f60;
+  --accent-dark: #23342e;
+  --accent-soft: #1d2a25;
+  --gold: #cba659;
+  --good: #5aa27e;
+  --good-bg: #1d3128;
+  --bad: #c8776b;
+  --bad-bg: #33241f;
+  --team1: #7aa2ce;
+  --team1-dark: #3a5b7d;
+  --team1-bg: #1b2734;
+  --team2: #c98a7f;
+  --team2-dark: #6f4640;
+  --team2-bg: #2e211e;
+  --line: #33383d;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 * { box-sizing: border-box; }
@@ -79,7 +83,7 @@ body {
   cursor: pointer;
   user-select: none;
 }
-.logo-suit { color: #ffd97a; }
+.logo-suit { color: #d9b978; }
 .topbar-right { display: flex; align-items: center; gap: 0.6rem; }
 
 .target-chip {
@@ -220,15 +224,44 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .big-choice button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
 .big-choice button small { display: block; font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-top: 0.25rem; }
 
-.player-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; }
-.player-row .move { display: flex; flex-direction: column; gap: 2px; }
-.player-row .move button {
-  font: inherit; font-weight: 800; line-height: 0.9;
-  padding: 0.1rem 0.4rem;
-  border: 1px solid var(--line); border-radius: 6px;
-  background: var(--card); color: var(--ink); cursor: pointer;
+/* Boîtes de saisie par équipe */
+.team-box {
+  display: flex; flex-wrap: wrap; gap: 0.5rem;
+  border: 1px solid var(--line); border-left: 4px solid;
+  border-radius: 12px; padding: 0.6rem 0.7rem; margin-bottom: 0.7rem;
 }
-.player-row .move button:disabled { opacity: 0.3; cursor: default; }
+.team-box.t0 { border-left-color: var(--team1); }
+.team-box.t1 { border-left-color: var(--team2); }
+.team-box .team-name { flex-basis: 100%; font-weight: 800; }
+.team-box.t0 .team-name { color: var(--team1); }
+.team-box.t1 .team-name { color: var(--team2); }
+.team-box input:not(.team-name) { flex: 1; min-width: 120px; }
+
+/* Poignée de glissement (≡) */
+.drag-handle {
+  font-size: 1.25rem; line-height: 1; color: var(--muted);
+  background: none; border: none; cursor: grab;
+  padding: 0.15rem 0.35rem; touch-action: none; user-select: none;
+}
+.drag-handle:active { cursor: grabbing; }
+
+/* Liste « ordre de distribution » */
+#order-list { display: flex; flex-direction: column; gap: 0.45rem; }
+.order-row {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: var(--card); border: 1px solid var(--line); border-left: 4px solid;
+  border-radius: 10px; padding: 0.5rem 0.6rem;
+}
+.order-row.t0 { border-left-color: var(--team1); }
+.order-row.t1 { border-left-color: var(--team2); }
+.order-row.dragging { opacity: 0.9; box-shadow: var(--shadow); }
+.order-row .opos { width: 1.2rem; text-align: center; color: var(--muted); font-weight: 800; }
+.order-row .oname { flex: 1; font-weight: 700; }
+.order-row.t0 .oname { color: var(--team1); }
+.order-row.t1 .oname { color: var(--team2); }
+
+.player-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; }
+.player-row.dragging { opacity: 0.9; box-shadow: var(--shadow); border-radius: 10px; }
 .player-row .idx { width: 1.2rem; text-align: center; color: var(--muted); font-weight: 800; }
 .player-row input { flex: 1; }
 .player-row .team-pick { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
@@ -247,8 +280,8 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
   position: relative;
   overflow: hidden;
 }
-.score-card.t0 { background: linear-gradient(160deg, var(--team1), #24487a); }
-.score-card.t1 { background: linear-gradient(160deg, var(--team2), #8a2a24); }
+.score-card.t0 { background: linear-gradient(155deg, var(--team1), var(--team1-dark)); }
+.score-card.t1 { background: linear-gradient(155deg, var(--team2), var(--team2-dark)); }
 .score-card .name { font-weight: 800; font-size: 0.95rem; opacity: 0.95; }
 .score-card .members { font-size: 0.72rem; opacity: 0.8; min-height: 0.9rem; }
 .score-card .total { font-size: 2.1rem; font-weight: 800; line-height: 1.1; margin-top: 0.15rem; }
@@ -257,7 +290,7 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .score-card .bar span { display: block; height: 100%; background: #fff; border-radius: 3px; transition: width 0.4s; }
 .score-card.leader::after {
   content: "★";
-  position: absolute; top: 6px; right: 9px; font-size: 0.9rem; color: #ffd97a;
+  position: absolute; top: 6px; right: 9px; font-size: 0.9rem; color: #e7cf94;
 }
 
 /* ---------- Bandeau « manches gagnées » (revanche / belle) ---------- */
@@ -344,7 +377,7 @@ svg.chart { display: block; width: 100%; height: auto; }
 .donne.passe { border-left-color: var(--muted); opacity: 0.85; }
 .tag.passe { background: var(--line); color: var(--muted); }
 .donne.libre { border-left-color: var(--gold); }
-.tag.libre { background: var(--gold); color: #3a2a00; }
+.tag.libre { background: var(--gold); color: #fff; }
 
 /* ---------- Saisie d'une donne en ligne ---------- */
 .donne.pending {
@@ -401,8 +434,8 @@ svg.chart { display: block; width: 100%; height: auto; }
   margin-left: 0.3rem;
   vertical-align: middle;
 }
-.tag.contre { background: var(--gold); color: #3a2a00; }
-.tag.capot { background: var(--gold); color: #3a2a00; }
+.tag.contre { background: var(--gold); color: #fff; }
+.tag.capot { background: var(--gold); color: #fff; }
 .tag.belote { background: var(--accent-soft); color: var(--accent-dark); }
 .tag.ok { background: var(--good-bg); color: var(--good); }
 .tag.ko { background: var(--bad-bg); color: var(--bad); }

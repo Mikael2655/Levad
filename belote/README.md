@@ -13,11 +13,10 @@ Ouvrez simplement `index.html` dans un navigateur (ou ajoutez la page à
 l'écran d'accueil de votre téléphone pour l'utiliser comme une appli).
 
 1. **Nouvelle partie** : choisissez l'objectif (1500 ou 2000), nommez les
-   deux équipes et les joueurs **dans l'ordre de distribution** (chacun
-   rattaché à son équipe). Les flèches **↑ ↓** permettent de réordonner les
-   joueurs (donc de changer qui distribue en premier) ; on peut aussi
-   changer les équipes. Ces réglages sont modifiables à tout moment via le
-   menu **⋯ → Équipes, joueurs & ordre** (utile entre deux manches).
+   deux équipes et saisissez les **membres de chaque équipe**. Réglez ensuite
+   l'**ordre de distribution** en glissant les poignées **≡** (le 1ᵉʳ de la
+   liste distribue la première donne). Ces réglages sont modifiables à tout
+   moment via le menu **⋯** (utile entre deux manches).
 2. **＋ Donne** : ajoute une ligne de saisie directement dans la liste, en
    deux temps :
    1. **Le contrat** — quatre menus déroulants compacts : **Contrat**
@@ -30,9 +29,9 @@ l'écran d'accueil de votre téléphone pour l'utiliser comme une appli).
 
    Le bouton **✎ modifier** revient au contrat. Toucher une **donne déjà
    enregistrée** ouvre sa fiche pour la corriger ou la supprimer.
-3. Le **cumul** de chaque équipe est en haut, et le **graphe** montre
-   l'évolution donne après donne. Le nom du **distributeur** apparaît sur
-   chaque ligne.
+3. Le **cumul** de chaque équipe est en haut. Le nom du **distributeur**
+   apparaît sur chaque ligne, et un repère distingue les contrats **réussis**
+   des contrats **chutés**.
 4. **Terminer & archiver** enregistre la partie dans l'historique.
 
 Touchez une donne existante pour la **modifier** ou la **supprimer**.

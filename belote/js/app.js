@@ -307,13 +307,60 @@
     return {
       target: 1500,
       teams: ["Nous", "Eux"],
-      players: [
-        { name: "", team: 0 },
-        { name: "", team: 1 },
-        { name: "", team: 0 },
-        { name: "", team: 1 },
+      members: [["", ""], ["", ""]], // members[équipe][0|1]
+      // Ordre de distribution : chaque entrée pointe vers un membre.
+      order: [
+        { t: 0, i: 0 },
+        { t: 1, i: 0 },
+        { t: 0, i: 1 },
+        { t: 1, i: 1 },
       ],
     };
+  }
+
+  // Glisser-déposer générique : chaque ligne a [data-key] et une poignée
+  // [data-drag]. onDrop reçoit la nouvelle liste des data-key.
+  function enableDragReorder(container, onDrop) {
+    container.querySelectorAll("[data-drag]").forEach((handle) => {
+      handle.style.touchAction = "none";
+      handle.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        const row = handle.closest("[data-key]");
+        if (!row) return;
+        row.classList.add("dragging");
+        try {
+          handle.setPointerCapture(e.pointerId);
+        } catch (err) {}
+        const move = (ev) => {
+          const others = [
+            ...container.querySelectorAll("[data-key]:not(.dragging)"),
+          ];
+          let placed = false;
+          for (const o of others) {
+            const r = o.getBoundingClientRect();
+            if (ev.clientY < r.top + r.height / 2) {
+              container.insertBefore(row, o);
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) container.appendChild(row);
+        };
+        const end = () => {
+          handle.removeEventListener("pointermove", move);
+          handle.removeEventListener("pointerup", end);
+          handle.removeEventListener("pointercancel", end);
+          row.classList.remove("dragging");
+          const keys = [...container.querySelectorAll("[data-key]")].map(
+            (r) => r.dataset.key
+          );
+          onDrop(keys);
+        };
+        handle.addEventListener("pointermove", move);
+        handle.addEventListener("pointerup", end);
+        handle.addEventListener("pointercancel", end);
+      });
+    });
   }
 
   function renderSetup() {
@@ -335,31 +382,29 @@
           <button data-target="2000" class="${d.target === 2000 ? "on" : ""}">2000<small>partie longue</small></button>
         </div>
 
-        <h3>Équipes</h3>
-        <div class="field-row">
-          <div>
-            <label style="color:var(--team1)">Équipe 1</label>
-            <input type="text" id="team0" value="${esc(d.teams[0])}" maxlength="18" placeholder="Nous">
-          </div>
-          <div>
-            <label style="color:var(--team2)">Équipe 2</label>
-            <input type="text" id="team1" value="${esc(d.teams[1])}" maxlength="18" placeholder="Eux">
-          </div>
+        <h3>Équipes &amp; joueurs</h3>
+        <div class="team-box t0">
+          <input type="text" class="team-name" id="team0" value="${esc(d.teams[0])}" maxlength="18" placeholder="Nom de l'équipe 1">
+          <input type="text" id="m00" data-member="00" value="${esc(d.members[0][0])}" maxlength="14" placeholder="Joueur">
+          <input type="text" id="m01" data-member="01" value="${esc(d.members[0][1])}" maxlength="14" placeholder="Joueur">
+        </div>
+        <div class="team-box t1">
+          <input type="text" class="team-name" id="team1" value="${esc(d.teams[1])}" maxlength="18" placeholder="Nom de l'équipe 2">
+          <input type="text" id="m10" data-member="10" value="${esc(d.members[1][0])}" maxlength="14" placeholder="Joueur">
+          <input type="text" id="m11" data-member="11" value="${esc(d.members[1][1])}" maxlength="14" placeholder="Joueur">
         </div>
 
-        <h3>Joueurs — dans l'ordre de distribution</h3>
+        <h3>Ordre de distribution</h3>
         <p class="muted" style="font-size:0.82rem;margin:.2rem 0 .8rem">
-          Le premier joueur distribue la 1ʳᵉ donne, puis on tourne. Choisissez l'équipe de chacun (bleu / rouge).
+          Glissez les poignées ≡ pour ordonner. Le 1ᵉʳ de la liste distribue la première donne.
         </p>
-        <div id="players"></div>
+        <div id="order-list">${orderRowsHtml(d)}</div>
       </div>
 
       <button class="btn big block" id="start">Commencer la partie ♠</button>
 
       ${hasHistory ? `<button class="btn secondary block" id="see-history" style="margin-top:.7rem">Historique des parties (${history.length})</button>` : ""}
     `;
-
-    renderPlayerRows();
 
     $("#target-choice").addEventListener("click", (e) => {
       const b = e.target.closest("button[data-target]");
@@ -369,30 +414,51 @@
     });
     $("#team0").addEventListener("input", (e) => (d.teams[0] = e.target.value));
     $("#team1").addEventListener("input", (e) => (d.teams[1] = e.target.value));
+    // Champs membres : maj du modèle + du nom affiché dans l'ordre.
+    screen.querySelectorAll("[data-member]").forEach((inp) =>
+      inp.addEventListener("input", (e) => {
+        const k = e.target.dataset.member; // "ti"
+        d.members[Number(k[0])][Number(k[1])] = e.target.value;
+        const nameEl = screen.querySelector('.oname[data-nk="' + k + '"]');
+        if (nameEl) nameEl.textContent = e.target.value.trim() || nameEl.dataset.def;
+      })
+    );
+    enableDragReorder($("#order-list"), (keys) => {
+      d.order = keys.map((k) => ({ t: Number(k[0]), i: Number(k[1]) }));
+      renderSetup();
+    });
     $("#start").addEventListener("click", startGame);
     if (hasHistory) $("#see-history").addEventListener("click", renderHistory);
     const sr = $("#series-reset");
     if (sr) sr.addEventListener("click", resetSeries);
   }
 
-  // Déplace un joueur dans l'ordre de distribution (dir = -1 ↑, +1 ↓).
-  function movePlayer(players, i, dir) {
-    const j = i + dir;
-    if (j < 0 || j >= players.length) return;
-    const tmp = players[i];
-    players[i] = players[j];
-    players[j] = tmp;
+  // Nom par défaut d'un membre (si non saisi).
+  function defMember(d, o) {
+    return (d.teams[o.t].trim() || (o.t ? "Eux" : "Nous")) + " " + (o.i + 1);
+  }
+
+  function orderRowsHtml(d) {
+    return d.order
+      .map((o, pos) => {
+        const def = defMember(d, o);
+        const nm = (d.members[o.t][o.i] || "").trim() || def;
+        return `
+      <div class="order-row t${o.t}" data-key="${o.t}${o.i}">
+        <button class="drag-handle" data-drag aria-label="Déplacer">≡</button>
+        <span class="opos">${pos + 1}</span>
+        <span class="oname" data-nk="${o.t}${o.i}" data-def="${esc(def)}">${esc(nm)}</span>
+      </div>`;
+      })
+      .join("");
   }
 
   function playerRowsHtml(players) {
     return players
       .map(
         (p, i) => `
-      <div class="player-row" data-i="${i}">
-        <div class="move">
-          <button data-up="${i}" ${i === 0 ? "disabled" : ""} title="Monter" aria-label="Monter">↑</button>
-          <button data-down="${i}" ${i === players.length - 1 ? "disabled" : ""} title="Descendre" aria-label="Descendre">↓</button>
-        </div>
+      <div class="player-row" data-key="${i}">
+        <button class="drag-handle" data-drag aria-label="Déplacer">≡</button>
         <span class="idx">${i + 1}</span>
         <input type="text" value="${esc(p.name)}" maxlength="14" placeholder="Joueur ${i + 1}" data-name="${i}">
         <div class="team-pick" data-team-pick="${i}">
@@ -404,8 +470,7 @@
       .join("");
   }
 
-  // Câble les écouteurs des lignes joueurs. onStruct = re-rendu complet
-  // (ajout/suppression/déplacement), onLight = maj légère (nom/équipe).
+  // Câble les lignes joueurs (utilisé par le menu « Équipes, joueurs & ordre »).
   function wirePlayerRows(wrap, players, rerender) {
     wrap.querySelectorAll("input[data-name]").forEach((inp) =>
       inp.addEventListener("input", (e) => {
@@ -420,38 +485,21 @@
         rerender();
       })
     );
-    wrap.querySelectorAll("[data-up]").forEach((b) =>
-      b.addEventListener("click", () => {
-        movePlayer(players, Number(b.dataset.up), -1);
-        rerender();
-      })
-    );
-    wrap.querySelectorAll("[data-down]").forEach((b) =>
-      b.addEventListener("click", () => {
-        movePlayer(players, Number(b.dataset.down), +1);
-        rerender();
-      })
-    );
-    wrap.querySelectorAll("[data-del]").forEach((b) =>
-      b.addEventListener("click", () => {
-        players.splice(Number(b.dataset.del), 1);
-        rerender();
-      })
-    );
-  }
-
-  function renderPlayerRows() {
-    const wrap = $("#players");
-    wrap.innerHTML = playerRowsHtml(setupDraft.players);
-    wirePlayerRows(wrap, setupDraft.players, renderSetup);
+    enableDragReorder(wrap, (keys) => {
+      const reordered = keys.map((k) => players[Number(k)]);
+      players.length = 0;
+      players.push(...reordered);
+      rerender();
+    });
   }
 
   function startGame() {
     const d = setupDraft;
     const teams = [d.teams[0].trim() || "Nous", d.teams[1].trim() || "Eux"];
-    const players = d.players
-      .map((p, i) => ({ name: p.name.trim() || "Joueur " + (i + 1), team: p.team }))
-      .filter((p) => true);
+    const players = d.order.map((o) => ({
+      name: (d.members[o.t][o.i] || "").trim() || teams[o.t] + " " + (o.i + 1),
+      team: o.t,
+    }));
     game = {
       target: d.target,
       teams,
@@ -667,7 +715,7 @@
     pendingDonne = {
       phase: "contract",
       preneur: 0,
-      contrat: 90,
+      contrat: 80,
       couleur: "pique",
       mode: "normal",
       pointsSide: "defense",
@@ -1001,7 +1049,7 @@
         )
       : {
           preneur: 0,
-          contrat: 90,
+          contrat: 80,
           points: "",
           pointsSide: "preneur",
           belote: -1,
