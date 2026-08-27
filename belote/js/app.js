@@ -352,9 +352,6 @@
           Le premier joueur distribue la 1ʳᵉ donne, puis on tourne. Choisissez l'équipe de chacun (bleu / rouge).
         </p>
         <div id="players"></div>
-        <div class="btn-row" style="margin-top:.6rem">
-          <button class="btn ghost" id="add-player" ${d.players.length >= 6 ? "disabled" : ""}>+ Joueur</button>
-        </div>
       </div>
 
       <button class="btn big block" id="start">Commencer la partie ♠</button>
@@ -372,11 +369,6 @@
     });
     $("#team0").addEventListener("input", (e) => (d.teams[0] = e.target.value));
     $("#team1").addEventListener("input", (e) => (d.teams[1] = e.target.value));
-    $("#add-player").addEventListener("click", () => {
-      if (d.players.length >= 6) return;
-      d.players.push({ name: "", team: d.players.length % 2 });
-      renderSetup();
-    });
     $("#start").addEventListener("click", startGame);
     if (hasHistory) $("#see-history").addEventListener("click", renderHistory);
     const sr = $("#series-reset");
@@ -407,7 +399,6 @@
           <button data-team="0" class="${p.team === 0 ? "on" : ""}">1</button>
           <button data-team="1" class="${p.team === 1 ? "on" : ""}">2</button>
         </div>
-        ${players.length > 2 ? `<button class="btn ghost" data-del="${i}" title="Retirer" style="padding:.4rem .5rem">✕</button>` : ""}
       </div>`
       )
       .join("");
