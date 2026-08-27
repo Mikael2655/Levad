@@ -153,9 +153,9 @@ h3 { font-size: 1rem; margin: 0.9rem 0 0.5rem; }
 }
 .btn:hover { background: var(--accent-dark); }
 .btn:active { transform: scale(0.97); }
-.btn.secondary { background: var(--accent-soft); color: var(--accent-dark); }
+.btn.secondary { background: var(--accent-soft); color: var(--ink); }
 .btn.secondary:hover { background: var(--line); }
-.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
 .btn.danger { background: var(--bad); }
 .btn.block { display: block; width: 100%; }
 .btn.big { font-size: 1.1rem; padding: 0.9rem 1.2rem; }
@@ -421,6 +421,36 @@ svg.chart { display: block; width: 100%; height: auto; }
 .tag.passe { background: var(--line); color: var(--muted); }
 .donne.libre { border-left-color: var(--gold); }
 .tag.libre { background: var(--gold); color: var(--accent-dark); }
+
+/* ---------- Saisie du contrat par boutons (libellé à gauche) ---------- */
+.crow { display: flex; align-items: flex-start; gap: 0.5rem; margin-top: 0.5rem; }
+.crow:first-of-type { margin-top: 0.3rem; }
+.crlabel {
+  flex: 0 0 4.1rem; padding-top: 0.55rem; line-height: 1.05;
+  font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.02em; color: var(--muted);
+}
+.crbtns { flex: 1; min-width: 0; display: flex; gap: 0.3rem; }
+.crbtns.wrap { flex-wrap: wrap; }
+.crbtns:not(.wrap) > .cbtn { flex: 1; min-width: 0; font-size: 0.82rem; } /* 1 ligne */
+.cbtn {
+  display: flex; align-items: center; justify-content: center;
+  font: inherit; font-weight: 700; font-size: 16px;
+  padding: 0.5rem 0.4rem; min-width: 2.5rem;
+  border: 1.5px solid var(--line); border-radius: 9px;
+  background: var(--card); color: var(--ink); cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cbtn:active { transform: scale(0.96); }
+.cbtn.on { border-color: var(--gold); background: var(--gold-soft); color: var(--accent-dark); }
+.cbtn.suit { flex-direction: column; gap: 0.05rem; padding: 0.35rem 0.15rem; font-size: 0.68rem; }
+.cbtn.suit .ssym { font-size: 1.2rem; line-height: 1; }
+.cbtn.suit .slabel { line-height: 1; }
+.ssym.red { color: #d32f2f; }
+.cbtn.suit.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cbtn.suit.on .ssym.red { color: #fff; }
+.cbtn.team.t0.on { background: var(--team1); border-color: var(--team1); color: #fff; }
+.cbtn.team.t1.on { background: var(--team2); border-color: var(--team2); color: #fff; }
 
 /* ---------- Saisie d'une donne en ligne ---------- */
 .donne.pending {

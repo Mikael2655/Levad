@@ -780,32 +780,6 @@
     if (card) card.scrollIntoView({ block: "center", behavior: "smooth" });
   }
 
-  function contractOptions(current) {
-    const nums = [80, 90, 100, 110, 120, 130, 140, 150, 160];
-    return (
-      `<option value="passe" ${current === "passe" ? "selected" : ""}>Passe</option>` +
-      nums
-        .map(
-          (n) =>
-            `<option value="${n}" ${Number(current) === n ? "selected" : ""}>${n}</option>`
-        )
-        .join("") +
-      `<option value="capot" ${current === "capot" ? "selected" : ""}>Capot (annoncé)</option>` +
-      `<option value="libre" ${current === "libre" ? "selected" : ""}>✎ Saisie libre</option>`
-    );
-  }
-  function suitOptions(current) {
-    // Symboles emoji : ♥️ et ♦️ s'affichent en rouge nativement (y compris
-    // dans un <select> sur iOS, où la couleur CSS des <option> est ignorée).
-    const emoji = { pique: "♠️", coeur: "♥️", carreau: "♦️", trefle: "♣️" };
-    return Object.keys(SUITS)
-      .map(
-        (k) =>
-          `<option value="${k}" ${current === k ? "selected" : ""} ${SUITS[k].red ? 'style="color:#d32f2f"' : ""}>${emoji[k] || SUITS[k].sym} ${SUITS[k].label}</option>`
-      )
-      .join("");
-  }
-
   // Récap figé du contrat (affiché en phase « points »).
   function pendRecap(p) {
     if (p.contrat === "libre") return `<b>Saisie libre</b>`;
@@ -841,29 +815,65 @@
     const head = `<div class="line1"><span class="dealer">Donne ${num} · distrib. <b>${esc(dealer)}</b></span><span class="num">#${num}</span></div>`;
 
     if (p.phase === "contract") {
-      const special = p.contrat === "passe" || p.contrat === "libre";
+      const isPasse = p.contrat === "passe";
+      const special = isPasse || p.contrat === "libre";
+      const nums = [80, 90, 100, 110, 120, 130, 140, 150, 160];
+      // Ligne « Qui prend » : Nous · Eux · Passe (personne).
+      const preneurBtns =
+        `<button class="cbtn team t0 ${!isPasse && p.preneur === 0 ? "on" : ""}" data-preneur="0">${esc(game.teams[0])}</button>` +
+        `<button class="cbtn team t1 ${!isPasse && p.preneur === 1 ? "on" : ""}" data-preneur="1">${esc(game.teams[1])}</button>` +
+        `<button class="cbtn ${isPasse ? "on" : ""}" data-contrat="passe">Passe</button>`;
+      // Ligne « Contrat » : valeurs + Capot (+ saisie libre).
+      const contratBtns =
+        nums
+          .map(
+            (n) =>
+              `<button class="cbtn ${Number(p.contrat) === n ? "on" : ""}" data-contrat="${n}">${n}</button>`
+          )
+          .join("") +
+        `<button class="cbtn ${p.contrat === "capot" ? "on" : ""}" data-contrat="capot">Capot</button>` +
+        `<button class="cbtn ${p.contrat === "libre" ? "on" : ""}" data-contrat="libre">✎ Libre</button>`;
+      const suitBtns = Object.keys(SUITS)
+        .map(
+          (k) =>
+            `<button class="cbtn suit ${p.couleur === k ? "on" : ""}" data-couleur="${k}"><span class="ssym ${SUITS[k].red ? "red" : ""}">${SUITS[k].sym}</span><span class="slabel">${SUITS[k].label}</span></button>`
+        )
+        .join("");
+      const modeBtns = [
+        ["normal", "Normale"],
+        ["contre", "Contré"],
+        ["surcontre", "Surcontré"],
+      ]
+        .map(
+          ([v, l]) =>
+            `<button class="cbtn ${p.mode === v ? "on" : ""}" data-mode="${v}">${l}</button>`
+        )
+        .join("");
       return `
       <div class="donne pending">
         ${head}
-        <div class="pend-grid">
-          <label class="pl">Contrat<select id="pd-contrat">${contractOptions(p.contrat)}</select></label>
-          ${
-            special
-              ? ""
-              : `<label class="pl">Couleur<select id="pd-couleur">${suitOptions(p.couleur)}</select></label>
-          <label class="pl">Qui prend<select id="pd-preneur">
-            <option value="0" ${p.preneur === 0 ? "selected" : ""}>${esc(game.teams[0])}</option>
-            <option value="1" ${p.preneur === 1 ? "selected" : ""}>${esc(game.teams[1])}</option>
-          </select></label>
-          <label class="pl">Enchère<select id="pd-mode">
-            <option value="normal" ${p.mode === "normal" ? "selected" : ""}>Normale</option>
-            <option value="contre" ${p.mode === "contre" ? "selected" : ""}>Contré</option>
-            <option value="surcontre" ${p.mode === "surcontre" ? "selected" : ""}>Surcontré</option>
-          </select></label>`
-          }
+        <div class="crow">
+          <div class="crlabel">Qui prend</div>
+          <div class="crbtns">${preneurBtns}</div>
         </div>
-        <div class="btn-row" style="margin-top:.55rem">
-          <button class="btn" id="pd-valider">${p.contrat === "passe" ? "Ajouter (passe) ✓" : "Valider le contrat ✓"}</button>
+        <div class="crow">
+          <div class="crlabel">Contrat</div>
+          <div class="crbtns wrap">${contratBtns}</div>
+        </div>
+        ${
+          special
+            ? ""
+            : `<div class="crow">
+          <div class="crlabel">Couleur</div>
+          <div class="crbtns">${suitBtns}</div>
+        </div>
+        <div class="crow">
+          <div class="crlabel">Enchère</div>
+          <div class="crbtns">${modeBtns}</div>
+        </div>`
+        }
+        <div class="btn-row" style="margin-top:.7rem">
+          <button class="btn" id="pd-valider">${isPasse ? "Ajouter (passe) ✓" : "Valider le contrat ✓"}</button>
           <button class="btn ghost" id="pd-cancel">Annuler</button>
         </div>
       </div>`;
@@ -921,14 +931,33 @@
     };
 
     if (p.phase === "contract") {
-      on("#pd-contrat", "change", (e) => {
-        const v = e.target.value;
-        p.contrat = v === "capot" || v === "passe" || v === "libre" ? v : Number(v);
-        render(); // la mise en page dépend du type de contrat
-      });
-      on("#pd-couleur", "change", (e) => (p.couleur = e.target.value));
-      on("#pd-preneur", "change", (e) => (p.preneur = Number(e.target.value)));
-      on("#pd-mode", "change", (e) => (p.mode = e.target.value));
+      wrap.querySelectorAll("[data-contrat]").forEach((b) =>
+        b.addEventListener("click", () => {
+          const v = b.dataset.contrat;
+          p.contrat =
+            v === "capot" || v === "passe" || v === "libre" ? v : Number(v);
+          render(); // la mise en page dépend du type de contrat
+        })
+      );
+      wrap.querySelectorAll("[data-couleur]").forEach((b) =>
+        b.addEventListener("click", () => {
+          p.couleur = b.dataset.couleur;
+          render();
+        })
+      );
+      wrap.querySelectorAll("[data-preneur]").forEach((b) =>
+        b.addEventListener("click", () => {
+          p.preneur = Number(b.dataset.preneur);
+          if (p.contrat === "passe") p.contrat = 80; // on quitte le mode passe
+          render();
+        })
+      );
+      wrap.querySelectorAll("[data-mode]").forEach((b) =>
+        b.addEventListener("click", () => {
+          p.mode = b.dataset.mode;
+          render();
+        })
+      );
       on("#pd-valider", "click", () => {
         if (p.contrat === "passe") commitPending();
         else {
