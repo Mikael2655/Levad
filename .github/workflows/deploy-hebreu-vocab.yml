@@ -1,6 +1,7 @@
 # Publie les applications statiques du dépôt sur GitHub Pages.
-#   • hebreu-vocab/  → à la racine du site (https://<user>.github.io/Levad/)
-#   • belote/        → sous /belote/     (https://<user>.github.io/Levad/belote/)
+#   • hebreu-vocab/    → à la racine du site (https://<user>.github.io/Levad/)
+#   • belote/          → sous /belote/          (compteur de points)
+#   • belote-tournoi/  → sous /belote-tournoi/  (gestion de tournoi)
 # Le reste du dépôt (projet Next.js) n'est pas publié.
 #
 # Activation (une seule fois) : Settings → Pages → Source : "GitHub Actions"
@@ -13,6 +14,7 @@ on:
     paths:
       - "hebreu-vocab/**"
       - "belote/**"
+      - "belote-tournoi/**"
       - ".github/workflows/deploy-hebreu-vocab.yml"
   workflow_dispatch:
 
@@ -33,12 +35,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Assembler le site (hébreu à la racine, belote dans /belote)
+      - name: Assembler le site (hébreu à la racine, belote et tournoi en sous-dossiers)
         run: |
           mkdir -p _site
           cp -r hebreu-vocab/. _site/
           mkdir -p _site/belote
           cp -r belote/. _site/belote/
+          mkdir -p _site/belote-tournoi
+          cp -r belote-tournoi/. _site/belote-tournoi/
       - uses: actions/configure-pages@v5
         with:
           # Active GitHub Pages automatiquement si le compte le permet
