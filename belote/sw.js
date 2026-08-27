@@ -5,7 +5,7 @@
    si le serveur répond une erreur — on sert la copie locale.
    ============================================================ */
 
-const CACHE = "belote-v25";
+const CACHE = "belote-v26";
 const CORE = [
   "./",
   "index.html",

@@ -307,14 +307,16 @@
     return {
       target: 1500,
       teams: ["Nous", "Eux"],
-      members: [["", ""], ["", ""]], // members[équipe][0|1]
-      // Ordre de distribution : chaque entrée pointe vers un membre.
-      order: [
-        { t: 0, i: 0 },
-        { t: 1, i: 0 },
-        { t: 0, i: 1 },
-        { t: 1, i: 1 },
+      // Liste unique des joueurs, dans l'ordre autour de la table
+      // (alternance des équipes par défaut). `dealer` = index de celui qui
+      // distribue la première donne.
+      players: [
+        { name: "", team: 0 },
+        { name: "", team: 1 },
+        { name: "", team: 0 },
+        { name: "", team: 1 },
       ],
+      dealer: 0,
     };
   }
 
@@ -388,22 +390,24 @@
         </div>
 
         <h3>Équipes &amp; joueurs</h3>
-        <div class="team-box t0">
-          <input type="text" class="team-name" id="team0" value="${esc(d.teams[0])}" maxlength="18" placeholder="Nom de l'équipe 1">
-          <input type="text" id="m00" data-member="00" value="${esc(d.members[0][0])}" maxlength="14" placeholder="Joueur">
-          <input type="text" id="m01" data-member="01" value="${esc(d.members[0][1])}" maxlength="14" placeholder="Joueur">
+        <div class="setup-teams">
+          <input type="text" class="team-name t0" id="team0" value="${esc(d.teams[0])}" maxlength="18" placeholder="Équipe 1">
+          <input type="text" class="team-name t1" id="team1" value="${esc(d.teams[1])}" maxlength="18" placeholder="Équipe 2">
         </div>
-        <div class="team-box t1">
-          <input type="text" class="team-name" id="team1" value="${esc(d.teams[1])}" maxlength="18" placeholder="Nom de l'équipe 2">
-          <input type="text" id="m10" data-member="10" value="${esc(d.members[1][0])}" maxlength="14" placeholder="Joueur">
-          <input type="text" id="m11" data-member="11" value="${esc(d.members[1][1])}" maxlength="14" placeholder="Joueur">
-        </div>
-
-        <h3>Ordre de distribution</h3>
-        <p class="muted" style="font-size:0.82rem;margin:.2rem 0 .8rem">
-          Glissez les poignées ≡ pour ordonner. Le 1ᵉʳ de la liste distribue la première donne.
+        <p class="muted" style="font-size:0.8rem;margin:.1rem 0 .6rem">
+          Cochez l'équipe, nommez chaque joueur, choisissez le donneur 🃏.
+          Glissez ≡ pour l'ordre autour de la table.
         </p>
-        <div id="order-list">${orderRowsHtml(d)}</div>
+        <div class="pgrid">
+          <div class="pgrid-head">
+            <span class="ph handle"></span>
+            <span class="ph team t0" id="ph0">${esc(shortName(d.teams[0], "Nous"))}</span>
+            <span class="ph team t1" id="ph1">${esc(shortName(d.teams[1], "Eux"))}</span>
+            <span class="ph name">Joueurs</span>
+            <span class="ph deal">Donneur</span>
+          </div>
+          <div id="player-list">${playerGridHtml(d)}</div>
+        </div>
       </div>
 
       <button class="btn big block" id="start">Commencer la partie ♠</button>
@@ -417,45 +421,78 @@
       d.target = Number(b.dataset.target);
       renderSetup();
     });
-    $("#team0").addEventListener("input", (e) => (d.teams[0] = e.target.value));
-    $("#team1").addEventListener("input", (e) => (d.teams[1] = e.target.value));
-    // Champs membres : maj du modèle + du nom affiché dans l'ordre.
-    screen.querySelectorAll("[data-member]").forEach((inp) =>
-      inp.addEventListener("input", (e) => {
-        const k = e.target.dataset.member; // "ti"
-        d.members[Number(k[0])][Number(k[1])] = e.target.value;
-        const nameEl = screen.querySelector('.oname[data-nk="' + k + '"]');
-        if (nameEl) nameEl.textContent = e.target.value.trim() || nameEl.dataset.def;
-      })
-    );
-    enableDragReorder($("#order-list"), (keys) => {
-      d.order = keys.map((k) => ({ t: Number(k[0]), i: Number(k[1]) }));
-      renderSetup();
+    $("#team0").addEventListener("input", (e) => {
+      d.teams[0] = e.target.value;
+      $("#ph0").textContent = shortName(e.target.value, "Nous");
     });
+    $("#team1").addEventListener("input", (e) => {
+      d.teams[1] = e.target.value;
+      $("#ph1").textContent = shortName(e.target.value, "Eux");
+    });
+    wireGrid();
     $("#start").addEventListener("click", startGame);
     if (hasHistory) $("#see-history").addEventListener("click", renderHistory);
     const sr = $("#series-reset");
     if (sr) sr.addEventListener("click", resetSeries);
   }
 
-  // Nom par défaut d'un membre (si non saisi).
-  function defMember(d, o) {
-    return (d.teams[o.t].trim() || (o.t ? "Eux" : "Nous")) + " " + (o.i + 1);
+  // Étiquette courte d'équipe pour l'en-tête de la grille (tronquée).
+  function shortName(name, fallback) {
+    const s = (name || "").trim() || fallback;
+    return s.length > 8 ? s.slice(0, 7) + "…" : s;
   }
 
-  function orderRowsHtml(d) {
-    return d.order
-      .map((o, pos) => {
-        const def = defMember(d, o);
-        const nm = (d.members[o.t][o.i] || "").trim() || def;
-        return `
-      <div class="order-row t${o.t}" data-key="${o.t}${o.i}">
+  // Grille unique : poignée · équipe (N/E) · nom · donneur, une ligne/joueur.
+  function playerGridHtml(d) {
+    return d.players
+      .map(
+        (p, i) => `
+      <div class="prow" data-key="${i}">
         <button class="drag-handle" data-drag aria-label="Déplacer">≡</button>
-        <span class="opos">${pos + 1}</span>
-        <span class="oname" data-nk="${o.t}${o.i}" data-def="${esc(def)}">${esc(nm)}</span>
-      </div>`;
-      })
+        <button class="tcheck t0 ${p.team === 0 ? "on" : ""}" data-team="0" data-i="${i}" aria-label="${esc(d.teams[0] || "Équipe 1")}">${p.team === 0 ? "✕" : ""}</button>
+        <button class="tcheck t1 ${p.team === 1 ? "on" : ""}" data-team="1" data-i="${i}" aria-label="${esc(d.teams[1] || "Équipe 2")}">${p.team === 1 ? "✕" : ""}</button>
+        <input class="pname" type="text" data-i="${i}" value="${esc(p.name)}" maxlength="14" placeholder="Joueur ${i + 1}">
+        <button class="dcheck ${d.dealer === i ? "on" : ""}" data-deal data-i="${i}" aria-label="Donneur">${d.dealer === i ? "🃏" : ""}</button>
+      </div>`
+      )
       .join("");
+  }
+
+  // (Re)câble la grille des joueurs (après chaque rendu du contenu).
+  function wireGrid() {
+    const d = setupDraft;
+    const list = $("#player-list");
+    const rerender = () => {
+      list.innerHTML = playerGridHtml(d);
+      wireGrid();
+    };
+    // Choix de l'équipe (une seule par ligne).
+    list.querySelectorAll(".tcheck").forEach((b) =>
+      b.addEventListener("click", () => {
+        d.players[Number(b.dataset.i)].team = Number(b.dataset.team);
+        rerender();
+      })
+    );
+    // Nom du joueur (pas besoin de re-render).
+    list.querySelectorAll(".pname").forEach((inp) =>
+      inp.addEventListener("input", (e) => {
+        d.players[Number(e.target.dataset.i)].name = e.target.value;
+      })
+    );
+    // Choix du donneur (radio sur toutes les lignes).
+    list.querySelectorAll(".dcheck").forEach((b) =>
+      b.addEventListener("click", () => {
+        d.dealer = Number(b.dataset.i);
+        rerender();
+      })
+    );
+    // Ordre autour de la table (glisser-déposer), le donneur suit son joueur.
+    enableDragReorder(list, (keys) => {
+      const dealerPlayer = d.players[d.dealer];
+      d.players = keys.map((k) => d.players[Number(k)]);
+      d.dealer = Math.max(0, d.players.indexOf(dealerPlayer));
+      rerender();
+    });
   }
 
   function playerRowsHtml(players) {
@@ -501,10 +538,18 @@
   function startGame() {
     const d = setupDraft;
     const teams = [d.teams[0].trim() || "Nous", d.teams[1].trim() || "Eux"];
-    const players = d.order.map((o) => ({
-      name: (d.members[o.t][o.i] || "").trim() || teams[o.t] + " " + (o.i + 1),
-      team: o.t,
-    }));
+    // On fait tourner l'ordre pour que le donneur choisi ouvre la partie.
+    const n = d.players.length;
+    const count = [0, 0];
+    const players = [];
+    for (let k = 0; k < n; k++) {
+      const p = d.players[(d.dealer + k) % n];
+      count[p.team]++;
+      players.push({
+        name: (p.name || "").trim() || teams[p.team] + " " + count[p.team],
+        team: p.team,
+      });
+    }
     game = {
       target: d.target,
       teams,

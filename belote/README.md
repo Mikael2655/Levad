@@ -12,10 +12,11 @@ les parties terminées sont archivées.
 Ouvrez simplement `index.html` dans un navigateur (ou ajoutez la page à
 l'écran d'accueil de votre téléphone pour l'utiliser comme une appli).
 
-1. **Nouvelle partie** : choisissez l'objectif (1500 ou 2000), nommez les
-   deux équipes et saisissez les **membres de chaque équipe**. Réglez ensuite
-   l'**ordre de distribution** en glissant les poignées **≡** (le 1ᵉʳ de la
-   liste distribue la première donne). Ces réglages sont modifiables à tout
+1. **Nouvelle partie** : choisissez l'objectif (1500 ou 2000) et nommez les
+   deux équipes. Dans la grille des joueurs, pour chaque ligne : **cochez
+   l'équipe** (colonne de gauche), **nommez** le joueur, et **choisissez le
+   donneur** 🃏 (colonne de droite). Glissez les poignées **≡** pour régler
+   l'**ordre autour de la table**. Ces réglages sont modifiables à tout
    moment via le menu **⋯** (utile entre deux manches).
 2. **＋ Donne** : ajoute une ligne de saisie directement dans la liste, en
    deux temps :

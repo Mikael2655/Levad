@@ -228,43 +228,63 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .big-choice button.on { border-color: var(--gold); background: var(--gold-soft); color: var(--accent-dark); }
 .big-choice button small { display: block; font-size: 0.7rem; font-weight: 600; color: var(--muted); margin-top: 0.1rem; }
 
-/* Boîtes de saisie par équipe */
-.team-box {
-  display: flex; flex-wrap: wrap; gap: 0.4rem;
-  border: 1px solid var(--line); border-left: 4px solid;
-  border-radius: 12px; padding: 0.5rem 0.55rem; margin-bottom: 0.5rem;
+/* Deux noms d'équipe côte à côte */
+.setup-teams { display: flex; gap: 0.5rem; margin-bottom: 0.2rem; }
+.setup-teams .team-name {
+  flex: 1; min-width: 0; font-weight: 800;
+  border-left: 4px solid; padding: 0.5rem 0.6rem;
 }
-.team-box.t0 { border-left-color: var(--team1); }
-.team-box.t1 { border-left-color: var(--team2); }
-.team-box .team-name { flex-basis: 100%; font-weight: 800; }
-.team-box.t0 .team-name { color: var(--team1); }
-.team-box.t1 .team-name { color: var(--team2); }
-.team-box input { padding: 0.45rem 0.6rem; }
-.team-box input:not(.team-name) { flex: 1; min-width: 110px; }
+.setup-teams .team-name.t0 { border-left-color: var(--team1); color: var(--team1); }
+.setup-teams .team-name.t1 { border-left-color: var(--team2); color: var(--team2); }
 
 /* Poignée de glissement (≡) — grande zone tactile pour le mobile */
 .drag-handle {
-  font-size: 1.35rem; line-height: 1; color: var(--muted);
+  font-size: 1.3rem; line-height: 1; color: var(--muted);
   background: none; border: none; cursor: grab;
-  padding: 0.5rem 0.55rem; margin: -0.35rem 0; touch-action: none;
-  user-select: none; -webkit-user-select: none;
+  padding: 0.5rem 0.4rem; margin: -0.35rem 0; touch-action: none;
+  user-select: none; -webkit-user-select: none; flex: 0 0 auto;
 }
 .drag-handle:active { cursor: grabbing; color: var(--ink); }
 
-/* Liste « ordre de distribution » */
-#order-list { display: flex; flex-direction: column; gap: 0.45rem; }
-.order-row {
-  display: flex; align-items: center; gap: 0.5rem;
-  background: var(--card); border: 1px solid var(--line); border-left: 4px solid;
-  border-radius: 10px; padding: 0.5rem 0.6rem;
+/* Grille unique équipes / joueurs / donneur */
+.pgrid-head, .prow { display: flex; align-items: center; gap: 0.35rem; }
+.pgrid-head {
+  padding: 0 0.1rem 0.3rem; font-size: 0.66rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.02em; color: var(--muted);
 }
-.order-row.t0 { border-left-color: var(--team1); }
-.order-row.t1 { border-left-color: var(--team2); }
-.order-row.dragging { box-shadow: var(--shadow); border-color: var(--gold); transform: scale(1.015); }
-.order-row .opos { width: 1.2rem; text-align: center; color: var(--muted); font-weight: 800; }
-.order-row .oname { flex: 1; font-weight: 700; }
-.order-row.t0 .oname { color: var(--team1); }
-.order-row.t1 .oname { color: var(--team2); }
+.pgrid-head .ph.handle { flex: 0 0 1.9rem; }
+.pgrid-head .ph.team { flex: 0 0 2.1rem; text-align: center; }
+.pgrid-head .ph.team.t0 { color: var(--team1); }
+.pgrid-head .ph.team.t1 { color: var(--team2); }
+.pgrid-head .ph.name { flex: 1 1 auto; }
+.pgrid-head .ph.deal { flex: 0 0 3.4rem; text-align: center; }
+
+#player-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.prow {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 10px; padding: 0.3rem 0.35rem;
+}
+.prow.dragging { box-shadow: var(--shadow); border-color: var(--gold); transform: scale(1.015); }
+.prow .pname { flex: 1 1 auto; min-width: 0; padding: 0.5rem 0.55rem; }
+
+/* Cases à cocher équipe (N / E) — une seule par ligne */
+.tcheck {
+  flex: 0 0 2.1rem; height: 2.1rem;
+  font: inherit; font-weight: 800; font-size: 0.95rem;
+  border: 1.5px solid var(--line); border-radius: 8px;
+  background: var(--card); color: transparent; cursor: pointer;
+}
+.tcheck.t0.on { background: var(--team1); border-color: var(--team1); color: #fff; }
+.tcheck.t1.on { background: var(--team2); border-color: var(--team2); color: #fff; }
+
+/* Case donneur 🃏 (radio sur l'ensemble) */
+.dcheck {
+  flex: 0 0 3.4rem; height: 2.1rem;
+  font-size: 1.1rem; line-height: 1;
+  border: 1.5px solid var(--line); border-radius: 8px;
+  background: var(--card); cursor: pointer;
+}
+.dcheck.on { border-color: var(--gold); background: var(--gold-soft); }
 
 .player-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; }
 .player-row.dragging { opacity: 0.9; box-shadow: var(--shadow); border-radius: 10px; }
