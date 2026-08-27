@@ -288,13 +288,10 @@
   }
 
   function updateTargetChip() {
+    // L'objectif est déjà indiqué dans le bandeau des scores (« / 1500 »),
+    // inutile de le répéter en haut.
     const chip = $("#target-chip");
-    if (game) {
-      chip.hidden = false;
-      chip.textContent = "Partie en " + game.target;
-    } else {
-      chip.hidden = true;
-    }
+    if (chip) chip.hidden = true;
   }
 
   // ---------------------------------------------------------
@@ -899,7 +896,6 @@
         ${head}
         <div class="recap pend-recap">${pendRecap(p)} <button class="linkbtn" id="pd-back">✎ modifier</button></div>
         ${fields}
-        <div class="pend-result" id="pd-result">${pendResultHtml()}</div>
         <div class="btn-row" style="margin-top:.55rem">
           <button class="btn" id="pd-commit">Ajouter la donne ✓</button>
           <button class="btn ghost" id="pd-cancel">Annuler</button>
@@ -1107,20 +1103,6 @@
           couleur: "pique",
         };
 
-    // Cumul des autres donnes (hors celle en cours d'édition), pour
-    // afficher les scores actuels et le total après cette donne.
-    const baseTotals = (function () {
-      let a = 0,
-        b = 0;
-      game.donnes.forEach((dd, idx) => {
-        if (isEdit && idx === editIndex) return;
-        const rr = scoreDonne(dd);
-        a += rr.pts[0];
-        b += rr.pts[1];
-      });
-      return [a, b];
-    })();
-
     function facteurOf() {
       return draft.mode === "surcontre" ? 4 : draft.mode === "contre" ? 2 : 1;
     }
@@ -1181,12 +1163,6 @@
           <button class="modal-close" id="mclose" aria-label="Fermer">✕</button>
         </div>
         <p class="muted" style="margin:.1rem 0 .5rem;font-size:.85rem">Distribution : <b>${esc(dealerName(nextNum - 1))}</b></p>
-
-        <div class="cur-scores">
-          <span class="cs t0">${esc(game.teams[0])} <b>${baseTotals[0]}</b></span>
-          <span class="cs-sep">—</span>
-          <span class="cs t1"><b>${baseTotals[1]}</b> ${esc(game.teams[1])}</span>
-        </div>
 
         ${
           isPasse || isLibre
