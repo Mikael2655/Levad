@@ -314,6 +314,8 @@
         { name: "", team: 1 },
       ],
       dealer: 0,
+      // Score de départ (si la partie a commencé sur une autre appli).
+      start: ["", ""],
     };
   }
 
@@ -405,6 +407,15 @@
           </div>
           <div id="player-list">${playerGridHtml(d)}</div>
         </div>
+
+        <h3>Score de départ <span class="muted" style="font-weight:600;text-transform:none;font-size:.8rem">(optionnel)</span></h3>
+        <p class="muted" style="font-size:0.8rem;margin:.1rem 0 .5rem">
+          Si la partie a déjà commencé (sur une autre appli ou sur papier), reportez ici le score de chaque équipe.
+        </p>
+        <div class="setup-start">
+          <label class="ss t0"><span id="ss0">${esc(shortName(d.teams[0], "Nous"))}</span><input type="number" id="start0" value="${esc(d.start[0])}" inputmode="numeric" step="10" placeholder="0"></label>
+          <label class="ss t1"><span id="ss1">${esc(shortName(d.teams[1], "Eux"))}</span><input type="number" id="start1" value="${esc(d.start[1])}" inputmode="numeric" step="10" placeholder="0"></label>
+        </div>
       </div>
 
       <button class="btn big block" id="start">Commencer la partie ♠</button>
@@ -421,11 +432,15 @@
     $("#team0").addEventListener("input", (e) => {
       d.teams[0] = e.target.value;
       $("#ph0").textContent = shortName(e.target.value, "Nous");
+      $("#ss0").textContent = shortName(e.target.value, "Nous");
     });
     $("#team1").addEventListener("input", (e) => {
       d.teams[1] = e.target.value;
       $("#ph1").textContent = shortName(e.target.value, "Eux");
+      $("#ss1").textContent = shortName(e.target.value, "Eux");
     });
+    $("#start0").addEventListener("input", (e) => (d.start[0] = e.target.value));
+    $("#start1").addEventListener("input", (e) => (d.start[1] = e.target.value));
     wireGrid();
     $("#start").addEventListener("click", startGame);
     if (hasHistory) $("#see-history").addEventListener("click", renderHistory);
@@ -547,11 +562,19 @@
         team: p.team,
       });
     }
+    // Report éventuel d'un score de départ (partie commencée ailleurs) :
+    // enregistré comme une première ligne « saisie libre ».
+    const s0 = Number(d.start[0]) || 0;
+    const s1 = Number(d.start[1]) || 0;
+    const donnes =
+      s0 || s1
+        ? [{ contrat: "libre", libre0: s0, libre1: s1, report: true }]
+        : [];
     game = {
       target: d.target,
       teams,
       players,
-      donnes: [],
+      donnes,
       startedAt: new Date().toISOString(),
     };
     setupDraft = null;
@@ -679,9 +702,14 @@
     }
     const cum = cumulatives();
     // Plus récente en haut
+    // Une éventuelle ligne « score de départ » (report) est en tête et ne
+    // compte ni dans la numérotation des donnes ni dans le tour de distribution.
+    const reportOff = game.donnes[0] && game.donnes[0].report ? 1 : 0;
     const donnesHtml = game.donnes
       .map((d, i) => {
         const r = scoreDonne(d);
+        const isReport = !!d.report;
+        const num = i - reportOff + 1;
         const takerName = game.teams[d.preneur];
         const modeTag =
           d.mode === "contre"
@@ -717,14 +745,20 @@
         return `
         <div class="donne ${passe ? "passe" : libre ? "libre" : r.realise ? "" : "chute"}" data-edit="${i}">
           <div class="line1">
-            <span class="dealer">Donne ${i + 1} · distrib. <b>${esc(dealerName(i))}</b></span>
-            <span class="num">#${i + 1}</span>
+            <span class="dealer">${
+              isReport
+                ? "Score de départ"
+                : `Donne ${num} · distrib. <b>${esc(dealerName(i - reportOff))}</b>`
+            }</span>
+            <span class="num">${isReport ? "↺" : "#" + num}</span>
           </div>
           <div class="line2">
             <div class="contract">
               ${
                 passe
                   ? `<span class="muted">Personne ne prend</span> <span class="tag passe">Passe</span>`
+                  : isReport
+                  ? `<span class="muted">Report du score initial</span> <span class="tag libre">Départ</span>`
                   : libre
                   ? `<span class="muted">Ajustement</span> <span class="tag libre">✎ Libre</span>`
                   : `${suitTag}
@@ -810,8 +844,11 @@
 
   function pendingCardHtml() {
     const p = pendingDonne;
-    const num = game.donnes.length + 1;
-    const dealer = dealerName(game.donnes.length);
+    // La ligne « score de départ » (report) ne compte pas dans la numérotation.
+    const reportOff = game.donnes[0] && game.donnes[0].report ? 1 : 0;
+    const realIdx = game.donnes.length - reportOff;
+    const num = realIdx + 1;
+    const dealer = dealerName(realIdx);
     const head = `<div class="line1"><span class="dealer">Donne ${num} · distrib. <b>${esc(dealer)}</b></span><span class="num">#${num}</span></div>`;
 
     if (p.phase === "contract") {
@@ -823,7 +860,7 @@
         `<button class="cbtn team t0 ${!isPasse && p.preneur === 0 ? "on" : ""}" data-preneur="0">${esc(game.teams[0])}</button>` +
         `<button class="cbtn team t1 ${!isPasse && p.preneur === 1 ? "on" : ""}" data-preneur="1">${esc(game.teams[1])}</button>` +
         `<button class="cbtn ${isPasse ? "on" : ""}" data-contrat="passe">Passe</button>`;
-      // Ligne « Contrat » : valeurs + Capot (+ saisie libre).
+      // Ligne « Contrat » : valeurs + Capot.
       const contratBtns =
         nums
           .map(
@@ -831,12 +868,11 @@
               `<button class="cbtn ${Number(p.contrat) === n ? "on" : ""}" data-contrat="${n}">${n}</button>`
           )
           .join("") +
-        `<button class="cbtn ${p.contrat === "capot" ? "on" : ""}" data-contrat="capot">Capot</button>` +
-        `<button class="cbtn ${p.contrat === "libre" ? "on" : ""}" data-contrat="libre">✎ Libre</button>`;
+        `<button class="cbtn ${p.contrat === "capot" ? "on" : ""}" data-contrat="capot">Capot</button>`;
       const suitBtns = Object.keys(SUITS)
         .map(
           (k) =>
-            `<button class="cbtn suit ${p.couleur === k ? "on" : ""}" data-couleur="${k}"><span class="ssym ${SUITS[k].red ? "red" : ""}">${SUITS[k].sym}</span><span class="slabel">${SUITS[k].label}</span></button>`
+            `<button class="cbtn suit ${SUITS[k].red ? "red" : ""} ${p.couleur === k ? "on" : ""}" data-couleur="${k}" aria-label="${SUITS[k].label}">${SUITS[k].sym}</button>`
         )
         .join("");
       const modeBtns = [

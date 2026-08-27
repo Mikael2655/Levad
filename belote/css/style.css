@@ -237,6 +237,22 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
 .setup-teams .team-name.t0 { border-left-color: var(--team1); color: var(--team1); }
 .setup-teams .team-name.t1 { border-left-color: var(--team2); color: var(--team2); }
 
+/* Score de départ (optionnel) */
+.setup-start { display: flex; gap: 0.5rem; }
+.setup-start .ss {
+  flex: 1; min-width: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 0.2rem;
+  font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;
+}
+.setup-start .ss.t0 { color: var(--team1); }
+.setup-start .ss.t1 { color: var(--team2); }
+.setup-start .ss input {
+  font-size: 16px; font-weight: 700; text-transform: none; letter-spacing: 0;
+  border-left: 4px solid;
+}
+.setup-start .ss.t0 input { border-left-color: var(--team1); }
+.setup-start .ss.t1 input { border-left-color: var(--team2); }
+
 /* Poignée de glissement (≡) — grande zone tactile pour le mobile */
 .drag-handle {
   font-size: 1.3rem; line-height: 1; color: var(--muted);
@@ -432,6 +448,7 @@ svg.chart { display: block; width: 100%; height: auto; }
 }
 .crbtns { flex: 1; min-width: 0; display: flex; gap: 0.3rem; }
 .crbtns.wrap { flex-wrap: wrap; }
+.crbtns.wrap > .cbtn { font-size: 0.9rem; min-width: 2.15rem; padding: 0.5rem 0.35rem; }
 .crbtns:not(.wrap) > .cbtn { flex: 1; min-width: 0; font-size: 0.82rem; } /* 1 ligne */
 .cbtn {
   display: flex; align-items: center; justify-content: center;
@@ -443,12 +460,9 @@ svg.chart { display: block; width: 100%; height: auto; }
 }
 .cbtn:active { transform: scale(0.96); }
 .cbtn.on { border-color: var(--gold); background: var(--gold-soft); color: var(--accent-dark); }
-.cbtn.suit { flex-direction: column; gap: 0.05rem; padding: 0.35rem 0.15rem; font-size: 0.68rem; }
-.cbtn.suit .ssym { font-size: 1.2rem; line-height: 1; }
-.cbtn.suit .slabel { line-height: 1; }
-.ssym.red { color: #d32f2f; }
+.cbtn.suit { font-size: 1.4rem; padding: 0.35rem 0.2rem; }
+.cbtn.suit.red { color: #d32f2f; }
 .cbtn.suit.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-.cbtn.suit.on .ssym.red { color: #fff; }
 .cbtn.team.t0.on { background: var(--team1); border-color: var(--team1); color: #fff; }
 .cbtn.team.t1.on { background: var(--team2); border-color: var(--team2); color: #fff; }
 
