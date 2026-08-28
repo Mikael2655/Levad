@@ -3,7 +3,7 @@
  * toujours la dernière version le jour du tournoi), avec repli sur le cache.
  * Les requêtes Firebase / CDN passent directement par le réseau.
  */
-var CACHE = 'belote-tournoi-v1';
+var CACHE = 'belote-tournoi-v2';
 var ASSETS = [
   './', './index.html', './css/style.css',
   './js/config.js', './js/logic.js', './js/db.js', './js/app.js', './js/qrcode.js',
