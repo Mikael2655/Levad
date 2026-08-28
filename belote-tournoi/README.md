@@ -12,16 +12,25 @@ plusieurs appareils).
 
 ## Comment ça marche
 
+- **Accueil : mes tournois** — la page d'accueil liste tous les tournois
+  enregistrés. On en **crée** un nouveau, on **rouvre** un tournoi existant à
+  tout moment, ou on le **supprime**.
+- **Créer un tournoi** — nom, **format** et code administrateur :
+  - **Poules + tableau** : poules puis phase finale (le format complet).
+  - **Poules seulement** : classement des poules, sans tableau.
+  - **Élimination directe** : tableau tiré au sort (4, 8, 16 ou 32 équipes),
+    sans poules.
+  Pour les formats à poules on choisit le **nombre de poules** et le **nombre
+  d'équipes par poule** (petits tournois de 4 ou 8 équipes possibles :
+  ex. 1 poule de 4, ou 8 équipes en élimination directe).
 - **Administration** (protégée par un code) :
-  1. **Créer le tournoi** : nom, nombre de poules, code administrateur.
-  2. **Saisir les équipes** : on tape le nom d'une équipe ; l'appli **tire au
-     sort** sa poule (A, B, C, …) et son numéro (1 à 4) dès la saisie. Les
-     poules sont donc constituées aléatoirement.
-  3. **Saisir les scores** de chaque match de poule.
-  4. **Clôturer les poules** : l'appli génère le tableau final (têtes de série
-     tirées du classement) ; on saisit les scores jusqu'à la finale.
-- **Classement** (vue publique, partageable) : classement de chaque poule,
-  meilleurs 3es, et tableau final en direct.
+  1. **Saisir les équipes** : on tape le nom d'une équipe ; l'appli **tire au
+     sort** sa place (poule + numéro, ou position dans le tableau).
+  2. **Saisir les scores** des matchs (poules et/ou tableau).
+  3. En format « poules + tableau », **clôturer les poules** génère le tableau
+     final (têtes de série tirées du classement).
+- **Classement** (vue publique, partageable) : classement des poules,
+  meilleurs 3es, et tableau final en direct — selon le format choisi.
 
 ## Règles du tournoi
 

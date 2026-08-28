@@ -75,14 +75,22 @@
     });
   };
   FirebaseDB.prototype.createTournament = function (tid, config) {
-    var self = this, doc = this._doc(tid);
-    var teams = L.makeTeams(config.numPools);
-    var matches = L.makePoolMatches(config.numPools);
+    var doc = this._doc(tid);
+    var isKo = config.format === 'ko';
+    var teams = isKo ? L.makeKoTeams(config.numTeams) : L.makeTeams(config.numPools, config.poolSize);
+    var matches = isKo ? [] : L.makePoolMatches(config.numPools, config.poolSize);
     var batch = this.fb.batch();
     batch.set(doc, Object.assign({ id: tid, createdAt: now() }, config));
     teams.forEach(function (t) { batch.set(doc.collection('teams').doc(t.id), t); });
     matches.forEach(function (m) { batch.set(doc.collection('matches').doc(m.id), m); });
     return batch.commit();
+  };
+  FirebaseDB.prototype.listTournaments = function () {
+    return this.fb.collection('tournaments').get().then(function (qs) {
+      var a = []; qs.forEach(function (d) { a.push(d.data()); });
+      a.sort(function (x, y) { return (y.createdAt || 0) - (x.createdAt || 0); });
+      return a;
+    });
   };
   FirebaseDB.prototype.resetTournament = function (tid) {
     var self = this, doc = this._doc(tid);
@@ -204,10 +212,20 @@
       cb(Object.keys(map).map(function (k) { return map[k]; }));
     });
   };
+  LocalDB.prototype.listTournaments = function () {
+    var out = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i), m = /^bt:(.+):config$/.exec(k);
+      if (m) { try { var c = JSON.parse(localStorage.getItem(k)); if (c) out.push(c); } catch (e) {} }
+    }
+    out.sort(function (x, y) { return (y.createdAt || 0) - (x.createdAt || 0); });
+    return Promise.resolve(out);
+  };
   LocalDB.prototype.createTournament = function (tid, config) {
-    var teams = L.makeTeams(config.numPools);
+    var isKo = config.format === 'ko';
+    var teams = isKo ? L.makeKoTeams(config.numTeams) : L.makeTeams(config.numPools, config.poolSize);
     var matches = {};
-    L.makePoolMatches(config.numPools).forEach(function (m) { matches[m.id] = m; });
+    if (!isKo) L.makePoolMatches(config.numPools, config.poolSize).forEach(function (m) { matches[m.id] = m; });
     localStorage.setItem(this._key(tid, 'teams'), JSON.stringify(teams));
     localStorage.setItem(this._key(tid, 'matches'), JSON.stringify(matches));
     return this._write(tid, 'config', Object.assign({ id: tid, createdAt: now() }, config));

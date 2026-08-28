@@ -16,11 +16,12 @@
   function poolLabel(i) { return String.fromCharCode(65 + i); }
   function poolIndex(label) { return (label || 'A').charCodeAt(0) - 65; }
 
-  // Liste des 4×n slots d'équipes (vides) pour n poules.
-  function makeTeams(numPools) {
+  // Liste des slots d'équipes (vides) pour n poules de `poolSize`.
+  function makeTeams(numPools, poolSize) {
+    poolSize = poolSize || 4;
     var teams = [];
     for (var p = 0; p < numPools; p++) {
-      for (var s = 1; s <= 4; s++) {
+      for (var s = 1; s <= poolSize; s++) {
         teams.push({
           id: poolLabel(p) + s, pool: poolLabel(p), slot: s,
           name: '', assigned: false
@@ -30,14 +31,21 @@
     return teams;
   }
 
-  // Les 6 rencontres d'une poule de 4 (chacun rencontre les 3 autres).
-  var POOL_PAIRS = [[1, 2], [3, 4], [1, 3], [2, 4], [1, 4], [2, 3]];
+  // Toutes les rencontres d'une poule de `n` (chacun rencontre les autres).
+  function roundRobinPairs(n) {
+    var a = [];
+    for (var i = 1; i <= n; i++) for (var j = i + 1; j <= n; j++) a.push([i, j]);
+    return a;
+  }
+  var POOL_PAIRS = roundRobinPairs(4); // compat
 
-  function makePoolMatches(numPools) {
+  function makePoolMatches(numPools, poolSize) {
+    poolSize = poolSize || 4;
+    var pairs = roundRobinPairs(poolSize);
     var matches = [];
     for (var p = 0; p < numPools; p++) {
       var L = poolLabel(p);
-      POOL_PAIRS.forEach(function (pair) {
+      pairs.forEach(function (pair) {
         matches.push({
           id: 'pool-' + L + '-' + pair[0] + '-' + pair[1],
           phase: 'pool', pool: L, slotA: pair[0], slotB: pair[1],
@@ -47,6 +55,21 @@
       });
     }
     return matches;
+  }
+
+  // Élimination directe : n équipes (puissance de 2), tirées au sort dans le
+  // tableau. Chaque équipe reçoit une position fixe ; l'aléatoire vient de
+  // l'ordre de saisie (voir DB.addTeam).
+  function makeKoTeams(numTeams) {
+    var a = [];
+    for (var i = 0; i < numTeams; i++) a.push({ id: 't' + (i + 1), pos: i, name: '', assigned: false });
+    return a;
+  }
+  function koBracket(numTeams, teams) {
+    var slots = new Array(numTeams);
+    for (var i = 0; i < numTeams; i++) slots[i] = null;
+    teams.forEach(function (t) { if (t.assigned && t.pos != null) slots[t.pos] = t.id; });
+    return { size: numTeams, slots: slots };
   }
 
   /* ---- Points d'un match de poule ---------------------------------- */
@@ -116,8 +139,8 @@
   }
 
   // Nombre de rencontres de poule validées / total (pour l'avancement).
-  function poolProgress(numPools, matches) {
-    var total = numPools * POOL_PAIRS.length;
+  function poolProgress(numPools, matches, poolSize) {
+    var total = numPools * roundRobinPairs(poolSize || 4).length;
     var done = matches.filter(function (m) {
       return m.phase === 'pool' && m.validated;
     }).length;
@@ -356,7 +379,8 @@
   global.BeloteLogic = {
     POOL_TARGET: POOL_TARGET, KO_BIG_TARGET: KO_BIG_TARGET, POOL_PAIRS: POOL_PAIRS,
     poolLabel: poolLabel, poolIndex: poolIndex,
-    makeTeams: makeTeams, makePoolMatches: makePoolMatches,
+    makeTeams: makeTeams, makePoolMatches: makePoolMatches, roundRobinPairs: roundRobinPairs,
+    makeKoTeams: makeKoTeams, koBracket: koBracket,
     matchPoints: matchPoints, scoreOf: scoreOf,
     poolStandings: poolStandings, allStandings: allStandings, poolProgress: poolProgress,
     cmpStandings: cmpStandings,
