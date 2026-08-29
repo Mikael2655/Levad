@@ -158,7 +158,14 @@
 
     // Contrat marqué chuté (bouton raccourci) — contrat chiffré uniquement.
     if (d.chute && !annonce) {
-      pts[defense] = roundTen(BASE + C);
+      if (facteur > 1) {
+        // Contré / surcontré chuté : la défense marque contrat×facteur + forfait
+        // (le forfait de 160 n'est multiplié qu'en partie à 2000).
+        const forfait = game.target >= 2000 ? facteur * BASE : BASE;
+        pts[defense] = facteur * C + forfait;
+      } else {
+        pts[defense] = roundTen(BASE + C);
+      }
       if (bel === 0 || bel === 1) pts[defense] += 20; // belote → adversaire
       return { pts, realise: false, chute: true };
     }
