@@ -145,7 +145,7 @@
     else { chip.hidden = true; }
 
     var route = (location.hash || '#/').split('?')[0];
-    if (route === '#/' || route === '') { openTournament(null); return renderList(); }
+    if (route === '#/' || route === '') return renderList();
     if (route === '#/new') return renderCreate();
     if (!state.tid) { go('#/'); return; }
     if (state.tid && !store.config) { screen.innerHTML = backList() + '<div class="loading">Chargement…</div>'; return; }
