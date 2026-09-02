@@ -12,7 +12,6 @@ const NUM = "num", TXT = "txt";
 const SA_MAIN = [
   { k: "currentModel", label: "Machine actuelle", t: TXT, wide: true },
   { k: "loyerActuel", label: "Loyer actuel / trim (€)", t: NUM },
-  { k: "trimRestants", label: "Trimestres restants", t: NUM },
 ];
 const SA_NB = [
   { k: "forfaitNB", label: "Forfait pages N&B engagé", t: NUM },
@@ -26,15 +25,15 @@ const SA_COUL = [
   { k: "volCoulReel", label: "Volume réel couleur (pages)", t: NUM },
   { k: "ccCoulActuel", label: "Coût page couleur (€)", t: NUM },
 ];
-/* Champs SP (solution proposée). */
+/* Champs SP (solution proposée) — ordre de la maquette. */
 const SP_MAIN = [
   { k: "proposedModel", label: "Machine proposée", t: TXT, wide: true },
   { k: "prixMachine", label: "Prix machine (€)", t: NUM },
-  { k: "livraison", label: "Livraison (€)", t: NUM },
-  { k: "portageLivraison", label: "Portage livraison (€)", t: NUM },
-  { k: "retrait", label: "Retrait (€)", t: NUM },
-  { k: "portageRetrait", label: "Portage retrait (€)", t: NUM },
   { k: "installation", label: "Installation (€)", t: NUM },
+  { k: "livraison", label: "Livraison (dont portage) (€)", t: NUM },
+  { k: "retrait", label: "Retrait (dont portage) (€)", t: NUM },
+];
+const SP_CC = [
   { k: "ccNBpropose", label: "Coût page N&B proposé (€)", t: NUM },
   { k: "ccCoulPropose", label: "Coût page couleur proposé (€)", t: NUM },
 ];
@@ -134,14 +133,22 @@ function renderMachines() {
   document.getElementById("machines").innerHTML = STATE.machines.map((m, i) => machineCard(m, i)).join("");
 }
 
-function serviceRows(m) {
+/* Services côté SA : libellé éditable + valeur actuelle. */
+function svcRowsSA(m) {
   return m.services.map((sv, idx) => `
-    <div class="svc-row">
-      <input class="svc-label" type="text" placeholder="${idx < 4 ? "Libellé" : "Autre (libellé)"}"
+    <div class="svc-row2">
+      <input class="svc-label" type="text" placeholder="${idx < 4 ? "Libellé" : "Autre"}"
         data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="label" value="${esc(sv.label)}">
-      <input type="number" step="any" inputmode="decimal" placeholder="SA €"
+      <input type="number" step="any" inputmode="decimal" placeholder="€"
         data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="sa" value="${esc(sv.sa)}">
-      <input type="number" step="any" inputmode="decimal" placeholder="SP €"
+    </div>`).join("");
+}
+/* Services côté SP : libellé (repris de la SA) + valeur proposée. */
+function svcRowsSP(m) {
+  return m.services.map((sv, idx) => `
+    <div class="svc-row2">
+      <span class="svc-cap" id="svccap-${m.id}-${idx}">${esc(sv.label || "—")}</span>
+      <input type="number" step="any" inputmode="decimal" placeholder="€"
         data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="sp" value="${esc(sv.sp)}">
     </div>`).join("");
 }
@@ -159,22 +166,29 @@ function machineCard(m, i) {
     <div class="machine-cols">
       <div class="col">
         <h3>Situation actuelle</h3>
-        <label class="fld chk"><input type="checkbox" data-scope="machine" data-mid="${m.id}" data-key="prospect" ${m.prospect ? "checked" : ""}>
-          <span>Prospect (chez un concurrent) — sinon client Levad</span></label>
+        <div class="prospect-line">
+          <label class="fld chk"><input type="checkbox" data-scope="machine" data-mid="${m.id}" data-key="prospect" ${m.prospect ? "checked" : ""}>
+            <span>Prospect (concurrent)</span></label>
+          <label class="fld"><span>Trimestres restants</span>
+            <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="trimRestants" value="${esc(m.trimRestants)}"></label>
+        </div>
         <div class="grid">${SA_MAIN.map((f) => mField(m.id, f)).join("")}</div>
         <div class="subgrid"><h4>N&B</h4><div class="grid">${SA_NB.map((f) => mField(m.id, f)).join("")}</div></div>
         <div class="subgrid"><h4>Couleur</h4><div class="grid">${SA_COUL.map((f) => mField(m.id, f)).join("")}</div></div>
-        <div class="subgrid"><h4>Services & abonnements <small>(renommables · SA / SP)</small></h4>
-          <div class="svc-head"><span>Libellé</span><span>Actuel (SA)</span><span>Proposé (SP)</span></div>
-          ${serviceRows(m)}
+        <div class="subgrid"><h4>Service & abonnements <small>(libellés modifiables)</small></h4>
+          ${svcRowsSA(m)}
         </div>
       </div>
       <div class="col">
         <h3>Solution proposée</h3>
         <div class="grid">${SP_MAIN.map((f) => mField(m.id, f)).join("")}</div>
-        <div class="subgrid"><h4>Loyer & marge</h4>
+        <div class="subgrid"><h4>Rachat, cadeau &amp; marge</h4>
           <div class="grid">
             <div class="fld"><span>Rachat (calculé)</span><div class="ro" id="ro-rachat-${m.id}"></div></div>
+            <label class="fld"><span>Cadeau / autre (€)</span>
+              <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="cadeaux" value="${esc(m.cadeaux)}"></label>
+            <label class="fld wide"><span>Descriptif cadeau / autre</span>
+              <input type="text" data-scope="machine" data-mid="${m.id}" data-key="cadeauxLabel" value="${esc(m.cadeauxLabel)}"></label>
             <label class="fld"><span>Mode de calcul</span>
               <select data-scope="machine-sel" data-mid="${m.id}" data-key="margeMode">
                 <option value="marge" ${m.margeMode !== "loyer" ? "selected" : ""}>Marge → loyer</option>
@@ -189,15 +203,11 @@ function machineCard(m, i) {
                  <div class="fld"><span>Loyer proposé (calculé) ${perShort(STATE)}</span><div class="ro" id="ro-calc-${m.id}"></div></div>`}
           </div>
         </div>
-        <div class="subgrid"><h4>Cadeaux / autres</h4>
-          <div class="grid">
-            <label class="fld"><span>Montant (€, ex. -500)</span>
-              <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="cadeaux" value="${esc(m.cadeaux)}"></label>
-            <label class="fld wide"><span>Descriptif du cadeau offert</span>
-              <input type="text" data-scope="machine" data-mid="${m.id}" data-key="cadeauxLabel" value="${esc(m.cadeauxLabel)}"></label>
-          </div>
+        <div class="subgrid"><h4>Coûts page proposés</h4>
+          <div class="grid">${SP_CC.map((f) => mField(m.id, f)).join("")}</div></div>
+        <div class="subgrid"><h4>Service & abonnements (proposé)</h4>
+          ${svcRowsSP(m)}
         </div>
-        <p class="hint">Les volumes N&B / couleur de la proposition reprennent automatiquement le volume facturable (le plus grand de « forfait + dépassement » ou « volume réel »).</p>
       </div>
     </div>
     <div class="machine-sum" id="msum-${m.id}"></div>
@@ -271,6 +281,10 @@ document.addEventListener("input", (e) => {
   } else if (scope === "svc") {
     const m = mById(t.dataset.mid); const sv = m.services[+t.dataset.idx];
     sv[t.dataset.field] = t.dataset.field === "label" ? t.value : (t.value === "" ? 0 : num(t.value));
+    if (t.dataset.field === "label") {
+      const cap = document.getElementById(`svccap-${t.dataset.mid}-${t.dataset.idx}`);
+      if (cap) cap.textContent = t.value || "—";
+    }
   } else if (scope === "root") {
     STATE[key] = (key === "durationTrim") ? parseInt(t.value, 10) : t.value;
   } else if (scope === "company") {

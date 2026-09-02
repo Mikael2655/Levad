@@ -60,6 +60,11 @@ main { max-width: 1080px; margin: 0 auto; padding: 16px; }
 .svc-row input { font-size: 14px; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; width: 100%; }
 .svc-row input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
 .hint { font-size: 12px; color: var(--muted); margin: 10px 0 0; font-style: italic; }
+.prospect-line { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; align-items: end; margin-bottom: 4px; }
+.svc-row2 { display: grid; grid-template-columns: 1fr 100px; gap: 8px; margin-bottom: 6px; align-items: center; }
+.svc-row2 input { font-size: 14px; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; width: 100%; }
+.svc-row2 input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+.svc-cap { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ro { font-size: 15px; font-weight: 600; color: var(--brand); background: var(--field);
   border: 1px dashed var(--line); border-radius: 9px; padding: 8px 10px; }
 .machine-sum b.neg { color: var(--neg); }
