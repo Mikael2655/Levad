@@ -1,5 +1,5 @@
 /* Service worker — « réseau d'abord », repli hors-ligne sur le cache. */
-const CACHE = "proposition-v1";
+const CACHE = "proposition-v2";
 const CORE = [
   "./",
   "index.html",
@@ -11,7 +11,7 @@ const CORE = [
   "js/export-pptx.js",
   "js/app.js",
   "vendor/jszip.min.js",
-  "vendor/xlsx.full.min.js",
+  "vendor/exceljs.min.js",
   "assets/template.pptx",
   "manifest.webmanifest",
   "icon.png",

@@ -1,137 +1,117 @@
 /* ============================================================
-   Export Excel « SA / SP type » — étude comparative de coûts.
-   Feuille 1 « Comparatif » : Situation actuelle vs Solution
-   proposée, une ligne par poste et par machine, avec totaux et
-   économie annuelle. Feuille 2 « Détail » : reprise chiffrée.
+   Export Excel « SA / SP type » (ExcelJS) — reprend la mise en
+   forme du fichier fourni : titre, client, 2 blocs Situation
+   Actuelle / Solution Proposée côte à côte, une ligne par poste
+   (chaque service séparé), total et économie annuelle.
+   Périodicité (trimestre/mois) selon le choix.
    ============================================================ */
 
-const Z_EUR = '#,##0.00" €"';
-const Z_EUR0 = '#,##0" €"';
-const Z_CC = '#,##0.000000" €"';
-const Z_PAGES = '#,##0" Pages"';
+const GREEN = "FF8C9D8D";
+const GREEN_LT = "FFE9F0E9";
 
-function sideLines(side) {
-  const services = side.ce - side.maintNB - side.maintCoul;
-  const lines = [];
-  lines.push(["Location — " + side.model, 1, side.loyer, side.loyer]);
-  if (side.volNB || side.maintNB)
-    lines.push(["Impressions N/B", side.volNB, side.ccNB, side.maintNB]);
-  if (side.volCoul || side.maintCoul)
-    lines.push(["Impressions couleurs", side.volCoul, side.ccCoul, side.maintCoul]);
-  if (services)
-    lines.push(["Services (pass, e-maintenance…)", 1, services, services]);
-  return lines;
+function lineFor(side, div) {
+  // renvoie [ [désig, qté, pu, total] ... ] pour un côté (sa/sp)
+  const out = [];
+  out.push(["Location — " + side.model, 1, side.loyer / div, side.loyer / div]);
+  if (side.volNB || side.maintNB) out.push(["Impressions N/B", side.volNB / div, side.ccNB, side.maintNB / div]);
+  if (side.volCoul || side.maintCoul) out.push(["Impressions couleurs", side.volCoul / div, side.ccCoul, side.maintCoul / div]);
+  return out;
 }
 
-function cell(v, z) {
-  if (v === "" || v === null || v === undefined) return { v: "" };
-  if (typeof v === "number") return z ? { t: "n", v, z } : { t: "n", v };
-  return { t: "s", v: String(v) };
-}
+async function exportExcel(state, calc) {
+  const div = calc.divisor;
+  const unit = perUnit(state);
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Comparatif", { views: [{ showGridLines: false }] });
 
-function exportExcel(state, calc) {
-  const wb = XLSX.utils.book_new();
+  // largeurs de colonnes (A..L)
+  const widths = [4.8, 4.7, 24, 12, 14, 14, 3, 24, 12, 14, 14, 4.7];
+  widths.forEach((w, i) => (ws.getColumn(i + 1).width = w));
 
-  // ---------- Feuille Comparatif ----------
-  const rows = [];      // tableau de tableaux de "cell"
-  const merges = [];
-  const push = (arr) => rows.push(arr);
-  const R = () => rows.length; // index de la prochaine ligne
+  const center = { horizontal: "center", vertical: "middle", wrapText: true };
+  const money = '#,##0.00" €"';
+  const ccFmtX = '#,##0.000000" €"';
+  const setBorder = (cell) => (cell.border = {
+    top: { style: "thin", color: { argb: "FFBFC8BF" } }, bottom: { style: "thin", color: { argb: "FFBFC8BF" } },
+    left: { style: "thin", color: { argb: "FFBFC8BF" } }, right: { style: "thin", color: { argb: "FFBFC8BF" } },
+  });
 
-  push([cell("ÉTUDE COMPARATIVE DE COÛTS")]);
-  merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } });
-  push([cell(state.client.name || "Client")]);
-  merges.push({ s: { r: 1, c: 0 }, e: { r: 1, c: 8 } });
-  push([]);
+  // Titre
+  ws.mergeCells("C2:K2");
+  let c = ws.getCell("C2"); c.value = "ÉTUDE COMPARATIVE DE COÛTS"; c.font = { size: 24, bold: false }; c.alignment = center;
+  ws.mergeCells("C3:K3");
+  c = ws.getCell("C3"); c.value = state.client.name || "Client"; c.font = { size: 20, bold: true }; c.alignment = center;
 
-  // en-tête des 2 blocs
-  const hdrRow = R();
-  push([
-    cell("SITUATION ACTUELLE / TRIMESTRE (€ HT)"), cell(""), cell(""), cell(""),
-    cell(""),
-    cell("SOLUTION PROPOSÉE / TRIMESTRE (€ HT)"), cell(""), cell(""), cell(""),
-  ]);
-  merges.push({ s: { r: hdrRow, c: 0 }, e: { r: hdrRow, c: 3 } });
-  merges.push({ s: { r: hdrRow, c: 5 }, e: { r: hdrRow, c: 8 } });
+  // En-têtes de blocs
+  ws.mergeCells("C5:F5"); ws.mergeCells("H5:K5");
+  [["C5", "SITUATION ACTUELLE / " + unit + " (€ HT)"], ["H5", "SOLUTION PROPOSÉE / " + unit + " (€ HT)"]].forEach(([ref, txt]) => {
+    const x = ws.getCell(ref); x.value = txt; x.font = { size: 14, bold: true, color: { argb: "FFFFFFFF" } };
+    x.alignment = center; x.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN } };
+  });
 
-  const colHdr = ["Désignation", "Quantité", "PU HT", "Total HT"];
-  push([
-    ...colHdr.map((h) => cell(h)), cell(""),
-    ...colHdr.map((h) => cell(h)),
-  ]);
+  // En-têtes de colonnes (ligne 6)
+  const heads = ["Désignation", "Quantité", "Prix unitaire HT", "Total HT"];
+  [["C", "D", "E", "F"], ["H", "I", "J", "K"]].forEach((cols) => cols.forEach((col, i) => {
+    const x = ws.getCell(col + "6"); x.value = heads[i]; x.font = { bold: true, size: 11 }; x.alignment = center;
+    x.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_LT } }; setBorder(x);
+  }));
 
-  // lignes par machine (SA à gauche, SP à droite, alignées)
-  calc.rows.forEach((r, i) => {
-    const sa = sideLines(r.sa), sp = sideLines(r.sp);
-    const n = Math.max(sa.length, sp.length);
+  // Corps : lignes par machine
+  let row = 7;
+  const putLine = (col0, line) => {
+    const [desig, qte, pu, total] = line;
+    const cD = ws.getCell(col0[0] + row), cQ = ws.getCell(col0[1] + row), cP = ws.getCell(col0[2] + row), cT = ws.getCell(col0[3] + row);
+    cD.value = desig; cD.alignment = center; cD.font = { size: 12 };
+    cQ.value = qte; cQ.alignment = center; cQ.font = { size: 12 };
+    cP.value = pu; cP.alignment = center; cP.font = { size: 12 };
+    cP.numFmt = desig.startsWith("Impressions") ? ccFmtX : money;
+    cT.value = total; cT.alignment = center; cT.font = { size: 12, bold: true }; cT.numFmt = money;
+    [cD, cQ, cP, cT].forEach(setBorder);
+  };
+
+  calc.rows.forEach((r) => {
+    const saLines = lineFor(r.sa, div);
+    const spLines = lineFor(r.sp, div);
+    // services actifs (mêmes lignes des 2 côtés)
+    r.services.forEach((s) => {
+      const lbl = s.label && s.label.trim() ? s.label : "Service";
+      saLines.push([lbl, 1, s.sa / div, s.sa / div]);
+      spLines.push([lbl, 1, s.sp / div, s.sp / div]);
+    });
+    const n = Math.max(saLines.length, spLines.length);
     for (let k = 0; k < n; k++) {
-      const a = sa[k], b = sp[k];
-      push([
-        a ? cell(a[0]) : cell(""),
-        a ? cell(a[1], a[0].startsWith("Location") || a[0].startsWith("Services") ? null : Z_PAGES) : cell(""),
-        a ? cell(a[2], a[0].startsWith("Impressions") ? Z_CC : Z_EUR) : cell(""),
-        a ? cell(a[3], Z_EUR) : cell(""),
-        cell(""),
-        b ? cell(b[0]) : cell(""),
-        b ? cell(b[1], b[0].startsWith("Location") || b[0].startsWith("Services") ? null : Z_PAGES) : cell(""),
-        b ? cell(b[2], b[0].startsWith("Impressions") ? Z_CC : Z_EUR) : cell(""),
-        b ? cell(b[3], Z_EUR) : cell(""),
-      ]);
+      if (saLines[k]) putLine(["C", "D", "E", "F"], saLines[k]);
+      if (spLines[k]) putLine(["H", "I", "J", "K"], spLines[k]);
+      row++;
     }
   });
 
-  // totaux
-  push([
-    cell("TOTAL"), cell(""), cell(""), cell(calc.saTotal, Z_EUR), cell(""),
-    cell("TOTAL"), cell(""), cell(""), cell(calc.spTotal, Z_EUR),
-  ]);
-  push([]);
-  const ecoRow = R();
+  // Totaux
+  ["C", "H"].forEach((col) => { const x = ws.getCell(col + row); x.value = "TOTAL"; x.font = { bold: true, size: 12 }; x.alignment = center; setBorder(x); });
+  ["D", "E", "I", "J"].forEach((col) => setBorder(ws.getCell(col + row)));
+  const tf = ws.getCell("F" + row); tf.value = calc.saTotal / div; tf.numFmt = money; tf.font = { bold: true, size: 14 }; tf.alignment = center;
+  tf.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_LT } }; setBorder(tf);
+  const tk = ws.getCell("K" + row); tk.value = calc.spTotal / div; tk.numFmt = money; tk.font = { bold: true, size: 14 }; tk.alignment = center;
+  tk.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_LT } }; setBorder(tk);
+  row += 2;
+
+  // Économie annuelle
+  ws.mergeCells(`C${row}:K${row}`);
   const eco = calc.savingYear;
-  push([cell(eco >= 0
-    ? `Soit une économie de ${frNum(eco, 0)} € HT par an`
-    : `Soit un surcoût de ${frNum(-eco, 0)} € HT par an`)]);
-  merges.push({ s: { r: ecoRow, c: 0 }, e: { r: ecoRow, c: 8 } });
+  const e = ws.getCell("C" + row);
+  e.value = eco >= 0 ? `Soit une économie de ${frNum(eco, 0)} € HT par an`
+                     : `Soit un surcoût de ${frNum(-eco, 0)} € HT par an`;
+  e.font = { size: 16, bold: true, color: { argb: "FF1F5132" } }; e.alignment = center;
+  e.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GREEN_LT } };
+  row += 2;
 
-  const ws = XLSX.utils.aoa_to_sheet(rows.map((r) => r.map((c) => (c && c.v !== undefined ? c.v : ""))));
-  // ré-applique types/formats
-  rows.forEach((r, ri) => r.forEach((c, ci) => {
-    if (!c || c.v === "" || c.v === undefined) return;
-    const ref = XLSX.utils.encode_cell({ r: ri, c: ci });
-    ws[ref] = c;
-  }));
-  ws["!merges"] = merges;
-  ws["!cols"] = [
-    { wch: 30 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 3 },
-    { wch: 30 }, { wch: 12 }, { wch: 14 }, { wch: 14 },
-  ];
-  XLSX.utils.book_append_sheet(wb, ws, "Comparatif");
+  // Pied LEVAD
+  ws.mergeCells(`C${row}:K${row}`);
+  const f = ws.getCell("C" + row);
+  f.value = "LEVAD — 135 Chemin des Bassins 94000 Créteil — 01 70 72 19 40 — contact@levad.fr";
+  f.font = { size: 10, italic: true }; f.alignment = center;
 
-  // ---------- Feuille Détail ----------
-  const d = [
-    ["Client", state.client.name],
-    ["Date", dateShort(state.client.date)],
-    ["Durée (années)", state.durationYears],
-    ["Coefficient leasing", coeffFor(state)],
-    [],
-    ["Machine", "Modèle actuel", "Modèle proposé", "Rachat", "Investissement",
-     "Loyer SA", "Loyer SP", "CE SA", "CE SP", "Total SA", "Total SP"],
-  ];
-  calc.rows.forEach((r, i) => {
-    d.push([
-      "Machine " + (i + 1), r.sa.model, r.sp.model, r.rachat, r.invest,
-      r.sa.loyer, r.sp.loyer, r.sa.ce, r.sp.ce, r.sa.total, r.sp.total,
-    ]);
-  });
-  d.push([]);
-  d.push(["", "", "", "", "", "", "", "", "TOTAL", calc.saTotal, calc.spTotal]);
-  d.push(["Économie / trimestre", calc.savingQuarter]);
-  d.push(["Économie / an", calc.savingYear]);
-  const wd = XLSX.utils.aoa_to_sheet(d);
-  wd["!cols"] = [{ wch: 22 }, { wch: 22 }, { wch: 22 }].concat(Array(8).fill({ wch: 14 }));
-  XLSX.utils.book_append_sheet(wb, wd, "Détail");
-
-  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  downloadBlob(new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+  const buf = await wb.xlsx.writeBuffer();
+  downloadBlob(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
     fileName(state, "xlsx"));
 }

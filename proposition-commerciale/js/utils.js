@@ -36,9 +36,12 @@ function loadState() {
       ...base, ...s,
       client: { ...base.client, ...(s.client || {}) },
       company: { ...base.company, ...(s.company || {}) },
-      coeffs: { ...base.coeffs, ...(s.coeffs || {}) },
       machines: Array.isArray(s.machines) && s.machines.length
-        ? s.machines.map((m) => ({ ...defaultMachine(), ...m }))
+        ? s.machines.map((m) => {
+            const mm = { ...defaultMachine(), ...m };
+            if (!Array.isArray(mm.services) || !mm.services.length) mm.services = defaultServices();
+            return mm;
+          })
         : base.machines,
     };
   } catch (e) { return defaultState(); }

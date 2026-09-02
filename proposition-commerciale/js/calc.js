@@ -1,130 +1,162 @@
 /* ============================================================
-   Moteur de calcul — reproduit la logique des simulateurs Excel
-   (Simul_SASP) pour chaque machine, puis agrège.
+   Moteur de calcul SA / SP.
 
-   Situation Actuelle (SA) :
-     loyer actuel + maintenance N&B/coul (forfait ou réel)
-     + services (pass, TAS, e-maintenance, scan, recyclage).
-   Solution Proposée (SP) :
-     loyer = (rachat + cadeaux + prix + livraison + installation
-              + marge) × coefficient ÷ 100
-     + coûts copie proposés + services proposés.
+   Tous les montants internes sont calculés au TRIMESTRE. La
+   périodicité (T/M) ne change que l'affichage (÷3 pour le mois),
+   sauf le loyer proposé dont le coefficient est majoré de 1,5 %
+   en paiement mensuel.
    ============================================================ */
 
 function num(v) {
-  const n = typeof v === "number" ? v : parseFloat(String(v).replace(",", "."));
+  if (typeof v === "number") return isFinite(v) ? v : 0;
+  const n = parseFloat(String(v).replace(",", ".").replace(/\s/g, ""));
   return isFinite(n) ? n : 0;
 }
 
-/* Coefficient de leasing pour la durée choisie. */
-function coeffFor(state) {
-  return num(state.coeffs[state.durationYears]) || 0;
+/* Volume facturable = le plus gros de (forfait + dépassement) ou volume réel. */
+function billedVol(forfait, depass, reel) {
+  return Math.max(num(forfait) + num(depass), num(reel));
 }
 
-/* Rachat du contrat actuel (B5 du simulateur). */
-function rachat(m) {
-  const loyer = num(m.loyerActuel), trim = num(m.trimRestants), maint = num(m.maintMoyenne);
-  if (m.prospect) return 0;                 // prospect : rien à racheter
-  return loyer * trim; // client déjà équipé : solde des loyers restants
+/* Tranche (index 0/1/2) pour un montant financé. */
+function trancheIndex(financed) {
+  for (let i = 0; i < TRANCHES.length; i++) if (financed < TRANCHES[i]) return i;
+  return TRANCHES.length - 1;
 }
 
-/* Maintenance d'un poste (forfait si supérieur au réel, sinon réel). */
-function maintCost(forfait, depass, volReel, cc) {
-  forfait = num(forfait); depass = num(depass); volReel = num(volReel); cc = num(cc);
-  return forfait > volReel ? (forfait + depass) * cc : volReel * cc;
+/* Coefficient trimestriel de base : override admin sinon barème. */
+function baseCoeff(state, financed) {
+  const ov = num(state.coeffOverride);
+  if (state.coeffOverride !== "" && ov > 0) return ov;
+  const table = BAREME[state.leaser] || BAREME.GRENKE;
+  const row = table[state.durationTrim];
+  if (!row) return 0;
+  return row[trancheIndex(financed)];
+}
+/* Coefficient effectif (majoré en mensuel). */
+function effCoeff(state, financed) {
+  return baseCoeff(state, financed) * (state.periodicite === "M" ? MAJ_MENSUEL : 1);
 }
 
-/* Calcul complet d'une machine -> { sa:{...}, sp:{...} } par trimestre. */
+/* Rachat du contrat actuel. */
+function rachatMachine(m) {
+  const loyer = num(m.loyerActuel), trim = num(m.trimRestants);
+  const base = loyer * trim;
+  if (!m.prospect) return base; // client Levad : solde des loyers restants
+  // prospect (chez un concurrent) : loyers + 10% + maintenance + abonnements
+  const maintNB = billedVol(m.forfaitNB, m.depassNB, m.volNBreel) * num(m.ccNBactuel);
+  const maintCoul = billedVol(m.forfaitCoul, m.depassCoul, m.volCoulReel) * num(m.ccCoulActuel);
+  const abos = (m.services || []).reduce((a, s) => a + num(s.sa), 0);
+  return base * 1.10 + (maintNB + maintCoul + abos) * trim;
+}
+
 function computeMachine(m, state) {
-  const coeff = coeffFor(state);
+  const rachat = rachatMachine(m);
+  const prixComplet = num(m.prixMachine) + num(m.livraison) + num(m.portageLivraison) +
+                      num(m.retrait) + num(m.portageRetrait) + num(m.installation);
+  const financed = rachat + prixComplet + num(m.marge) + num(m.cadeaux);
+  const coeffT = baseCoeff(state, financed);
+  const spLoyer = financed * effCoeff(state, financed) / 100;
 
-  // --- Situation actuelle ---
-  const saLoyer = num(m.loyerActuel);
-  const saMaintNB = maintCost(m.forfaitNB, m.depassNB, m.volNBreel, m.ccNBactuel);
-  const saMaintCoul = maintCost(m.forfaitCoul, m.depassCoul, m.volCoulReel, m.ccCoulActuel);
-  const saServices = num(m.passActuel) + num(m.tasActuel) + num(m.emaintActuel) +
-                     num(m.scanMailActuel) + num(m.recyclageActuel) +
-                     num(m.forfaitEurNBactuel) + num(m.forfaitEurCoulActuel);
-  const saCE = saMaintNB + saMaintCoul + saServices;       // total consommables/entretien
-  const saTotal = saLoyer + saCE;
+  const billedNB = billedVol(m.forfaitNB, m.depassNB, m.volNBreel);
+  const billedCoul = billedVol(m.forfaitCoul, m.depassCoul, m.volCoulReel);
 
-  // --- Solution proposée ---
-  const invest = rachat(m) + num(m.cadeaux) + num(m.prixMachine) +
-                 num(m.livraison) + num(m.installation) + num(m.marge);
-  const spLoyer = invest * coeff / 100;
-  const spMaintNB = num(m.volNBreel) * num(m.ccNBpropose);
-  const spMaintCoul = num(m.volCoulReel) * num(m.ccCoulPropose);
-  const spServices = num(m.passPropose) + num(m.tasPropose) + num(m.emaintPropose) +
-                     num(m.scanMailPropose) + num(m.recyclagePropose) +
-                     num(m.forfaitEurNBpropose) + num(m.forfaitEurCoulPropose);
-  const spCE = spMaintNB + spMaintCoul + spServices;
-  const spTotal = spLoyer + spCE;
+  const saMaintNB = billedNB * num(m.ccNBactuel);
+  const saMaintCoul = billedCoul * num(m.ccCoulActuel);
+  const spMaintNB = billedNB * num(m.ccNBpropose);
+  const spMaintCoul = billedCoul * num(m.ccCoulPropose);
+
+  const services = (m.services || []).map((s) => ({ label: s.label, sa: num(s.sa), sp: num(s.sp) }))
+    .filter((s) => s.sa || s.sp); // seulement les services avec un montant
+  const saServ = services.reduce((a, s) => a + s.sa, 0);
+  const spServ = services.reduce((a, s) => a + s.sp, 0);
+
+  const saTotal = num(m.loyerActuel) + saMaintNB + saMaintCoul + saServ;
+  const spTotal = spLoyer + spMaintNB + spMaintCoul + spServ;
 
   return {
-    coeff, invest, rachat: rachat(m),
+    rachat, financed, coeffT, prixComplet, marge: num(m.marge),
+    cadeaux: num(m.cadeaux), cadeauxLabel: m.cadeauxLabel || "",
+    billedNB, billedCoul, services,
     sa: {
-      model: m.currentModel || "Machine actuelle",
-      fin: "Location",
-      loyer: saLoyer, volNB: num(m.volNBreel), volCoul: num(m.volCoulReel),
-      pass: num(m.passActuel), forfaitNB: num(m.forfaitEurNBactuel),
-      forfaitCoul: num(m.forfaitEurCoulActuel),
+      model: m.currentModel || "Machine actuelle", fin: "Location",
+      loyer: num(m.loyerActuel), volNB: billedNB, volCoul: billedCoul,
       ccNB: num(m.ccNBactuel), ccCoul: num(m.ccCoulActuel),
-      maintNB: saMaintNB, maintCoul: saMaintCoul, ce: saCE, total: saTotal,
+      maintNB: saMaintNB, maintCoul: saMaintCoul, servTotal: saServ, total: saTotal,
     },
     sp: {
-      model: m.proposedModel || "Machine proposée",
-      fin: "Location",
-      loyer: spLoyer, volNB: num(m.volNBreel), volCoul: num(m.volCoulReel),
-      pass: num(m.passPropose), forfaitNB: num(m.forfaitEurNBpropose),
-      forfaitCoul: num(m.forfaitEurCoulPropose),
+      model: m.proposedModel || "Machine proposée", fin: "Location",
+      loyer: spLoyer, volNB: billedNB, volCoul: billedCoul,
       ccNB: num(m.ccNBpropose), ccCoul: num(m.ccCoulPropose),
-      maintNB: spMaintNB, maintCoul: spMaintCoul, ce: spCE, total: spTotal,
+      maintNB: spMaintNB, maintCoul: spMaintCoul, servTotal: spServ, total: spTotal,
     },
   };
 }
 
-/* Agrégat sur toutes les machines. */
 function computeAll(state) {
   const rows = state.machines.map((m) => computeMachine(m, state));
-  const sum = (arr, side, key) => arr.reduce((a, r) => a + r[side][key], 0);
-  const saTotal = sum(rows, "sa", "total");
-  const spTotal = sum(rows, "sp", "total");
+  const sum = (side, key) => rows.reduce((a, r) => a + r[side][key], 0);
+  const saTotal = sum("sa", "total"), spTotal = sum("sp", "total");
   const savingQuarter = saTotal - spTotal;
   return {
-    rows,
-    saTotal, spTotal,
-    savingQuarter,
-    savingYear: savingQuarter * 4,
-    spLoyerTotal: sum(rows, "sp", "loyer"),
-    durationTrim: state.durationYears * 4,
+    rows, saTotal, spTotal,
+    savingQuarter, savingYear: savingQuarter * 4,
+    spLoyerTotal: sum("sp", "loyer"),
+    rachatTotal: rows.reduce((a, r) => a + r.rachat, 0),
+    durationTrim: state.durationTrim,
+    divisor: state.periodicite === "M" ? 3 : 1,
   };
 }
+
+/* -------- Périodicité -------- */
+function perDivisor(state) { return state.periodicite === "M" ? 3 : 1; }
+function perUnit(state) { return state.periodicite === "M" ? "MOIS" : "TRIMESTRE"; }
+function perAdj(state) { return state.periodicite === "M" ? "mensuelle" : "trimestrielle"; }
+function perAdjCap(state) { return state.periodicite === "M" ? "Mensuelle" : "Trimestrielle"; }
+function perAdjMasc(state) { return state.periodicite === "M" ? "Mensuel" : "Trimestriel"; }
+function perShort(state) { return state.periodicite === "M" ? "/ mois" : "/ trim"; }
 
 /* -------- Formatage à la française -------- */
 function frNum(v, dec = 2) {
-  return num(v).toLocaleString("fr-FR", {
-    minimumFractionDigits: dec, maximumFractionDigits: dec,
-  });
+  return num(v).toLocaleString("fr-FR", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+function moneySmart(v, ht) {
+  const n = num(v), dec = Number.isInteger(n) ? 0 : 2;
+  return frNum(n, dec) + (ht ? " € HT" : " €");
 }
 function eur(v, dec = 2) { return frNum(v, dec) + " €"; }
-function eurHT(v, dec = 2) { return frNum(v, dec) + " € HT"; }
 function pages(v) { return num(v).toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " Pages"; }
-/* Coût copie : jusqu'à 6 décimales, sans zéros superflus au-delà de 2. */
-function ccFmt(v) {
-  const n = num(v);
-  let s = n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-  return s + " €";
+function ccFmt(v) { return num(v).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 6 }) + " €"; }
+function ccPlain(v) { return num(v).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 6 }); }
+
+/* -------- Email & téléphone du commercial -------- */
+function autoEmail(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 1 || !parts[0]) return "";
+  const strip = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
+  const prenom = strip(parts[0]);
+  const nom = parts.slice(1).map(strip).join("");
+  if (!prenom) return "";
+  return (nom ? prenom[0] + nom : prenom) + "@levad.fr";
+}
+function repEmail(company) {
+  if (company.repEmailManual && company.repEmail) return company.repEmail;
+  return autoEmail(company.repName) || company.repEmail || "";
+}
+/* Ligne téléphone : fixe seul, ou "fixe / portable" si portable saisi. */
+function repPhoneLine(company) {
+  const fixe = company.repPhone || "";
+  const mob = company.repMobile || "";
+  return mob ? (fixe ? fixe + " / " + mob : mob) : fixe;
 }
 
-/* Date longue « 6 août 2026 ». */
+/* -------- Dates -------- */
 function dateLong(iso) {
   if (!iso) return "";
   const [y, mo, d] = iso.split("-").map(Number);
-  const mois = ["janvier","février","mars","avril","mai","juin","juillet",
-                "août","septembre","octobre","novembre","décembre"];
+  const mois = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
   return `${d} ${mois[mo - 1]} ${y}`;
 }
-/* Date courte « 06/08/2026 ». */
 function dateShort(iso) {
   if (!iso) return "";
   const [y, mo, d] = iso.split("-");
