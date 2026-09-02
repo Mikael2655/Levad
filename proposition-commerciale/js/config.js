@@ -63,11 +63,11 @@ const DEFAULT_COMPANY = {
 function defaultServices() {
   return [
     { label: "Service Pass", sa: 0, sp: 0 },
-    { label: "Abonnement service (TAS)", sa: 0, sp: 0 },
+    { label: "Abonnement service", sa: 0, sp: 0 },
     { label: "Recyclage", sa: 0, sp: 0 },
     { label: "E-maintenance", sa: 0, sp: 0 },
-    { label: "", sa: 0, sp: 0 },   // champ libre 1
-    { label: "", sa: 0, sp: 0 },   // champ libre 2
+    { label: "Autre", sa: 0, sp: 0 },   // champ libre 1
+    { label: "Autre", sa: 0, sp: 0 },   // champ libre 2
   ];
 }
 
@@ -89,7 +89,9 @@ function defaultMachine() {
     livraison: 0, portageLivraison: 0,
     retrait: 0, portageRetrait: 0,
     installation: 0,
+    margeMode: "marge",     // "marge" = marge -> loyer ; "loyer" = loyer -> marge
     marge: 0,
+    loyerCible: 0,          // loyer proposé saisi (par période) en mode "loyer"
     cadeaux: 0, cadeauxLabel: "",
     ccNBpropose: 0, ccCoulPropose: 0,
   };

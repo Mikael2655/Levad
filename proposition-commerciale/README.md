@@ -21,10 +21,13 @@ Aucune donnée n'est envoyée : tout reste dans le navigateur (localStorage).
   (Service Pass, Abonnement service/TAS, Recyclage, E-maintenance) **dont les
   libellés sont modifiables**, plus 2 champs libres. Chaque service a une valeur
   actuelle (SA) et proposée (SP).
-- **Solution proposée** : machine, prix machine, livraison + **portage
-  livraison**, retrait + **portage retrait**, installation, marge, coûts copie
-  proposés, et **Cadeaux / autres** avec un descriptif libre. Les volumes N&B /
-  couleur de la SP reprennent automatiquement le **volume facturable**.
+- **Solution proposée** : machine, prix machine, installation, **livraison
+  (dont portage)**, **retrait (dont portage)**, coûts copie proposés, **Cadeaux
+  / autres** avec descriptif, et le **rachat calculé**. Les volumes N&B /
+  couleur de la SP reprennent automatiquement le volume facturé.
+- **Service & abonnements** (Service Pass, Abonnement service, Recyclage,
+  E-maintenance + 2 « Autre ») affichés des **deux côtés** : libellé modifiable
+  côté SA, valeur actuelle (SA) et proposée (SP).
 - **Commercial** : nom, fonction, **téléphone fixe** (01 70 72 19 40 par
   défaut), **portable** (optionnel), **email calculé automatiquement**
   (1re lettre du prénom + nom complet @levad.fr, modifiable).
@@ -35,8 +38,14 @@ Aucune donnée n'est envoyée : tout reste dans le navigateur (localStorage).
 
 Par machine, au **trimestre** :
 
-- **Volume facturable** = le plus grand de « forfait engagé + dépassement » ou
-  « volume réel ». Sert à la maintenance SA et aux volumes SP.
+- **Volume facturé** (maintenance SA/SP) :
+  - dépassement > 0 → `forfait + dépassement` (pages réellement imprimées) ;
+  - sous-consommation (réel < forfait) → `volume réel`, mais au coût page du
+    forfait engagé.
+- **Rachat** : se base, lui, sur le **volume le plus élevé** des deux
+  (`forfait + dépassement` vs `réel`).
+- **Marge ↔ loyer** : par machine, deux modes — saisir la **marge** (l'outil
+  calcule le loyer), ou saisir le **loyer proposé** (l'outil calcule la marge).
 - **Rachat du contrat actuel**
   - *Client Levad* : `loyer actuel × trimestres restants`.
   - *Prospect (chez un concurrent)* : `loyer × trim × 1,10` (pénalité 10 %)
