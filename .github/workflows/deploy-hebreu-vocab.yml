@@ -2,6 +2,7 @@
 #   • hebreu-vocab/    → à la racine du site (https://<user>.github.io/Levad/)
 #   • belote/          → sous /belote/          (compteur de points)
 #   • belote-tournoi/  → sous /belote-tournoi/  (gestion de tournoi)
+#   • proposition-commerciale/ → sous /proposition-commerciale/  (outil SA/SP + offre)
 # Le reste du dépôt (projet Next.js) n'est pas publié.
 #
 # Activation (une seule fois) : Settings → Pages → Source : "GitHub Actions"
@@ -15,6 +16,7 @@ on:
       - "hebreu-vocab/**"
       - "belote/**"
       - "belote-tournoi/**"
+      - "proposition-commerciale/**"
       - ".github/workflows/deploy-hebreu-vocab.yml"
   workflow_dispatch:
 
@@ -43,6 +45,8 @@ jobs:
           cp -r belote/. _site/belote/
           mkdir -p _site/belote-tournoi
           cp -r belote-tournoi/. _site/belote-tournoi/
+          mkdir -p _site/proposition-commerciale
+          cp -r proposition-commerciale/. _site/proposition-commerciale/
       - uses: actions/configure-pages@v5
         with:
           # Active GitHub Pages automatiquement si le compte le permet

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Levad — Proposition commerciale</title>
+  <meta name="theme-color" content="#2f5233">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Proposition">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" href="icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="logo"><span class="logo-mark">◧</span> Proposition <span class="logo-sub">Levad</span></h1>
+    <div class="topbar-right">
+      <button id="theme-toggle" class="icon-btn" title="Mode clair / sombre" aria-label="Mode clair / sombre">🌙</button>
+    </div>
+  </header>
+
+  <main id="screen"></main>
+
+  <footer class="footer">
+    Simulateur SA/SP &amp; générateur de proposition — fonctionne hors-ligne, aucune donnée envoyée.
+  </footer>
+
+  <!-- Librairies locales (offline) -->
+  <script src="vendor/jszip.min.js"></script>
+  <script src="vendor/xlsx.full.min.js"></script>
+  <!-- Application -->
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/calc.js"></script>
+  <script src="js/export-excel.js"></script>
+  <script src="js/export-pptx.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).catch(() => {});
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (reloaded) return; reloaded = true; location.reload();
+      });
+    }
+  </script>
+</body>
+</html>
