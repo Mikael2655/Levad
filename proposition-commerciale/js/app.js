@@ -1,83 +1,69 @@
 /* ============================================================
-   Application — saisie de la proposition, calcul en direct,
-   export Excel (SA/SP) et PowerPoint (gabarit complet).
-   Tout reste dans le navigateur ; aucune donnée n'est envoyée.
+   Application — saisie, calcul en direct, exports Excel & PPTX.
+   Tout reste dans le navigateur.
    ============================================================ */
 
 let STATE = loadState();
-let ADMIN = false; // déverrouillage admin (non persisté)
+let ADMIN = false;
 
-/* -------------------- Description des champs -------------------- */
-const NUM = "num";
-const TXT = "txt";
-const CHK = "chk";
+const NUM = "num", TXT = "txt";
 
-const SA_FIELDS = [
-  { k: "currentModel", label: "Modèle actuel", t: TXT },
-  { k: "prospect", label: "Prospect (aucun contrat à racheter)", t: CHK },
+/* Champs SA (situation actuelle) hors services. */
+const SA_MAIN = [
+  { k: "currentModel", label: "Machine actuelle", t: TXT, wide: true },
   { k: "loyerActuel", label: "Loyer actuel / trim (€)", t: NUM },
   { k: "trimRestants", label: "Trimestres restants", t: NUM },
-  { k: "maintMoyenne", label: "Maintenance moyenne / trim (€)", t: NUM },
-  { k: "volNBreel", label: "Volume N&B réel (pages/trim)", t: NUM },
-  { k: "ccNBactuel", label: "Coût copie N&B actuel (€)", t: NUM },
-  { k: "volCoulReel", label: "Volume couleur réel (pages/trim)", t: NUM },
-  { k: "ccCoulActuel", label: "Coût copie couleur actuel (€)", t: NUM },
-  { k: "passActuel", label: "Pass (€/trim)", t: NUM },
-  { k: "emaintActuel", label: "E-maintenance (€/trim)", t: NUM },
 ];
-const SA_ADV = [
-  { k: "forfaitNB", label: "Forfait N&B (pages)", t: NUM },
+const SA_NB = [
+  { k: "forfaitNB", label: "Forfait pages N&B engagé", t: NUM },
   { k: "depassNB", label: "Dépassement N&B (pages)", t: NUM },
-  { k: "forfaitCoul", label: "Forfait couleur (pages)", t: NUM },
-  { k: "depassCoul", label: "Dépassement couleur (pages)", t: NUM },
-  { k: "tasActuel", label: "TAS (€/trim)", t: NUM },
-  { k: "scanMailActuel", label: "Scan to mail (€/trim)", t: NUM },
-  { k: "recyclageActuel", label: "Recyclage (€/trim)", t: NUM },
-  { k: "forfaitEurNBactuel", label: "Forfait N&B fixe (€/trim)", t: NUM },
-  { k: "forfaitEurCoulActuel", label: "Forfait couleur fixe (€/trim)", t: NUM },
+  { k: "volNBreel", label: "Volume réel N&B (pages)", t: NUM },
+  { k: "ccNBactuel", label: "Coût page N&B (€)", t: NUM },
 ];
-const SP_FIELDS = [
-  { k: "proposedModel", label: "Modèle proposé", t: TXT },
+const SA_COUL = [
+  { k: "forfaitCoul", label: "Forfait pages couleur engagé", t: NUM },
+  { k: "depassCoul", label: "Dépassement couleur (pages)", t: NUM },
+  { k: "volCoulReel", label: "Volume réel couleur (pages)", t: NUM },
+  { k: "ccCoulActuel", label: "Coût page couleur (€)", t: NUM },
+];
+/* Champs SP (solution proposée). */
+const SP_MAIN = [
+  { k: "proposedModel", label: "Machine proposée", t: TXT, wide: true },
   { k: "prixMachine", label: "Prix machine (€)", t: NUM },
-  { k: "cadeaux", label: "Cadeaux / remises (€, ex. -2850)", t: NUM },
-  { k: "livraison", label: "Livraison / retrait (€)", t: NUM },
+  { k: "livraison", label: "Livraison (€)", t: NUM },
+  { k: "portageLivraison", label: "Portage livraison (€)", t: NUM },
+  { k: "retrait", label: "Retrait (€)", t: NUM },
+  { k: "portageRetrait", label: "Portage retrait (€)", t: NUM },
   { k: "installation", label: "Installation (€)", t: NUM },
   { k: "marge", label: "Marge commerciale (€)", t: NUM },
-  { k: "ccNBpropose", label: "Coût copie N&B proposé (€)", t: NUM },
-  { k: "ccCoulPropose", label: "Coût copie couleur proposé (€)", t: NUM },
-  { k: "passPropose", label: "Pass proposé (€/trim)", t: NUM },
-  { k: "emaintPropose", label: "E-maintenance proposée (€/trim)", t: NUM },
-];
-const SP_ADV = [
-  { k: "tasPropose", label: "TAS (€/trim)", t: NUM },
-  { k: "scanMailPropose", label: "Scan to mail (€/trim)", t: NUM },
-  { k: "recyclagePropose", label: "Recyclage (€/trim)", t: NUM },
-  { k: "forfaitEurNBpropose", label: "Forfait N&B fixe (€/trim)", t: NUM },
-  { k: "forfaitEurCoulPropose", label: "Forfait couleur fixe (€/trim)", t: NUM },
+  { k: "ccNBpropose", label: "Coût page N&B proposé (€)", t: NUM },
+  { k: "ccCoulPropose", label: "Coût page couleur proposé (€)", t: NUM },
 ];
 
-/* -------------------- Helpers rendu -------------------- */
+/* -------------------- Helpers -------------------- */
 function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-function fieldHtml(scope, id, f) {
-  const path = `${scope}.${f.k}`;
-  const val = id ? STATE.machines.find((m) => m.id === id)[f.k] : getPath(STATE, path);
-  if (f.t === CHK) {
-    return `<label class="fld chk"><input type="checkbox" data-mid="${id || ""}" data-key="${f.k}" data-scope="${scope}" ${val ? "checked" : ""}><span>${f.label}</span></label>`;
+function mById(id) { return STATE.machines.find((m) => m.id === id); }
+function getPath(o, p) { return p.split(".").reduce((a, k) => (a ? a[k] : undefined), o); }
+function setPath(o, p, v) { const a = p.split("."); const l = a.pop(); a.reduce((x, k) => x[k], o)[l] = v; }
+
+function mField(id, f) {
+  const m = mById(id), val = m[f.k];
+  const cls = "fld" + (f.wide ? " wide" : "");
+  if (f.t === TXT) {
+    return `<label class="${cls}"><span>${f.label}</span>
+      <input type="text" data-scope="machine" data-mid="${id}" data-key="${f.k}" value="${esc(val)}"></label>`;
   }
-  const type = f.t === NUM ? 'type="number" step="any" inputmode="decimal"' : 'type="text"';
-  return `<label class="fld"><span>${f.label}</span>
-    <input ${type} data-mid="${id || ""}" data-key="${f.k}" data-scope="${scope}" value="${esc(val)}"></label>`;
+  return `<label class="${cls}"><span>${f.label}</span>
+    <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${id}" data-key="${f.k}" value="${esc(val)}"></label>`;
 }
-function getPath(obj, path) {
-  return path.split(".").reduce((o, k) => (o ? o[k] : undefined), obj);
-}
-function setPath(obj, path, v) {
-  const parts = path.split("."); const last = parts.pop();
-  const t = parts.reduce((o, k) => o[k], obj); t[last] = v;
+function topField(scope, k, label, type, extra) {
+  const val = getPath(STATE, `${scope}.${k}`);
+  const t = type === NUM ? 'type="number" step="any" inputmode="decimal"' : (type || 'type="text"');
+  return `<label class="fld${extra ? " " + extra : ""}"><span>${label}</span>
+    <input ${t} data-scope="${scope}" data-key="${k}" value="${esc(val)}"></label>`;
 }
 
 /* -------------------- Rendu principal -------------------- */
@@ -87,42 +73,50 @@ function renderApp() {
     <section class="card">
       <h2>Client</h2>
       <div class="grid">
-        ${fieldHtml("client", "", { k: "name", label: "Nom du client / société", t: TXT })}
-        ${fieldHtml("client", "", { k: "contact", label: "Contact (ex. Monsieur Dupont)", t: TXT })}
-        ${fieldHtml("client", "", { k: "addr1", label: "Adresse", t: TXT })}
-        ${fieldHtml("client", "", { k: "addr2", label: "Code postal & ville", t: TXT })}
-        ${fieldHtml("client", "", { k: "date", label: "Date", t: TXT }).replace('type="text"', 'type="date"')}
+        ${topField("client", "name", "Nom du client / société", TXT)}
+        ${topField("client", "contact", "Contact (ex. Monsieur Dupont)", TXT)}
+        ${topField("client", "addr1", "Adresse", TXT)}
+        ${topField("client", "addr2", "Code postal & ville", TXT)}
+        ${topField("client", "date", "Date", 'type="date"')}
       </div>
     </section>
 
     <section class="card">
       <h2>Commercial</h2>
       <div class="grid">
-        ${fieldHtml("company", "", { k: "repName", label: "Nom", t: TXT })}
-        ${fieldHtml("company", "", { k: "repTitle", label: "Fonction", t: TXT })}
-        ${fieldHtml("company", "", { k: "repEmail", label: "Email", t: TXT })}
-        ${fieldHtml("company", "", { k: "repPhone", label: "Téléphone", t: TXT })}
+        ${topField("company", "repName", "Nom (Prénom Nom)", TXT)}
+        ${topField("company", "repTitle", "Fonction", TXT)}
+        ${topField("company", "repPhone", "Téléphone fixe", TXT)}
+        ${topField("company", "repMobile", "Portable (optionnel)", TXT)}
+        <label class="fld"><span>Email ${s.company.repEmailManual ? "(manuel)" : "(auto)"}</span>
+          <input type="text" id="rep-email" data-scope="company" data-key="repEmail"
+            value="${esc(repEmail(s.company))}"></label>
       </div>
     </section>
 
     <section class="card">
-      <h2>Paramètres du leasing</h2>
+      <h2>Financement</h2>
       <div class="grid">
-        <label class="fld"><span>Durée</span>
-          <select data-scope="root" data-key="durationYears">
-            ${[3, 4, 5].map((y) => `<option value="${y}" ${s.durationYears == y ? "selected" : ""}>${y} ans</option>`).join("")}
+        <label class="fld"><span>Leaser</span>
+          <select data-scope="root" data-key="leaser">
+            ${LEASERS.map((l) => `<option value="${l}" ${s.leaser === l ? "selected" : ""}>${l}</option>`).join("")}
           </select></label>
-        <div class="fld"><span>Coefficient appliqué</span>
-          <div class="coeff-show" id="coeff-show">${frNum(coeffFor(s), 2)}</div></div>
+        <label class="fld"><span>Durée</span>
+          <select data-scope="root" data-key="durationTrim">
+            ${DURATIONS.map((d) => `<option value="${d.trim}" ${s.durationTrim == d.trim ? "selected" : ""}>${d.trim} trimestres (${d.mois} mois)</option>`).join("")}
+          </select></label>
+        <label class="fld"><span>Périodicité</span>
+          <select data-scope="root" data-key="periodicite">
+            <option value="T" ${s.periodicite === "T" ? "selected" : ""}>Trimestrielle</option>
+            <option value="M" ${s.periodicite === "M" ? "selected" : ""}>Mensuelle</option>
+          </select></label>
       </div>
       <div id="admin-panel"></div>
     </section>
 
     <section class="card">
-      <div class="card-head">
-        <h2>Machines</h2>
-        <button class="btn" data-action="add-machine">＋ Ajouter une machine</button>
-      </div>
+      <div class="card-head"><h2>Machines</h2>
+        <button class="btn" data-action="add-machine">＋ Ajouter une machine</button></div>
       <div id="machines"></div>
     </section>
 
@@ -134,21 +128,30 @@ function renderApp() {
       <button class="btn ghost" data-action="reset">Réinitialiser</button>
       <span id="status" class="status"></span>
     </section>`;
-
-  renderMachines();
-  renderAdmin();
-  renderResults();
+  renderMachines(); renderAdmin(); renderResults();
 }
 
 function renderMachines() {
-  const box = document.getElementById("machines");
-  box.innerHTML = STATE.machines.map((m, i) => machineCard(m, i)).join("");
+  document.getElementById("machines").innerHTML = STATE.machines.map((m, i) => machineCard(m, i)).join("");
+}
+
+function serviceRows(m) {
+  return m.services.map((sv, idx) => `
+    <div class="svc-row">
+      <input class="svc-label" type="text" placeholder="${idx < 4 ? "Libellé" : "Autre (libellé)"}"
+        data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="label" value="${esc(sv.label)}">
+      <input type="number" step="any" inputmode="decimal" placeholder="SA €"
+        data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="sa" value="${esc(sv.sa)}">
+      <input type="number" step="any" inputmode="decimal" placeholder="SP €"
+        data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="sp" value="${esc(sv.sp)}">
+    </div>`).join("");
 }
 
 function machineCard(m, i) {
+  const name = m.proposedModel || m.currentModel;
   return `<div class="machine" data-mid="${m.id}">
     <div class="machine-head">
-      <strong>Machine ${i + 1}${m.currentModel || m.proposedModel ? " — " + esc(m.proposedModel || m.currentModel) : ""}</strong>
+      <strong>Machine ${i + 1}${name ? " — " + esc(name) : ""}</strong>
       <div class="machine-actions">
         <button class="btn small" data-action="dup-machine" data-mid="${m.id}">Dupliquer</button>
         <button class="btn small danger" data-action="del-machine" data-mid="${m.id}" ${STATE.machines.length <= 1 ? "disabled" : ""}>Supprimer</button>
@@ -157,17 +160,28 @@ function machineCard(m, i) {
     <div class="machine-cols">
       <div class="col">
         <h3>Situation actuelle</h3>
-        <div class="grid">${SA_FIELDS.map((f) => fieldHtml("machine", m.id, f)).join("")}</div>
-        <details><summary>Options avancées</summary>
-          <div class="grid">${SA_ADV.map((f) => fieldHtml("machine", m.id, f)).join("")}</div>
-        </details>
+        <label class="fld chk"><input type="checkbox" data-scope="machine" data-mid="${m.id}" data-key="prospect" ${m.prospect ? "checked" : ""}>
+          <span>Prospect (chez un concurrent) — sinon client Levad</span></label>
+        <div class="grid">${SA_MAIN.map((f) => mField(m.id, f)).join("")}</div>
+        <div class="subgrid"><h4>N&B</h4><div class="grid">${SA_NB.map((f) => mField(m.id, f)).join("")}</div></div>
+        <div class="subgrid"><h4>Couleur</h4><div class="grid">${SA_COUL.map((f) => mField(m.id, f)).join("")}</div></div>
+        <div class="subgrid"><h4>Services & abonnements <small>(renommables · SA / SP)</small></h4>
+          <div class="svc-head"><span>Libellé</span><span>Actuel (SA)</span><span>Proposé (SP)</span></div>
+          ${serviceRows(m)}
+        </div>
       </div>
       <div class="col">
         <h3>Solution proposée</h3>
-        <div class="grid">${SP_FIELDS.map((f) => fieldHtml("machine", m.id, f)).join("")}</div>
-        <details><summary>Options avancées</summary>
-          <div class="grid">${SP_ADV.map((f) => fieldHtml("machine", m.id, f)).join("")}</div>
-        </details>
+        <div class="grid">${SP_MAIN.map((f) => mField(m.id, f)).join("")}</div>
+        <div class="subgrid"><h4>Cadeaux / autres</h4>
+          <div class="grid">
+            <label class="fld"><span>Montant (€, ex. -500)</span>
+              <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="cadeaux" value="${esc(m.cadeaux)}"></label>
+            <label class="fld wide"><span>Descriptif du cadeau offert</span>
+              <input type="text" data-scope="machine" data-mid="${m.id}" data-key="cadeauxLabel" value="${esc(m.cadeauxLabel)}"></label>
+          </div>
+        </div>
+        <p class="hint">Les volumes N&B / couleur de la proposition reprennent automatiquement le volume facturable (le plus grand de « forfait + dépassement » ou « volume réel »).</p>
       </div>
     </div>
     <div class="machine-sum" id="msum-${m.id}"></div>
@@ -178,100 +192,101 @@ function renderAdmin() {
   const panel = document.getElementById("admin-panel");
   if (!panel) return;
   if (!ADMIN) {
-    panel.innerHTML = `<button class="btn ghost small" data-action="admin-unlock">🔒 Accès admin (coefficients)</button>`;
+    panel.innerHTML = `<button class="btn ghost small" data-action="admin-unlock">🔒 Accès admin</button>`;
     return;
   }
   panel.innerHTML = `
     <div class="admin">
-      <div class="admin-head">🔓 Mode admin — coefficients de leasing
+      <div class="admin-head">🔓 Mode admin
         <button class="btn ghost small" data-action="admin-lock">Verrouiller</button></div>
       <div class="grid">
-        ${[3, 4, 5].map((y) => `<label class="fld"><span>${y} ans</span>
-          <input type="number" step="any" inputmode="decimal" data-scope="coeff" data-key="${y}" value="${esc(STATE.coeffs[y])}"></label>`).join("")}
+        <label class="fld"><span>Valeur libre (laisser vide = barème ${esc(STATE.leaser)})</span>
+          <input type="number" step="any" inputmode="decimal" data-scope="root" data-key="coeffOverride"
+            value="${esc(STATE.coeffOverride)}" placeholder="barème automatique"></label>
       </div>
       <div class="admin-actions">
-        <button class="btn ghost small" data-action="admin-reset-coeffs">Valeurs commerciales par défaut</button>
+        <button class="btn ghost small" data-action="admin-clear-override">Revenir au barème</button>
         <button class="btn ghost small" data-action="admin-passwd">Changer le mot de passe</button>
       </div>
     </div>`;
 }
 
 function renderResults() {
-  const c = computeAll(STATE);
-  // récap par machine
   STATE.machines.forEach((m) => {
-    const el = document.getElementById("msum-" + m.id);
-    if (!el) return;
-    const r = computeMachine(m, STATE);
-    const diff = r.sa.total - r.sp.total;
+    const el = document.getElementById("msum-" + m.id); if (!el) return;
+    const r = computeMachine(m, STATE), div = perDivisor(STATE);
+    const diff = (r.sa.total - r.sp.total) / div;
     el.innerHTML = `
-      <span>SA : <b>${eur(r.sa.total)}</b>/trim</span>
-      <span>SP : <b>${eur(r.sp.total)}</b>/trim</span>
-      <span class="${diff >= 0 ? "pos" : "neg"}">${diff >= 0 ? "Économie" : "Surcoût"} : <b>${eur(Math.abs(diff))}</b>/trim</span>
-      <span class="muted">Loyer proposé : ${eur(r.sp.loyer)} · Invest. ${eur(r.invest)}</span>`;
+      <span>Rachat total : <b>${eur(r.rachat)}</b></span>
+      <span>Prix machine (livr.+install.) : <b>${eur(r.prixComplet)}</b></span>
+      <span>Marge : <b>${eur(r.marge)}</b></span>
+      <span>Total SA : <b>${eur(r.sa.total / div)}</b></span>
+      <span>Total SP : <b>${eur(r.sp.total / div)}</b></span>
+      <span class="${diff >= 0 ? "pos" : "neg"}">${diff >= 0 ? "Économie" : "Surcoût"} : <b>${eur(Math.abs(diff))}</b> ${perShort(STATE)}</span>`;
   });
-  const res = document.getElementById("results");
-  if (!res) return;
-  const eco = c.savingYear;
+  const res = document.getElementById("results"); if (!res) return;
+  const c = computeAll(STATE), div = c.divisor, eco = c.savingYear;
   res.innerHTML = `
-    <h2>Synthèse</h2>
+    <h2>Synthèse (${perAdj(STATE)})</h2>
     <div class="totals">
-      <div class="tot"><span>Situation actuelle</span><b>${eur(c.saTotal)}</b><small>/ trimestre</small></div>
-      <div class="tot"><span>Solution proposée</span><b>${eur(c.spTotal)}</b><small>/ trimestre</small></div>
-      <div class="tot big ${eco >= 0 ? "pos" : "neg"}">
-        <span>${eco >= 0 ? "Économie" : "Surcoût"} annuel</span>
-        <b>${eur(Math.abs(eco))}</b><small>${frNum(Math.abs(c.savingQuarter))} € / trimestre</small></div>
+      <div class="tot"><span>Situation actuelle</span><b>${eur(c.saTotal / div)}</b><small>${perShort(STATE)}</small></div>
+      <div class="tot"><span>Solution proposée</span><b>${eur(c.spTotal / div)}</b><small>${perShort(STATE)}</small></div>
+      <div class="tot big ${eco >= 0 ? "pos" : "neg"}"><span>${eco >= 0 ? "Économie" : "Surcoût"} annuel</span>
+        <b>${eur(Math.abs(eco))}</b><small>${eur(Math.abs(c.savingQuarter) / div)} ${perShort(STATE)}</small></div>
     </div>
-    <p class="muted small">Loyer proposé total : ${eur(c.spLoyerTotal)}/trim · Valeur mensuelle ${eur(c.spLoyerTotal / 3)} · Durée ${c.durationTrim} trimestres · Coefficient ${frNum(coeffFor(STATE), 2)}</p>`;
-  const cs = document.getElementById("coeff-show");
-  if (cs) cs.textContent = frNum(coeffFor(STATE), 2);
+    <p class="muted small">Loyer proposé total : ${eur(c.spLoyerTotal / div)} ${perShort(STATE)} · Rachat total : ${eur(c.rachatTotal)} · ${c.durationTrim} trimestres · ${esc(STATE.leaser)}${ADMIN ? " · coeff " + frNum(baseCoeff(STATE, c.rows[0] ? c.rows[0].financed : 0), 3) : ""}</p>`;
 }
 
 /* -------------------- Événements -------------------- */
 function commit() { saveState(STATE); renderResults(); }
 
 document.addEventListener("input", (e) => {
-  const t = e.target;
-  if (!t.dataset || !t.dataset.scope) return;
+  const t = e.target; if (!t.dataset || !t.dataset.scope) return;
   const scope = t.dataset.scope, key = t.dataset.key;
-  let v;
-  if (t.type === "checkbox") v = t.checked;
-  else if (t.type === "number") v = t.value === "" ? 0 : num(t.value);
-  else v = t.value;
-
+  const val = t.type === "checkbox" ? t.checked : (t.type === "number" ? (t.value === "" ? 0 : num(t.value)) : t.value);
   if (scope === "machine") {
-    const m = STATE.machines.find((x) => x.id === t.dataset.mid);
-    if (m) m[key] = v;
-  } else if (scope === "coeff") {
-    STATE.coeffs[key] = num(t.value);
+    const m = mById(t.dataset.mid); if (m) m[key] = val;
+    if (key === "currentModel" || key === "proposedModel") updateMachineTitle(t.dataset.mid);
+  } else if (scope === "svc") {
+    const m = mById(t.dataset.mid); const sv = m.services[+t.dataset.idx];
+    sv[t.dataset.field] = t.dataset.field === "label" ? t.value : (t.value === "" ? 0 : num(t.value));
   } else if (scope === "root") {
-    STATE[key] = key === "durationYears" ? parseInt(t.value, 10) : v;
+    STATE[key] = (key === "durationTrim") ? parseInt(t.value, 10) : t.value;
+  } else if (scope === "company") {
+    STATE.company[key] = val;
+    if (key === "repName" && !STATE.company.repEmailManual) {
+      const em = document.getElementById("rep-email"); if (em) em.value = repEmail(STATE.company);
+    }
+    if (key === "repEmail") STATE.company.repEmailManual = true;
   } else {
-    setPath(STATE, `${scope}.${key}`, v);
+    setPath(STATE, `${scope}.${key}`, val);
   }
   commit();
 });
-// select (durée) déclenche 'change'
 document.addEventListener("change", (e) => {
   const t = e.target;
-  if (t.tagName === "SELECT" && t.dataset.key === "durationYears") {
-    STATE.durationYears = parseInt(t.value, 10);
-    commit();
+  if (t.tagName === "SELECT" && t.dataset.scope === "root") {
+    STATE[t.dataset.key] = t.dataset.key === "durationTrim" ? parseInt(t.value, 10) : t.value;
+    saveState(STATE);
+    if (t.dataset.key === "leaser") renderAdmin();
+    renderResults();
   }
 });
 
+function updateMachineTitle(id) {
+  const m = mById(id); const el = document.querySelector(`.machine[data-mid="${id}"] .machine-head strong`);
+  if (el) { const n = m.proposedModel || m.currentModel; const i = STATE.machines.indexOf(m) + 1;
+    el.textContent = `Machine ${i}${n ? " — " + n : ""}`; }
+}
+
 document.addEventListener("click", async (e) => {
-  const btn = e.target.closest("[data-action]");
-  if (!btn) return;
+  const btn = e.target.closest("[data-action]"); if (!btn) return;
   const a = btn.dataset.action, mid = btn.dataset.mid;
   switch (a) {
-    case "add-machine":
-      STATE.machines.push(defaultMachine()); saveState(STATE); renderMachines(); renderResults(); break;
+    case "add-machine": STATE.machines.push(defaultMachine()); saveState(STATE); renderMachines(); renderResults(); break;
     case "dup-machine": {
-      const src = STATE.machines.find((x) => x.id === mid);
-      const copy = { ...src, id: cryptoId() };
-      const idx = STATE.machines.indexOf(src);
-      STATE.machines.splice(idx + 1, 0, copy);
+      const src = mById(mid); const copy = JSON.parse(JSON.stringify(src)); copy.id = cryptoId();
+      STATE.machines.splice(STATE.machines.indexOf(src) + 1, 0, copy);
       saveState(STATE); renderMachines(); renderResults(); break;
     }
     case "del-machine":
@@ -279,42 +294,28 @@ document.addEventListener("click", async (e) => {
       STATE.machines = STATE.machines.filter((x) => x.id !== mid);
       saveState(STATE); renderMachines(); renderResults(); break;
     case "reset":
-      if (confirm("Réinitialiser toute la saisie ?")) { STATE = defaultState(); saveState(STATE); renderApp(); }
-      break;
+      if (confirm("Réinitialiser toute la saisie ?")) { STATE = defaultState(); saveState(STATE); renderApp(); } break;
     case "export-xlsx":
-      try { exportExcel(STATE, computeAll(STATE)); flash("Excel généré."); }
-      catch (err) { flash("Erreur Excel : " + err.message, true); }
-      break;
+      try { await exportExcel(STATE, computeAll(STATE)); flash("Excel généré."); }
+      catch (err) { flash("Erreur Excel : " + err.message, true); console.error(err); } break;
     case "export-pptx":
       flash("Génération du PowerPoint…");
       try { await exportPptx(STATE, computeAll(STATE)); flash("PowerPoint généré."); }
-      catch (err) { flash("Erreur PowerPoint : " + err.message, true); }
-      break;
+      catch (err) { flash("Erreur PowerPoint : " + err.message, true); console.error(err); } break;
     case "admin-unlock": {
-      const pw = prompt("Mot de passe admin :");
-      if (pw == null) break;
-      if (await checkPassword(pw)) { ADMIN = true; renderAdmin(); }
-      else flash("Mot de passe incorrect.", true);
-      break;
+      const pw = prompt("Mot de passe admin :"); if (pw == null) break;
+      if (await checkPassword(pw)) { ADMIN = true; renderAdmin(); renderResults(); } else flash("Mot de passe incorrect.", true); break;
     }
-    case "admin-lock": ADMIN = false; renderAdmin(); break;
-    case "admin-reset-coeffs":
-      STATE.coeffs = { ...DEFAULT_COEFFS }; saveState(STATE); renderAdmin(); renderResults(); break;
-    case "admin-passwd": {
-      const np = prompt("Nouveau mot de passe admin :");
-      if (np) { await setPassword(np); flash("Mot de passe modifié."); }
-      break;
-    }
+    case "admin-lock": ADMIN = false; renderAdmin(); renderResults(); break;
+    case "admin-clear-override": STATE.coeffOverride = ""; saveState(STATE); renderAdmin(); renderResults(); break;
+    case "admin-passwd": { const np = prompt("Nouveau mot de passe admin :"); if (np) { await setPassword(np); flash("Mot de passe modifié."); } break; }
   }
 });
 
 function flash(msg, err) {
-  const el = document.getElementById("status");
-  if (!el) return;
-  el.textContent = msg;
-  el.className = "status" + (err ? " err" : " ok");
-  clearTimeout(flash._t);
-  flash._t = setTimeout(() => { el.textContent = ""; el.className = "status"; }, 4000);
+  const el = document.getElementById("status"); if (!el) return;
+  el.textContent = msg; el.className = "status" + (err ? " err" : " ok");
+  clearTimeout(flash._t); flash._t = setTimeout(() => { el.textContent = ""; el.className = "status"; }, 4000);
 }
 
 /* -------------------- Admin : mot de passe (SHA-256) -------------------- */
@@ -324,12 +325,9 @@ async function sha256(str) {
 }
 async function checkPassword(pw) {
   const stored = localStorage.getItem(ADMIN_KEY);
-  if (!stored) return pw === DEFAULT_ADMIN_PASSWORD;
-  return (await sha256(pw)) === stored;
+  return stored ? (await sha256(pw)) === stored : pw === DEFAULT_ADMIN_PASSWORD;
 }
-async function setPassword(pw) {
-  localStorage.setItem(ADMIN_KEY, await sha256(pw));
-}
+async function setPassword(pw) { localStorage.setItem(ADMIN_KEY, await sha256(pw)); }
 
 /* -------------------- Thème -------------------- */
 (function theme() {
@@ -338,8 +336,7 @@ async function setPassword(pw) {
   document.addEventListener("click", (e) => {
     if (!e.target.closest("#theme-toggle")) return;
     const cur = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = cur;
-    localStorage.setItem("levad_theme", cur);
+    document.documentElement.dataset.theme = cur; localStorage.setItem("levad_theme", cur);
   });
 })();
 

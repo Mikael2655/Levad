@@ -1,139 +1,120 @@
 /* ============================================================
-   Export PowerPoint : réutilise votre modèle complet (31 slides)
+   Export PowerPoint : réutilise le modèle complet (31 slides)
    comme gabarit et n'injecte que les données.
-   - slides 1 / 4 / 31 : remplacement de jetons {{...}}
-   - slide 26 : les 2 tableaux (SA en haut, SP en bas) sont
-     régénérés avec une ligne par machine, et le bloc SP est
-     décalé vers le bas selon le nombre de lignes SA.
+   - slides 1 / 4 / 27 / 30 / 31 : jetons {{…}}
+   - slide 26 : tableaux SA (haut) / SP (bas), une ligne par
+     machine ; le bloc SP descend selon le nombre de lignes SA.
    ============================================================ */
 
-const ROW_H = 573542;          // hauteur EMU d'une ligne de données
-const SA_EXT_CY = 2586982;     // hauteur EMU d'origine du tableau SA
-const SP_EXT_CY = 2635026;     // hauteur EMU d'origine du tableau SP
-const SP_OFF_Y = 6942042;      // position Y d'origine du tableau SP
-const SP_TITLE_Y = 6167707;    // position Y d'origine du titre "SOLUTION PROPOSEE"
+const ROW_H = 573542;
+const SA_EXT_CY = 2586982;
+const SP_EXT_CY = 2635026;
+const SP_OFF_Y = 6942042;
+const SP_TITLE_Y = 6167707;
 
 function xmlEsc(v) {
-  return String(v)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-function moneySmart(v, ht) {
-  const n = num(v);
-  const dec = Number.isInteger(n) ? 0 : 2;
+function moneyP(v, ht) {
+  const n = num(v), dec = Number.isInteger(n) ? 0 : 2;
   return frNum(n, dec) + (ht ? " € HT" : " €");
 }
+function moneyPlain(v) { const n = num(v); return frNum(n, Number.isInteger(n) ? 0 : 2); }
 
-/* Valeurs d'une ligne de tableau (SA ou SP) -> map jeton/valeur. */
-function rowTokens(pfx, r) {
-  const perMonth = Math.round(r.total / 3);
+/* Valeur du service "pass" pour un côté (sa/sp). */
+function passVal(r, side) {
+  const s = (r.services || []).find((x) => /pass/i.test(x.label));
+  return s ? s[side] : 0;
+}
+
+/* Jetons d'une ligne de tableau slide 26 (par période). */
+function rowTokens(pfx, r, div) {
+  const side = pfx === "SA" ? r.sa : r.sp;
+  const pass = passVal(r, pfx === "SA" ? "sa" : "sp");
   return {
-    [`${pfx}_TYPE`]: r.model,
-    [`${pfx}_FIN`]: r.fin,
-    [`${pfx}_LOYER`]: moneySmart(r.loyer, true),
-    [`${pfx}_VNB`]: pages(r.volNB),
-    [`${pfx}_VCOUL`]: pages(r.volCoul),
-    [`${pfx}_PASS`]: r.pass ? moneySmart(r.pass, false) : "0",
-    [`${pfx}_FNB`]: r.forfaitNB ? moneySmart(r.forfaitNB, false) : "0",
-    [`${pfx}_FCOUL`]: r.forfaitCoul ? moneySmart(r.forfaitCoul, false) : "0",
-    [`${pfx}_CCNB`]: ccFmt(r.ccNB),
-    [`${pfx}_CCCOUL`]: ccFmt(r.ccCoul),
-    [`${pfx}_CE`]: moneySmart(r.ce, false),
-    [`${pfx}_TOTAL`]: moneySmart(r.total, false),
-    [`${pfx}_TOTAL2`]: `Soit ${perMonth}€ / Mois`,
+    [`${pfx}_TYPE`]: side.model, [`${pfx}_FIN`]: side.fin,
+    [`${pfx}_LOYER`]: moneyP(side.loyer / div, true),
+    [`${pfx}_VNB`]: pages(side.volNB / div), [`${pfx}_VCOUL`]: pages(side.volCoul / div),
+    [`${pfx}_PASS`]: pass ? moneyP(pass / div, false) : "0",
+    [`${pfx}_FNB`]: "0", [`${pfx}_FCOUL`]: "0",
+    [`${pfx}_CCNB`]: ccFmt(side.ccNB), [`${pfx}_CCCOUL`]: ccFmt(side.ccCoul),
+    [`${pfx}_CE`]: moneyP((side.total - side.loyer) / div, false),
+    [`${pfx}_TOTAL`]: moneyP(side.total / div, false),
   };
 }
-
-function fillRow(rowXml, tokens) {
-  let out = rowXml;
-  for (const [k, v] of Object.entries(tokens)) {
-    out = out.split("{{" + k + "}}").join(xmlEsc(v));
-  }
+function fillRow(xml, tokens) {
+  let out = xml;
+  for (const [k, v] of Object.entries(tokens)) out = out.split("{{" + k + "}}").join(xmlEsc(v));
   return out;
 }
-
-/* Régénère un tableau (une ligne par machine) à partir de la ligne modèle. */
-function expandTable(xml, pfx, rows) {
-  const tokIdx = xml.indexOf(`{{${pfx}_TYPE}}`);
-  if (tokIdx < 0) return { xml, count: 1 };
-  const start = xml.lastIndexOf("<a:tr ", tokIdx);
-  const end = xml.indexOf("</a:tr>", tokIdx) + "</a:tr>".length;
+function expandTable(xml, pfx, rows, div) {
+  const idx = xml.indexOf(`{{${pfx}_TYPE}}`);
+  if (idx < 0) return { xml, count: 1 };
+  const start = xml.lastIndexOf("<a:tr ", idx);
+  const end = xml.indexOf("</a:tr>", idx) + "</a:tr>".length;
   const template = xml.slice(start, end);
-  const built = rows.map((r) => fillRow(template, rowTokens(pfx, r[pfx === "SA" ? "sa" : "sp"]))).join("");
+  const built = rows.map((r) => fillRow(template, rowTokens(pfx, r, div))).join("");
   return { xml: xml.slice(0, start) + built + xml.slice(end), count: rows.length };
 }
-
 function buildSlide26(xml, calc) {
-  // 1) tableau SA (premier), puis tableau SP (deuxième)
-  let r = expandTable(xml, "SA", calc.rows);
-  xml = r.xml; const nSA = r.count;
-  r = expandTable(xml, "SP", calc.rows);
-  xml = r.xml; const nSP = r.count;
-
-  // 2) décalage vertical : le bloc SP descend selon les lignes SA en trop
-  const deltaSA = (nSA - 1) * ROW_H;
-  if (deltaSA > 0) {
-    xml = xml.replace(`cy="${SA_EXT_CY}"`, `cy="${SA_EXT_CY + deltaSA}"`);
-    xml = xml.replace(`y="${SP_OFF_Y}"`, `y="${SP_OFF_Y + deltaSA}"`);
-    xml = xml.replace(`y="${SP_TITLE_Y}"`, `y="${SP_TITLE_Y + deltaSA}"`);
+  const div = calc.divisor;
+  let r = expandTable(xml, "SA", calc.rows, div); xml = r.xml; const nSA = r.count;
+  r = expandTable(xml, "SP", calc.rows, div); xml = r.xml; const nSP = r.count;
+  const dSA = (nSA - 1) * ROW_H;
+  if (dSA > 0) {
+    xml = xml.replace(`cy="${SA_EXT_CY}"`, `cy="${SA_EXT_CY + dSA}"`);
+    xml = xml.replace(`y="${SP_OFF_Y}"`, `y="${SP_OFF_Y + dSA}"`);
+    xml = xml.replace(`y="${SP_TITLE_Y}"`, `y="${SP_TITLE_Y + dSA}"`);
   }
-  const deltaSP = (nSP - 1) * ROW_H;
-  if (deltaSP > 0) {
-    xml = xml.replace(`cy="${SP_EXT_CY}"`, `cy="${SP_EXT_CY + deltaSP}"`);
-  }
+  const dSP = (nSP - 1) * ROW_H;
+  if (dSP > 0) xml = xml.replace(`cy="${SP_EXT_CY}"`, `cy="${SP_EXT_CY + dSP}"`);
   return xml;
 }
 
-/* Jetons scalaires (client, commercial, dates, synthèse). */
 function scalarTokens(state, calc) {
-  const c = state.client, co = state.company;
-  const headline = state.machines.map((m) => m.proposedModel).filter(Boolean).join(" / ")
-                   || "Solution proposée";
+  const c = state.client, co = state.company, div = calc.divisor;
+  const props = state.machines.map((m) => m.proposedModel).filter(Boolean);
+  const loyer = (i) => (calc.rows[i] ? moneyPlain(calc.rows[i].sp.loyer / div) : "");
+  // e-maintenance (SP) cumulée
+  let emaint = 0;
+  state.machines.forEach((m) => {
+    const s = (m.services || []).find((x) => /maint/i.test(x.label));
+    if (s) emaint += num(s.sp);
+  });
   const first = calc.rows[0] ? calc.rows[0].sp : { ccNB: 0, ccCoul: 0 };
   return {
-    DATE: dateShort(c.date),
-    DATE_LONG: dateLong(c.date),
-    CLIENT_NAME: c.name || "Client",
-    CLIENT_CONTACT: c.contact || "Madame, Monsieur,",
-    CLIENT_ADDR1: c.addr1 || "",
-    CLIENT_ADDR2: c.addr2 || "",
-    MACHINE_HEADLINE: headline,
-    REP_NAME: co.repName || "",
-    REP_TITLE: co.repTitle || "",
-    REP_EMAIL: co.repEmail || "",
-    SUM_MENSUEL: moneySmartPlain(calc.spLoyerTotal / 3),
-    SUM_TRIMESTRES: String(calc.durationTrim),
-    SUM_CC_NB: ccPlain(first.ccNB),
-    SUM_CC_COUL: ccPlain(first.ccCoul),
+    DATE: dateShort(c.date), DATE_LONG: dateLong(c.date),
+    CLIENT_NAME: c.name || "Client", CLIENT_CONTACT: c.contact || "Madame, Monsieur,",
+    CLIENT_ADDR1: c.addr1 || "", CLIENT_ADDR2: c.addr2 || "",
+    MACHINE_HEADLINE: props.join(" / ") || "Solution proposée",
+    REP_NAME: co.repName || "", REP_TITLE: co.repTitle || "",
+    REP_EMAIL: repEmail(co), REP_PHONE: co.repPhone || "", REP_MOBILE: co.repMobile || "",
+    REP_PHONELINE: repPhoneLine(co),
+    PER_UNIT: perUnit(state), PER_ADJ: perAdj(state),
+    PER_ADJ_MASC: perAdjMasc(state), PER_ADJ_CAP: perAdjCap(state),
+    DUR_TRIM: String(state.durationTrim),
+    PROP_MACHINE_1: props[0] || "", PROP_MACHINE_2: props.slice(1).join(", "),
+    PROP_LOYER_1: loyer(0), PROP_LOYER_2: calc.rows[1] ? loyer(1) : "",
+    EMAINT_VAL: emaint > 0 ? moneyP(emaint / div, false) : "Offert",
+    SUM_VALEUR: moneyPlain(calc.spLoyerTotal / div),
+    SUM_CC_NB: ccPlain(first.ccNB), SUM_CC_COUL: ccPlain(first.ccCoul),
   };
 }
-/* Coût copie sans symbole : 2 à 6 décimales (ex. 0,005). */
-function ccPlain(v) {
-  return num(v).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-}
-function moneySmartPlain(v) { const n = num(v); return frNum(n, Number.isInteger(n) ? 0 : 2); }
 
 async function exportPptx(state, calc) {
   const resp = await fetch("assets/template.pptx", { cache: "reload" });
   if (!resp.ok) throw new Error("Gabarit PowerPoint introuvable (assets/template.pptx)");
-  const buf = await resp.arrayBuffer();
-  const zip = await JSZip.loadAsync(buf);
+  const zip = await JSZip.loadAsync(await resp.arrayBuffer());
 
-  // slide 26 : tableaux dynamiques
   const s26path = "ppt/slides/slide26.xml";
-  let s26 = await zip.file(s26path).async("string");
-  s26 = buildSlide26(s26, calc);
-  zip.file(s26path, s26);
+  zip.file(s26path, buildSlide26(await zip.file(s26path).async("string"), calc));
 
-  // jetons scalaires sur toutes les slides
   const scal = scalarTokens(state, calc);
-  const slideFiles = Object.keys(zip.files).filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p));
-  for (const p of slideFiles) {
+  const slides = Object.keys(zip.files).filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p));
+  for (const p of slides) {
     let x = await zip.file(p).async("string");
     if (x.indexOf("{{") < 0) continue;
-    for (const [k, v] of Object.entries(scal)) {
-      x = x.split("{{" + k + "}}").join(xmlEsc(v));
-    }
+    for (const [k, v] of Object.entries(scal)) x = x.split("{{" + k + "}}").join(xmlEsc(v));
     zip.file(p, x);
   }
 

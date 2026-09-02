@@ -2,92 +2,107 @@
    Configuration & valeurs par défaut
    ------------------------------------------------------------
    Tout est stocké côté navigateur (localStorage). Rien n'est
-   envoyé sur un serveur. Les coefficients de leasing (le
-   « markup » commercial) ne sont modifiables qu'en mode admin.
+   envoyé sur un serveur.
+
+   Barème « Location 2025 » (commerciaux) : coefficient TRIMESTRIEL
+   par leaser (GRENKE / SOLUBAIL), durée (en trimestres) et tranche
+   de montant financé. Loyer = montant financé × coefficient ÷ 100.
+   L'accès admin permet de saisir un coefficient libre (override).
    ============================================================ */
 
-const STORE_KEY = "levad_proposition_v1";
+const STORE_KEY = "levad_proposition_v2";
 const ADMIN_KEY = "levad_proposition_admin_v1";
 
-/* Coefficients de leasing par durée (en années).
-   Le loyer proposé = (rachat + cadeaux + prix machine + livraison
-   + installation + marge) × coefficient ÷ 100, par trimestre.
-   Valeurs « commerciales » par défaut ; l'admin peut les régler
-   (ex. 5 ans à 5,75 pour le « vrai taux »). */
-const DEFAULT_COEFFS = { 3: 9.7, 4: 7.5, 5: 6.05 };
+/* Durées proposées (en trimestres) et leur équivalent mois. */
+const DURATIONS = [
+  { trim: 12, mois: 36 },
+  { trim: 13, mois: 39 },
+  { trim: 16, mois: 48 },
+  { trim: 17, mois: 51 },
+  { trim: 20, mois: 60 },
+  { trim: 21, mois: 63 },
+];
 
-/* Mot de passe admin par défaut (modifiable une fois déverrouillé).
-   ⚠️ Sécurité « de confort » : le gabarit reste côté client, ceci
-   empêche seulement une modification accidentelle des coefficients. */
+/* Tranches de montant financé (borne haute exclue). */
+const TRANCHES = [10000, 25000, Infinity]; // 0-10k / 10k-25k / +25k
+
+/* Barème Location 2025 — coefficient trimestriel (%).
+   [tranche0, tranche1, tranche2] pour chaque durée (trimestres). */
+const BAREME = {
+  GRENKE: {
+    12: [9.85, 9.70, 9.65], 13: [9.35, 9.15, 9.05],
+    16: [7.60, 7.45, 7.40], 17: [7.20, 7.10, 7.00],
+    20: [6.30, 6.15, 6.10], 21: [6.05, 5.95, 5.85],
+  },
+  SOLUBAIL: {
+    12: [10.70, 10.55, 10.45], 13: [10.15, 9.95, 9.85],
+    16: [8.25, 8.15, 8.05], 17: [7.85, 7.75, 7.65],
+    20: [6.85, 6.70, 6.65], 21: [6.60, 6.50, 6.40],
+  },
+};
+const LEASERS = ["GRENKE", "SOLUBAIL"];
+
+/* Majoration du coefficient en paiement mensuel. */
+const MAJ_MENSUEL = 1.015;
+
+/* Mot de passe admin par défaut (modifiable une fois déverrouillé). */
 const DEFAULT_ADMIN_PASSWORD = "levad";
 
 /* Coordonnées commerciales / société par défaut. */
 const DEFAULT_COMPANY = {
-  repName: "Betty Diop",
-  repTitle: "Ingénieure Commerciale",
-  repEmail: "bdiop@levad.fr",
-  repPhone: "01.70.72.19.40",
+  repName: "",
+  repTitle: "Ingénieur(e) Commercial(e)",
+  repPhone: "01 70 72 19 40",  // fixe par défaut
+  repMobile: "",               // portable (optionnel)
+  repEmail: "",                // calculé auto depuis le nom
+  repEmailManual: false,       // true si saisi à la main
 };
 
-/* Valeurs par défaut d'une machine (une ligne = un remplacement :
-   une machine actuelle -> une machine proposée). */
+/* Libellés de services par défaut (renommables). Les 2 derniers
+   sont des champs libres (libellé vide = ligne ignorée). */
+function defaultServices() {
+  return [
+    { label: "Service Pass", sa: 0, sp: 0 },
+    { label: "Abonnement service (TAS)", sa: 0, sp: 0 },
+    { label: "Recyclage", sa: 0, sp: 0 },
+    { label: "E-maintenance", sa: 0, sp: 0 },
+    { label: "", sa: 0, sp: 0 },   // champ libre 1
+    { label: "", sa: 0, sp: 0 },   // champ libre 2
+  ];
+}
+
+/* Une ligne = un remplacement (machine actuelle -> machine proposée). */
 function defaultMachine() {
   return {
     id: cryptoId(),
-    // --- Situation actuelle ---
+    // ---- Situation actuelle (SA) ----
     currentModel: "",
-    prospect: false,        // true = prospect (pas de contrat à racheter)
+    prospect: false,        // false = client Levad, true = prospect (concurrent)
     loyerActuel: 0,         // loyer trimestriel actuel (€)
-    maintMoyenne: 0,        // maintenance moyenne trimestrielle (€)
     trimRestants: 0,        // trimestres restants sur le contrat actuel
-    // volumes & coûts actuels
-    forfaitNB: 0,           // forfait volume N&B (pages/trim)
-    depassNB: 0,            // dépassement N&B (pages)
-    volNBreel: 0,           // volume N&B réel (pages/trim)
-    ccNBactuel: 0,          // coût copie N&B actuel (€)
-    forfaitCoul: 0,
-    depassCoul: 0,
-    volCoulReel: 0,
-    ccCoulActuel: 0,
-    // services actuels (€ / trim)
-    passActuel: 0,
-    tasActuel: 0,
-    emaintActuel: 0,
-    scanMailActuel: 0,
-    recyclageActuel: 0,
-    forfaitEurNBactuel: 0,  // forfait fixe N&B en € (souvent 0)
-    forfaitEurCoulActuel: 0,
-    // --- Solution proposée ---
+    forfaitNB: 0, depassNB: 0, volNBreel: 0, ccNBactuel: 0,
+    forfaitCoul: 0, depassCoul: 0, volCoulReel: 0, ccCoulActuel: 0,
+    services: defaultServices(),
+    // ---- Solution proposée (SP) ----
     proposedModel: "",
-    cadeaux: 0,             // remises/cadeaux (€, valeur négative en déduction)
     prixMachine: 0,
-    livraison: 0,
+    livraison: 0, portageLivraison: 0,
+    retrait: 0, portageRetrait: 0,
     installation: 0,
-    marge: 0,               // marge commerciale (€)
-    ccNBpropose: 0,         // nouveau coût copie N&B (€)
-    ccCoulPropose: 0,
-    passPropose: 0,
-    tasPropose: 0,
-    emaintPropose: 0,
-    scanMailPropose: 0,
-    recyclagePropose: 0,
-    forfaitEurNBpropose: 0,
-    forfaitEurCoulPropose: 0,
+    marge: 0,
+    cadeaux: 0, cadeauxLabel: "",
+    ccNBpropose: 0, ccCoulPropose: 0,
   };
 }
 
 function defaultState() {
   return {
-    client: {
-      name: "",
-      contact: "",
-      addr1: "",
-      addr2: "",
-      date: todayISO(),
-    },
+    client: { name: "", contact: "", addr1: "", addr2: "", date: todayISO() },
     company: { ...DEFAULT_COMPANY },
-    durationYears: 5,
-    coeffs: { ...DEFAULT_COEFFS },
+    leaser: "GRENKE",
+    durationTrim: 20,       // trimestres
+    periodicite: "T",       // "T" = trimestre, "M" = mois
+    coeffOverride: "",      // coefficient libre admin ("" = barème)
     machines: [defaultMachine()],
   };
 }
@@ -96,7 +111,6 @@ function cryptoId() {
   if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
   return "m" + Math.random().toString(36).slice(2, 10);
 }
-
 function todayISO() {
   const d = new Date();
   const p = (n) => String(n).padStart(2, "0");

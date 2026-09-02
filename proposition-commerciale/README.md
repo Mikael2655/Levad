@@ -1,83 +1,99 @@
 # Levad — Proposition commerciale
 
 Outil web (sans installation, **fonctionne hors-ligne**) pour préparer une
-proposition commerciale d'impression : on saisit les données du client et de
-chaque machine, l'outil calcule le comparatif **Situation Actuelle (SA)** vs
-**Solution Proposée (SP)**, puis génère automatiquement :
+proposition commerciale d'impression : on saisit le client et chaque machine,
+l'outil calcule le comparatif **Situation Actuelle (SA)** vs **Solution
+Proposée (SP)**, puis génère :
 
-- le **fichier Excel** « SA / SP type » (étude comparative de coûts) ;
-- la **présentation PowerPoint** de l'offre, à partir de votre modèle complet
-  (31 slides, charte Levad conservée à l'identique).
+- le **fichier Excel** « SA / SP type » (étude comparative de coûts, à la mise
+  en forme du modèle fourni) ;
+- la **présentation PowerPoint** de l'offre (votre modèle complet de 31 slides,
+  charte conservée).
 
 Aucune donnée n'est envoyée : tout reste dans le navigateur (localStorage).
 
-## Nouveautés par rapport aux simulateurs Excel
+## Saisie
 
-- **Plusieurs machines** : chaque ligne représente un remplacement (une
-  machine actuelle → une machine proposée) avec ses propres loyers,
-  trimestres restants, volumes et coûts copie. Le tableau du PowerPoint et
-  l'Excel se remplissent automatiquement, une ligne par machine, et le bloc
-  « Solution proposée » du slide comparatif se décale selon le nombre de lignes.
-- **Markup déverrouillable** : les coefficients de leasing (le markup
-  commercial) ne sont modifiables qu'après saisie du mot de passe admin.
+- **Plusieurs machines** : chaque ligne = un remplacement (machine actuelle →
+  proposée) avec ses propres loyers, trimestres restants, volumes et coûts copie.
+- **Situation actuelle** : machine, loyer, forfait N&B engagé, dépassement,
+  volume réel, coût page — idem couleur ; puis les **services & abonnements**
+  (Service Pass, Abonnement service/TAS, Recyclage, E-maintenance) **dont les
+  libellés sont modifiables**, plus 2 champs libres. Chaque service a une valeur
+  actuelle (SA) et proposée (SP).
+- **Solution proposée** : machine, prix machine, livraison + **portage
+  livraison**, retrait + **portage retrait**, installation, marge, coûts copie
+  proposés, et **Cadeaux / autres** avec un descriptif libre. Les volumes N&B /
+  couleur de la SP reprennent automatiquement le **volume facturable**.
+- **Commercial** : nom, fonction, **téléphone fixe** (01 70 72 19 40 par
+  défaut), **portable** (optionnel), **email calculé automatiquement**
+  (1re lettre du prénom + nom complet @levad.fr, modifiable).
+- **Récapitulatif par machine** : rachat total, prix machine (livraison +
+  installation incluses), marge, total SA, total SP, économie/surcoût.
 
-## Utilisation
+## Calcul
 
-1. Renseignez le **client**, le **commercial**, la **durée** (3/4/5 ans).
-2. Ajoutez vos **machines** (bouton « ＋ Ajouter une machine ») et remplissez,
-   pour chacune, la *Situation actuelle* et la *Solution proposée*. Les champs
-   rarement utilisés (forfaits, TAS, scan to mail, recyclage…) sont sous
-   « Options avancées ».
-3. La **synthèse** (SA, SP, économie annuelle) se met à jour en direct.
-4. Exportez : **⬇︎ Excel SA/SP** et **⬇︎ PowerPoint**.
+Par machine, au **trimestre** :
 
-## Logique de calcul (reprise des simulateurs)
-
-Par machine, et par **trimestre** :
-
-- **Rachat** du contrat actuel = `loyer actuel × trimestres restants`
-  (0 pour un prospect).
-- **Loyer proposé** = `(rachat + cadeaux + prix machine + livraison +
-  installation + marge) × coefficient ÷ 100`.
-- **Maintenance** N&B / couleur : `forfait × coût copie` si le forfait dépasse
-  le volume réel, sinon `volume réel × coût copie`.
-- **Total SA** = loyer actuel + maintenance + services (pass, e-maintenance…).
+- **Volume facturable** = le plus grand de « forfait engagé + dépassement » ou
+  « volume réel ». Sert à la maintenance SA et aux volumes SP.
+- **Rachat du contrat actuel**
+  - *Client Levad* : `loyer actuel × trimestres restants`.
+  - *Prospect (chez un concurrent)* : `loyer × trim × 1,10` (pénalité 10 %)
+    `+ (maintenance N&B + maintenance couleur + abonnements) × trim`.
+- **Montant financé** = rachat + prix machine + livraison + portages + retrait
+  + installation + marge + cadeaux.
+- **Loyer proposé** = `montant financé × coefficient ÷ 100`.
+- **Total SA** = loyer actuel + maintenance + services actuels.
 - **Total SP** = loyer proposé + coûts copie proposés + services proposés.
 - **Économie annuelle** = `(Total SA − Total SP) × 4`.
 
-### Coefficients de leasing (markup)
+### Barème & leaser (Location 2025)
 
-| Durée | Défaut commercial |
-|------:|:-----------------:|
-| 3 ans | 9,7 |
-| 4 ans | 7,5 |
-| 5 ans | 6,05 |
+Le loyer utilise le **coefficient trimestriel** du barème selon le **leaser**
+(GRENKE ou SOLUBAIL), la **durée** (12 / 13 / 16 / 17 / 20 / 21 trimestres) et
+la **tranche de montant financé** (0–10 k / 10–25 k / +25 k €). En **paiement
+mensuel**, le coefficient est majoré de **1,5 %** (note du barème).
 
-Déverrouillables via **🔒 Accès admin** (mot de passe par défaut : `levad`,
-modifiable). C'est là qu'on passe, par exemple, au « vrai taux » (5 ans à 5,75).
+L'**accès admin** permet de saisir un **coefficient libre** (override du
+barème) — utile pour un cas particulier. Le terme « coefficient » n'apparaît
+pas dans l'interface commerciale.
+
+### Périodicité
+
+Un sélecteur **Trimestrielle / Mensuelle** pilote l'affichage de tous les
+documents (les montants sont divisés par 3 au mois) ; le loyer proposé applique
+en plus la majoration mensuelle de 1,5 %.
 
 ## Accès admin
 
-Le bouton **🔒 Accès admin** demande le mot de passe puis débloque l'édition
-des coefficients. Le mot de passe peut être changé (stocké haché en local).
-⚠️ Sécurité « de confort » : le gabarit et les calculs restent côté navigateur,
-ce verrou empêche surtout une modification accidentelle des coefficients.
+Bouton **🔒 Accès admin** (mot de passe par défaut : `levad`, modifiable,
+stocké haché). Débloque le champ coefficient libre. ⚠️ Sécurité « de confort ».
 
-## Fonctionnement du PowerPoint
+## Exports
 
-`assets/template.pptx` est votre présentation d'origine dans laquelle les
-champs dynamiques ont été remplacés par des jetons `{{…}}`. À l'export, l'outil
-ouvre ce gabarit (ZIP OOXML) dans le navigateur, injecte les valeurs et clone
-la ligne de tableau pour chaque machine, sans rien modifier d'autre (catalogue
-produits, sécurité, e-maintenance… restent intacts).
+- **Excel SA/SP** (ExcelJS) : reprend la mise en forme du modèle (titre, client,
+  blocs SA / SP côte à côte, une ligne par poste — **chaque service séparé**,
+  pas d'addition), total et économie annuelle. En-têtes selon la périodicité.
+- **PowerPoint** : `assets/template.pptx` est votre présentation d'origine dont
+  les champs dynamiques sont des jetons `{{…}}`. À l'export, le navigateur
+  (JSZip) injecte les valeurs et clone une ligne de tableau par machine.
+  Champs injectés :
+  - **Page 1** : date ; en bas à gauche nom / fixe / portable (si saisi) /
+    email ; en bas à droite adresse + `www.levad.fr` (téléphone retiré).
+  - **Page 4** : date, client, machine(s) en titre, commercial (téléphone =
+    fixe seul ou fixe / portable).
+  - **Page 26** : tableaux SA / SP par machine (sans « soit …/mois »), unité
+    selon la périodicité.
+  - **Page 27** : durée et périodicité du simulateur ; références des machines
+    proposées et loyers SP selon la périodicité.
+  - **Page 30** : montant e-maintenance proposé (ou « Offert » si vide).
+  - **Page 31** : périodicité + valeur SP, durée, coûts copie proposés ;
+    signature = commercial ; cadre « bon pour accord » agrandi.
 
-Champs injectés : date, contact/adresse client, nom & fonction du commercial,
-machine(s) en titre de la lettre, tableaux comparatifs SA/SP (slide 26), et
-synthèse « Bon pour accord » (slide 31).
-
-Pour **mettre à jour le modèle** (nouveau design, nouvelles slides) tout en
-gardant les jetons, régénérez `assets/template.pptx` avec le script
-`tools/prepare_template.py`.
+  > Régénérer le modèle : `python3 tools/prepare_template.py SOURCE.pptx assets/template.pptx`.
+  > Le texte figé dans une **image** (ex. « achat » dans le petit tableau image
+  > de la page 27) n'est pas modifiable par l'outil.
 
 ## Structure
 
@@ -85,15 +101,15 @@ gardant les jetons, régénérez `assets/template.pptx` avec le script
 proposition-commerciale/
   index.html
   css/style.css
-  js/config.js        paramètres & valeurs par défaut
+  js/config.js        modèle de données, barème, valeurs par défaut
   js/utils.js         stockage local, téléchargement
   js/calc.js          moteur de calcul SA/SP + formatage
-  js/export-excel.js  génération du .xlsx (SheetJS)
+  js/export-excel.js  génération du .xlsx (ExcelJS)
   js/export-pptx.js   injection dans le gabarit .pptx (JSZip)
   js/app.js           interface & événements
-  vendor/             JSZip, SheetJS (locaux, hors-ligne)
+  vendor/             JSZip, ExcelJS (locaux, hors-ligne)
   assets/template.pptx  votre modèle tokenisé
-  tools/prepare_template.py  (re)génère le gabarit à partir du PPTX source
+  tools/prepare_template.py  (re)génère le gabarit
   sw.js, manifest.webmanifest, icon.png
 ```
 
