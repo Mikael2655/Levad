@@ -13,9 +13,18 @@ function num(v) {
   return isFinite(n) ? n : 0;
 }
 
-/* Volume facturable = le plus gros de (forfait + dépassement) ou volume réel. */
-function billedVol(forfait, depass, reel) {
+/* Volume le plus élevé des 2 (forfait+dépassement vs réel) — utilisé pour le rachat. */
+function maxVol(forfait, depass, reel) {
   return Math.max(num(forfait) + num(depass), num(reel));
+}
+/* Volume facturé en maintenance :
+   - dépassement > 0  -> forfait + dépassement (pages réellement imprimées) ;
+   - sinon            -> volume réel (sous-consommation : on ne facture que le réel),
+     à défaut le forfait. Le coût page saisi est celui du forfait engagé. */
+function billedMaint(forfait, depass, reel) {
+  forfait = num(forfait); depass = num(depass); reel = num(reel);
+  if (depass > 0) return forfait + depass;
+  return reel > 0 ? reel : forfait;
 }
 
 /* Tranche (index 0/1/2) pour un montant financé. */
@@ -43,23 +52,61 @@ function rachatMachine(m) {
   const loyer = num(m.loyerActuel), trim = num(m.trimRestants);
   const base = loyer * trim;
   if (!m.prospect) return base; // client Levad : solde des loyers restants
-  // prospect (chez un concurrent) : loyers + 10% + maintenance + abonnements
-  const maintNB = billedVol(m.forfaitNB, m.depassNB, m.volNBreel) * num(m.ccNBactuel);
-  const maintCoul = billedVol(m.forfaitCoul, m.depassCoul, m.volCoulReel) * num(m.ccCoulActuel);
+  // prospect (chez un concurrent) : loyers + 10% + maintenance + abonnements.
+  // Le rachat se base sur le volume le plus élevé des 2.
+  const maintNB = maxVol(m.forfaitNB, m.depassNB, m.volNBreel) * num(m.ccNBactuel);
+  const maintCoul = maxVol(m.forfaitCoul, m.depassCoul, m.volCoulReel) * num(m.ccCoulActuel);
   const abos = (m.services || []).reduce((a, s) => a + num(s.sa), 0);
   return base * 1.10 + (maintNB + maintCoul + abos) * trim;
+}
+
+/* Montant financé déduit d'un loyer trimestriel cible (mode "loyer -> marge").
+   Le coefficient dépend de la tranche du montant financé : on cherche la tranche
+   auto-cohérente ; en cas d'ambiguïté (bord de tranche) on retient le meilleur
+   (montant financé le plus élevé = plus de marge). */
+function financedFromLoyer(state, loyerT) {
+  const majo = state.periodicite === "M" ? MAJ_MENSUEL : 1;
+  const ov = num(state.coeffOverride);
+  if (state.coeffOverride !== "" && ov > 0) return loyerT * 100 / (ov * majo);
+  const row = (BAREME[state.leaser] || BAREME.GRENKE)[state.durationTrim];
+  if (!row) return 0;
+  const cands = [];
+  row.forEach((cb, ti) => { const fin = loyerT * 100 / (cb * majo); if (trancheIndex(fin) === ti) cands.push(fin); });
+  if (cands.length) return Math.max(...cands);
+  // aucune tranche cohérente : on prend celle dont le montant est le plus proche d'une borne
+  let best = 0, bestErr = Infinity;
+  row.forEach((cb, ti) => {
+    const fin = loyerT * 100 / (cb * majo);
+    const lo = ti === 0 ? 0 : TRANCHES[ti - 1], hi = TRANCHES[ti];
+    const err = fin < lo ? lo - fin : (fin >= hi ? fin - hi : 0);
+    if (err < bestErr) { bestErr = err; best = fin; }
+  });
+  return best;
 }
 
 function computeMachine(m, state) {
   const rachat = rachatMachine(m);
   const prixComplet = num(m.prixMachine) + num(m.livraison) + num(m.portageLivraison) +
                       num(m.retrait) + num(m.portageRetrait) + num(m.installation);
-  const financed = rachat + prixComplet + num(m.marge) + num(m.cadeaux);
-  const coeffT = baseCoeff(state, financed);
-  const spLoyer = financed * effCoeff(state, financed) / 100;
+  const div = perDivisor(state);
 
-  const billedNB = billedVol(m.forfaitNB, m.depassNB, m.volNBreel);
-  const billedCoul = billedVol(m.forfaitCoul, m.depassCoul, m.volCoulReel);
+  let financed, marge, spLoyer;
+  if (m.margeMode === "loyer") {
+    // on saisit le loyer proposé (par période) -> on en déduit la marge
+    const loyerT = num(m.loyerCible) * div;
+    financed = financedFromLoyer(state, loyerT);
+    marge = financed - rachat - prixComplet - num(m.cadeaux);
+    spLoyer = loyerT;
+  } else {
+    // on saisit la marge -> on calcule le loyer
+    marge = num(m.marge);
+    financed = rachat + prixComplet + marge + num(m.cadeaux);
+    spLoyer = financed * effCoeff(state, financed) / 100;
+  }
+  const coeffT = baseCoeff(state, financed);
+
+  const billedNB = billedMaint(m.forfaitNB, m.depassNB, m.volNBreel);
+  const billedCoul = billedMaint(m.forfaitCoul, m.depassCoul, m.volCoulReel);
 
   const saMaintNB = billedNB * num(m.ccNBactuel);
   const saMaintCoul = billedCoul * num(m.ccCoulActuel);
@@ -75,7 +122,7 @@ function computeMachine(m, state) {
   const spTotal = spLoyer + spMaintNB + spMaintCoul + spServ;
 
   return {
-    rachat, financed, coeffT, prixComplet, marge: num(m.marge),
+    rachat, financed, coeffT, prixComplet, marge, spLoyerT: spLoyer,
     cadeaux: num(m.cadeaux), cadeauxLabel: m.cadeauxLabel || "",
     billedNB, billedCoul, services,
     sa: {

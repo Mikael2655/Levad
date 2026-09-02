@@ -89,7 +89,9 @@ function defaultMachine() {
     livraison: 0, portageLivraison: 0,
     retrait: 0, portageRetrait: 0,
     installation: 0,
+    margeMode: "marge",     // "marge" = marge -> loyer ; "loyer" = loyer -> marge
     marge: 0,
+    loyerCible: 0,          // loyer proposé saisi (par période) en mode "loyer"
     cadeaux: 0, cadeauxLabel: "",
     ccNBpropose: 0, ccCoulPropose: 0,
   };

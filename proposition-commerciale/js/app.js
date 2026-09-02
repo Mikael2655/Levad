@@ -35,7 +35,6 @@ const SP_MAIN = [
   { k: "retrait", label: "Retrait (€)", t: NUM },
   { k: "portageRetrait", label: "Portage retrait (€)", t: NUM },
   { k: "installation", label: "Installation (€)", t: NUM },
-  { k: "marge", label: "Marge commerciale (€)", t: NUM },
   { k: "ccNBpropose", label: "Coût page N&B proposé (€)", t: NUM },
   { k: "ccCoulPropose", label: "Coût page couleur proposé (€)", t: NUM },
 ];
@@ -173,6 +172,23 @@ function machineCard(m, i) {
       <div class="col">
         <h3>Solution proposée</h3>
         <div class="grid">${SP_MAIN.map((f) => mField(m.id, f)).join("")}</div>
+        <div class="subgrid"><h4>Loyer & marge</h4>
+          <div class="grid">
+            <div class="fld"><span>Rachat (calculé)</span><div class="ro" id="ro-rachat-${m.id}"></div></div>
+            <label class="fld"><span>Mode de calcul</span>
+              <select data-scope="machine-sel" data-mid="${m.id}" data-key="margeMode">
+                <option value="marge" ${m.margeMode !== "loyer" ? "selected" : ""}>Marge → loyer</option>
+                <option value="loyer" ${m.margeMode === "loyer" ? "selected" : ""}>Loyer → marge</option>
+              </select></label>
+            ${m.margeMode === "loyer"
+              ? `<label class="fld"><span>Loyer proposé ${perShort(STATE)} (€)</span>
+                   <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="loyerCible" value="${esc(m.loyerCible)}"></label>
+                 <div class="fld"><span>Marge (calculée)</span><div class="ro" id="ro-calc-${m.id}"></div></div>`
+              : `<label class="fld"><span>Marge commerciale (€)</span>
+                   <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="marge" value="${esc(m.marge)}"></label>
+                 <div class="fld"><span>Loyer proposé (calculé) ${perShort(STATE)}</span><div class="ro" id="ro-calc-${m.id}"></div></div>`}
+          </div>
+        </div>
         <div class="subgrid"><h4>Cadeaux / autres</h4>
           <div class="grid">
             <label class="fld"><span>Montant (€, ex. -500)</span>
@@ -216,10 +232,15 @@ function renderResults() {
     const el = document.getElementById("msum-" + m.id); if (!el) return;
     const r = computeMachine(m, STATE), div = perDivisor(STATE);
     const diff = (r.sa.total - r.sp.total) / div;
+    const roR = document.getElementById("ro-rachat-" + m.id);
+    if (roR) roR.textContent = eur(r.rachat);
+    const roC = document.getElementById("ro-calc-" + m.id);
+    if (roC) roC.textContent = m.margeMode === "loyer" ? eur(r.marge) : eur(r.spLoyerT / div);
     el.innerHTML = `
       <span>Rachat total : <b>${eur(r.rachat)}</b></span>
       <span>Prix machine (livr.+install.) : <b>${eur(r.prixComplet)}</b></span>
-      <span>Marge : <b>${eur(r.marge)}</b></span>
+      <span>Marge : <b class="${r.marge < 0 ? "neg" : ""}">${eur(r.marge)}</b></span>
+      <span>Loyer proposé : <b>${eur(r.spLoyerT / div)}</b> ${perShort(STATE)}</span>
       <span>Total SA : <b>${eur(r.sa.total / div)}</b></span>
       <span>Total SP : <b>${eur(r.sp.total / div)}</b></span>
       <span class="${diff >= 0 ? "pos" : "neg"}">${diff >= 0 ? "Économie" : "Surcoût"} : <b>${eur(Math.abs(diff))}</b> ${perShort(STATE)}</span>`;
@@ -265,11 +286,15 @@ document.addEventListener("input", (e) => {
 });
 document.addEventListener("change", (e) => {
   const t = e.target;
-  if (t.tagName === "SELECT" && t.dataset.scope === "root") {
+  if (t.tagName !== "SELECT") return;
+  if (t.dataset.scope === "root") {
     STATE[t.dataset.key] = t.dataset.key === "durationTrim" ? parseInt(t.value, 10) : t.value;
     saveState(STATE);
     if (t.dataset.key === "leaser") renderAdmin();
-    renderResults();
+    renderMachines(); renderResults(); // périodicité/leaser : rafraîchit les libellés
+  } else if (t.dataset.scope === "machine-sel") {
+    const m = mById(t.dataset.mid); if (m) m[t.dataset.key] = t.value;
+    saveState(STATE); renderMachines(); renderResults(); // bascule marge/loyer
   }
 });
 

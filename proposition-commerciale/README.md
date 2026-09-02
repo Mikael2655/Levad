@@ -35,8 +35,14 @@ Aucune donnée n'est envoyée : tout reste dans le navigateur (localStorage).
 
 Par machine, au **trimestre** :
 
-- **Volume facturable** = le plus grand de « forfait engagé + dépassement » ou
-  « volume réel ». Sert à la maintenance SA et aux volumes SP.
+- **Volume facturé** (maintenance SA/SP) :
+  - dépassement > 0 → `forfait + dépassement` (pages réellement imprimées) ;
+  - sous-consommation (réel < forfait) → `volume réel`, mais au coût page du
+    forfait engagé.
+- **Rachat** : se base, lui, sur le **volume le plus élevé** des deux
+  (`forfait + dépassement` vs `réel`).
+- **Marge ↔ loyer** : par machine, deux modes — saisir la **marge** (l'outil
+  calcule le loyer), ou saisir le **loyer proposé** (l'outil calcule la marge).
 - **Rachat du contrat actuel**
   - *Client Levad* : `loyer actuel × trimestres restants`.
   - *Prospect (chez un concurrent)* : `loyer × trim × 1,10` (pénalité 10 %)
