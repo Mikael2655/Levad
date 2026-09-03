@@ -13,6 +13,28 @@
 const STORE_KEY = "levad_proposition_v2";
 const ADMIN_KEY = "levad_proposition_admin_v1";
 
+/* ------------------------------------------------------------
+   Firebase (partage en ligne des comptes & simulations).
+   Tant que ces valeurs restent des exemples « VOTRE_… », l'outil
+   fonctionne en LOCAL (par poste). Pour activer le partage entre
+   postes : créez un projet sur https://console.firebase.google.com,
+   activez Firestore + l'authentification « Anonyme », copiez ici
+   l'objet firebaseConfig de votre application Web, puis publiez les
+   règles du fichier firestore.rules.
+   ------------------------------------------------------------ */
+const FIREBASE_CONFIG = {
+  apiKey: "VOTRE_API_KEY",
+  authDomain: "VOTRE_PROJET.firebaseapp.com",
+  projectId: "VOTRE_PROJET",
+  storageBucket: "VOTRE_PROJET.appspot.com",
+  messagingSenderId: "VOTRE_SENDER_ID",
+  appId: "VOTRE_APP_ID",
+};
+const FIREBASE_READY = (function (c) {
+  return !!c && !!c.apiKey && c.apiKey.indexOf("VOTRE_") !== 0
+    && !!c.projectId && c.projectId.indexOf("VOTRE_") !== 0;
+})(FIREBASE_CONFIG);
+
 /* Durées proposées (en trimestres) et leur équivalent mois. */
 const DURATIONS = [
   { trim: 12, mois: 36 },

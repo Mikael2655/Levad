@@ -11,8 +11,15 @@ let SHOW_ARCHIVED = false;
 const NUM = "num", TXT = "txt";
 
 /* -------------------- Démarrage & connexion -------------------- */
-async function boot() {
+async function start() {
+  const scr = document.getElementById("screen");
+  if (scr) scr.innerHTML = `<section class="card"><p class="muted">Chargement…</p></section>`;
+  await Store.init();
+  Store.onUpdate = () => { if (CURRENT_USER) { renderSaved(); if (ADMIN) renderUsers(); } };
   await initAuth();
+  await boot();
+}
+async function boot() {
   CURRENT_USER = getCurrentUser();
   if (CURRENT_USER) {
     ADMIN = !!CURRENT_USER.isAdmin;
@@ -121,7 +128,8 @@ function renderApp() {
   const s = STATE;
   document.getElementById("screen").innerHTML = `
     <section class="card saved-card">
-      <div class="card-head"><h2>Simulations enregistrées</h2>
+      <div class="card-head"><h2>Simulations enregistrées
+        <span class="mode-chip ${Store.mode === "firebase" ? "on" : "off"}">${Store.mode === "firebase" ? "synchronisé" : "local (ce poste)"}</span></h2>
         <div class="head-actions">
           <button class="btn ghost small" data-action="toggle-arch">${SHOW_ARCHIVED ? "Masquer les archives" : "Voir les archives"}</button>
           <button class="btn ghost small" data-action="new-sim">＋ Nouvelle</button>
@@ -443,29 +451,30 @@ document.addEventListener("click", async (e) => {
     case "admin-clear-override": STATE.coeffOverride = ""; saveState(STATE); renderAdmin(); renderResults(); break;
     case "login": await doLogin(); break;
     case "logout": logout(); CURRENT_USER = null; ADMIN = false; STATE = null; renderLogin(); updateTopbar(); break;
-    case "new-sim":
+    case "new-sim": {
       if (!confirm("Démarrer une nouvelle simulation vierge ? (la saisie en cours non enregistrée sera perdue)")) break;
-      STATE = loadDraftFor({ ...CURRENT_USER });
-      // repart d'un état neuf pré-rempli du profil
-      { const fresh = defaultState(); fresh.company = STATE.company; STATE = fresh; }
-      saveState(STATE); renderApp(); flash("Nouvelle simulation.");
+      const fresh = defaultState();
+      fresh.company = {
+        ...fresh.company, repName: CURRENT_USER.name || "", repTitle: CURRENT_USER.title || "",
+        repPhone: CURRENT_USER.phone || "01 70 72 19 40", repMobile: CURRENT_USER.mobile || "",
+        repEmail: CURRENT_USER.email || "", repEmailManual: !!CURRENT_USER.email,
+      };
+      STATE = fresh; saveState(STATE); renderApp(); flash("Nouvelle simulation.");
       break;
+    }
     case "toggle-arch": SHOW_ARCHIVED = !SHOW_ARCHIVED; renderApp(); break;
     case "save-sim": {
       const def = ((STATE.client.name || "Simulation") + " — " + dateShort(STATE.client.date || todayISO()));
       const name = prompt("Nom de la simulation :", def); if (!name) break;
-      const list = loadSims();
-      const now = new Date().toLocaleString("fr-FR");
-      const existing = list.find((x) => x.userId === CURRENT_USER.id && x.name === name);
+      const existing = loadSims().find((x) => x.userId === CURRENT_USER.id && x.name === name);
       const snap = {
         id: existing ? existing.id : cryptoId(),
         userId: CURRENT_USER.id, userName: CURRENT_USER.name,
-        name, clientName: STATE.client.name || "", savedAt: now,
-        archived: existing ? existing.archived : false,
+        name, clientName: STATE.client.name || "", savedAt: new Date().toLocaleString("fr-FR"),
+        archived: existing ? !!existing.archived : false,
         state: JSON.parse(JSON.stringify(STATE)),
       };
-      if (existing) Object.assign(existing, snap); else list.unshift(snap);
-      writeSims(list); renderSaved(); flash("Simulation enregistrée.");
+      await Store.putSim(snap); renderSaved(); flash("Simulation enregistrée.");
       break;
     }
     case "load-sim": {
@@ -476,15 +485,15 @@ document.addEventListener("click", async (e) => {
       break;
     }
     case "arch-sim": case "unarch-sim": {
-      const list = loadSims(); const s = list.find((x) => x.id === btn.dataset.sim); if (!s) break;
+      const s = loadSims().find((x) => x.id === btn.dataset.sim); if (!s) break;
       if (!ADMIN && s.userId !== CURRENT_USER.id) break;
-      s.archived = (a === "arch-sim"); writeSims(list); renderSaved();
+      s.archived = (a === "arch-sim"); await Store.putSim(s); renderSaved();
       break;
     }
     case "del-sim": {
       if (!ADMIN) break;
       if (!confirm("Supprimer définitivement cette simulation ?")) break;
-      writeSims(loadSims().filter((x) => x.id !== btn.dataset.sim)); renderSaved();
+      await Store.removeSim(btn.dataset.sim); renderSaved();
       break;
     }
     case "add-user": {
@@ -535,4 +544,4 @@ function flash(msg, err) {
   });
 })();
 
-boot();
+start();

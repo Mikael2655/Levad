@@ -22,9 +22,32 @@ que **ses** simulations, peut les **archiver** (mais pas les supprimer) et ne
 peut pas gérer les comptes. Le **profil** de chaque compte (nom, fonction,
 téléphones, email) pré-remplit automatiquement la partie « Commercial ».
 
-> ⚠️ Sans serveur (site statique), comptes et données restent **dans le
-> navigateur de chaque poste** : c'est une séparation de confort, pas une
-> sécurité forte, et le partage entre appareils nécessiterait un back-end.
+> Par défaut (sans Firebase configuré), comptes et données restent **dans le
+> navigateur de chaque poste**. Une pastille indique le mode : **local (ce
+> poste)** ou **synchronisé**.
+
+### Activer le partage en ligne (Firebase)
+
+Pour que **tous les commerciaux partagent** comptes et simulations (et que
+l'admin voie tout depuis n'importe quel appareil) :
+
+1. Créez un projet sur https://console.firebase.google.com (gratuit).
+2. **Build → Firestore Database** → *Créer une base* (mode production).
+3. **Build → Authentication** → *Sign-in method* → activez **Anonyme**.
+4. **Paramètres du projet** → *Vos applications* → ajoutez une **application Web**
+   et copiez l'objet `firebaseConfig`.
+5. Collez ses valeurs dans `js/config.js` (objet `FIREBASE_CONFIG`), à la place
+   des « VOTRE_… ».
+6. Dans **Firestore → Règles**, collez le contenu de `firestore.rules` et publiez.
+
+Au prochain chargement, la pastille passe à **synchronisé** et les données sont
+partagées en temps réel. Tant que la config n'est pas renseignée (ou hors-ligne),
+l'outil retombe automatiquement en mode local.
+
+> Modèle « confort » : la connexion (identifiant + mot de passe) et le rôle
+> admin sont gérés côté application ; Firestore n'exige qu'une connexion
+> anonyme. Pour un cloisonnement infaillible au niveau de la base, il faudrait
+> de vrais comptes Firebase Auth + Cloud Functions.
 
 ## Saisie
 
