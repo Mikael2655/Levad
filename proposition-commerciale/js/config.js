@@ -126,7 +126,7 @@ function defaultState() {
     client: { name: "", contact: "", addr1: "", addr2: "", date: todayISO() },
     company: { ...DEFAULT_COMPANY },
     leaser: "GRENKE",
-    durationTrim: 20,       // trimestres
+    durationTrim: 21,       // trimestres
     periodicite: "T",       // "T" = trimestre, "M" = mois
     coeffOverride: "",      // coefficient libre admin ("" = barème)
     machines: [defaultMachine()],
