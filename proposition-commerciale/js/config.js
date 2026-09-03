@@ -94,6 +94,7 @@ function defaultMachine() {
     loyerCible: 0,          // loyer proposé saisi (par période) en mode "loyer"
     cadeaux: 0, cadeauxLabel: "",
     ccNBpropose: 0, ccCoulPropose: 0,
+    spVolNB: "", spVolCoul: "",   // volumes proposés : "" = auto (facturé), sinon override
   };
 }
 
