@@ -10,7 +10,7 @@ Dépendance : python-pptx
 """
 import os
 import sys
-from copy import deepcopy
+from lxml import etree
 from pptx import Presentation
 from pptx.util import Inches, Emu, Pt
 from pptx.dml.color import RGBColor
@@ -41,26 +41,6 @@ def set_para(paragraph, text):
         r._r.getparent().remove(r._r)
 
 
-def set_para_any(paragraph, text, like=None):
-    """Comme set_para, mais crée un run si le paragraphe est vide (aucun run),
-    en copiant le format d'un run modèle `like` (ou de endParaRPr à défaut)."""
-    runs = paragraph.runs
-    if runs:
-        set_para(paragraph, text)
-        return
-    r = paragraph.add_run()
-    r.text = text
-    src_rpr = None
-    if like is not None and like.runs:
-        src_rpr = like.runs[0]._r.find(qn("a:rPr"))
-    if src_rpr is None:
-        src_rpr = paragraph._p.find(qn("a:endParaRPr"))
-    if src_rpr is not None:
-        new_rpr = deepcopy(src_rpr)
-        new_rpr.tag = qn("a:rPr")
-        r._r.insert(0, new_rpr)
-
-
 def drop_extra_paras(tf, keep):
     for p in tf.paragraphs[keep:]:
         p._p.getparent().remove(p._p)
@@ -69,6 +49,17 @@ def drop_extra_paras(tf, keep):
 def drop_para(tf, idx):
     p = tf.paragraphs[idx]
     p._p.getparent().remove(p._p)
+
+
+def fr_all_text(prs):
+    """Force lang="fr-FR" sur tous les runs (et fins de paragraphe) de toutes les
+    diapositives : le modèle d'origine est tagué en anglais (lang="en-US"), ce qui
+    fait souligner en rouge la quasi-totalité du texte français par le correcteur
+    orthographique de PowerPoint."""
+    for s in prs.slides:
+        for el in s._element.iter():
+            if etree.QName(el).localname in ("rPr", "defRPr", "endParaRPr"):
+                el.set("lang", "fr-FR")
 
 
 def main():
@@ -81,9 +72,9 @@ def main():
     tb14 = shp(s1, "TextBox 14").text_frame
     set_para(tb14.paragraphs[0], "{{REP_NAME}}")
     set_para(tb14.paragraphs[1], "{{REP_TITLE}}")
-    set_para(tb14.paragraphs[2], "{{REP_PHONE}}")
-    set_para(tb14.paragraphs[3], "{{REP_MOBILE}}")
-    set_para_any(tb14.paragraphs[4], "{{REP_EMAIL}}", like=tb14.paragraphs[3])
+    set_para(tb14.paragraphs[2], "{{REP_PHONELINE}}")
+    set_para(tb14.paragraphs[3], "{{REP_EMAIL}}")
+    drop_para(tb14, 4)   # 5e paragraphe (vide, sans alignement) : inutilisé
     # bas à droite : retire la ligne téléphone (pas juste vidée -> plus d'espace vide),
     # site = www.levad.fr (statique), aligné à la même hauteur que le bloc commercial
     tb15shape = shp(s1, "TextBox 15")
@@ -155,12 +146,13 @@ def main():
         tb17.vertical_anchor = MSO_ANCHOR.MIDDLE
     except Exception:
         pass
-    # loyer : 2 lignes (libellé / montant), plus de 2e loyer vide, centré verticalement
+    # loyer : une seule ligne (montant seul, plus de libellé ni de 2e loyer vide),
+    # centrée verticalement
     tb26shape = shp(s27, "TextBox 26")
     tb26 = tb26shape.text_frame
     drop_para(tb26, 2)
-    set_para(tb26.paragraphs[0], "Loyer {{PER_ADJ_MASC}}")
-    set_para_any(tb26.paragraphs[1], "{{PROP_LOYER_1}} € HT", like=tb26.paragraphs[0])
+    drop_para(tb26, 1)
+    set_para(tb26.paragraphs[0], "{{PROP_LOYER_1}} € HT")
     try:
         tb26.vertical_anchor = MSO_ANCHOR.MIDDLE
     except Exception:
@@ -222,6 +214,10 @@ def main():
     rId = to_delete.get(qn("r:id"))
     prs.part.drop_rel(rId)
     sldIdLst.remove(to_delete)
+
+    # Correcteur orthographique : tout le modèle est tagué en anglais (en-US),
+    # ce qui souligne en rouge la quasi-totalité du texte français.
+    fr_all_text(prs)
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     prs.save(OUT)

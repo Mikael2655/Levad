@@ -31,7 +31,7 @@ async function exportExcel(state, calc) {
   // impression : paysage A4, ajusté sur 1 page, marges réduites
   ws.pageSetup = {
     orientation: "landscape", paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 1,
-    horizontalCentered: true, verticalCentered: false,
+    horizontalCentered: true, verticalCentered: true,
     margins: { left: 0.2, right: 0.2, top: 0.2, bottom: 0.2, header: 0.1, footer: 0.1 },
   };
 
