@@ -105,15 +105,20 @@ function computeMachine(m, state) {
   }
   const coeffT = baseCoeff(state, financed);
 
+  // volume AFFICHÉ (réel) : dépassement -> forfait+dépass, sinon volume réel
   const billedNB = billedMaint(m.forfaitNB, m.depassNB, m.volNBreel);
   const billedCoul = billedMaint(m.forfaitCoul, m.depassCoul, m.volCoulReel);
+  // volume de COÛT (le plus élevé) : max(forfait+dépass, réel)
+  const maxNB = maxVol(m.forfaitNB, m.depassNB, m.volNBreel);
+  const maxCoul = maxVol(m.forfaitCoul, m.depassCoul, m.volCoulReel);
   // volumes proposés : auto (facturé) sauf si l'utilisateur a saisi un override
   const has = (v) => v !== "" && v !== null && v !== undefined;
   const spVolNB = has(m.spVolNB) ? num(m.spVolNB) : billedNB;
   const spVolCoul = has(m.spVolCoul) ? num(m.spVolCoul) : billedCoul;
 
-  const saMaintNB = billedNB * num(m.ccNBactuel);
-  const saMaintCoul = billedCoul * num(m.ccCoulActuel);
+  // SA : coût calculé sur le volume le plus élevé, mais on affichera le volume réel
+  const saMaintNB = maxNB * num(m.ccNBactuel);
+  const saMaintCoul = maxCoul * num(m.ccCoulActuel);
   const spMaintNB = spVolNB * num(m.ccNBpropose);
   const spMaintCoul = spVolCoul * num(m.ccCoulPropose);
 

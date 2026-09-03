@@ -28,6 +28,14 @@ async function exportExcel(state, calc) {
   const widths = [4.8, 4.7, 24, 12, 14, 14, 3, 24, 12, 14, 14, 4.7];
   widths.forEach((w, i) => (ws.getColumn(i + 1).width = w));
 
+  // logo LEVAD en haut à gauche
+  try {
+    const buf = await (await fetch("assets/logo.png")).arrayBuffer();
+    const imgId = wb.addImage({ buffer: buf, extension: "png" });
+    ws.getRow(1).height = 42;
+    ws.addImage(imgId, { tl: { col: 0.2, row: 0.2 }, ext: { width: 190, height: 53 } });
+  } catch (e) { /* logo indisponible : on continue sans */ }
+
   const center = { horizontal: "center", vertical: "middle", wrapText: true };
   const money = '#,##0.00" €"';
   const ccFmtX = '#,##0.000000" €"';

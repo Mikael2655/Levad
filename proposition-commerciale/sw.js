@@ -1,10 +1,11 @@
 /* Service worker — « réseau d'abord », repli hors-ligne sur le cache. */
-const CACHE = "proposition-v4";
+const CACHE = "proposition-v5";
 const CORE = [
   "./",
   "index.html",
   "css/style.css",
   "js/config.js",
+  "js/auth.js",
   "js/utils.js",
   "js/calc.js",
   "js/export-excel.js",

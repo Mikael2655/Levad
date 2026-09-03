@@ -21,10 +21,6 @@ function fileName(state, ext) {
   return `Proposition_${slugify(state.client.name)}_${d}.${ext}`;
 }
 
-/* --- Persistance locale --- */
-function saveState(state) {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
-}
 /* Fusion défensive d'un état chargé avec les valeurs par défaut (schéma évolutif). */
 function normalizeState(s) {
   const base = defaultState();
@@ -41,19 +37,24 @@ function normalizeState(s) {
       : base.machines,
   };
 }
-function loadState() {
+/* Brouillon de l'utilisateur courant (auto-sauvegarde). */
+function saveState(state) {
+  const id = currentUserId();
+  if (!id) return;
+  try { localStorage.setItem(draftKey(id), JSON.stringify(state)); } catch (e) {}
+}
+/* Charge le brouillon d'un utilisateur, ou un état neuf pré-rempli avec son profil. */
+function loadDraftFor(user) {
   try {
-    const raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return defaultState();
-    return normalizeState(JSON.parse(raw));
-  } catch (e) { return defaultState(); }
-}
-
-/* ------ Simulations enregistrées (nommées) ------ */
-const SAVES_KEY = "levad_saved_sims_v1";
-function loadSaved() {
-  try { return JSON.parse(localStorage.getItem(SAVES_KEY)) || []; } catch (e) { return []; }
-}
-function writeSaved(list) {
-  try { localStorage.setItem(SAVES_KEY, JSON.stringify(list)); } catch (e) {}
+    const raw = localStorage.getItem(draftKey(user.id));
+    if (raw) return normalizeState(JSON.parse(raw));
+  } catch (e) {}
+  const s = defaultState();
+  s.company = {
+    ...s.company,
+    repName: user.name || "", repTitle: user.title || "",
+    repPhone: user.phone || "01 70 72 19 40", repMobile: user.mobile || "",
+    repEmail: user.email || "", repEmailManual: !!user.email,
+  };
+  return s;
 }
