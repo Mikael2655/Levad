@@ -12,6 +12,20 @@ Proposée (SP)**, puis génère :
 
 Aucune donnée n'est envoyée : tout reste dans le navigateur (localStorage).
 
+## Comptes & connexion
+
+L'accès est protégé par **identifiant + mot de passe**. **Mikael** est
+l'**administrateur** (mot de passe initial `231912`) : il crée / supprime les
+utilisateurs, réinitialise leurs mots de passe, et **voit toutes les
+simulations** (triées par personne puis par client). Chaque utilisateur ne voit
+que **ses** simulations, peut les **archiver** (mais pas les supprimer) et ne
+peut pas gérer les comptes. Le **profil** de chaque compte (nom, fonction,
+téléphones, email) pré-remplit automatiquement la partie « Commercial ».
+
+> ⚠️ Sans serveur (site statique), comptes et données restent **dans le
+> navigateur de chaque poste** : c'est une séparation de confort, pas une
+> sécurité forte, et le partage entre appareils nécessiterait un back-end.
+
 ## Saisie
 
 - **Plusieurs machines** : chaque ligne = un remplacement (machine actuelle →

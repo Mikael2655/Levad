@@ -3,10 +3,61 @@
    Tout reste dans le navigateur.
    ============================================================ */
 
-let STATE = loadState();
+let STATE = null;
+let CURRENT_USER = null;
 let ADMIN = false;
+let SHOW_ARCHIVED = false;
 
 const NUM = "num", TXT = "txt";
+
+/* -------------------- Démarrage & connexion -------------------- */
+async function boot() {
+  await initAuth();
+  CURRENT_USER = getCurrentUser();
+  if (CURRENT_USER) {
+    ADMIN = !!CURRENT_USER.isAdmin;
+    STATE = loadDraftFor(CURRENT_USER);
+    renderApp();
+  } else {
+    renderLogin();
+  }
+  updateTopbar();
+}
+
+function updateTopbar() {
+  const chip = document.getElementById("user-chip");
+  const out = document.getElementById("logout-btn");
+  if (chip) { chip.textContent = CURRENT_USER ? (CURRENT_USER.name + (CURRENT_USER.isAdmin ? " · admin" : "")) : ""; chip.hidden = !CURRENT_USER; }
+  if (out) out.hidden = !CURRENT_USER;
+}
+
+function renderLogin() {
+  document.getElementById("screen").innerHTML = `
+    <section class="card login-card">
+      <h2>Connexion</h2>
+      <div class="grid">
+        <label class="fld"><span>Identifiant</span>
+          <input type="text" id="login-user" autocomplete="username"></label>
+        <label class="fld"><span>Mot de passe</span>
+          <input type="password" id="login-pass" autocomplete="current-password"></label>
+      </div>
+      <div class="actions">
+        <button class="btn primary" data-action="login">Se connecter</button>
+        <span id="login-msg" class="status err"></span>
+      </div>
+      <p class="muted small">Chaque utilisateur ne voit que ses simulations. L'administrateur gère les comptes.</p>
+    </section>`;
+  const pass = document.getElementById("login-pass");
+  if (pass) pass.addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
+}
+
+async function doLogin() {
+  const u = document.getElementById("login-user").value;
+  const p = document.getElementById("login-pass").value;
+  const user = await tryLogin(u, p);
+  if (!user) { const m = document.getElementById("login-msg"); if (m) m.textContent = "Identifiant ou mot de passe incorrect."; return; }
+  await boot();
+}
 
 /* Champs SA (situation actuelle) hors services — ordre demandé. */
 const SA_MAIN = [
@@ -71,9 +122,17 @@ function renderApp() {
   document.getElementById("screen").innerHTML = `
     <section class="card saved-card">
       <div class="card-head"><h2>Simulations enregistrées</h2>
-        <button class="btn" data-action="save-sim">💾 Enregistrer la simulation</button></div>
+        <div class="head-actions">
+          <button class="btn ghost small" data-action="toggle-arch">${SHOW_ARCHIVED ? "Masquer les archives" : "Voir les archives"}</button>
+          <button class="btn ghost small" data-action="new-sim">＋ Nouvelle</button>
+          <button class="btn" data-action="save-sim">💾 Enregistrer</button>
+        </div>
+      </div>
       <div id="saved-list" class="saved"></div>
     </section>
+    ${ADMIN ? `<section class="card" id="users-card"><div class="card-head"><h2>Utilisateurs</h2>
+        <button class="btn" data-action="add-user">＋ Créer un utilisateur</button></div>
+      <div id="users-list"></div></section>` : ""}
     <section class="card">
       <h2>Client</h2>
       <div class="grid">
@@ -133,18 +192,50 @@ function renderApp() {
       <span id="status" class="status"></span>
     </section>`;
   renderMachines(); renderAdmin(); renderResults(); renderSaved();
+  if (ADMIN) renderUsers();
 }
 
 function renderSaved() {
   const box = document.getElementById("saved-list"); if (!box) return;
-  const list = loadSaved();
-  if (!list.length) { box.innerHTML = `<span class="muted small">Aucune simulation enregistrée. « Enregistrer » sauvegarde la saisie en cours pour la reprendre plus tard.</span>`; return; }
-  box.innerHTML = `
-    <select id="saved-select" class="saved-select">
-      ${list.map((s) => `<option value="${s.id}">${esc(s.name)}${s.savedAt ? " — " + esc(s.savedAt) : ""}</option>`).join("")}
-    </select>
-    <button class="btn small" data-action="load-sim">Charger</button>
-    <button class="btn small danger" data-action="del-sim">Supprimer</button>`;
+  let list = loadSims();
+  if (!ADMIN) list = list.filter((s) => s.userId === CURRENT_USER.id);
+  if (!SHOW_ARCHIVED) list = list.filter((s) => !s.archived);
+  // tri : nom de la personne puis nom du client
+  list.sort((a, b) => (a.userName || "").localeCompare(b.userName || "") ||
+    (a.clientName || a.name || "").localeCompare(b.clientName || b.name || "") ||
+    (b.savedAt || "").localeCompare(a.savedAt || ""));
+  if (!list.length) {
+    box.innerHTML = `<span class="muted small">Aucune simulation${SHOW_ARCHIVED ? "" : " active"} enregistrée. « Enregistrer » sauvegarde la saisie en cours pour la reprendre plus tard.</span>`;
+    return;
+  }
+  box.innerHTML = list.map((s) => {
+    const owner = s.userId === CURRENT_USER.id;
+    const who = ADMIN ? `<b>${esc(s.userName || "—")}</b> · ` : "";
+    return `<div class="sim-row${s.archived ? " arch" : ""}">
+      <span class="sim-name">${who}${esc(s.clientName || s.name || "Sans nom")}${s.archived ? ' <span class="tag">archivée</span>' : ""}
+        <span class="muted small">${esc(s.savedAt || "")}</span></span>
+      <span class="sim-actions">
+        <button class="btn small" data-action="load-sim" data-sim="${s.id}">Charger</button>
+        ${s.archived
+          ? ((owner || ADMIN) ? `<button class="btn small ghost" data-action="unarch-sim" data-sim="${s.id}">Désarchiver</button>` : "")
+          : ((owner || ADMIN) ? `<button class="btn small ghost" data-action="arch-sim" data-sim="${s.id}">Archiver</button>` : "")}
+        ${ADMIN ? `<button class="btn small danger" data-action="del-sim" data-sim="${s.id}">Supprimer</button>` : ""}
+      </span>
+    </div>`;
+  }).join("");
+}
+
+function renderUsers() {
+  const box = document.getElementById("users-list"); if (!box) return;
+  const users = loadUsers();
+  box.innerHTML = users.map((u) => `
+    <div class="sim-row">
+      <span class="sim-name"><b>${esc(u.name)}</b> <span class="muted small">(${esc(u.username)})${u.isAdmin ? " · admin" : ""}</span></span>
+      <span class="sim-actions">
+        <button class="btn small ghost" data-action="reset-pw" data-uid="${u.id}">Réinitialiser mot de passe</button>
+        ${u.id === CURRENT_USER.id ? "" : `<button class="btn small danger" data-action="del-user" data-uid="${u.id}">Supprimer</button>`}
+      </span>
+    </div>`).join("");
 }
 
 function renderMachines() {
@@ -230,14 +321,10 @@ function machineCard(m, i) {
 function renderAdmin() {
   const panel = document.getElementById("admin-panel");
   if (!panel) return;
-  if (!ADMIN) {
-    panel.innerHTML = `<button class="btn ghost small" data-action="admin-unlock">🔒 Accès admin</button>`;
-    return;
-  }
+  if (!ADMIN) { panel.innerHTML = ""; return; } // coefficient masqué aux non-admin
   panel.innerHTML = `
     <div class="admin">
-      <div class="admin-head">🔓 Mode admin
-        <button class="btn ghost small" data-action="admin-lock">Verrouiller</button></div>
+      <div class="admin-head">Réglage admin — coefficient</div>
       <div class="grid">
         <label class="fld"><span>Valeur libre (laisser vide = barème ${esc(STATE.leaser)})</span>
           <input type="number" step="any" inputmode="decimal" data-scope="root" data-key="coeffOverride"
@@ -245,7 +332,6 @@ function renderAdmin() {
       </div>
       <div class="admin-actions">
         <button class="btn ghost small" data-action="admin-clear-override">Revenir au barème</button>
-        <button class="btn ghost small" data-action="admin-passwd">Changer le mot de passe</button>
       </div>
     </div>`;
 }
@@ -354,37 +440,79 @@ document.addEventListener("click", async (e) => {
       flash("Génération du PowerPoint…");
       try { await exportPptx(STATE, computeAll(STATE)); flash("PowerPoint généré."); }
       catch (err) { flash("Erreur PowerPoint : " + err.message, true); console.error(err); } break;
-    case "admin-unlock": {
-      const pw = prompt("Mot de passe admin :"); if (pw == null) break;
-      if (await checkPassword(pw)) { ADMIN = true; renderAdmin(); renderResults();
-        const p = document.getElementById("admin-panel"); if (p) p.scrollIntoView({ block: "center" });
-      } else alert("Mot de passe incorrect."); break;
-    }
-    case "admin-lock": ADMIN = false; renderAdmin(); renderResults(); break;
     case "admin-clear-override": STATE.coeffOverride = ""; saveState(STATE); renderAdmin(); renderResults(); break;
-    case "admin-passwd": { const np = prompt("Nouveau mot de passe admin :"); if (np) { await setPassword(np); flash("Mot de passe modifié."); } break; }
+    case "login": await doLogin(); break;
+    case "logout": logout(); CURRENT_USER = null; ADMIN = false; STATE = null; renderLogin(); updateTopbar(); break;
+    case "new-sim":
+      if (!confirm("Démarrer une nouvelle simulation vierge ? (la saisie en cours non enregistrée sera perdue)")) break;
+      STATE = loadDraftFor({ ...CURRENT_USER });
+      // repart d'un état neuf pré-rempli du profil
+      { const fresh = defaultState(); fresh.company = STATE.company; STATE = fresh; }
+      saveState(STATE); renderApp(); flash("Nouvelle simulation.");
+      break;
+    case "toggle-arch": SHOW_ARCHIVED = !SHOW_ARCHIVED; renderApp(); break;
     case "save-sim": {
       const def = ((STATE.client.name || "Simulation") + " — " + dateShort(STATE.client.date || todayISO()));
       const name = prompt("Nom de la simulation :", def); if (!name) break;
-      const list = loadSaved();
+      const list = loadSims();
       const now = new Date().toLocaleString("fr-FR");
-      const existing = list.find((x) => x.name === name);
-      const snap = { id: existing ? existing.id : cryptoId(), name, savedAt: now, state: JSON.parse(JSON.stringify(STATE)) };
+      const existing = list.find((x) => x.userId === CURRENT_USER.id && x.name === name);
+      const snap = {
+        id: existing ? existing.id : cryptoId(),
+        userId: CURRENT_USER.id, userName: CURRENT_USER.name,
+        name, clientName: STATE.client.name || "", savedAt: now,
+        archived: existing ? existing.archived : false,
+        state: JSON.parse(JSON.stringify(STATE)),
+      };
       if (existing) Object.assign(existing, snap); else list.unshift(snap);
-      writeSaved(list); renderSaved(); flash("Simulation enregistrée.");
+      writeSims(list); renderSaved(); flash("Simulation enregistrée.");
       break;
     }
     case "load-sim": {
-      const sel = document.getElementById("saved-select"); if (!sel) break;
-      const s = loadSaved().find((x) => x.id === sel.value); if (!s) break;
+      const s = loadSims().find((x) => x.id === btn.dataset.sim); if (!s) break;
+      if (!ADMIN && s.userId !== CURRENT_USER.id) break;
       STATE = normalizeState(JSON.parse(JSON.stringify(s.state)));
-      ADMIN = false; saveState(STATE); renderApp(); flash("Simulation chargée.");
+      saveState(STATE); renderApp(); flash("Simulation chargée.");
+      break;
+    }
+    case "arch-sim": case "unarch-sim": {
+      const list = loadSims(); const s = list.find((x) => x.id === btn.dataset.sim); if (!s) break;
+      if (!ADMIN && s.userId !== CURRENT_USER.id) break;
+      s.archived = (a === "arch-sim"); writeSims(list); renderSaved();
       break;
     }
     case "del-sim": {
-      const sel = document.getElementById("saved-select"); if (!sel) break;
-      if (!confirm("Supprimer cette simulation enregistrée ?")) break;
-      writeSaved(loadSaved().filter((x) => x.id !== sel.value)); renderSaved();
+      if (!ADMIN) break;
+      if (!confirm("Supprimer définitivement cette simulation ?")) break;
+      writeSims(loadSims().filter((x) => x.id !== btn.dataset.sim)); renderSaved();
+      break;
+    }
+    case "add-user": {
+      if (!ADMIN) break;
+      const username = prompt("Identifiant (pour se connecter) :"); if (!username) break;
+      const name = prompt("Nom affiché :", username) || username;
+      const pw = prompt("Mot de passe initial :"); if (!pw) break;
+      const title = prompt("Fonction (optionnel) :", "Ingénieur(e) Commercial(e)") || "";
+      const phone = prompt("Téléphone fixe :", "01 70 72 19 40") || "";
+      const mobile = prompt("Portable (optionnel) :", "") || "";
+      const email = prompt("Email (vide = auto prénom+nom) :", "") || "";
+      try { await createUser({ username, name, title, phone, mobile, email, password: pw, isAdmin: false });
+        renderUsers(); flash("Utilisateur créé."); }
+      catch (err) { alert(err.message); }
+      break;
+    }
+    case "del-user": {
+      if (!ADMIN) break;
+      const u = getUserById(btn.dataset.uid); if (!u) break;
+      if (!confirm(`Supprimer l'utilisateur « ${u.name} » ?`)) break;
+      deleteUser(u.id); renderUsers();
+      break;
+    }
+    case "reset-pw": {
+      if (!ADMIN) break;
+      const u = getUserById(btn.dataset.uid); if (!u) break;
+      const pw = prompt(`Nouveau mot de passe pour « ${u.name} » :`); if (!pw) break;
+      await resetUserPassword(u.id, pw); flash("Mot de passe réinitialisé.");
       break;
     }
   }
@@ -395,17 +523,6 @@ function flash(msg, err) {
   el.textContent = msg; el.className = "status" + (err ? " err" : " ok");
   clearTimeout(flash._t); flash._t = setTimeout(() => { el.textContent = ""; el.className = "status"; }, 4000);
 }
-
-/* -------------------- Admin : mot de passe (SHA-256) -------------------- */
-async function sha256(str) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-async function checkPassword(pw) {
-  const stored = localStorage.getItem(ADMIN_KEY);
-  return stored ? (await sha256(pw)) === stored : pw === DEFAULT_ADMIN_PASSWORD;
-}
-async function setPassword(pw) { localStorage.setItem(ADMIN_KEY, await sha256(pw)); }
 
 /* -------------------- Thème -------------------- */
 (function theme() {
@@ -418,4 +535,4 @@ async function setPassword(pw) { localStorage.setItem(ADMIN_KEY, await sha256(pw
   });
 })();
 
-renderApp();
+boot();
