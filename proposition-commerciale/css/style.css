@@ -24,8 +24,9 @@ body {
   color: var(--ink); border-bottom: 1px solid var(--line); box-shadow: var(--shadow);
 }
 .logo { display: flex; align-items: center; gap: 10px; }
-.logo-mark { flex: 0 0 auto; display: block; }
-.logo-word { font-size: 22px; font-weight: 800; letter-spacing: 1.5px; color: var(--ink); }
+.logo-badge { display: inline-flex; align-items: center; background: #fff;
+  border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.logo-badge img { display: block; height: 30px; width: auto; }
 .logo-sub { font-size: 13px; font-weight: 600; color: var(--muted); padding-left: 10px;
   margin-left: 2px; border-left: 2px solid var(--line); }
 .icon-btn { background: var(--field); border: 1px solid var(--line); color: var(--ink);
