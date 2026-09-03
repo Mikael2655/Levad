@@ -134,16 +134,15 @@ function renderMachines() {
   document.getElementById("machines").innerHTML = STATE.machines.map((m, i) => machineCard(m, i)).join("");
 }
 
-/* Services & abonnements : libellé modifiable + valeur SA + valeur SP. */
-function svcRows(m) {
+/* Services & abonnements — un bloc par côté. Le libellé est éditable des 2
+   côtés (partagé) ; `side` = "sa" ou "sp" pour la valeur affichée. */
+function svcRowsSide(m, side) {
   return m.services.map((sv, idx) => `
-    <div class="svc-row">
+    <div class="svc-row2">
       <input class="svc-label" type="text" placeholder="${idx < 4 ? "Libellé" : "Autre (à préciser)"}"
         data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="label" value="${esc(sv.label)}">
-      <input type="number" step="any" inputmode="decimal" placeholder="SA €"
-        data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="sa" value="${esc(sv.sa)}">
-      <input type="number" step="any" inputmode="decimal" placeholder="SP €"
-        data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="sp" value="${esc(sv.sp)}">
+      <input type="number" step="any" inputmode="decimal" placeholder="€"
+        data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="${side}" value="${esc(sv[side])}">
     </div>`).join("");
 }
 
@@ -165,10 +164,23 @@ function machineCard(m, i) {
           <span>Prospect (chez un concurrent) — sinon client Levad</span></label>
         <div class="subgrid"><h4>N&B</h4><div class="grid">${SA_NB.map((f) => mField(m.id, f)).join("")}</div></div>
         <div class="subgrid"><h4>Couleur</h4><div class="grid">${SA_COUL.map((f) => mField(m.id, f)).join("")}</div></div>
+        <div class="subgrid"><h4>Service &amp; abonnements <small>(actuel)</small></h4>
+          ${svcRowsSide(m, "sa")}
+        </div>
       </div>
       <div class="col">
         <h3>Solution proposée</h3>
         <div class="grid">${SP_MAIN.map((f) => mField(m.id, f)).join("")}</div>
+        <div class="subgrid"><h4>Volumes proposés <small>(calcul auto · modifiables)</small></h4>
+          <div class="grid">
+            <label class="fld"><span>Volume N&B proposé (pages)</span>
+              <input type="number" step="any" inputmode="decimal" data-scope="spvol" data-mid="${m.id}" data-key="spVolNB" id="spvol-nb-${m.id}" value="${esc(m.spVolNB)}"></label>
+            <label class="fld"><span>Volume couleur proposé (pages)</span>
+              <input type="number" step="any" inputmode="decimal" data-scope="spvol" data-mid="${m.id}" data-key="spVolCoul" id="spvol-coul-${m.id}" value="${esc(m.spVolCoul)}"></label>
+          </div>
+        </div>
+        <div class="subgrid"><h4>Coûts page proposés</h4>
+          <div class="grid">${SP_CC.map((f) => mField(m.id, f)).join("")}</div></div>
         <div class="subgrid"><h4>Rachat, cadeau &amp; marge</h4>
           <div class="grid">
             <div class="fld"><span>Rachat (calculé)</span><div class="ro" id="ro-rachat-${m.id}"></div></div>
@@ -190,13 +202,9 @@ function machineCard(m, i) {
                  <div class="fld"><span>Loyer proposé (calculé) ${perShort(STATE)}</span><div class="ro" id="ro-calc-${m.id}"></div></div>`}
           </div>
         </div>
-        <div class="subgrid"><h4>Coûts page proposés</h4>
-          <div class="grid">${SP_CC.map((f) => mField(m.id, f)).join("")}</div></div>
-      </div>
-      <div class="col">
-        <h3>Service &amp; abonnements <small>(libellés modifiables · SA / SP)</small></h3>
-        <div class="svc-head"><span>Libellé</span><span>Actuel (SA)</span><span>Proposé (SP)</span></div>
-        ${svcRows(m)}
+        <div class="subgrid"><h4>Service &amp; abonnements <small>(proposé)</small></h4>
+          ${svcRowsSide(m, "sp")}
+        </div>
       </div>
     </div>
     <div class="machine-sum" id="msum-${m.id}"></div>
@@ -230,19 +238,23 @@ function renderResults() {
   STATE.machines.forEach((m) => {
     const el = document.getElementById("msum-" + m.id); if (!el) return;
     const r = computeMachine(m, STATE), div = perDivisor(STATE);
-    const diff = (r.sa.total - r.sp.total) / div;
     const roR = document.getElementById("ro-rachat-" + m.id);
     if (roR) roR.textContent = eur(r.rachat);
     const roC = document.getElementById("ro-calc-" + m.id);
     if (roC) roC.textContent = m.margeMode === "loyer" ? eur(r.marge) : eur(r.spLoyerT / div);
+    // volumes proposés auto : reflète la valeur calculée tant qu'il n'y a pas d'override
+    const nbEl = document.getElementById("spvol-nb-" + m.id);
+    if (nbEl && (m.spVolNB === "" || m.spVolNB == null) && document.activeElement !== nbEl) nbEl.value = Math.round(r.sp.volNB);
+    const coulEl = document.getElementById("spvol-coul-" + m.id);
+    if (coulEl && (m.spVolCoul === "" || m.spVolCoul == null) && document.activeElement !== coulEl) coulEl.value = Math.round(r.sp.volCoul);
+    // ligne récap : rachat, prix machine, logistique, cadeau, marge
+    const logistique = num(m.livraison) + num(m.retrait) + num(m.installation) + num(m.portageLivraison) + num(m.portageRetrait);
     el.innerHTML = `
       <span>Rachat total : <b>${eur(r.rachat)}</b></span>
-      <span>Prix machine (livr.+install.) : <b>${eur(r.prixComplet)}</b></span>
-      <span>Marge : <b class="${r.marge < 0 ? "neg" : ""}">${eur(r.marge)}</b></span>
-      <span>Loyer proposé : <b>${eur(r.spLoyerT / div)}</b> ${perShort(STATE)}</span>
-      <span>Total SA : <b>${eur(r.sa.total / div)}</b></span>
-      <span>Total SP : <b>${eur(r.sp.total / div)}</b></span>
-      <span class="${diff >= 0 ? "pos" : "neg"}">${diff >= 0 ? "Économie" : "Surcoût"} : <b>${eur(Math.abs(diff))}</b> ${perShort(STATE)}</span>`;
+      <span>Prix machine : <b>${eur(num(m.prixMachine))}</b></span>
+      <span>Livraison + retrait + installation : <b>${eur(logistique)}</b></span>
+      <span>Cadeau / autre : <b>${eur(r.cadeaux)}</b></span>
+      <span>Marge : <b class="${r.marge < 0 ? "neg" : ""}">${eur(r.marge)}</b></span>`;
   });
   const res = document.getElementById("results"); if (!res) return;
   const c = computeAll(STATE), div = c.divisor, eco = c.savingYear;
@@ -270,6 +282,12 @@ document.addEventListener("input", (e) => {
   } else if (scope === "svc") {
     const m = mById(t.dataset.mid); const sv = m.services[+t.dataset.idx];
     sv[t.dataset.field] = t.dataset.field === "label" ? t.value : (t.value === "" ? 0 : num(t.value));
+    if (t.dataset.field === "label") { // libellé partagé : synchronise les 2 blocs
+      document.querySelectorAll(`input.svc-label[data-mid="${t.dataset.mid}"][data-idx="${t.dataset.idx}"]`)
+        .forEach((el) => { if (el !== t) el.value = t.value; });
+    }
+  } else if (scope === "spvol") {
+    const m = mById(t.dataset.mid); if (m) m[t.dataset.key] = t.value; // "" = auto
   } else if (scope === "root") {
     STATE[key] = (key === "durationTrim") ? parseInt(t.value, 10) : t.value;
   } else if (scope === "company") {

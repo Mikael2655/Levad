@@ -107,11 +107,15 @@ function computeMachine(m, state) {
 
   const billedNB = billedMaint(m.forfaitNB, m.depassNB, m.volNBreel);
   const billedCoul = billedMaint(m.forfaitCoul, m.depassCoul, m.volCoulReel);
+  // volumes proposés : auto (facturé) sauf si l'utilisateur a saisi un override
+  const has = (v) => v !== "" && v !== null && v !== undefined;
+  const spVolNB = has(m.spVolNB) ? num(m.spVolNB) : billedNB;
+  const spVolCoul = has(m.spVolCoul) ? num(m.spVolCoul) : billedCoul;
 
   const saMaintNB = billedNB * num(m.ccNBactuel);
   const saMaintCoul = billedCoul * num(m.ccCoulActuel);
-  const spMaintNB = billedNB * num(m.ccNBpropose);
-  const spMaintCoul = billedCoul * num(m.ccCoulPropose);
+  const spMaintNB = spVolNB * num(m.ccNBpropose);
+  const spMaintCoul = spVolCoul * num(m.ccCoulPropose);
 
   const services = (m.services || []).map((s) => ({ label: s.label, sa: num(s.sa), sp: num(s.sp) }))
     .filter((s) => s.sa || s.sp); // seulement les services avec un montant
@@ -133,7 +137,7 @@ function computeMachine(m, state) {
     },
     sp: {
       model: m.proposedModel || "Machine proposée", fin: "Location",
-      loyer: spLoyer, volNB: billedNB, volCoul: billedCoul,
+      loyer: spLoyer, volNB: spVolNB, volCoul: spVolCoul,
       ccNB: num(m.ccNBpropose), ccCoul: num(m.ccCoulPropose),
       maintNB: spMaintNB, maintCoul: spMaintCoul, servTotal: spServ, total: spTotal,
     },
