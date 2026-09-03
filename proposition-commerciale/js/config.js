@@ -46,7 +46,7 @@ const LEASERS = ["GRENKE", "SOLUBAIL"];
 const MAJ_MENSUEL = 1.015;
 
 /* Mot de passe admin par défaut (modifiable une fois déverrouillé). */
-const DEFAULT_ADMIN_PASSWORD = "levad";
+const DEFAULT_ADMIN_PASSWORD = "231912";
 
 /* Coordonnées commerciales / société par défaut. */
 const DEFAULT_COMPANY = {
