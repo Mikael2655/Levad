@@ -35,8 +35,18 @@ async function boot() {
 function updateTopbar() {
   const chip = document.getElementById("user-chip");
   const out = document.getElementById("logout-btn");
+  const usersBtn = document.getElementById("users-btn");
   if (chip) { chip.textContent = CURRENT_USER ? (CURRENT_USER.name + (CURRENT_USER.isAdmin ? " · admin" : "")) : ""; chip.hidden = !CURRENT_USER; }
   if (out) out.hidden = !CURRENT_USER;
+  if (usersBtn) usersBtn.hidden = !(CURRENT_USER && ADMIN);
+}
+function openUsersModal() {
+  const modal = document.getElementById("users-modal"); if (!modal) return;
+  modal.hidden = false; renderUsers();
+}
+function closeUsersModal() {
+  const modal = document.getElementById("users-modal"); if (!modal) return;
+  modal.hidden = true;
 }
 
 function renderLogin() {
@@ -154,9 +164,6 @@ function renderApp() {
         : ""}
       <div id="saved-list" class="saved"></div>
     </section>
-    ${ADMIN ? `<section class="card" id="users-card"><div class="card-head"><h2>Utilisateurs</h2>
-        <button class="btn" data-action="add-user">＋ Créer un utilisateur</button></div>
-      <div id="users-list"></div></section>` : ""}
     <section class="card">
       <h2>Client</h2>
       <div class="grid">
@@ -211,7 +218,7 @@ function renderApp() {
 
     <section class="card actions">
       <button class="btn primary" data-action="export-xlsx">⬇︎ Excel SA/SP</button>
-      <button class="btn primary" data-action="export-pptx">⬇︎ PowerPoint</button>
+      <button class="btn primary" data-action="export-pptx">⬇︎ Powerpoint Proposition commerciale</button>
       <button class="btn ghost" data-action="reset">Réinitialiser</button>
       <span id="status" class="status"></span>
     </section>`;
@@ -488,6 +495,8 @@ document.addEventListener("click", async (e) => {
     case "admin-lock": COEFF_UNLOCKED = false; renderAdmin(); break;
     case "admin-clear-override": STATE.coeffOverride = ""; saveState(STATE); renderAdmin(); renderResults(); break;
     case "retry-firebase": location.reload(); break;
+    case "open-users": if (ADMIN) openUsersModal(); break;
+    case "close-users": closeUsersModal(); break;
     case "login": await doLogin(); break;
     case "logout": logout(); CURRENT_USER = null; ADMIN = false; STATE = null; renderLogin(); updateTopbar(); break;
     case "new-sim": {

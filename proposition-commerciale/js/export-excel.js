@@ -28,12 +28,19 @@ async function exportExcel(state, calc) {
   const widths = [4.8, 4.7, 24, 12, 14, 14, 3, 24, 12, 14, 14, 4.7];
   widths.forEach((w, i) => (ws.getColumn(i + 1).width = w));
 
-  // logo LEVAD en haut à gauche
+  // impression : paysage A4, ajusté sur 1 page, marges réduites
+  ws.pageSetup = {
+    orientation: "landscape", paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 1,
+    horizontalCentered: true, verticalCentered: false,
+    margins: { left: 0.2, right: 0.2, top: 0.2, bottom: 0.2, header: 0.1, footer: 0.1 },
+  };
+
+  // logo LEVAD : dans la case C2, aligné au 1er trait vertical du tableau et
+  // au haut du titre « ÉTUDE COMPARATIVE DE COÛTS »
   try {
     const buf = await (await fetch("assets/logo.png")).arrayBuffer();
     const imgId = wb.addImage({ buffer: buf, extension: "png" });
-    ws.getRow(1).height = 42;
-    ws.addImage(imgId, { tl: { col: 0.2, row: 0.2 }, ext: { width: 190, height: 53 } });
+    ws.addImage(imgId, { tl: { col: 2.0, row: 1.0 }, ext: { width: 150, height: 41 } });
   } catch (e) { /* logo indisponible : on continue sans */ }
 
   const center = { horizontal: "center", vertical: "middle", wrapText: true };
