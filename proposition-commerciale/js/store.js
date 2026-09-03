@@ -25,29 +25,27 @@ const Store = {
           this.auth.onAuthStateChanged((u) => { if (u) { this.uid = u.uid; resolve(); } });
           this.auth.signInAnonymously().catch(reject);
         });
+        await this._loadFirebase();   // confirme que les règles autorisent la lecture
         this.mode = "firebase";
+        this._listen();
+        return;
       } catch (e) {
-        console.error("Firebase indisponible, mode local :", e);
+        console.error("Firebase indisponible (règles non publiées ?), repli local :", e);
         this.mode = "local";
       }
     }
-    await this.loadAll();
-    if (this.mode === "firebase") this._listen();
+    this._loadLocal();
   },
 
-  async loadAll() {
-    if (this.mode === "firebase") {
-      const [us, ss] = await Promise.all([
-        this.db.collection("users").get(),
-        this.db.collection("simulations").get(),
-      ]);
-      this.users = us.docs.map((d) => d.data());
-      this.sims = ss.docs.map((d) => d.data());
-    } else {
-      this.users = read(USERS_KEY);
-      this.sims = read(SIMS_KEY);
-    }
+  async _loadFirebase() {
+    const [us, ss] = await Promise.all([
+      this.db.collection("users").get(),
+      this.db.collection("simulations").get(),
+    ]);
+    this.users = us.docs.map((d) => d.data());
+    this.sims = ss.docs.map((d) => d.data());
   },
+  _loadLocal() { this.users = read(USERS_KEY); this.sims = read(SIMS_KEY); },
 
   _listen() {
     this.db.collection("users").onSnapshot((s) => {

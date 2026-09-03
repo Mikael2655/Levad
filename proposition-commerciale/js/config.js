@@ -23,12 +23,13 @@ const ADMIN_KEY = "levad_proposition_admin_v1";
    règles du fichier firestore.rules.
    ------------------------------------------------------------ */
 const FIREBASE_CONFIG = {
-  apiKey: "VOTRE_API_KEY",
-  authDomain: "VOTRE_PROJET.firebaseapp.com",
-  projectId: "VOTRE_PROJET",
-  storageBucket: "VOTRE_PROJET.appspot.com",
-  messagingSenderId: "VOTRE_SENDER_ID",
-  appId: "VOTRE_APP_ID",
+  apiKey: "AIzaSyDfcSakKcNujuO3ZOlLIqiVj1KpzB9Ss2s",
+  authDomain: "levad-simulateur.firebaseapp.com",
+  projectId: "levad-simulateur",
+  storageBucket: "levad-simulateur.firebasestorage.app",
+  messagingSenderId: "684104508767",
+  appId: "1:684104508767:web:37f013f19184cb262d02ea",
+  measurementId: "G-5QMH6D63C4",
 };
 const FIREBASE_READY = (function (c) {
   return !!c && !!c.apiKey && c.apiKey.indexOf("VOTRE_") !== 0
