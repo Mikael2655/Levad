@@ -8,10 +8,11 @@ let ADMIN = false;
 
 const NUM = "num", TXT = "txt";
 
-/* Champs SA (situation actuelle) hors services. */
+/* Champs SA (situation actuelle) hors services — ordre demandé. */
 const SA_MAIN = [
   { k: "currentModel", label: "Machine actuelle", t: TXT, wide: true },
   { k: "loyerActuel", label: "Loyer actuel / trim (€)", t: NUM },
+  { k: "trimRestants", label: "Trimestres restants", t: NUM },
 ];
 const SA_NB = [
   { k: "forfaitNB", label: "Forfait pages N&B engagé", t: NUM },
@@ -133,22 +134,15 @@ function renderMachines() {
   document.getElementById("machines").innerHTML = STATE.machines.map((m, i) => machineCard(m, i)).join("");
 }
 
-/* Services côté SA : libellé éditable + valeur actuelle. */
-function svcRowsSA(m) {
+/* Services & abonnements : libellé modifiable + valeur SA + valeur SP. */
+function svcRows(m) {
   return m.services.map((sv, idx) => `
-    <div class="svc-row2">
-      <input class="svc-label" type="text" placeholder="${idx < 4 ? "Libellé" : "Autre"}"
+    <div class="svc-row">
+      <input class="svc-label" type="text" placeholder="${idx < 4 ? "Libellé" : "Autre (à préciser)"}"
         data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="label" value="${esc(sv.label)}">
-      <input type="number" step="any" inputmode="decimal" placeholder="€"
+      <input type="number" step="any" inputmode="decimal" placeholder="SA €"
         data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="sa" value="${esc(sv.sa)}">
-    </div>`).join("");
-}
-/* Services côté SP : libellé (repris de la SA) + valeur proposée. */
-function svcRowsSP(m) {
-  return m.services.map((sv, idx) => `
-    <div class="svc-row2">
-      <span class="svc-cap" id="svccap-${m.id}-${idx}">${esc(sv.label || "—")}</span>
-      <input type="number" step="any" inputmode="decimal" placeholder="€"
+      <input type="number" step="any" inputmode="decimal" placeholder="SP €"
         data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="sp" value="${esc(sv.sp)}">
     </div>`).join("");
 }
@@ -166,18 +160,11 @@ function machineCard(m, i) {
     <div class="machine-cols">
       <div class="col">
         <h3>Situation actuelle</h3>
-        <div class="prospect-line">
-          <label class="fld chk"><input type="checkbox" data-scope="machine" data-mid="${m.id}" data-key="prospect" ${m.prospect ? "checked" : ""}>
-            <span>Prospect (concurrent)</span></label>
-          <label class="fld"><span>Trimestres restants</span>
-            <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="trimRestants" value="${esc(m.trimRestants)}"></label>
-        </div>
         <div class="grid">${SA_MAIN.map((f) => mField(m.id, f)).join("")}</div>
+        <label class="fld chk"><input type="checkbox" data-scope="machine" data-mid="${m.id}" data-key="prospect" ${m.prospect ? "checked" : ""}>
+          <span>Prospect (chez un concurrent) — sinon client Levad</span></label>
         <div class="subgrid"><h4>N&B</h4><div class="grid">${SA_NB.map((f) => mField(m.id, f)).join("")}</div></div>
         <div class="subgrid"><h4>Couleur</h4><div class="grid">${SA_COUL.map((f) => mField(m.id, f)).join("")}</div></div>
-        <div class="subgrid"><h4>Service & abonnements <small>(libellés modifiables)</small></h4>
-          ${svcRowsSA(m)}
-        </div>
       </div>
       <div class="col">
         <h3>Solution proposée</h3>
@@ -205,9 +192,11 @@ function machineCard(m, i) {
         </div>
         <div class="subgrid"><h4>Coûts page proposés</h4>
           <div class="grid">${SP_CC.map((f) => mField(m.id, f)).join("")}</div></div>
-        <div class="subgrid"><h4>Service & abonnements (proposé)</h4>
-          ${svcRowsSP(m)}
-        </div>
+      </div>
+      <div class="col">
+        <h3>Service &amp; abonnements <small>(libellés modifiables · SA / SP)</small></h3>
+        <div class="svc-head"><span>Libellé</span><span>Actuel (SA)</span><span>Proposé (SP)</span></div>
+        ${svcRows(m)}
       </div>
     </div>
     <div class="machine-sum" id="msum-${m.id}"></div>
@@ -281,10 +270,6 @@ document.addEventListener("input", (e) => {
   } else if (scope === "svc") {
     const m = mById(t.dataset.mid); const sv = m.services[+t.dataset.idx];
     sv[t.dataset.field] = t.dataset.field === "label" ? t.value : (t.value === "" ? 0 : num(t.value));
-    if (t.dataset.field === "label") {
-      const cap = document.getElementById(`svccap-${t.dataset.mid}-${t.dataset.idx}`);
-      if (cap) cap.textContent = t.value || "—";
-    }
   } else if (scope === "root") {
     STATE[key] = (key === "durationTrim") ? parseInt(t.value, 10) : t.value;
   } else if (scope === "company") {
