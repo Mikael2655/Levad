@@ -21,21 +21,23 @@ function moneyP(v, ht) {
 }
 function moneyPlain(v) { const n = num(v); return frNum(n, Number.isInteger(n) ? 0 : 2); }
 
-/* Valeur du service "pass" pour un côté (sa/sp). */
-function passVal(r, side) {
-  const s = (r.services || []).find((x) => /pass/i.test(x.label));
-  return s ? s[side] : 0;
+/* Nombre de pages sans le mot « Pages » (slide 26). */
+function pagesNum(v) { return num(v).toLocaleString("fr-FR", { maximumFractionDigits: 0 }); }
+
+/* Total des abonnements & services pour un côté (sa/sp) d'une machine. */
+function servicesTotal(r, side) {
+  return (r.services || []).reduce((a, s) => a + num(s[side]), 0);
 }
 
 /* Jetons d'une ligne de tableau slide 26 (par période). */
 function rowTokens(pfx, r, div) {
   const side = pfx === "SA" ? r.sa : r.sp;
-  const pass = passVal(r, pfx === "SA" ? "sa" : "sp");
+  const svcTotal = servicesTotal(r, pfx === "SA" ? "sa" : "sp");
   return {
     [`${pfx}_TYPE`]: side.model, [`${pfx}_FIN`]: side.fin,
-    [`${pfx}_LOYER`]: moneyP(side.loyer / div, true),
-    [`${pfx}_VNB`]: pages(side.volNB / div), [`${pfx}_VCOUL`]: pages(side.volCoul / div),
-    [`${pfx}_PASS`]: pass ? moneyP(pass / div, false) : "0",
+    [`${pfx}_LOYER`]: moneyP(side.loyer / div, false),
+    [`${pfx}_VNB`]: pagesNum(side.volNB / div), [`${pfx}_VCOUL`]: pagesNum(side.volCoul / div),
+    [`${pfx}_PASS`]: svcTotal ? moneyP(svcTotal / div, false) : "0",
     [`${pfx}_FNB`]: "0", [`${pfx}_FCOUL`]: "0",
     [`${pfx}_CCNB`]: ccFmt(side.ccNB), [`${pfx}_CCCOUL`]: ccFmt(side.ccCoul),
     [`${pfx}_CE`]: moneyP((side.total - side.loyer) / div, false),
@@ -93,8 +95,8 @@ function scalarTokens(state, calc) {
     PER_UNIT: perUnit(state), PER_ADJ: perAdj(state),
     PER_ADJ_MASC: perAdjMasc(state), PER_ADJ_CAP: perAdjCap(state),
     DUR_TRIM: String(state.durationTrim),
-    PROP_MACHINE_1: props[0] || "", PROP_MACHINE_2: props.slice(1).join(", "),
-    PROP_LOYER_1: loyer(0), PROP_LOYER_2: calc.rows[1] ? loyer(1) : "",
+    PROP_MACHINE_1: props[0] || "",
+    PROP_LOYER_1: loyer(0),
     EMAINT_VAL: emaint > 0 ? moneyP(emaint / div, false) : "Offert",
     SUM_VALEUR: moneyPlain(calc.spLoyerTotal / div),
     SUM_CC_NB: ccPlain(first.ccNB), SUM_CC_COUL: ccPlain(first.ccCoul),

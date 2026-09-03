@@ -21,12 +21,26 @@
     </div>
     <div class="topbar-right">
       <span id="user-chip" class="user-chip" hidden></span>
+      <button id="users-btn" class="btn small" data-action="open-users" hidden>👥 Utilisateurs</button>
       <button id="logout-btn" class="btn small" data-action="logout" hidden>Déconnexion</button>
       <button id="theme-toggle" class="icon-btn" title="Mode clair / sombre" aria-label="Mode clair / sombre">🌙</button>
     </div>
   </header>
 
   <main id="screen"></main>
+
+  <div id="users-modal" class="modal-overlay" hidden>
+    <div class="modal-panel">
+      <div class="card-head">
+        <h2>Utilisateurs</h2>
+        <div class="head-actions">
+          <button class="btn" data-action="add-user">＋ Créer un utilisateur</button>
+          <button class="btn ghost small" data-action="close-users">✕ Fermer</button>
+        </div>
+      </div>
+      <div id="users-list"></div>
+    </div>
+  </div>
 
   <footer class="footer">
     Simulateur SA/SP &amp; générateur de proposition — fonctionne hors-ligne, aucune donnée envoyée.
