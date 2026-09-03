@@ -79,6 +79,9 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .sim-name { font-size: 14px; }
 .sim-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .tag { font-size: 11px; background: var(--accent); color: #fff; border-radius: 6px; padding: 1px 6px; }
+.mode-chip { font-size: 11px; font-weight: 600; border-radius: 999px; padding: 2px 8px; margin-left: 8px; vertical-align: middle; }
+.mode-chip.on { background: var(--pos); color: #fff; }
+.mode-chip.off { background: var(--line); color: var(--muted); }
 .machine-cols .col h3 { margin: 0 0 8px; font-size: 14px; color: var(--brand); }
 .fld.wide { grid-column: 1 / -1; }
 .subgrid { margin-top: 10px; }
