@@ -1,5 +1,5 @@
 /* Service worker — « réseau d'abord », repli hors-ligne sur le cache. */
-const CACHE = "proposition-v9";
+const CACHE = "proposition-v10";
 const CORE = [
   "./",
   "index.html",
