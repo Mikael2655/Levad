@@ -7,6 +7,7 @@ let STATE = null;
 let CURRENT_USER = null;
 let ADMIN = false;
 let SHOW_ARCHIVED = false;
+let COEFF_UNLOCKED = false;   // barème masqué tant que non déverrouillé
 
 const NUM = "num", TXT = "txt";
 
@@ -109,15 +110,23 @@ function mById(id) { return STATE.machines.find((m) => m.id === id); }
 function getPath(o, p) { return p.split(".").reduce((a, k) => (a ? a[k] : undefined), o); }
 function setPath(o, p, v) { const a = p.split("."); const l = a.pop(); a.reduce((x, k) => x[k], o)[l] = v; }
 
+/* Enveloppe un champ numérique en € : retire « (€) » du libellé et affiche
+   le symbole € dans la case. */
+function euroWrap(inp) { return `<div class="money-wrap">${inp}<span class="euro">€</span></div>`; }
+function isMoney(label) { return /\(€\)/.test(label); }
+function stripEuro(label) { return label.replace(/\s*\(€\)/, "").trim(); }
+
 function mField(id, f) {
   const m = mById(id), val = m[f.k];
-  const cls = "fld" + (f.wide ? " wide" : "");
+  const money = isMoney(f.label);
+  const cls = "fld" + (f.wide ? " wide" : "") + (money ? " money" : "");
+  const label = money ? stripEuro(f.label) : f.label;
   if (f.t === TXT) {
-    return `<label class="${cls}"><span>${f.label}</span>
+    return `<label class="${cls}"><span>${label}</span>
       <input type="text" data-scope="machine" data-mid="${id}" data-key="${f.k}" value="${esc(val)}"></label>`;
   }
-  return `<label class="${cls}"><span>${f.label}</span>
-    <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${id}" data-key="${f.k}" value="${esc(val)}"></label>`;
+  const inp = `<input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${id}" data-key="${f.k}" value="${esc(val)}">`;
+  return `<label class="${cls}"><span>${label}</span>${money ? euroWrap(inp) : inp}</label>`;
 }
 function topField(scope, k, label, type, extra) {
   const val = getPath(STATE, `${scope}.${k}`);
@@ -242,14 +251,23 @@ function renderSaved() {
 
 function renderUsers() {
   const box = document.getElementById("users-list"); if (!box) return;
-  const users = loadUsers();
-  box.innerHTML = users.map((u) => `
-    <div class="sim-row">
-      <span class="sim-name"><b>${esc(u.name)}</b> <span class="muted small">(${esc(u.username)})${u.isAdmin ? " · admin" : ""}</span></span>
-      <span class="sim-actions">
+  const uf = (u, k, label, extra) => `<label class="fld"><span>${label}</span>
+    <input type="text" data-scope="user" data-uid="${u.id}" data-key="${k}" value="${esc(u[k] || "")}" ${extra || ""}></label>`;
+  box.innerHTML = loadUsers().map((u) => `
+    <div class="user-row">
+      <div class="user-head"><b>${esc(u.name || u.username)}</b>
+        <span class="muted small">identifiant : ${esc(u.username)}${u.isAdmin ? " · admin" : ""}${u.id === CURRENT_USER.id ? " · vous" : ""}</span></div>
+      <div class="grid">
+        ${uf(u, "name", "Nom affiché")}
+        ${uf(u, "title", "Fonction")}
+        ${uf(u, "phone", "Téléphone fixe")}
+        ${uf(u, "mobile", "Portable")}
+        ${uf(u, "email", "Email")}
+      </div>
+      <div class="sim-actions">
         <button class="btn small ghost" data-action="reset-pw" data-uid="${u.id}">Réinitialiser mot de passe</button>
-        ${u.id === CURRENT_USER.id ? "" : `<button class="btn small danger" data-action="del-user" data-uid="${u.id}">Supprimer</button>`}
-      </span>
+        ${u.id === CURRENT_USER.id ? "" : `<button class="btn small danger" data-action="del-user" data-uid="${u.id}">Supprimer l'utilisateur</button>`}
+      </div>
     </div>`).join("");
 }
 
@@ -296,8 +314,8 @@ function machineCard(m, i) {
         <div class="subgrid"><h4>Rachat, cadeau &amp; marge</h4>
           <div class="grid">
             <div class="fld"><span>Rachat (calculé)</span><div class="ro" id="ro-rachat-${m.id}"></div></div>
-            <label class="fld"><span>Cadeau / autre (€)</span>
-              <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="cadeaux" value="${esc(m.cadeaux)}"></label>
+            <label class="fld money"><span>Cadeau / autre</span>
+              ${euroWrap(`<input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="cadeaux" value="${esc(m.cadeaux)}">`)}</label>
             <label class="fld wide"><span>Descriptif cadeau / autre</span>
               <input type="text" data-scope="machine" data-mid="${m.id}" data-key="cadeauxLabel" value="${esc(m.cadeauxLabel)}"></label>
             <label class="fld"><span>Mode de calcul</span>
@@ -306,11 +324,11 @@ function machineCard(m, i) {
                 <option value="loyer" ${m.margeMode === "loyer" ? "selected" : ""}>Loyer → marge</option>
               </select></label>
             ${m.margeMode === "loyer"
-              ? `<label class="fld"><span>Loyer proposé ${perShort(STATE)} (€)</span>
-                   <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="loyerCible" value="${esc(m.loyerCible)}"></label>
+              ? `<label class="fld money"><span>Loyer proposé ${perShort(STATE)}</span>
+                   ${euroWrap(`<input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="loyerCible" value="${esc(m.loyerCible)}">`)}</label>
                  <div class="fld"><span>Marge (calculée)</span><div class="ro" id="ro-calc-${m.id}"></div></div>`
-              : `<label class="fld"><span>Marge commerciale (€)</span>
-                   <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="marge" value="${esc(m.marge)}"></label>
+              : `<label class="fld money"><span>Marge commerciale</span>
+                   ${euroWrap(`<input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="marge" value="${esc(m.marge)}">`)}</label>
                  <div class="fld"><span>Loyer proposé (calculé) ${perShort(STATE)}</span><div class="ro" id="ro-calc-${m.id}"></div></div>`}
           </div>
         </div>
@@ -337,9 +355,14 @@ function renderAdmin() {
   const panel = document.getElementById("admin-panel");
   if (!panel) return;
   if (!ADMIN) { panel.innerHTML = ""; return; } // coefficient masqué aux non-admin
+  if (!COEFF_UNLOCKED) {
+    panel.innerHTML = `<button class="btn ghost small" data-action="admin-unlock">🔒 Accès admin (barème)</button>`;
+    return;
+  }
   panel.innerHTML = `
     <div class="admin">
-      <div class="admin-head">Réglage admin — coefficient</div>
+      <div class="admin-head">Réglage admin — coefficient
+        <button class="btn ghost small" data-action="admin-lock">Masquer</button></div>
       <div class="grid">
         <label class="fld"><span>Valeur libre (laisser vide = barème ${esc(STATE.leaser)})</span>
           <input type="number" step="any" inputmode="decimal" data-scope="root" data-key="coeffOverride"
@@ -383,7 +406,7 @@ function renderResults() {
       <div class="tot big ${eco >= 0 ? "pos" : "neg"}"><span>${eco >= 0 ? "Économie" : "Surcoût"} annuel</span>
         <b>${eur(Math.abs(eco))}</b><small>${eur(Math.abs(c.savingQuarter) / div)} ${perShort(STATE)}</small></div>
     </div>
-    <p class="muted small">Loyer proposé total : ${eur(c.spLoyerTotal / div)} ${perShort(STATE)} · Rachat total : ${eur(c.rachatTotal)} · ${c.durationTrim} trimestres · ${esc(STATE.leaser)}${ADMIN ? " · coeff " + frNum(baseCoeff(STATE, c.rows[0] ? c.rows[0].financed : 0), 3) : ""}</p>`;
+    <p class="muted small">Loyer proposé total : ${eur(c.spLoyerTotal / div)} ${perShort(STATE)} · Rachat total : ${eur(c.rachatTotal)} · ${c.durationTrim} trimestres · ${esc(STATE.leaser)}${(ADMIN && COEFF_UNLOCKED) ? " · coeff " + frNum(baseCoeff(STATE, c.rows[0] ? c.rows[0].financed : 0), 3) : ""}</p>`;
 }
 
 /* -------------------- Événements -------------------- */
@@ -391,6 +414,7 @@ function commit() { saveState(STATE); renderResults(); }
 
 document.addEventListener("input", (e) => {
   const t = e.target; if (!t.dataset || !t.dataset.scope) return;
+  if (t.dataset.scope === "user") return; // édité au blur (voir "change")
   const scope = t.dataset.scope, key = t.dataset.key;
   const val = t.type === "checkbox" ? t.checked : (t.type === "number" ? (t.value === "" ? 0 : num(t.value)) : t.value);
   if (scope === "machine") {
@@ -419,6 +443,11 @@ document.addEventListener("input", (e) => {
 });
 document.addEventListener("change", (e) => {
   const t = e.target;
+  if (t.dataset && t.dataset.scope === "user") { // édition d'un profil utilisateur (au blur)
+    updateUserProfile(t.dataset.uid, { [t.dataset.key]: t.value });
+    if (CURRENT_USER && t.dataset.uid === CURRENT_USER.id) { CURRENT_USER[t.dataset.key] = t.value; if (t.dataset.key === "name") updateTopbar(); }
+    return;
+  }
   if (t.tagName !== "SELECT") return;
   if (t.dataset.scope === "root") {
     STATE[t.dataset.key] = t.dataset.key === "durationTrim" ? parseInt(t.value, 10) : t.value;
@@ -455,6 +484,8 @@ document.addEventListener("click", async (e) => {
       flash("Génération du PowerPoint…");
       try { await exportPptx(STATE, computeAll(STATE)); flash("PowerPoint généré."); }
       catch (err) { flash("Erreur PowerPoint : " + err.message, true); console.error(err); } break;
+    case "admin-unlock": COEFF_UNLOCKED = true; renderAdmin(); break;
+    case "admin-lock": COEFF_UNLOCKED = false; renderAdmin(); break;
     case "admin-clear-override": STATE.coeffOverride = ""; saveState(STATE); renderAdmin(); renderResults(); break;
     case "retry-firebase": location.reload(); break;
     case "login": await doLogin(); break;
