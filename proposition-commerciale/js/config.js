@@ -64,8 +64,8 @@ function defaultServices() {
   return [
     { label: "Service Pass", sa: 0, sp: 0 },
     { label: "Abonnement service", sa: 0, sp: 0 },
-    { label: "Recyclage", sa: 0, sp: 0 },
     { label: "E-maintenance", sa: 0, sp: 0 },
+    { label: "Recyclage", sa: 0, sp: 0 },
     { label: "Autre", sa: 0, sp: 0 },   // champ libre 1
     { label: "Autre", sa: 0, sp: 0 },   // champ libre 2
   ];

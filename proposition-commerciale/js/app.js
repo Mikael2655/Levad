@@ -69,6 +69,11 @@ function topField(scope, k, label, type, extra) {
 function renderApp() {
   const s = STATE;
   document.getElementById("screen").innerHTML = `
+    <section class="card saved-card">
+      <div class="card-head"><h2>Simulations enregistrées</h2>
+        <button class="btn" data-action="save-sim">💾 Enregistrer la simulation</button></div>
+      <div id="saved-list" class="saved"></div>
+    </section>
     <section class="card">
       <h2>Client</h2>
       <div class="grid">
@@ -127,7 +132,19 @@ function renderApp() {
       <button class="btn ghost" data-action="reset">Réinitialiser</button>
       <span id="status" class="status"></span>
     </section>`;
-  renderMachines(); renderAdmin(); renderResults();
+  renderMachines(); renderAdmin(); renderResults(); renderSaved();
+}
+
+function renderSaved() {
+  const box = document.getElementById("saved-list"); if (!box) return;
+  const list = loadSaved();
+  if (!list.length) { box.innerHTML = `<span class="muted small">Aucune simulation enregistrée. « Enregistrer » sauvegarde la saisie en cours pour la reprendre plus tard.</span>`; return; }
+  box.innerHTML = `
+    <select id="saved-select" class="saved-select">
+      ${list.map((s) => `<option value="${s.id}">${esc(s.name)}${s.savedAt ? " — " + esc(s.savedAt) : ""}</option>`).join("")}
+    </select>
+    <button class="btn small" data-action="load-sim">Charger</button>
+    <button class="btn small danger" data-action="del-sim">Supprimer</button>`;
 }
 
 function renderMachines() {
@@ -147,10 +164,9 @@ function svcRowsSide(m, side) {
 }
 
 function machineCard(m, i) {
-  const name = m.proposedModel || m.currentModel;
   return `<div class="machine" data-mid="${m.id}">
     <div class="machine-head">
-      <strong>Machine ${i + 1}${name ? " — " + esc(name) : ""}</strong>
+      <strong>Machine ${i + 1}</strong>
       <div class="machine-actions">
         <button class="btn small" data-action="dup-machine" data-mid="${m.id}">Dupliquer</button>
         <button class="btn small danger" data-action="del-machine" data-mid="${m.id}" ${STATE.machines.length <= 1 ? "disabled" : ""}>Supprimer</button>
@@ -171,8 +187,6 @@ function machineCard(m, i) {
       <div class="col">
         <h3>Solution proposée</h3>
         <div class="grid">${SP_MAIN.map((f) => mField(m.id, f)).join("")}</div>
-        <div class="subgrid"><h4>Coûts page proposés</h4>
-          <div class="grid">${SP_CC.map((f) => mField(m.id, f)).join("")}</div></div>
         <div class="subgrid"><h4>Rachat, cadeau &amp; marge</h4>
           <div class="grid">
             <div class="fld"><span>Rachat (calculé)</span><div class="ro" id="ro-rachat-${m.id}"></div></div>
@@ -202,6 +216,8 @@ function machineCard(m, i) {
               <input type="number" step="any" inputmode="decimal" data-scope="spvol" data-mid="${m.id}" data-key="spVolCoul" id="spvol-coul-${m.id}" value="${esc(m.spVolCoul)}"></label>
           </div>
         </div>
+        <div class="subgrid"><h4>Coûts page proposés</h4>
+          <div class="grid">${SP_CC.map((f) => mField(m.id, f)).join("")}</div></div>
         <div class="subgrid"><h4>Service &amp; abonnements <small>(proposé)</small></h4>
           ${svcRowsSide(m, "sp")}
         </div>
@@ -278,7 +294,6 @@ document.addEventListener("input", (e) => {
   const val = t.type === "checkbox" ? t.checked : (t.type === "number" ? (t.value === "" ? 0 : num(t.value)) : t.value);
   if (scope === "machine") {
     const m = mById(t.dataset.mid); if (m) m[key] = val;
-    if (key === "currentModel" || key === "proposedModel") updateMachineTitle(t.dataset.mid);
   } else if (scope === "svc") {
     const m = mById(t.dataset.mid); const sv = m.services[+t.dataset.idx];
     sv[t.dataset.field] = t.dataset.field === "label" ? t.value : (t.value === "" ? 0 : num(t.value));
@@ -315,11 +330,6 @@ document.addEventListener("change", (e) => {
   }
 });
 
-function updateMachineTitle(id) {
-  const m = mById(id); const el = document.querySelector(`.machine[data-mid="${id}"] .machine-head strong`);
-  if (el) { const n = m.proposedModel || m.currentModel; const i = STATE.machines.indexOf(m) + 1;
-    el.textContent = `Machine ${i}${n ? " — " + n : ""}`; }
-}
 
 document.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-action]"); if (!btn) return;
@@ -346,11 +356,37 @@ document.addEventListener("click", async (e) => {
       catch (err) { flash("Erreur PowerPoint : " + err.message, true); console.error(err); } break;
     case "admin-unlock": {
       const pw = prompt("Mot de passe admin :"); if (pw == null) break;
-      if (await checkPassword(pw)) { ADMIN = true; renderAdmin(); renderResults(); } else flash("Mot de passe incorrect.", true); break;
+      if (await checkPassword(pw)) { ADMIN = true; renderAdmin(); renderResults();
+        const p = document.getElementById("admin-panel"); if (p) p.scrollIntoView({ block: "center" });
+      } else alert("Mot de passe incorrect."); break;
     }
     case "admin-lock": ADMIN = false; renderAdmin(); renderResults(); break;
     case "admin-clear-override": STATE.coeffOverride = ""; saveState(STATE); renderAdmin(); renderResults(); break;
     case "admin-passwd": { const np = prompt("Nouveau mot de passe admin :"); if (np) { await setPassword(np); flash("Mot de passe modifié."); } break; }
+    case "save-sim": {
+      const def = ((STATE.client.name || "Simulation") + " — " + dateShort(STATE.client.date || todayISO()));
+      const name = prompt("Nom de la simulation :", def); if (!name) break;
+      const list = loadSaved();
+      const now = new Date().toLocaleString("fr-FR");
+      const existing = list.find((x) => x.name === name);
+      const snap = { id: existing ? existing.id : cryptoId(), name, savedAt: now, state: JSON.parse(JSON.stringify(STATE)) };
+      if (existing) Object.assign(existing, snap); else list.unshift(snap);
+      writeSaved(list); renderSaved(); flash("Simulation enregistrée.");
+      break;
+    }
+    case "load-sim": {
+      const sel = document.getElementById("saved-select"); if (!sel) break;
+      const s = loadSaved().find((x) => x.id === sel.value); if (!s) break;
+      STATE = normalizeState(JSON.parse(JSON.stringify(s.state)));
+      ADMIN = false; saveState(STATE); renderApp(); flash("Simulation chargée.");
+      break;
+    }
+    case "del-sim": {
+      const sel = document.getElementById("saved-select"); if (!sel) break;
+      if (!confirm("Supprimer cette simulation enregistrée ?")) break;
+      writeSaved(loadSaved().filter((x) => x.id !== sel.value)); renderSaved();
+      break;
+    }
   }
 });
 
