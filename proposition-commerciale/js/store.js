@@ -14,11 +14,15 @@ const Store = {
   db: null, auth: null, uid: null,
   users: [], sims: [],           // caches en mémoire (lecture synchrone)
   onUpdate: null,                // callback de rafraîchissement (temps réel)
+  lastError: "",                 // raison d'un repli en local (diagnostic)
 
   async init() {
+    if (FIREBASE_READY && typeof firebase === "undefined") {
+      this.lastError = "SDK Firebase non chargé (réseau bloqué ?)";
+    }
     if (FIREBASE_READY && typeof firebase !== "undefined") {
       try {
-        firebase.initializeApp(FIREBASE_CONFIG);
+        if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
         this.db = firebase.firestore();
         this.auth = firebase.auth();
         await new Promise((resolve, reject) => {
@@ -30,7 +34,8 @@ const Store = {
         this._listen();
         return;
       } catch (e) {
-        console.error("Firebase indisponible (règles non publiées ?), repli local :", e);
+        this.lastError = (e && (e.code || e.message)) ? (e.code || e.message) : String(e);
+        console.error("Firebase indisponible, repli local :", e);
         this.mode = "local";
       }
     }

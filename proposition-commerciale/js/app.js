@@ -53,6 +53,9 @@ function renderLogin() {
         <span id="login-msg" class="status err"></span>
       </div>
       <p class="muted small">Chaque utilisateur ne voit que ses simulations. L'administrateur gère les comptes.</p>
+      ${(FIREBASE_READY && Store.mode !== "firebase")
+        ? `<p class="diag">⚠️ Partage en ligne inactif — raison : <b>${esc(Store.lastError || "inconnue")}</b>. Mode local pour l'instant.</p>`
+        : ""}
     </section>`;
   const pass = document.getElementById("login-pass");
   if (pass) pass.addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });
@@ -131,11 +134,15 @@ function renderApp() {
       <div class="card-head"><h2>Simulations enregistrées
         <span class="mode-chip ${Store.mode === "firebase" ? "on" : "off"}">${Store.mode === "firebase" ? "synchronisé" : "local (ce poste)"}</span></h2>
         <div class="head-actions">
+          ${(FIREBASE_READY && Store.mode !== "firebase") ? `<button class="btn ghost small" data-action="retry-firebase">↻ Reconnecter</button>` : ""}
           <button class="btn ghost small" data-action="toggle-arch">${SHOW_ARCHIVED ? "Masquer les archives" : "Voir les archives"}</button>
           <button class="btn ghost small" data-action="new-sim">＋ Nouvelle</button>
           <button class="btn" data-action="save-sim">💾 Enregistrer</button>
         </div>
       </div>
+      ${(FIREBASE_READY && Store.mode !== "firebase")
+        ? `<p class="diag">⚠️ Partage en ligne inactif — raison : <b>${esc(Store.lastError || "inconnue")}</b>. Les données restent locales à ce poste.</p>`
+        : ""}
       <div id="saved-list" class="saved"></div>
     </section>
     ${ADMIN ? `<section class="card" id="users-card"><div class="card-head"><h2>Utilisateurs</h2>
@@ -449,6 +456,7 @@ document.addEventListener("click", async (e) => {
       try { await exportPptx(STATE, computeAll(STATE)); flash("PowerPoint généré."); }
       catch (err) { flash("Erreur PowerPoint : " + err.message, true); console.error(err); } break;
     case "admin-clear-override": STATE.coeffOverride = ""; saveState(STATE); renderAdmin(); renderResults(); break;
+    case "retry-firebase": location.reload(); break;
     case "login": await doLogin(); break;
     case "logout": logout(); CURRENT_USER = null; ADMIN = false; STATE = null; renderLogin(); updateTopbar(); break;
     case "new-sim": {
