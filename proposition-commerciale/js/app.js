@@ -137,13 +137,13 @@ function renderMachines() {
 /* Services & abonnements — un bloc par côté. Le libellé est éditable des 2
    côtés (partagé) ; `side` = "sa" ou "sp" pour la valeur affichée. */
 function svcRowsSide(m, side) {
-  return m.services.map((sv, idx) => `
-    <div class="svc-row2">
-      <input class="svc-label" type="text" placeholder="${idx < 4 ? "Libellé" : "Autre (à préciser)"}"
+  return `<div class="svc-grid">` + m.services.map((sv, idx) => `
+    <div class="svc-item">
+      <input class="svc-label" type="text" placeholder="${idx < 4 ? "Libellé" : "Autre"}"
         data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="label" value="${esc(sv.label)}">
-      <input type="number" step="any" inputmode="decimal" placeholder="€"
+      <input class="svc-val" type="number" step="any" inputmode="decimal" placeholder="€"
         data-scope="svc" data-mid="${m.id}" data-idx="${idx}" data-field="${side}" value="${esc(sv[side])}">
-    </div>`).join("");
+    </div>`).join("") + `</div>`;
 }
 
 function machineCard(m, i) {
@@ -171,14 +171,6 @@ function machineCard(m, i) {
       <div class="col">
         <h3>Solution proposée</h3>
         <div class="grid">${SP_MAIN.map((f) => mField(m.id, f)).join("")}</div>
-        <div class="subgrid"><h4>Volumes proposés <small>(calcul auto · modifiables)</small></h4>
-          <div class="grid">
-            <label class="fld"><span>Volume N&B proposé (pages)</span>
-              <input type="number" step="any" inputmode="decimal" data-scope="spvol" data-mid="${m.id}" data-key="spVolNB" id="spvol-nb-${m.id}" value="${esc(m.spVolNB)}"></label>
-            <label class="fld"><span>Volume couleur proposé (pages)</span>
-              <input type="number" step="any" inputmode="decimal" data-scope="spvol" data-mid="${m.id}" data-key="spVolCoul" id="spvol-coul-${m.id}" value="${esc(m.spVolCoul)}"></label>
-          </div>
-        </div>
         <div class="subgrid"><h4>Coûts page proposés</h4>
           <div class="grid">${SP_CC.map((f) => mField(m.id, f)).join("")}</div></div>
         <div class="subgrid"><h4>Rachat, cadeau &amp; marge</h4>
@@ -200,6 +192,14 @@ function machineCard(m, i) {
               : `<label class="fld"><span>Marge commerciale (€)</span>
                    <input type="number" step="any" inputmode="decimal" data-scope="machine" data-mid="${m.id}" data-key="marge" value="${esc(m.marge)}"></label>
                  <div class="fld"><span>Loyer proposé (calculé) ${perShort(STATE)}</span><div class="ro" id="ro-calc-${m.id}"></div></div>`}
+          </div>
+        </div>
+        <div class="subgrid"><h4>Volumes proposés <small>(calcul auto · modifiables)</small></h4>
+          <div class="grid">
+            <label class="fld"><span>Volume N&B proposé (pages)</span>
+              <input type="number" step="any" inputmode="decimal" data-scope="spvol" data-mid="${m.id}" data-key="spVolNB" id="spvol-nb-${m.id}" value="${esc(m.spVolNB)}"></label>
+            <label class="fld"><span>Volume couleur proposé (pages)</span>
+              <input type="number" step="any" inputmode="decimal" data-scope="spvol" data-mid="${m.id}" data-key="spVolCoul" id="spvol-coul-${m.id}" value="${esc(m.spVolCoul)}"></label>
           </div>
         </div>
         <div class="subgrid"><h4>Service &amp; abonnements <small>(proposé)</small></h4>
