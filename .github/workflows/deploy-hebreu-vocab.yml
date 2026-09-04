@@ -1,11 +1,14 @@
 # Publie les applications statiques du dépôt sur GitHub Pages.
-#   • hebreu-vocab/    → à la racine du site (https://<user>.github.io/Levad/)
+#   • hebreu-vocab/    → à la racine du site (https://simulateur.levad.fr/)
 #   • belote/          → sous /belote/          (compteur de points)
 #   • belote-tournoi/  → sous /belote-tournoi/  (gestion de tournoi)
 #   • proposition-commerciale/ → sous /proposition-commerciale/  (outil SA/SP + offre)
 # Le reste du dépôt (projet Next.js) n'est pas publié.
 #
 # Activation (une seule fois) : Settings → Pages → Source : "GitHub Actions"
+# Domaine personnalisé (une seule fois) : Settings → Pages → Custom domain :
+# "simulateur.levad.fr", + un enregistrement DNS CNAME "simulateur" ->
+# "mikael2655.github.io" chez l'hébergeur DNS de levad.fr.
 
 name: Déployer les apps sur GitHub Pages
 
@@ -47,6 +50,7 @@ jobs:
           cp -r belote-tournoi/. _site/belote-tournoi/
           mkdir -p _site/proposition-commerciale
           cp -r proposition-commerciale/. _site/proposition-commerciale/
+          echo "simulateur.levad.fr" > _site/CNAME
       - uses: actions/configure-pages@v5
         with:
           # Active GitHub Pages automatiquement si le compte le permet
