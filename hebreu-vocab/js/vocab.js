@@ -1,17 +1,8 @@
 // ============================================================
-//  VOTRE VOCABULAIRE — généré depuis votre Excel (2 onglets)
+//  VOTRE VOCABULAIRE — généré depuis votre Excel (onglet Vocabulaire)
 // ============================================================
 //  Chaque mot : he (hébreu), translit (prononciation), fr
-//  (traduction, plusieurs acceptées avec " / "), cat (thème),
-//  et note (observation, affichée au dos de la flashcard).
-//
-//  Deux façons de l'enrichir :
-//  1. Modifier l'Excel et me le redonner (je régénère ce fichier)
-//  2. Éditer ce fichier directement sur GitHub (crayon "Edit")
-//     — n'oubliez pas la virgule en fin de ligne !
-//
-//  Astuce : ajoutez une 5e colonne "Thème" dans l'Excel pour
-//  retrouver des catégories dans le filtre de l'app.
+//  (traduction), cat (thème) et note (observation, au dos).
 // ============================================================
 
 const VOCAB = [
@@ -30,7 +21,7 @@ const VOCAB = [
   { he: "בפנים / בתוך", translit: "Bifnim / Betokh", fr: "à l'intérieur", cat: "Général" },
   { he: "בסוף הכל חולף", translit: "Basof akol kholef", fr: "à la fin tout passe", cat: "Général" },
   { he: "להשכרה", translit: "Lehaskara", fr: "à louer", cat: "Général" },
-  { he: "תור", translit: "Tor", fr: "Queue", cat: "Général" },
+  { he: "תור", translit: "Tor", fr: "Queue / RDV", cat: "Général" },
   { he: "מעתה ואילך", translit: "Mehata ve'eylakh", fr: "à partir de maintenant", cat: "Général" },
   { he: "תורך", translit: "Torekh/torkha", fr: "à toi/à ton tour", cat: "Général" },
   { he: "נתראה בקרוב", translit: "Nitrae bekarov", fr: "à tout à l'heure / à bientôt", cat: "Général" },
@@ -213,7 +204,7 @@ const VOCAB = [
   { he: "שער / שיער", translit: "Sear", fr: "Cheveux", cat: "Général" },
   { he: "אז", translit: "Ez / izim", fr: "Chèvre", cat: "Général" },
   { he: "אצל", translit: "Etsel", fr: "Chez", cat: "Général" },
-  { he: "פלצני/ת", translit: "Paltsani/t", fr: "Chic (péjoratif : prout prout)", cat: "Général" },
+  { he: "פלצני", translit: "Paltsani", fr: "Chic (péjoratif : prout prout)", cat: "Général" },
   { he: "נושא", translit: "Nos'e", fr: "Choix", cat: "Général" },
   { he: "דבר", translit: "Davar", fr: "Chose", cat: "Général" },
   { he: "כרוב", translit: "Krouv", fr: "Choux", cat: "Général" },
@@ -225,7 +216,7 @@ const VOCAB = [
   { he: "דלעת", translit: "Dla'at", fr: "Citrouille/potiron/courge", cat: "Général" },
   { he: "מפתח", translit: "Mafteakh", fr: "Clé", cat: "Général" },
   { he: "לקוח", translit: "Lakoakh", fr: "Client", cat: "Général" },
-  { he: "להיצן/נית", translit: "Lehitsan(nit)", fr: "Clown", cat: "Général" },
+  { he: "להיצן", translit: "Lehitsan", fr: "Clown", cat: "Général" },
   { he: "מועדון", translit: "Moadon", fr: "Club/centre communautaire", cat: "Général" },
   { he: "כעס", translit: "Kahas", fr: "Colère / énervé", cat: "Général" },
   { he: "שיתוף פעולה", translit: "Chitouf pe'oula", fr: "Collaboration", cat: "Général" },
@@ -338,7 +329,6 @@ const VOCAB = [
   { he: "שונה", translit: "Chone", fr: "Différent", cat: "Général" },
   { he: "תרנגול הודו", translit: "Tarnegol odou", fr: "Dinde", cat: "Général" },
   { he: "תואר", translit: "To'ar", fr: "Diplôme / titre (M. Mme…)", cat: "Général" },
-  { he: "כיוונים", translit: "Kivounim", fr: "Directions", cat: "Général" },
   { he: "דיון", translit: "Dioun", fr: "Discussion", cat: "Général" },
   { he: "ריב", translit: "Riv", fr: "Dispute", cat: "Général" },
   { he: "מרחק", translit: "Merkhak", fr: "Distance", cat: "Général" },
@@ -820,7 +810,7 @@ const VOCAB = [
   { he: "דווקא", translit: "Davka", fr: "Plutôt / vraiment", cat: "Général" },
   { he: "גשום", translit: "Gachoum", fr: "Pluvieux", cat: "Général" },
   { he: "שירה", translit: "Shira", fr: "Poésie", cat: "Général" },
-  { he: "משרר/ת", translit: "Mechorer/et", fr: "Poète", cat: "Général" },
+  { he: "משורר/ת", translit: "Mechorer/et", fr: "Poète", cat: "Général" },
   { he: "משקל", translit: "Michkal", fr: "Poids / équilibre / importance", cat: "Général" },
   { he: "אגס", translit: "Agas", fr: "Poire", cat: "Général" },
   { he: "מנומס", translit: "Menoumas", fr: "Poli", cat: "Général" },
@@ -1298,7 +1288,6 @@ const VOCAB = [
   { he: "גלויה", translit: "Glouya", fr: "Carte postale", cat: "Général" },
   { he: "חצר", translit: "Khatser", fr: "Petit jardin", cat: "Général", note: "= גינה" },
   { he: "שטויות במיץ עגבניות", translit: "Chtouyot bemitz agvaniot", fr: "N'importe quoi", cat: "Général" },
-  { he: "ישבן", translit: "Yechvan", fr: "Postérieur (fesses)", cat: "Général" },
   { he: "חזה", translit: "Khaze", fr: "Poitrine", cat: "Général" },
   { he: "חרב", translit: "Kherev", fr: "Epée / sabre", cat: "Général" },
   { he: "עד", translit: "Hed", fr: "Echo", cat: "Général" },

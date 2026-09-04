@@ -1,5 +1,5 @@
 // ============================================================
-//  VOS VERBES — générés depuis votre Excel (onglet "Verbes")
+//  VOS VERBES — générés depuis votre Excel (onglet "Verbe 2")
 // ============================================================
 //  Fidèle au tableau : UNE forme de référence par temps
 //  (présent masc. sing., passé "il", futur "il"), plus la racine
@@ -194,7 +194,7 @@ const VERBES = [
   },
   {
     inf: "להיות צריך", translit: "Lihiyot tsarikh", fr: "Avoir besoin / devoir",
-    racine: "צרך",
+    racine: "", binyan: "",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "צריך", t: "Tsarikh" },
@@ -440,10 +440,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "ממשיך", t: "Mamchikh" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "המשיך", t: "Himshikh" },
+        { p: "il (הוא)", he: "המשיך", t: "Himchikh" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ימשיך", t: "Yamshikh" },
+        { p: "il (הוא)", he: "ימשיך", t: "Yamchikh" },
       ],
     },
   },
@@ -500,7 +500,7 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מבשל", t: "Mevachel" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "בישל", t: "Bishel" },
+        { p: "il (הוא)", he: "בישל", t: "Bichel" },
       ],
       "Futur": [
         { p: "il (הוא)", he: "יבשל", t: "Yevachel" },
@@ -583,17 +583,17 @@ const VERBES = [
     },
   },
   {
-    inf: "לבקש", translit: "Levakesh", fr: "Demander/exiger/réclamer",
+    inf: "לבקש", translit: "Levakech", fr: "Demander/exiger/réclamer",
     racine: "בקש", binyan: "פיעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מבקש", t: "Mevakesh" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מבקש", t: "Mevakech" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "ביקש", t: "Bikesh" },
+        { p: "il (הוא)", he: "ביקש", t: "Bikech" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יבקש", t: "Yevakesh" },
+        { p: "il (הוא)", he: "יבקש", t: "Yevakech" },
       ],
     },
   },
@@ -665,10 +665,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משתגע", t: "Michtagea" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "השתגע", t: "Hishtagea" },
+        { p: "il (הוא)", he: "השתגע", t: "Hichtagea" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישתגע", t: "Yishtagea" },
+        { p: "il (הוא)", he: "ישתגע", t: "Yichtagea" },
       ],
     },
   },
@@ -725,10 +725,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתגרש", t: "Mitgarech" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "התגרש", t: "Hitgaresh" },
+        { p: "il (הוא)", he: "התגרש", t: "Hitgarech" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יתגרש", t: "Yitgaresh" },
+        { p: "il (הוא)", he: "יתגרש", t: "Yitgarech" },
       ],
     },
   },
@@ -758,7 +758,7 @@ const VERBES = [
         { p: "il (הוא)", he: "ישן", t: "Yachen" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יישן", t: "Yishan" },
+        { p: "il (הוא)", he: "יישן", t: "Yichan" },
       ],
     },
   },
@@ -800,10 +800,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מקשיב", t: "Makchiv" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "הקשיב", t: "Hikshiv" },
+        { p: "il (הוא)", he: "הקשיב", t: "Hikchiv" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יקשיב", t: "Yakshiv" },
+        { p: "il (הוא)", he: "יקשיב", t: "Yakchiv" },
       ],
     },
   },
@@ -1070,10 +1070,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מתרגש", t: "Mitragech" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "התרגש", t: "Hitragesh" },
+        { p: "il (הוא)", he: "התרגש", t: "Hitragech" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יתרגש", t: "Yitragesh" },
+        { p: "il (הוא)", he: "יתרגש", t: "Yitragech" },
       ],
     },
   },
@@ -1295,10 +1295,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מנשנש", t: "Menachnech" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "נשנש", t: "Nishnesh" },
+        { p: "il (הוא)", he: "נשנש", t: "Nichnech" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ינשנש", t: "Yenashnesh" },
+        { p: "il (הוא)", he: "ינשנש", t: "Yenachnech" },
       ],
     },
   },
@@ -1418,7 +1418,7 @@ const VERBES = [
         { p: "il (הוא)", he: "שיקר", t: "Chiker" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישקר", t: "Yeshaker" },
+        { p: "il (הוא)", he: "ישקר", t: "Yechaker" },
       ],
     },
   },
@@ -1568,7 +1568,7 @@ const VERBES = [
         { p: "il (הוא)", he: "שילם", t: "Chilem" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישלם", t: "Yeshalem" },
+        { p: "il (הוא)", he: "ישלם", t: "Yechalem" },
       ],
     },
   },
@@ -1613,7 +1613,7 @@ const VERBES = [
         { p: "il (הוא)", he: "שקל", t: "Chakal" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישקול", t: "Yishkol" },
+        { p: "il (הוא)", he: "ישקול", t: "Yichkol" },
       ],
     },
   },
@@ -1733,7 +1733,7 @@ const VERBES = [
         { p: "il (הוא)", he: "חבש", t: "Khavach" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יחבוש", t: "Yakhbosh" },
+        { p: "il (הוא)", he: "יחבוש", t: "Yakhboch" },
       ],
     },
   },
@@ -1809,21 +1809,6 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "יתקדם", t: "Yitkadem" },
-      ],
-    },
-  },
-  {
-    inf: "להבטיח", translit: "Lehavtiakh", fr: "Promettre",
-    racine: "בטח", binyan: "הפעיל",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מבטיח", t: "Mavtiakh" },
-      ],
-      "Passé": [
-        { p: "il (הוא)", he: "הבטיח", t: "Hivtiakh" },
-      ],
-      "Futur": [
-        { p: "il (הוא)", he: "יבטיח", t: "Yavtiakh" },
       ],
     },
   },
@@ -2072,13 +2057,13 @@ const VERBES = [
     racine: "שעמם", binyan: "פיעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משעמם", t: "Meshaamem" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משעמם", t: "Mechaamem" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "שיעמם", t: "Shi'amem" },
+        { p: "il (הוא)", he: "שיעמם", t: "chi'amem" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישעמם", t: "Yeshaamem" },
+        { p: "il (הוא)", he: "ישעמם", t: "Yechaamem" },
       ],
     },
   },
@@ -2183,7 +2168,7 @@ const VERBES = [
         { p: "il (הוא)", he: "שטף", t: "Chataf" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישטוף", t: "Yishtof" },
+        { p: "il (הוא)", he: "ישטוף", t: "Yichtof" },
       ],
     },
   },
@@ -2285,10 +2270,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משתכר", t: "Michtaker" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "השתכר", t: "Hishtaker" },
+        { p: "il (הוא)", he: "השתכר", t: "Hichtaker" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישתכר", t: "Yishtaker" },
+        { p: "il (הוא)", he: "ישתכר", t: "Yichtaker" },
       ],
     },
   },
@@ -2300,10 +2285,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מרגיש", t: "Margich" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "הרגיש", t: "Hirgish" },
+        { p: "il (הוא)", he: "הרגיש", t: "Hirgich" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ירגיש", t: "Yargish" },
+        { p: "il (הוא)", he: "ירגיש", t: "Yargich" },
       ],
     },
   },
@@ -2483,7 +2468,7 @@ const VERBES = [
         { p: "il (הוא)", he: "שחט", t: "Chakhat" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישחט", t: "Yishkhat" },
+        { p: "il (הוא)", he: "ישחט", t: "Yichkhat" },
       ],
     },
   },
@@ -2492,13 +2477,13 @@ const VERBES = [
     racine: "שמש", binyan: "התפעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משתמש", t: "Mishtamesh" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משתמש", t: "Michtamech" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "השתמש", t: "Hishtamech" },
+        { p: "il (הוא)", he: "השתמש", t: "Hichtamech" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישתמש", t: "Yishtamech" },
+        { p: "il (הוא)", he: "ישתמש", t: "Yichtamech" },
       ],
     },
   },
@@ -2720,10 +2705,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מגשים", t: "Magchim" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "הגשים", t: "Higshim" },
+        { p: "il (הוא)", he: "הגשים", t: "Higchim" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יגשים", t: "Yagshim" },
+        { p: "il (הוא)", he: "יגשים", t: "Yagchim" },
       ],
     },
   },
@@ -2750,10 +2735,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משפיע", t: "Machpiha" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "השפיע", t: "Hishpia" },
+        { p: "il (הוא)", he: "השפיע", t: "Hichpia" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישפיע", t: "Yashpia" },
+        { p: "il (הוא)", he: "ישפיע", t: "Yachpia" },
       ],
     },
   },
@@ -2840,10 +2825,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מנחש", t: "Menakhech" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "ניחש", t: "Nikhesh" },
+        { p: "il (הוא)", he: "ניחש", t: "Nikhech" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ינחש", t: "Yenakhesh" },
+        { p: "il (הוא)", he: "ינחש", t: "Yenakhech" },
       ],
     },
   },
@@ -3113,7 +3098,7 @@ const VERBES = [
         { p: "il (הוא)", he: "ברח", t: "Barakh" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישלים", t: "Yashlim" },
+        { p: "il (הוא)", he: "ישלים", t: "Yachlim" },
       ],
     },
   },
@@ -3380,10 +3365,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "משקה", t: "Machke" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "השקה", t: "Hishka" },
+        { p: "il (הוא)", he: "השקה", t: "Hichka" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישקה", t: "Yashke" },
+        { p: "il (הוא)", he: "ישקה", t: "Yachke" },
       ],
     },
   },
@@ -3413,7 +3398,7 @@ const VERBES = [
         { p: "il (הוא)", he: "שכב", t: "Chakhav" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישכב", t: "Yishkav" },
+        { p: "il (הוא)", he: "ישכב", t: "Yichkav" },
       ],
     },
   },
@@ -3482,13 +3467,13 @@ const VERBES = [
     racine: "שנה", binyan: "התפעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משתנה", t: "Mishtane" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משתנה", t: "Michtane" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "השתנה", t: "Hishtana" },
+        { p: "il (הוא)", he: "השתנה", t: "Hichtana" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישתנה", t: "Yishtane" },
+        { p: "il (הוא)", he: "ישתנה", t: "Yichtane" },
       ],
     },
   },
@@ -3713,7 +3698,7 @@ const VERBES = [
         { p: "il (הוא)", he: "שבר", t: "Chavar" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישבור", t: "Yishbor" },
+        { p: "il (הוא)", he: "ישבור", t: "Yichbor" },
       ],
     },
   },
@@ -3785,10 +3770,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מלביש", t: "Malbich" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "הלביש", t: "Hilbish" },
+        { p: "il (הוא)", he: "הלביש", t: "Hilbich" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ילביש", t: "Yalbish" },
+        { p: "il (הוא)", he: "ילביש", t: "Yalbich" },
       ],
     },
   },
@@ -3875,10 +3860,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מאפשר", t: "Me'afcher" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "אפשר", t: "Ifsher" },
+        { p: "il (הוא)", he: "אפשר", t: "Ifcher" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יאפשר", t: "Ye'afsher" },
+        { p: "il (הוא)", he: "יאפשר", t: "Ye'afcher" },
       ],
     },
   },
@@ -4018,21 +4003,6 @@ const VERBES = [
     },
   },
   {
-    inf: "להמר", translit: "Lehamer", fr: "Parier",
-    racine: "מר", binyan: "הפעיל",
-    temps: {
-      "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מהמר", t: "Mehamer" },
-      ],
-      "Passé": [
-        { p: "il (הוא)", he: "המר", t: "Himer" },
-      ],
-      "Futur": [
-        { p: "il (הוא)", he: "ימר", t: "Yamer" },
-      ],
-    },
-  },
-  {
     inf: "להתערב", translit: "Lehit'arev", fr: "Intervenir / se mêler",
     racine: "ערב", binyan: "התפעל",
     temps: {
@@ -4103,7 +4073,7 @@ const VERBES = [
         { p: "il (הוא)", he: "שירת", t: "Cheret" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישרת", t: "Yesharet" },
+        { p: "il (הוא)", he: "ישרת", t: "Yecharet" },
       ],
     },
   },
@@ -4133,7 +4103,7 @@ const VERBES = [
         { p: "il (הוא)", he: "גלש", t: "Galach" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יגלוש", t: "Yiglosh" },
+        { p: "il (הוא)", he: "יגלוש", t: "Yigloch" },
       ],
     },
   },
@@ -4187,13 +4157,13 @@ const VERBES = [
     racine: "שקם", binyan: "פיעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משקם", t: "Meshakem" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משקם", t: "Mechakem" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "שיקם", t: "Shikem" },
+        { p: "il (הוא)", he: "שיקם", t: "chikem" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישקם", t: "Yeshakem" },
+        { p: "il (הוא)", he: "ישקם", t: "Yechakem" },
       ],
     },
   },
@@ -4217,13 +4187,13 @@ const VERBES = [
     racine: "שאר", binyan: "הפעיל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משאיר", t: "Mash'ir" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משאיר", t: "Mach'ir" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "השאיר", t: "Hish'ir" },
+        { p: "il (הוא)", he: "השאיר", t: "Hich'ir" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישאיר", t: "Yash'ir" },
+        { p: "il (הוא)", he: "ישאיר", t: "Yach'ir" },
       ],
     },
   },
@@ -4247,13 +4217,13 @@ const VERBES = [
     racine: "שוט", binyan: "פיעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משוטט", t: "Meshotet" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משוטט", t: "Mechotet" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "שוטט", t: "Shotet" },
+        { p: "il (הוא)", he: "שוטט", t: "chotet" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישוטט", t: "Yeshotet" },
+        { p: "il (הוא)", he: "ישוטט", t: "Yechotet" },
       ],
     },
   },
@@ -4568,7 +4538,7 @@ const VERBES = [
         { p: "il (הוא)", he: "שלף", t: "Chalaf" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישלוף", t: "Yishlof" },
+        { p: "il (הוא)", he: "ישלוף", t: "Yichlof" },
       ],
     },
   },
@@ -4580,10 +4550,10 @@ const VERBES = [
         { p: "masc. sing. (אני/אתה/הוא)", he: "מדגיש", t: "Madgich" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "הדגיש", t: "Hidgish" },
+        { p: "il (הוא)", he: "הדגיש", t: "Hidgich" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ידגיש", t: "Yadgish" },
+        { p: "il (הוא)", he: "ידגיש", t: "Yadgich" },
       ],
     },
   },
@@ -4697,13 +4667,13 @@ const VERBES = [
     racine: "שייך", binyan: "התפעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "משתייך", t: "Mishtayekh" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משתייך", t: "Michtayekh" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "השתייך", t: "Hishtayekh" },
+        { p: "il (הוא)", he: "השתייך", t: "Hichtayekh" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ישתייך", t: "Yishtayekh" },
+        { p: "il (הוא)", he: "ישתייך", t: "Yichtayekh" },
       ],
     },
   },
@@ -4873,7 +4843,7 @@ const VERBES = [
     },
   },
   {
-    inf: "למשוך", translit: "Limchokh", fr: "Attirer",
+    inf: "למשוך", translit: "Limchock", fr: "Attirer",
     racine: "משך", binyan: "פעל",
     temps: {
       "Présent": [
@@ -5068,7 +5038,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להסתיר", translit: "Lehastir", fr: "Cacher / dissimuler",
+    inf: "להסתיר", translit: "Leastir", fr: "Cacher / dissimuler",
     racine: "סתר", binyan: "הפעיל",
     temps: {
       "Présent": [
@@ -5083,32 +5053,32 @@ const VERBES = [
     },
   },
   {
-    inf: "להישבע", translit: "Lehishava", fr: "Jurer",
+    inf: "להשבע", translit: "Leichava", fr: "Jurer",
     racine: "שבע", binyan: "נפעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "נשבע", t: "Nishba" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נשבע", t: "Nichba" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "נשבע", t: "Nishba" },
+        { p: "il (הוא)", he: "נשבע", t: "Nichba" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יישבע", t: "Yishava" },
+        { p: "il (הוא)", he: "יישבע", t: "Yichava" },
       ],
     },
   },
   {
-    inf: "להוריש", translit: "Lehorish", fr: "Léguer",
+    inf: "להודריש", translit: "Leorich", fr: "Léguer",
     racine: "ירש", binyan: "הפעיל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "מוריש", t: "Morish" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מוריש", t: "Morich" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "הוריש", t: "Horish" },
+        { p: "il (הוא)", he: "הוריש", t: "Horich" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יוריש", t: "Yorish" },
+        { p: "il (הוא)", he: "יוריש", t: "Yorich" },
       ],
     },
   },
@@ -5128,7 +5098,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להודיע", translit: "Lehodia", fr: "Prévenir / informer",
+    inf: "להודיע", translit: "Le'odia", fr: "Prévenir / informer",
     racine: "ידע", binyan: "הפעיל",
     temps: {
       "Présent": [
@@ -5158,7 +5128,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להיעלב", translit: "Lehealev", fr: "Se vexer",
+    inf: "להעלב", translit: "Lehe'alev", fr: "Se vexer",
     racine: "עלב", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5188,7 +5158,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להיתקע", translit: "Lehitaka", fr: "Être coincé / se bloquer",
+    inf: "להתקה", translit: "Lehitaka", fr: "Être coincé / se bloquer",
     racine: "תקע", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5218,37 +5188,37 @@ const VERBES = [
     },
   },
   {
-    inf: "להישלח", translit: "Lehishalach", fr: "Être envoyé",
+    inf: "להשלח", translit: "Lehichalakh", fr: "Être envoyé",
     racine: "שלח", binyan: "נפעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "נשלח", t: "Nishlach" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נשלח", t: "Nichlach" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "נשלח", t: "Nishlach" },
+        { p: "il (הוא)", he: "נשלח", t: "Nichlach" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יישלח", t: "Yishalach" },
+        { p: "il (הוא)", he: "יישלח", t: "Yichalach" },
       ],
     },
   },
   {
-    inf: "להישמר", translit: "Lehishamer", fr: "Rester / garder / se conserver",
+    inf: "להשמר", translit: "Lehichamer", fr: "Rester / garder / se conserver",
     racine: "שמר", binyan: "נפעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "נשמר", t: "Nishmar" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נשמר", t: "Nichmar" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "נשמר", t: "Nishmar" },
+        { p: "il (הוא)", he: "נשמר", t: "Nichmar" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "יישמר", t: "Yishamer" },
+        { p: "il (הוא)", he: "יישמר", t: "Yichamer" },
       ],
     },
   },
   {
-    inf: "להיצמד", translit: "Lehitsamed", fr: "Se rapprocher",
+    inf: "להצמד", translit: "Lehitsamed", fr: "Se rapprocher",
     racine: "צמד", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5263,7 +5233,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להיעלם", translit: "Lehealem", fr: "Disparaitre",
+    inf: "להעלם", translit: "Lehe'alem", fr: "Disparaitre",
     racine: "עלם", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5278,7 +5248,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להירדם", translit: "Lehiradem", fr: "S'endormir",
+    inf: "להרדם", translit: "Leheradem", fr: "S'endormir",
     racine: "רדם", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5293,7 +5263,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להיראות", translit: "Lehera'ot", fr: "Sembler",
+    inf: "להראות", translit: "Lehera'ot", fr: "Sembler",
     racine: "ראה", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5304,6 +5274,51 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "ייראה", t: "Yera'e" },
+      ],
+    },
+  },
+  {
+    inf: "לשחרר", translit: "Lechakhrer", fr: "Libérer",
+    racine: "שחרר", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משחרר", t: "Mechakhrer" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "שחרר", t: "Chikhrer" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישחרר", t: "Yechakhrer" },
+      ],
+    },
+  },
+  {
+    inf: "לגרור", translit: "Ligror", fr: "Trainer / entrainer",
+    racine: "גרר", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "גורר", t: "Gorer" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "גרר", t: "Garar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגרור", t: "Yigror" },
+      ],
+    },
+  },
+  {
+    inf: "להיגרר", translit: "Lehigarer", fr: "Se faire trainer / entrainer",
+    racine: "גרר", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נגרר", t: "Nigrar" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נגרר", t: "Nigrar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגרר", t: "Yigarer" },
       ],
     },
   },
