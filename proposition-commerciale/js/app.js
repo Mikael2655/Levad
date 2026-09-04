@@ -79,24 +79,33 @@ async function openConfigModal(mid) {
 }
 function closeConfigModal() {
   const modal = document.getElementById("config-modal"); if (modal) modal.hidden = true;
+  closeConfigInfo();
   CONFIG_MID = null; CONFIG_DRAFT = null;
+}
+function closeConfigInfo() {
+  const popup = document.getElementById("cfg-info-popup"); if (popup) popup.hidden = true;
 }
 function configItemRow(section, it) {
   const key = configItemKey(section, it.designation);
   const sel = CONFIG_DRAFT.items[key];
   const checked = !!sel;
   const qty = sel ? sel.qty : 1;
+  const infoBtn = it.description
+    ? `<button type="button" class="cfg-info-btn" data-action="cfg-info" data-desig="${esc(it.designation)}" data-desc="${esc(it.description)}" title="Descriptif">ⓘ</button>`
+    : "";
   return `<div class="cfg-item">
     <label class="cfg-check">
       <input type="checkbox" data-cfg="check" data-key="${esc(key)}" data-price="${it.price}" data-desig="${esc(it.designation)}" ${checked ? "checked" : ""}>
       <span>${esc(it.designation)}</span>
     </label>
+    ${infoBtn}
     <span class="cfg-price">${eur(it.price)}</span>
     <input class="cfg-qty" type="number" min="1" step="1" data-cfg="qty" data-key="${esc(key)}" value="${qty}" ${checked ? "" : "disabled"}>
   </div>`;
 }
 function renderConfigBody() {
   const body = document.getElementById("config-body"); if (!body || !CONFIG_DRAFT) return;
+  closeConfigInfo();
   const cats = Object.keys(CATALOG);
   const machines = CATALOG[CONFIG_DRAFT.category] || [];
   if (!CONFIG_DRAFT.machine && machines.length) CONFIG_DRAFT.machine = machines[0].name;
@@ -598,6 +607,16 @@ document.addEventListener("click", async (e) => {
     case "close-users": closeUsersModal(); break;
     case "open-config": await openConfigModal(mid); break;
     case "close-config": closeConfigModal(); break;
+    case "cfg-info": {
+      const popup = document.getElementById("cfg-info-popup");
+      document.getElementById("cfg-info-text").innerHTML = `<b>${esc(btn.dataset.desig)}</b><br>${esc(btn.dataset.desc)}`;
+      popup.hidden = false;
+      const r = btn.getBoundingClientRect();
+      popup.style.left = Math.max(8, Math.min(r.left, window.innerWidth - popup.offsetWidth - 8)) + "px";
+      popup.style.top = Math.min(r.bottom + 6, window.innerHeight - popup.offsetHeight - 8) + "px";
+      break;
+    }
+    case "close-cfg-info": closeConfigInfo(); break;
     case "apply-config": {
       const m = mById(CONFIG_MID); if (!m || !CONFIG_DRAFT) break;
       const items = Object.values(CONFIG_DRAFT.items);
@@ -682,6 +701,12 @@ document.addEventListener("click", async (e) => {
       await resetUserPassword(u.id, pw); flash("Mot de passe réinitialisé.");
       break;
     }
+  }
+});
+document.addEventListener("click", (e) => {
+  const popup = document.getElementById("cfg-info-popup");
+  if (popup && !popup.hidden && !e.target.closest("#cfg-info-popup") && !e.target.closest(".cfg-info-btn")) {
+    popup.hidden = true;
   }
 });
 
