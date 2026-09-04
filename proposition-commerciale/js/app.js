@@ -448,7 +448,7 @@ function renderAdmin() {
   if (!panel) return;
   if (!ADMIN) { panel.innerHTML = ""; return; } // coefficient masqué aux non-admin
   if (!COEFF_UNLOCKED) {
-    panel.innerHTML = `<button class="btn ghost small" data-action="admin-unlock">🔒 Accès admin (barème)</button>`;
+    panel.innerHTML = `<button class="btn ghost small" data-action="admin-unlock">🔒 Accès admin</button>`;
     return;
   }
   panel.innerHTML = `
