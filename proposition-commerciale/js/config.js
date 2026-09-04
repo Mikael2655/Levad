@@ -118,6 +118,7 @@ function defaultMachine() {
     cadeaux: 0, cadeauxLabel: "",
     ccNBpropose: 0, ccCoulPropose: 0,
     spVolNB: "", spVolCoul: "",   // volumes proposés : "" = auto (facturé), sinon override
+    machineConfig: null,   // { category, machine, items:[{designation,price,qty}] } — configurateur Canon
   };
 }
 
