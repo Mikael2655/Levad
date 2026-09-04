@@ -8,6 +8,9 @@ let CURRENT_USER = null;
 let ADMIN = false;
 let SHOW_ARCHIVED = false;
 let COEFF_UNLOCKED = false;   // barème masqué tant que non déverrouillé
+let CATALOG = null;           // catalogue Canon (assets/catalog.json), chargé à la demande
+let CONFIG_MID = null;        // machine en cours d'édition dans le configurateur
+let CONFIG_DRAFT = null;      // { category, machine, items: { [clé]: {designation,price,qty} } }
 
 const NUM = "num", TXT = "txt";
 
@@ -47,6 +50,78 @@ function openUsersModal() {
 function closeUsersModal() {
   const modal = document.getElementById("users-modal"); if (!modal) return;
   modal.hidden = true;
+}
+
+/* -------------------- Configurateur Canon -------------------- */
+function configItemKey(section, designation) { return section + "||" + designation; }
+function configTotal() {
+  return Object.values(CONFIG_DRAFT.items).reduce((a, it) => a + it.price * it.qty, 0);
+}
+async function openConfigModal(mid) {
+  if (!CATALOG) {
+    try { CATALOG = await (await fetch("assets/catalog.json")).json(); }
+    catch (e) { alert("Impossible de charger le catalogue Canon (assets/catalog.json)."); return; }
+  }
+  const m = mById(mid); if (!m) return;
+  CONFIG_MID = mid;
+  const cfg = m.machineConfig;
+  CONFIG_DRAFT = { category: (cfg && cfg.category) || Object.keys(CATALOG)[0] || "", machine: (cfg && cfg.machine) || "", items: {} };
+  if (cfg) (cfg.items || []).forEach((it) => {
+    // la section (moteur/accessoire) n'est pas stockée par article : on la retrouve
+    // en cherchant la désignation dans le catalogue de la machine sélectionnée.
+    const cat = CATALOG[cfg.category] || [];
+    const mach = cat.find((x) => x.name === cfg.machine);
+    const section = mach && mach.engine.some((e) => e.designation === it.designation) ? "engine" : "accessories";
+    CONFIG_DRAFT.items[configItemKey(section, it.designation)] = { designation: it.designation, price: it.price, qty: it.qty };
+  });
+  document.getElementById("config-modal").hidden = false;
+  renderConfigBody();
+}
+function closeConfigModal() {
+  const modal = document.getElementById("config-modal"); if (modal) modal.hidden = true;
+  CONFIG_MID = null; CONFIG_DRAFT = null;
+}
+function configItemRow(section, it) {
+  const key = configItemKey(section, it.designation);
+  const sel = CONFIG_DRAFT.items[key];
+  const checked = !!sel;
+  const qty = sel ? sel.qty : 1;
+  return `<div class="cfg-item">
+    <label class="cfg-check">
+      <input type="checkbox" data-cfg="check" data-key="${esc(key)}" data-price="${it.price}" data-desig="${esc(it.designation)}" ${checked ? "checked" : ""}>
+      <span>${esc(it.designation)}</span>
+    </label>
+    <span class="cfg-price">${eur(it.price)}</span>
+    <input class="cfg-qty" type="number" min="1" step="1" data-cfg="qty" data-key="${esc(key)}" value="${qty}" ${checked ? "" : "disabled"}>
+  </div>`;
+}
+function renderConfigBody() {
+  const body = document.getElementById("config-body"); if (!body || !CONFIG_DRAFT) return;
+  const cats = Object.keys(CATALOG);
+  const machines = CATALOG[CONFIG_DRAFT.category] || [];
+  if (!CONFIG_DRAFT.machine && machines.length) CONFIG_DRAFT.machine = machines[0].name;
+  const mach = machines.find((x) => x.name === CONFIG_DRAFT.machine);
+  body.innerHTML = `
+    <div class="card-head"><h2>Configurateur — Canon</h2>
+      <button class="btn ghost small" data-action="close-config">✕ Fermer</button></div>
+    <div class="grid">
+      <label class="fld"><span>Gamme</span>
+        <select id="cfg-cat">${cats.map((c) => `<option value="${esc(c)}" ${c === CONFIG_DRAFT.category ? "selected" : ""}>${esc(c.replace(/^OFFICE - /, ""))}</option>`).join("")}</select></label>
+      <label class="fld"><span>Machine</span>
+        <select id="cfg-machine">${machines.map((mm) => `<option value="${esc(mm.name)}" ${mm.name === CONFIG_DRAFT.machine ? "selected" : ""}>${esc(mm.name)}</option>`).join("")}</select></label>
+    </div>
+    ${mach ? `
+    <div class="subgrid"><h4>Moteur / solution d'impression</h4>
+      <div class="cfg-list">${mach.engine.map((it) => configItemRow("engine", it)).join("") || '<span class="muted small">Aucun article.</span>'}</div>
+    </div>
+    <div class="subgrid"><h4>Accessoires</h4>
+      <div class="cfg-list">${mach.accessories.map((it) => configItemRow("accessories", it)).join("") || '<span class="muted small">Aucun article.</span>'}</div>
+    </div>` : '<p class="muted small">Aucune machine dans cette gamme.</p>'}
+    <div class="cfg-total">Total sélection : <b id="cfg-total-val">${eur(configTotal())}</b></div>
+    <div class="actions">
+      <button class="btn primary" data-action="apply-config">Valider → Prix machine</button>
+      <button class="btn ghost" data-action="close-config">Annuler</button>
+    </div>`;
 }
 
 function renderLogin() {
@@ -318,6 +393,7 @@ function machineCard(m, i) {
       <div class="col">
         <h3>Solution proposée</h3>
         <div class="grid">${SP_MAIN.map((f) => mField(m.id, f)).join("")}</div>
+        <button class="btn small" data-action="open-config" data-mid="${m.id}">🛒 Configurateur Canon${m.machineConfig && m.machineConfig.machine ? " — " + esc(m.machineConfig.machine) : ""}</button>
         <div class="subgrid"><h4>Rachat, cadeau &amp; marge</h4>
           <div class="grid">
             <div class="fld"><span>Rachat (calculé)</span><div class="ro" id="ro-rachat-${m.id}"></div></div>
@@ -420,7 +496,16 @@ function renderResults() {
 function commit() { saveState(STATE); renderResults(); }
 
 document.addEventListener("input", (e) => {
-  const t = e.target; if (!t.dataset || !t.dataset.scope) return;
+  const t = e.target;
+  if (t.dataset && t.dataset.cfg === "qty") {
+    if (CONFIG_DRAFT && CONFIG_DRAFT.items[t.dataset.key]) {
+      CONFIG_DRAFT.items[t.dataset.key].qty = Math.max(1, Math.round(num(t.value)) || 1);
+      const totalEl = document.getElementById("cfg-total-val");
+      if (totalEl) totalEl.textContent = eur(configTotal());
+    }
+    return;
+  }
+  if (!t.dataset || !t.dataset.scope) return;
   if (t.dataset.scope === "user") return; // édité au blur (voir "change")
   const scope = t.dataset.scope, key = t.dataset.key;
   const val = t.type === "checkbox" ? t.checked : (t.type === "number" ? (t.value === "" ? 0 : num(t.value)) : t.value);
@@ -453,6 +538,20 @@ document.addEventListener("change", (e) => {
   if (t.dataset && t.dataset.scope === "user") { // édition d'un profil utilisateur (au blur)
     updateUserProfile(t.dataset.uid, { [t.dataset.key]: t.value });
     if (CURRENT_USER && t.dataset.uid === CURRENT_USER.id) { CURRENT_USER[t.dataset.key] = t.value; if (t.dataset.key === "name") updateTopbar(); }
+    return;
+  }
+  if (t.id === "cfg-cat" || t.id === "cfg-machine") {
+    if (t.id === "cfg-cat") CONFIG_DRAFT.category = t.value; else CONFIG_DRAFT.machine = t.value;
+    CONFIG_DRAFT.machine = t.id === "cfg-cat" ? "" : CONFIG_DRAFT.machine;
+    CONFIG_DRAFT.items = {};
+    renderConfigBody();
+    return;
+  }
+  if (t.dataset && t.dataset.cfg === "check") {
+    const key = t.dataset.key;
+    if (t.checked) CONFIG_DRAFT.items[key] = { designation: t.dataset.desig, price: num(t.dataset.price), qty: 1 };
+    else delete CONFIG_DRAFT.items[key];
+    renderConfigBody();
     return;
   }
   if (t.tagName !== "SELECT") return;
@@ -497,6 +596,17 @@ document.addEventListener("click", async (e) => {
     case "retry-firebase": location.reload(); break;
     case "open-users": if (ADMIN) openUsersModal(); break;
     case "close-users": closeUsersModal(); break;
+    case "open-config": await openConfigModal(mid); break;
+    case "close-config": closeConfigModal(); break;
+    case "apply-config": {
+      const m = mById(CONFIG_MID); if (!m || !CONFIG_DRAFT) break;
+      const items = Object.values(CONFIG_DRAFT.items);
+      m.machineConfig = { category: CONFIG_DRAFT.category, machine: CONFIG_DRAFT.machine, items };
+      m.prixMachine = configTotal();
+      saveState(STATE); closeConfigModal(); renderMachines(); renderResults();
+      flash("Prix machine mis à jour depuis le configurateur.");
+      break;
+    }
     case "login": await doLogin(); break;
     case "logout": logout(); CURRENT_USER = null; ADMIN = false; STATE = null; renderLogin(); updateTopbar(); break;
     case "new-sim": {

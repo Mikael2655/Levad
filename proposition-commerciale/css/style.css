@@ -152,6 +152,19 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .modal-overlay[hidden] { display: none; }
 .modal-panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
   padding: 16px; box-shadow: var(--shadow); max-width: 720px; width: 100%; }
+.modal-panel.config-panel { max-width: 860px; }
+
+.cfg-list { display: flex; flex-direction: column; gap: 6px; }
+.cfg-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--field); flex-wrap: wrap; }
+.cfg-check { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; min-width: 0; font-size: 13.5px; }
+.cfg-check input { width: auto; flex: none; }
+.cfg-check span { overflow-wrap: anywhere; }
+.cfg-price { flex: 0 0 auto; font-size: 13px; color: var(--muted); min-width: 80px; text-align: right; }
+.cfg-qty { flex: 0 0 64px; width: 64px; font-size: 13px; color: var(--ink); background: var(--card);
+  border: 1px solid var(--line); border-radius: 7px; padding: 5px 6px; }
+.cfg-total { margin: 12px 0; font-size: 16px; text-align: right; }
+.cfg-total b { color: var(--brand); }
 
 @media (max-width: 680px) {
   .machine-cols { grid-template-columns: 1fr; }
