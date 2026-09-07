@@ -1355,4 +1355,12 @@ const VOCAB = [
   { he: "חצ׳קון", translit: "Khatch'koun", fr: "Bouton (sur la peau)", cat: "Général" },
   { he: "כפתור", translit: "Kaftor", fr: "Bouton / touche", cat: "Général" },
   { he: "נבון", translit: "Navon", fr: "Sage", cat: "Général" },
+  { he: "שריפה", translit: "Sfeira", fr: "Incendie", cat: "Général" },
+  { he: "מעבר", translit: "Ma'avar", fr: "Passage/transition", cat: "Général" },
+  { he: "מפגש", translit: "Mifgach", fr: "Rencontre", cat: "Général" },
+  { he: "מחמאה", translit: "Makhma'a", fr: "Compliment", cat: "Général" },
+  { he: "נוח", translit: "Noakh", fr: "Confortable", cat: "Général" },
+  { he: "שדה קרב", translit: "Sde krav", fr: "Champs de bataille", cat: "Général" },
+  { he: "אדיר", translit: "Adir", fr: "Incroyable", cat: "Général" },
+  { he: "צרחות", translit: "Tsrakhot", fr: "Incroyable", cat: "Général", note: "C'est tellement bien que ça fait hurler" },
 ];
