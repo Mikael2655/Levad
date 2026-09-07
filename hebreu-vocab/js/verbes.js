@@ -1,5 +1,5 @@
 // ============================================================
-//  VOS VERBES — générés depuis votre Excel (onglet "Verbe 2")
+//  VOS VERBES — générés depuis votre Excel (onglet "Verbe")
 // ============================================================
 //  Fidèle au tableau : UNE forme de référence par temps
 //  (présent masc. sing., passé "il", futur "il"), plus la racine
@@ -5319,6 +5319,51 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "יגרר", t: "Yigarer" },
+      ],
+    },
+  },
+  {
+    inf: "להציק", translit: "Lehatsik", fr: "Embêter",
+    racine: "צוק", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מציק", t: "Metsik" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הציק", t: "Hetsik" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יציק", t: "Yatsik" },
+      ],
+    },
+  },
+  {
+    inf: "לצרוח", translit: "Litsroakh", fr: "Hurler",
+    racine: "צרח", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "צורח", t: "Tsoreakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צרח", t: "Tsarakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצרח", t: "Yitsrakh" },
+      ],
+    },
+  },
+  {
+    inf: "להכעיס", translit: "Leakh'is", fr: "Enerver",
+    racine: "כעס", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מכעיס", t: "Makh'is" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הכעיס", t: "Hikh'is" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכעיס", t: "Yakh'is" },
       ],
     },
   },
