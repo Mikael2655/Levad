@@ -1231,10 +1231,13 @@ function renderConj() {
 }
 
 /* ------------------------------------------------------------
-   🎧 Audio à trous : on entend une phrase courte avec un
-   marqueur de temps (hier / demain / chaque jour) et on retrouve
-   le verbe, masqué dans le texte. Travaille l'oreille et le lien
-   temps ↔ mot-repère.
+   🎧 Audio à trous : une phrase courte est donnée en entier (texte
+   + audio) dans une langue, avec un marqueur de temps (hier /
+   demain / chaque jour) ; la même phrase est affichée dans l'autre
+   langue avec le verbe masqué, à retrouver en QCM. Les deux sens
+   sont tirés au sort :
+     • français donné (lu en audio) → trouver le verbe en hébreu ;
+     • hébreu donné (lu en audio)   → trouver le verbe en français.
    ------------------------------------------------------------ */
 const AUDIO_CARRIERS = {
   "Présent": { he: "כל יום הוא", fr: "Chaque jour, il" },
@@ -1242,9 +1245,20 @@ const AUDIO_CARRIERS = {
   "Futur": { he: "מחר הוא", fr: "Demain, il" },
 };
 
+// Le français du verbe se conjugue-t-il proprement à ce temps ?
+// (sinon la phrase « il … » serait bancale : on écarte ces verbes ici)
+function frConjOk(item) {
+  return !!conjugateFrLabel(item.verb.fr, item.tense);
+}
+
 function audioPool() {
-  // Uniquement les temps qui ont une phrase support (pas l'infinitif)
-  return conjPool().filter((c) => AUDIO_CARRIERS[c.tense]);
+  // Temps avec phrase support (pas l'infinitif) ET français conjugable
+  return conjPool().filter((c) => AUDIO_CARRIERS[c.tense] && frConjOk(c));
+}
+
+// Verbe français conjugué, sans le « il » de tête (ex. « mangera »)
+function frVerbOnly(item) {
+  return frOfConj(item).replace(/^[Ii]l\s+/, "");
 }
 
 function renderConjAudio() {
@@ -1257,24 +1271,39 @@ function renderConjAudio() {
   }
   if (!state.conj.current || !AUDIO_CARRIERS[state.conj.current.tense]) {
     state.conj.current = pickWord(pool, null);
+    state.conj.audioRev = Math.random() < 0.5;
   }
   const item = state.conj.current;
   const carrier = AUDIO_CARRIERS[item.tense];
-  const sentence = carrier.he + " " + item.he; // phrase hébraïque complète (jouée)
+  // reverse = false : on donne le français (audio fr) → trouver l'hébreu
+  // reverse = true  : on donne l'hébreu (audio he)   → trouver le français
+  const reverse = state.conj.audioRev;
+  const heSentence = carrier.he + " " + item.he;
+  const frSentence = carrier.fr + " " + frVerbOnly(item);
 
   screen.appendChild(sessionScoreBar());
 
+  const givenText = reverse ? heSentence : frSentence;
+  const givenLang = reverse ? "he" : "fr";
+  const givenHtml = reverse
+    ? `<div class="audio-given he" dir="rtl">${heSentence}</div>`
+    : `<div class="audio-given">${frSentence}</div>`;
+  const blankHtml = reverse
+    ? `<div class="audio-blankline">${carrier.fr} <span class="audio-blank">______</span></div>`
+    : `<div class="audio-blankline he" dir="rtl">${carrier.he} <span class="audio-blank">______</span></div>`;
+
   const q = el("div", "quiz-question audio-q");
   q.innerHTML = `
-    <div class="conf-listen">🎧 Écoutez, puis retrouvez le verbe manquant</div>
-    <button class="audio-play" data-speak="${sentence.replace(/"/g, "&quot;")}" aria-label="Réécouter">🔊 Réécouter</button>
-    <div class="audio-sentence he" dir="rtl">${carrier.he} <span class="audio-blank">____</span></div>
-    <div class="audio-fr">${carrier.fr} <span class="audio-blank">…</span></div>`;
+    <div class="conf-listen">🎧 Complétez : trouvez le verbe manquant</div>
+    <button class="audio-play" data-speak="${givenText.replace(/"/g, "&quot;")}" data-lang="${givenLang}" aria-label="Réécouter">🔊 Réécouter</button>
+    ${givenHtml}
+    <div class="audio-arrow">↓</div>
+    ${blankHtml}`;
   screen.appendChild(q);
-  // Lecture automatique (après un geste de navigation, OK sur mobile)
-  setTimeout(() => speak(sentence), 250);
+  // Lecture automatique (après le geste de navigation, OK sur mobile)
+  setTimeout(() => speak(givenText, givenLang), 250);
 
-  // Options : 4 formes du même temps, distinctes, en préférant les proches
+  // Distracteurs : même temps, en préférant les verbes proches
   const rootOf = (v) => hebrewLetters(String(v.racine || ""));
   const itemRoot = rootOf(item.verb);
   function score(c) {
@@ -1290,15 +1319,16 @@ function renderConjAudio() {
     }
     return s;
   }
-  const seen = new Set([item.he]);
+  const displayKey = (c) => (reverse ? frVerbOnly(c) : c.he);
+  const seen = new Set([displayKey(item)]);
   const distractors = [];
   CONJ_ITEMS
-    .filter((c) => c.tense === item.tense && c.verb !== item.verb)
+    .filter((c) => c.tense === item.tense && c.verb !== item.verb && frConjOk(c))
     .map((c) => [score(c), c])
     .sort((a, b) => b[0] - a[0])
     .forEach(([, c]) => {
-      if (distractors.length < 3 && !seen.has(c.he)) {
-        seen.add(c.he);
+      if (distractors.length < 3 && !seen.has(displayKey(c))) {
+        seen.add(displayKey(c));
         distractors.push(c);
       }
     });
@@ -1310,11 +1340,9 @@ function renderConjAudio() {
   let answered = false;
   const buttons = [];
   options.forEach((opt) => {
-    const btn = el(
-      "button",
-      "quiz-option option-he",
-      `<span class="he">${opt.he}</span> ${speakBtn(opt.he)}`
-    );
+    const btn = reverse
+      ? el("button", "quiz-option", frVerbOnly(opt))
+      : el("button", "quiz-option option-he", `<span class="he">${opt.he}</span> ${speakBtn(opt.he)}`);
     buttons.push({ btn, opt });
     btn.addEventListener("click", () => {
       if (answered) return;
@@ -1328,20 +1356,23 @@ function renderConjAudio() {
         if (o === item) b.classList.add("correct");
       });
       if (!isCorrect) btn.classList.add("wrong");
+      // On (ré)écoute l'hébreu de la bonne réponse pour l'associer au son
+      speak(item.he, "he");
 
-      // Révèle la phrase complète + le sens
+      // Révèle les deux phrases complètes + la translittération
       screen.appendChild(
         el(
           "div",
           "feedback " + (isCorrect ? "good" : "bad"),
-          `${isCorrect ? "✔" : "✘"} <span class="he">${sentence}</span><br>` +
-            `<em>${carrier.fr} ${frOfConj(item).replace(/^[Ii]l\s+/, "")}</em> — ${item.translit}`
+          `${isCorrect ? "✔" : "✘"} <span class="he">${heSentence}</span> ${speakBtn(heSentence)}<br>` +
+            `<em>${frSentence}</em> <span class="feedback-tr">(${item.translit})</span>`
         )
       );
 
       const next = el("button", "btn btn-primary conf-next", "Suivant →");
       next.addEventListener("click", () => {
         state.conj.current = pickWord(pool, item);
+        state.conj.audioRev = Math.random() < 0.5;
         render();
       });
       screen.appendChild(next);
@@ -2354,16 +2385,19 @@ if (navigator.storage && navigator.storage.persist) {
    Un clic sur n'importe quel bouton [data-speak] lit le mot en
    hébreu. Écouté en capture pour ne pas déclencher le clic de
    l'élément qui l'entoure (carte, ligne de résultat…). */
-function speak(text) {
+function speak(text, lang) {
   if (!("speechSynthesis" in window) || !text) return;
+  const code = lang === "fr" ? "fr-FR" : "he-IL";
+  const re = lang === "fr" ? /fr([-_]?[A-Z]{2})?/i : /he([-_]?IL)?/i;
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = "he-IL";
+    u.lang = code;
     const voices = speechSynthesis.getVoices() || [];
-    const he = voices.find((v) => /he([-_]?IL)?/i.test(v.lang));
-    if (he) u.voice = he;
-    u.rate = 0.75; // un peu plus lent pour bien détacher les syllabes
+    const v = voices.find((x) => re.test(x.lang));
+    if (v) u.voice = v;
+    // un peu plus lent pour bien détacher les syllabes (surtout l'hébreu)
+    u.rate = lang === "fr" ? 0.9 : 0.75;
     speechSynthesis.speak(u);
   } catch {
     /* pas de synthèse vocale disponible : on ignore silencieusement */
@@ -2381,7 +2415,7 @@ document.addEventListener(
     if (btn) {
       e.preventDefault();
       e.stopPropagation();
-      speak(btn.getAttribute("data-speak"));
+      speak(btn.getAttribute("data-speak"), btn.getAttribute("data-lang") || "he");
     }
   },
   true // capture : passe avant le clic de la carte / de la ligne
