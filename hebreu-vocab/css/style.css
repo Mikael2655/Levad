@@ -821,14 +821,21 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
   cursor: pointer;
 }
 .audio-play:active { transform: scale(0.96); }
-.audio-sentence {
-  font-size: 1.6rem;
+.audio-given {
+  font-size: 1.5rem;
   font-weight: 700;
   margin: 0.3rem 0;
 }
-.audio-fr { color: var(--muted); font-size: 0.95rem; }
+.audio-arrow { color: var(--muted); font-size: 1.1rem; line-height: 1; }
+.audio-blankline {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0.2rem 0;
+  color: var(--ink);
+}
 .audio-blank {
   color: var(--accent);
   font-weight: 800;
   letter-spacing: 1px;
 }
+.feedback-tr { color: var(--muted); font-size: 0.9rem; }
