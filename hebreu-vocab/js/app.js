@@ -239,6 +239,7 @@ const state = {
   reverse: false, // sens de la question : false = hébreu→français, true = français→hébreu
   session: { ok: 0, ko: 0 }, // score de la session en cours
   conj: { mode: "qcm", tense: "Tous", scope: "Tous", verb: 0, current: null }, // onglet Conjugaison
+  confus: { mode: "qcm", family: null, current: null, reverse: false }, // onglet Verbes proches
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
   search: { q: "" }, // onglet Recherche
   review: { active: false, mode: "due", queue: [], idx: 0, ok: 0, ko: 0, missed: [], flipped: false }, // révision du jour
@@ -303,6 +304,46 @@ if (typeof VERBES !== "undefined") {
   });
 }
 const CONJ_TENSES = [...new Set(CONJ_ITEMS.map((c) => c.tense))];
+
+/* ------------------------------------------------------------
+   « Verbes proches » : familles de verbes qui ne diffèrent que
+   d'UNE lettre (paires minimales), ex. להציג / להציל / להציע /
+   להציץ / להציק. Très difficiles à distinguer à l'oreille et à
+   l'écrit : on les regroupe automatiquement pour un jeu dédié.
+   ------------------------------------------------------------ */
+function confHeLetters(s) {
+  // fixFinalLetters est déjà appliqué aux infinitifs au chargement
+  return [...String(s)].filter((c) => c >= "א" && c <= "ת");
+}
+function buildVerbFamilies() {
+  if (typeof VERBES === "undefined") return [];
+  const vs = VERBES.filter(
+    (v) => v.inf && !/\s/.test(v.inf) && confHeLetters(v.inf).length >= 3
+  );
+  // Regroupe les verbes identiques sauf à UNE position (une lettre qui change)
+  const masks = {};
+  vs.forEach((v) => {
+    const L = confHeLetters(v.inf);
+    for (let p = 0; p < L.length; p++) {
+      const key = L.length + "|" + p + "|" + L.map((c, i) => (i === p ? "_" : c)).join("");
+      (masks[key] = masks[key] || []).push(v);
+    }
+  });
+  let fams = Object.entries(masks)
+    .filter(([, a]) => a.length >= 3)
+    .map(([k, a]) => ({ pos: Number(k.split("|")[1]), verbs: a }));
+  // Dédoublonne les familles à ensemble de verbes identique
+  const seen = new Set();
+  fams = fams.filter((f) => {
+    const sig = f.verbs.map((v) => v.inf).sort().join(",");
+    if (seen.has(sig)) return false;
+    seen.add(sig);
+    return true;
+  });
+  fams.sort((a, b) => b.verbs.length - a.verbs.length);
+  return fams;
+}
+const VERB_FAMILIES = buildVerbFamilies();
 
 const screen = document.getElementById("screen");
 
@@ -429,6 +470,7 @@ function render() {
     quiz: renderQuiz,
     write: renderWrite,
     conj: renderConj,
+    confus: renderConfus,
     search: renderSearch,
     review: renderReview,
     progress: renderProgress,
@@ -440,6 +482,7 @@ function switchView(view) {
   state.view = view;
   state.currentWord = null;
   state.conj.current = null;
+  state.confus.current = null;
   state.session = { ok: 0, ko: 0 };
   state.review.active = false;
   render();
@@ -552,6 +595,24 @@ function renderHome() {
   }
   screen.appendChild(reviewBtns);
 
+  // ---- Entraînement verbes mis en avant ----
+  screen.appendChild(el("div", "section-label", "🔤 Entraînement des verbes"));
+  const verbBtns = el("div", "daily-actions");
+  const btnVerbs = el("button", "btn btn-primary", "🔤 Réviser les verbes");
+  btnVerbs.addEventListener("click", () => {
+    reviewScope = "verbes";
+    localStorage.setItem("hebreu-vocab-review-scope", reviewScope);
+    startReview("due");
+  });
+  verbBtns.appendChild(btnVerbs);
+  const btnConj = el("button", "btn btn-neutral", "🧩 Conjugaison");
+  btnConj.addEventListener("click", () => switchView("conj"));
+  verbBtns.appendChild(btnConj);
+  const btnConfus = el("button", "btn btn-neutral", "🎯 Verbes proches");
+  btnConfus.addEventListener("click", () => switchView("confus"));
+  verbBtns.appendChild(btnConfus);
+  screen.appendChild(verbBtns);
+
   // Portée de la révision : mots, verbes à l'infinitif, ou tout
   const scopeRow = el("label", "goal-row hint", "🃏 Réviser : ");
   const scopeSel = el("select", "conj-select");
@@ -601,10 +662,11 @@ function renderHome() {
 
   const grid = el("div", "menu-grid");
   const games = [
+    ["conj", "🔤", "Conjugaison", "Tableaux, QCM et écriture des verbes aux différents temps."],
+    ["confus", "🎯", "Verbes proches", "Distinguez les verbes qui ne changent que d'une lettre (להציג / להציל…)."],
     ["flashcards", "🃏", "Flashcards", "Voyez l'hébreu, devinez le français, retournez la carte."],
     ["quiz", "✅", "QCM", "Un mot, quatre traductions : trouvez la bonne."],
     ["write", "✍️", "Écrire la traduction", "Tapez la traduction française du mot affiché."],
-    ["conj", "🔤", "Conjugaison", "Tableaux, QCM et écriture des verbes aux différents temps."],
     ["search", "🔍", "Recherche", "Cherchez un mot ou un verbe, en français ou en hébreu."],
     ["progress", "📊", "Progrès", "Vos scores mot par mot, et les mots à retravailler."],
   ];
@@ -1158,6 +1220,206 @@ function renderConj() {
   if (state.conj.mode === "tables") renderConjTables();
   else if (state.conj.mode === "qcm") renderConjQuiz();
   else renderConjWrite();
+}
+
+/* ------------------------------------------------------------
+   🎯 Verbes proches (paires minimales)
+   Un verbe cible ↔ ses cousins qui ne changent que d'une lettre.
+   Deux sens tirés au sort : entendre l'hébreu et trouver le sens,
+   ou lire le français et retrouver le bon hébreu (parmi des mots
+   presque identiques). Après la réponse, on montre toute la
+   famille pour bien fixer les différences.
+   ------------------------------------------------------------ */
+
+// Regroupe les sens quand un même infinitif a plusieurs traductions
+// (ex. להראות = Montrer / Sembler) pour n'afficher qu'une ligne.
+function famEntries(fam) {
+  const byInf = new Map();
+  fam.verbs.forEach((v) => {
+    if (!byInf.has(v.inf)) byInf.set(v.inf, { verb: v, frs: [] });
+    byInf.get(v.inf).frs.push(v.fr);
+  });
+  return [...byInf.values()].map((e) => ({
+    verb: e.verb,
+    he: e.verb.inf,
+    translit: e.verb.translit,
+    fr: [...new Set(e.frs)].join(" / "),
+  }));
+}
+
+// Met en évidence la lettre qui change dans la famille (position pos)
+function highlightLetter(he, pos) {
+  const chars = [...String(he)];
+  if (pos < 0 || pos >= chars.length) return String(he);
+  chars[pos] = `<span class="conf-diff">${chars[pos]}</span>`;
+  return chars.join("");
+}
+
+function pickConfus(avoid) {
+  // Familles éligibles : au moins 3 entrées de sens distincts
+  const fams = VERB_FAMILIES.filter((f) => famEntries(f).length >= 3);
+  if (fams.length === 0) return;
+  const fam = fams[Math.floor(Math.random() * fams.length)];
+  const entries = famEntries(fam);
+  let target = entries[Math.floor(Math.random() * entries.length)];
+  if (avoid && entries.length > 1) {
+    let guard = 0;
+    while (target.he === avoid && guard++ < 8)
+      target = entries[Math.floor(Math.random() * entries.length)];
+  }
+  state.confus.family = { pos: fam.pos, entries };
+  state.confus.current = { ...target, key: "CF|" + target.he };
+  state.confus.reverse = Math.random() < 0.5; // true : on entend l'hébreu, on cherche le sens
+}
+
+function renderConfus() {
+  screen.appendChild(el("h2", "view-title", "🎯 Verbes proches"));
+
+  if (VERB_FAMILIES.length === 0) {
+    screen.appendChild(
+      el("p", "hint", "Pas encore de familles de verbes proches à travailler.")
+    );
+    return;
+  }
+
+  const seg = el("div", "segmented");
+  [
+    ["qcm", "✅ Quiz"],
+    ["browse", "📖 Familles"],
+  ].forEach(([mode, label]) => {
+    const btn = el("button", "seg-btn" + (state.confus.mode === mode ? " active" : ""), label);
+    btn.addEventListener("click", () => {
+      state.confus.mode = mode;
+      state.confus.current = null;
+      state.session = { ok: 0, ko: 0 };
+      render();
+    });
+    seg.appendChild(btn);
+  });
+  screen.appendChild(seg);
+
+  screen.appendChild(
+    el(
+      "p",
+      "hint",
+      "Ces verbes ne changent que d'<strong>une lettre</strong> et se ressemblent beaucoup — à l'oreille comme à l'écrit."
+    )
+  );
+
+  if (state.confus.mode === "browse") renderConfusBrowse();
+  else renderConfusQuiz();
+}
+
+function renderConfusQuiz() {
+  if (!state.confus.current) pickConfus(null);
+  if (!state.confus.current) {
+    screen.appendChild(el("p", "hint", "Pas assez de verbes pour ce jeu."));
+    return;
+  }
+  const item = state.confus.current;
+  const fam = state.confus.family;
+  const reverse = state.confus.reverse;
+
+  screen.appendChild(sessionScoreBar());
+
+  // Énoncé
+  const q = el("div", "quiz-question");
+  if (reverse) {
+    // On entend / lit l'hébreu, on cherche le sens
+    q.innerHTML = `
+      <div class="conf-listen">🎧 Quel est ce verbe ?</div>
+      <div class="he-word he">${item.he} ${speakBtn(item.he)}</div>
+      <div class="translit">${item.translit}</div>`;
+  } else {
+    // On lit le français, on cherche le bon hébreu (mots presque identiques)
+    q.innerHTML = `
+      <div class="conf-listen">Lequel s'écrit ainsi ?</div>
+      <div class="conf-fr">${item.fr}</div>`;
+  }
+  screen.appendChild(q);
+  // Lecture automatique de l'hébreu quand on doit le reconnaître à l'oreille
+  if (reverse) setTimeout(() => speak(item.he), 250);
+
+  // Options = toute la famille (max 4), la cible incluse
+  let opts = fam.entries.slice();
+  if (opts.length > 4) {
+    opts = opts.filter((e) => e.he !== item.he);
+    opts = shuffle(opts).slice(0, 3);
+    opts.push(item);
+  }
+  opts = shuffle(opts);
+
+  const optionsBox = el("div", "quiz-options");
+  screen.appendChild(optionsBox);
+
+  let answered = false;
+  const buttons = [];
+  opts.forEach((opt) => {
+    const btn = reverse
+      ? el("button", "quiz-option", opt.fr)
+      : el(
+          "button",
+          "quiz-option option-he",
+          `<span class="he">${highlightLetter(opt.he, fam.pos)}</span> ${speakBtn(opt.he)}`
+        );
+    buttons.push({ btn, opt });
+    btn.addEventListener("click", () => {
+      if (answered) return;
+      answered = true;
+      const isCorrect = opt.he === item.he && opt.fr === item.fr;
+      recordAnswer(item, isCorrect);
+      state.session[isCorrect ? "ok" : "ko"] += 1;
+
+      buttons.forEach(({ btn: b, opt: o }) => {
+        b.disabled = true;
+        if (o.he === item.he && o.fr === item.fr) b.classList.add("correct");
+      });
+      if (!isCorrect) btn.classList.add("wrong");
+      if (!reverse) speak(item.he);
+
+      // Récap de toute la famille pour bien fixer les différences
+      const recap = el("div", "conf-recap");
+      recap.appendChild(el("div", "conf-recap-title", "La famille :"));
+      fam.entries.forEach((e) => {
+        const row = el("div", "conf-recap-row" + (e.he === item.he ? " is-target" : ""));
+        row.innerHTML =
+          `<span class="he conf-recap-he">${highlightLetter(e.he, fam.pos)}</span>` +
+          `<span class="conf-recap-tr">${e.translit}</span>` +
+          `<span class="conf-recap-fr">${e.fr}</span>` +
+          speakBtn(e.he);
+        recap.appendChild(row);
+      });
+      screen.appendChild(recap);
+
+      const next = el("button", "btn btn-primary conf-next", "Suivant →");
+      next.addEventListener("click", () => {
+        pickConfus(item.he);
+        render();
+      });
+      screen.appendChild(next);
+    });
+    optionsBox.appendChild(btn);
+  });
+}
+
+function renderConfusBrowse() {
+  const list = el("div", "conf-fam-list");
+  VERB_FAMILIES.forEach((fam) => {
+    const entries = famEntries(fam);
+    if (entries.length < 3) return;
+    const card = el("div", "conf-fam-card");
+    entries.forEach((e) => {
+      const row = el("div", "conf-recap-row");
+      row.innerHTML =
+        `<span class="he conf-recap-he">${highlightLetter(e.he, fam.pos)}</span>` +
+        `<span class="conf-recap-tr">${e.translit}</span>` +
+        `<span class="conf-recap-fr">${e.fr}</span>` +
+        speakBtn(e.he);
+      card.appendChild(row);
+    });
+    list.appendChild(card);
+  });
+  screen.appendChild(list);
 }
 
 /* ------------------------------------------------------------

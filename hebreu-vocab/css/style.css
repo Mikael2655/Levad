@@ -726,3 +726,82 @@ body {
   padding: 1rem;
 }
 code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
+
+/* ---------- 🎯 Verbes proches (paires minimales) ---------- */
+.section-label {
+  margin: 1rem 0 0.4rem;
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: var(--ink);
+}
+.conf-listen {
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+.conf-fr {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+/* La lettre qui distingue les verbes de la famille */
+.conf-diff {
+  color: var(--bad);
+  font-weight: 800;
+  border-bottom: 3px solid var(--bad);
+  padding: 0 1px;
+}
+.quiz-option.correct .conf-diff { color: var(--good); border-color: var(--good); }
+.conf-next { margin-top: 0.9rem; width: 100%; }
+
+/* Récap de la famille (après réponse) + mode Familles */
+.conf-recap {
+  margin-top: 0.9rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.6rem 0.8rem;
+}
+.conf-recap-title {
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+.conf-recap-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.2rem;
+  border-top: 1px solid var(--line);
+}
+.conf-recap-row:first-of-type { border-top: none; }
+.conf-recap-row.is-target { background: var(--good-bg); border-radius: 8px; }
+.conf-recap-he {
+  font-size: 1.5rem;
+  font-weight: 700;
+  min-width: 4.5rem;
+  text-align: right;
+  direction: rtl;
+}
+.conf-recap-tr {
+  color: var(--muted);
+  font-size: 0.85rem;
+  min-width: 4.5rem;
+}
+.conf-recap-fr { flex: 1; font-size: 0.95rem; }
+
+.conf-fam-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+}
+.conf-fam-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.5rem 0.8rem;
+}
