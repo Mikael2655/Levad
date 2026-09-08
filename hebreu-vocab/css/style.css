@@ -805,3 +805,30 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
   box-shadow: var(--shadow);
   padding: 0.5rem 0.8rem;
 }
+
+/* ---------- 🎧 Audio à trous ---------- */
+.audio-q { text-align: center; }
+.audio-play {
+  display: inline-block;
+  margin: 0.2rem 0 0.6rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.audio-play:active { transform: scale(0.96); }
+.audio-sentence {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0.3rem 0;
+}
+.audio-fr { color: var(--muted); font-size: 0.95rem; }
+.audio-blank {
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 1px;
+}

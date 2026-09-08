@@ -611,6 +611,12 @@ function renderHome() {
   const btnConfus = el("button", "btn btn-neutral", "🎯 Verbes proches");
   btnConfus.addEventListener("click", () => switchView("confus"));
   verbBtns.appendChild(btnConfus);
+  const btnAudio = el("button", "btn btn-neutral", "🎧 Audio à trous");
+  btnAudio.addEventListener("click", () => {
+    state.conj.mode = "audio";
+    switchView("conj");
+  });
+  verbBtns.appendChild(btnAudio);
   screen.appendChild(verbBtns);
 
   // Portée de la révision : mots, verbes à l'infinitif, ou tout
@@ -1169,6 +1175,7 @@ function renderConj() {
     ["tables", "📖 Tableaux"],
     ["qcm", "✅ QCM"],
     ["write", "✍️ Écrire"],
+    ["audio", "🎧 Audio"],
   ].forEach(([mode, label]) => {
     const btn = el("button", "seg-btn" + (state.conj.mode === mode ? " active" : ""), label);
     btn.addEventListener("click", () => {
@@ -1219,7 +1226,128 @@ function renderConj() {
 
   if (state.conj.mode === "tables") renderConjTables();
   else if (state.conj.mode === "qcm") renderConjQuiz();
+  else if (state.conj.mode === "audio") renderConjAudio();
   else renderConjWrite();
+}
+
+/* ------------------------------------------------------------
+   🎧 Audio à trous : on entend une phrase courte avec un
+   marqueur de temps (hier / demain / chaque jour) et on retrouve
+   le verbe, masqué dans le texte. Travaille l'oreille et le lien
+   temps ↔ mot-repère.
+   ------------------------------------------------------------ */
+const AUDIO_CARRIERS = {
+  "Présent": { he: "כל יום הוא", fr: "Chaque jour, il" },
+  "Passé": { he: "אתמול הוא", fr: "Hier, il" },
+  "Futur": { he: "מחר הוא", fr: "Demain, il" },
+};
+
+function audioPool() {
+  // Uniquement les temps qui ont une phrase support (pas l'infinitif)
+  return conjPool().filter((c) => AUDIO_CARRIERS[c.tense]);
+}
+
+function renderConjAudio() {
+  const pool = audioPool();
+  if (pool.length === 0) {
+    screen.appendChild(
+      el("p", "hint", "Choisissez le temps « Tous », « Présent », « Passé » ou « Futur » pour ce mode.")
+    );
+    return;
+  }
+  if (!state.conj.current || !AUDIO_CARRIERS[state.conj.current.tense]) {
+    state.conj.current = pickWord(pool, null);
+  }
+  const item = state.conj.current;
+  const carrier = AUDIO_CARRIERS[item.tense];
+  const sentence = carrier.he + " " + item.he; // phrase hébraïque complète (jouée)
+
+  screen.appendChild(sessionScoreBar());
+
+  const q = el("div", "quiz-question audio-q");
+  q.innerHTML = `
+    <div class="conf-listen">🎧 Écoutez, puis retrouvez le verbe manquant</div>
+    <button class="audio-play" data-speak="${sentence.replace(/"/g, "&quot;")}" aria-label="Réécouter">🔊 Réécouter</button>
+    <div class="audio-sentence he" dir="rtl">${carrier.he} <span class="audio-blank">____</span></div>
+    <div class="audio-fr">${carrier.fr} <span class="audio-blank">…</span></div>`;
+  screen.appendChild(q);
+  // Lecture automatique (après un geste de navigation, OK sur mobile)
+  setTimeout(() => speak(sentence), 250);
+
+  // Options : 4 formes du même temps, distinctes, en préférant les proches
+  const rootOf = (v) => hebrewLetters(String(v.racine || ""));
+  const itemRoot = rootOf(item.verb);
+  function score(c) {
+    let s = Math.random();
+    if (c.verb.binyan && c.verb.binyan === item.verb.binyan) s += 2;
+    if (c.he[0] === item.he[0]) s += 1.5;
+    if (Math.abs(c.he.length - item.he.length) <= 1) s += 1;
+    const r = rootOf(c.verb);
+    if (itemRoot && r) {
+      let comm = 0;
+      new Set(r).forEach((ch) => { if (itemRoot.includes(ch)) comm++; });
+      if (comm >= 2) s += 1.5;
+    }
+    return s;
+  }
+  const seen = new Set([item.he]);
+  const distractors = [];
+  CONJ_ITEMS
+    .filter((c) => c.tense === item.tense && c.verb !== item.verb)
+    .map((c) => [score(c), c])
+    .sort((a, b) => b[0] - a[0])
+    .forEach(([, c]) => {
+      if (distractors.length < 3 && !seen.has(c.he)) {
+        seen.add(c.he);
+        distractors.push(c);
+      }
+    });
+  const options = shuffle([item, ...distractors]);
+
+  const optionsBox = el("div", "quiz-options");
+  screen.appendChild(optionsBox);
+
+  let answered = false;
+  const buttons = [];
+  options.forEach((opt) => {
+    const btn = el(
+      "button",
+      "quiz-option option-he",
+      `<span class="he">${opt.he}</span> ${speakBtn(opt.he)}`
+    );
+    buttons.push({ btn, opt });
+    btn.addEventListener("click", () => {
+      if (answered) return;
+      answered = true;
+      const isCorrect = opt === item;
+      recordAnswer(item, isCorrect);
+      state.session[isCorrect ? "ok" : "ko"] += 1;
+
+      buttons.forEach(({ btn: b, opt: o }) => {
+        b.disabled = true;
+        if (o === item) b.classList.add("correct");
+      });
+      if (!isCorrect) btn.classList.add("wrong");
+
+      // Révèle la phrase complète + le sens
+      screen.appendChild(
+        el(
+          "div",
+          "feedback " + (isCorrect ? "good" : "bad"),
+          `${isCorrect ? "✔" : "✘"} <span class="he">${sentence}</span><br>` +
+            `<em>${carrier.fr} ${frOfConj(item).replace(/^[Ii]l\s+/, "")}</em> — ${item.translit}`
+        )
+      );
+
+      const next = el("button", "btn btn-primary conf-next", "Suivant →");
+      next.addEventListener("click", () => {
+        state.conj.current = pickWord(pool, item);
+        render();
+      });
+      screen.appendChild(next);
+    });
+    optionsBox.appendChild(btn);
+  });
 }
 
 /* ------------------------------------------------------------
