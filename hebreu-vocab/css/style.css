@@ -884,3 +884,62 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
 .vi-he { font-size: 1.3rem; font-weight: 700; direction: rtl; }
 .vi-tr { color: var(--muted); font-size: 0.85rem; }
 .verb-info-panel .conj-mini { margin-top: 0.5rem; }
+
+/* ---------- Cases à cocher (filtres) ---------- */
+.filter-bar { margin: 0.4rem 0 0.6rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.check-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.5rem;
+  font-size: 0.82rem;
+}
+.check-label { color: var(--muted); font-weight: 700; margin-right: 0.15rem; }
+.check-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.check-item.on { border-color: var(--accent); background: var(--good-bg); }
+.check-item input { margin: 0; accent-color: var(--accent); }
+.check-item span { user-select: none; }
+
+/* ---------- Accueil : blocs vocabulaire / verbes ---------- */
+.home-block {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.8rem 0.9rem;
+  margin-bottom: 0.9rem;
+}
+.home-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.hb-title { font-size: 1.1rem; font-weight: 800; }
+.home-block .daily-actions { margin-bottom: 0.4rem; }
+.totals-cap { margin: 0.6rem 0 0.2rem; font-weight: 700; color: var(--ink); }
+
+/* Sous-segments (Verbes proches : Quiz / Familles) */
+.segmented.sub-seg { margin-top: 0.2rem; }
+
+/* Tableau de conjugaison déplié dans la recherche */
+.search-conj {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.7rem 0.7rem;
+  margin: 0.2rem 0 0.6rem;
+}
+.search-conj .conj-meta { margin: 0.3rem 0; }
+.search-row.is-verb { cursor: pointer; }
+.search-row.open { border-color: var(--accent); }
