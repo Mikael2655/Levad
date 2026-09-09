@@ -238,10 +238,12 @@ const state = {
   currentWord: null,
   reverse: false, // sens de la question : false = hébreu→français, true = français→hébreu
   session: { ok: 0, ko: 0 }, // score de la session en cours
-  conj: { mode: "qcm", tense: "Tous", scope: "Tous", verb: 0, current: null }, // onglet Conjugaison
-  confus: { mode: "qcm", family: null, current: null, reverse: false }, // onglet Verbes proches
+  conj: { mode: "qcm", tenses: new Set(), binyans: new Set(), newOnly: false, verb: 0, current: null, reverse: false, audioRev: false }, // onglet Verbes
+  confus: { mode: "qcm", family: null, current: null, reverse: false }, // sous-menu Verbes proches
+  vocab: { mode: "flashcards", newOnly: false }, // onglet Vocabulaire
+  home: { vocabNew: false, verbNew: false }, // options de l'accueil
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
-  search: { q: "" }, // onglet Recherche
+  search: { q: "", openVerb: null }, // onglet Recherche (openVerb = verbe déplié)
   review: { active: false, mode: "due", queue: [], idx: 0, ok: 0, ko: 0, missed: [], flipped: false }, // révision du jour
 };
 
@@ -312,26 +314,56 @@ const CONJ_TENSES = [...new Set(CONJ_ITEMS.map((c) => c.tense))];
    l'écrit : on les regroupe automatiquement pour un jeu dédié.
    ------------------------------------------------------------ */
 function confHeLetters(s) {
-  // fixFinalLetters est déjà appliqué aux infinitifs au chargement
   return [...String(s)].filter((c) => c >= "א" && c <= "ת");
+}
+/* Clé « sonore » d'une prononciation : on réduit le translit à des
+   phonèmes (ch/kh/ts → 1 symbole, ou → u, glottales retirées) pour
+   comparer les verbes SUR LEUR SON, pas sur leur orthographe. Deux
+   verbes proches = même son sauf une syllabe (ex. להציג/להציל/להציק),
+   alors que להיות/להנוט (lehiyot/lehanot) ne le sont pas. */
+function soundKey(tr) {
+  return String(tr)
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/ou/g, "u")
+    .replace(/ch|sh/g, "C")
+    .replace(/ts|tz/g, "Z")
+    .replace(/kh/g, "K")
+    .replace(/[éèê]/g, "e")
+    .replace(/[^a-z]/g, "");
+}
+/* Position de la lettre hébraïque qui varie dans une famille (pour la
+   surligner) : uniquement si tous les infinitifs ont la même longueur
+   et ne diffèrent qu'à une seule position ; sinon -1 (pas de surlignage). */
+function familyDiffPos(infs) {
+  const arrs = infs.map((s) => [...String(s)]);
+  const len = arrs[0].length;
+  if (!arrs.every((a) => a.length === len)) return -1;
+  let diff = -1;
+  for (let p = 0; p < len; p++) {
+    const set = new Set(arrs.map((a) => a[p]));
+    if (set.size > 1) {
+      if (diff !== -1) return -1; // plus d'une position varie
+      diff = p;
+    }
+  }
+  return diff;
 }
 function buildVerbFamilies() {
   if (typeof VERBES === "undefined") return [];
-  const vs = VERBES.filter(
-    (v) => v.inf && !/\s/.test(v.inf) && confHeLetters(v.inf).length >= 3
-  );
-  // Regroupe les verbes identiques sauf à UNE position (une lettre qui change)
+  const vs = VERBES.filter((v) => v.inf && v.translit && soundKey(v.translit).length >= 3);
+  // Regroupe les verbes dont le SON est identique sauf à une position
   const masks = {};
   vs.forEach((v) => {
-    const L = confHeLetters(v.inf);
-    for (let p = 0; p < L.length; p++) {
-      const key = L.length + "|" + p + "|" + L.map((c, i) => (i === p ? "_" : c)).join("");
+    const k = soundKey(v.translit);
+    for (let p = 0; p < k.length; p++) {
+      const key = k.length + "|" + p + "|" + k.slice(0, p) + "_" + k.slice(p + 1);
       (masks[key] = masks[key] || []).push(v);
     }
   });
-  let fams = Object.entries(masks)
-    .filter(([, a]) => a.length >= 3)
-    .map(([k, a]) => ({ pos: Number(k.split("|")[1]), verbs: a }));
+  let fams = Object.values(masks)
+    .filter((a) => a.length >= 3)
+    .map((a) => ({ verbs: a }));
   // Dédoublonne les familles à ensemble de verbes identique
   const seen = new Set();
   fams = fams.filter((f) => {
@@ -340,16 +372,92 @@ function buildVerbFamilies() {
     seen.add(sig);
     return true;
   });
+  fams.forEach((f) => {
+    f.pos = familyDiffPos([...new Set(f.verbs.map((v) => v.inf))]);
+  });
   fams.sort((a, b) => b.verbs.length - a.verbs.length);
   return fams;
 }
 const VERB_FAMILIES = buildVerbFamilies();
+const BINYANS = typeof VERBES !== "undefined"
+  ? [...new Set(VERBES.map((v) => v.binyan).filter(Boolean))]
+  : [];
 
 const screen = document.getElementById("screen");
 
 function filteredVocab() {
-  if (state.category === "Tous") return VOCAB;
-  return VOCAB.filter((w) => w.cat === state.category);
+  return state.vocab.newOnly ? VOCAB.filter((w) => w.cat === "🆕 Nouvel ajout") : VOCAB;
+}
+
+/* ---- Cases à cocher (remplacent les menus déroulants) ---- */
+// Choix multiple : ensemble vide = « tout ». Bascule l'appartenance au Set.
+function checkMulti(labelTxt, options, set, onChange) {
+  const wrap = el("div", "check-row");
+  if (labelTxt) wrap.appendChild(el("span", "check-label", labelTxt));
+  options.forEach(({ val, text }) => {
+    const on = set.has(val);
+    const lab = el("label", "check-item" + (on ? " on" : ""));
+    lab.innerHTML =
+      `<input type="checkbox"${on ? " checked" : ""}><span>${text}</span>`;
+    lab.querySelector("input").addEventListener("change", (e) => {
+      if (e.target.checked) set.add(val);
+      else set.delete(val);
+      onChange();
+    });
+    wrap.appendChild(lab);
+  });
+  return wrap;
+}
+// Choix unique (comportement « radio ») rendu en cases à cocher.
+function checkSingle(labelTxt, options, current, apply) {
+  const wrap = el("div", "check-row");
+  if (labelTxt) wrap.appendChild(el("span", "check-label", labelTxt));
+  options.forEach(({ val, text }) => {
+    const on = val === current;
+    const lab = el("label", "check-item" + (on ? " on" : ""));
+    lab.innerHTML =
+      `<input type="checkbox"${on ? " checked" : ""}><span>${text}</span>`;
+    lab.querySelector("input").addEventListener("change", () => {
+      apply(val);
+    });
+    wrap.appendChild(lab);
+  });
+  return wrap;
+}
+// Case unique on/off.
+function checkToggle(text, checked, apply) {
+  const wrap = el("div", "check-row");
+  const lab = el("label", "check-item" + (checked ? " on" : ""));
+  lab.innerHTML = `<input type="checkbox"${checked ? " checked" : ""}><span>${text}</span>`;
+  lab.querySelector("input").addEventListener("change", (e) => apply(e.target.checked));
+  wrap.appendChild(lab);
+  return wrap;
+}
+// Barre de filtres des jeux de verbes : temps, binyan, nouveaux ajouts.
+function verbFilterBar() {
+  const bar = el("div", "filter-bar");
+  bar.appendChild(
+    checkMulti("Temps :", CONJ_TENSES.map((t) => ({ val: t, text: t })), state.conj.tenses, () => {
+      state.conj.current = null;
+      render();
+    })
+  );
+  if (BINYANS.length) {
+    bar.appendChild(
+      checkMulti("Binyan :", BINYANS.map((b) => ({ val: b, text: b })), state.conj.binyans, () => {
+        state.conj.current = null;
+        render();
+      })
+    );
+  }
+  bar.appendChild(
+    checkToggle("🆕 Nouveaux ajouts", state.conj.newOnly, (v) => {
+      state.conj.newOnly = v;
+      state.conj.current = null;
+      render();
+    })
+  );
+  return bar;
 }
 
 /* ------------------------------------------------------------
@@ -466,16 +574,13 @@ function render() {
   }
   const views = {
     home: renderHome,
-    flashcards: renderFlashcards,
-    quiz: renderQuiz,
-    write: renderWrite,
-    conj: renderConj,
-    confus: renderConfus,
+    verbes: renderVerbes,
+    vocab: renderVocab,
     search: renderSearch,
     review: renderReview,
     progress: renderProgress,
   };
-  views[state.view]();
+  (views[state.view] || renderHome)();
 }
 
 function switchView(view) {
@@ -549,150 +654,103 @@ function updateProfileChip() {
 }
 
 /* ----- Accueil ----- */
-function renderHome() {
-  const total = VOCAB.length;
-  const learned = VOCAB.filter((w) => {
-    const s = progress[w.he];
-    return s && s.box >= 3;
-  }).length;
-  const seen = VOCAB.filter((w) => progress[w.he] && progress[w.he].seen > 0).length;
-
-  screen.appendChild(el("h2", "view-title home-title", `שלום ${activeProfile} ! Prêt(e) à réviser ?`));
-
-  // ---- Panneau « du jour » : objectif, série, et lancement rapide ----
-  const goal = stats.goal;
-  const doneToday = todayCount();
-  const streak = currentStreak();
-  const dailyPool = reviewCards();
-  const dueCount = dailyPool.filter((c) => isDue(progress[c.key])).length;
-  const errCount = dailyPool.filter((c) => {
+function homeBlock(icon, name, scope, newOnly, onToggle) {
+  const pool = reviewCards(scope, newOnly);
+  const dueCount = pool.filter((c) => isDue(progress[c.key])).length;
+  const errCount = pool.filter((c) => {
     const s = progress[c.key];
     return s && s.seen >= 2 && s.ko > s.ok;
   }).length;
-  const pct = Math.min(100, Math.round((doneToday / goal) * 100));
+  const streak = currentStreak();
+  const label = scope === "verbes" ? "des verbes" : "du vocabulaire";
 
-  const daily = el("div", "daily-panel");
-  daily.innerHTML = `
-    <div class="daily-top">
-      <div class="daily-streak">🔥 <strong>${streak}</strong> <span>jour${streak > 1 ? "s" : ""}</span></div>
-      <div class="daily-goal">Aujourd'hui : <strong>${doneToday}</strong> / ${goal}</div>
-    </div>
-    <div class="daily-bar"><div class="daily-bar-fill" style="width:${pct}%"></div></div>`;
-  screen.appendChild(daily);
-
-  const reviewBtns = el("div", "daily-actions");
+  const block = el("div", "home-block");
+  block.appendChild(
+    el(
+      "div",
+      "home-block-head",
+      `<span class="hb-title">${icon} ${name}</span><span class="daily-streak">🔥 <strong>${streak}</strong> <span>j</span></span>`
+    )
+  );
+  const actions = el("div", "daily-actions");
   const btnDue = el(
     "button",
     "btn btn-primary",
-    `📅 Ma révision du jour${dueCount ? ` <span class="pill">${dueCount}</span>` : ""}`
+    `📅 Révision ${label}${dueCount ? ` <span class="pill">${dueCount}</span>` : ""}`
   );
-  btnDue.addEventListener("click", () => startReview("due"));
-  reviewBtns.appendChild(btnDue);
-  if (errCount > 0) {
-    const btnErr = el("button", "btn btn-neutral", `🔴 Réviser mes erreurs <span class="pill">${errCount}</span>`);
-    btnErr.addEventListener("click", () => startReview("errors"));
-    reviewBtns.appendChild(btnErr);
-  }
-  screen.appendChild(reviewBtns);
+  btnDue.addEventListener("click", () => startReview("due", scope, newOnly));
+  actions.appendChild(btnDue);
+  const btnErr = el(
+    "button",
+    "btn btn-neutral",
+    `🔴 Mes erreurs${errCount ? ` <span class="pill">${errCount}</span>` : ""}`
+  );
+  btnErr.disabled = errCount === 0;
+  btnErr.addEventListener("click", () => startReview("errors", scope, newOnly));
+  actions.appendChild(btnErr);
+  block.appendChild(actions);
 
-  // ---- Entraînement verbes mis en avant ----
-  screen.appendChild(el("div", "section-label", "🔤 Entraînement des verbes"));
-  const verbBtns = el("div", "daily-actions");
-  const btnVerbs = el("button", "btn btn-primary", "🔤 Réviser les verbes");
-  btnVerbs.addEventListener("click", () => {
-    reviewScope = "verbes";
-    localStorage.setItem("hebreu-vocab-review-scope", reviewScope);
-    startReview("due");
-  });
-  verbBtns.appendChild(btnVerbs);
-  const btnConj = el("button", "btn btn-neutral", "🧩 Conjugaison");
-  btnConj.addEventListener("click", () => switchView("conj"));
-  verbBtns.appendChild(btnConj);
-  const btnConfus = el("button", "btn btn-neutral", "🎯 Verbes proches");
-  btnConfus.addEventListener("click", () => switchView("confus"));
-  verbBtns.appendChild(btnConfus);
-  const btnAudio = el("button", "btn btn-neutral", "🎧 Audio à trous");
-  btnAudio.addEventListener("click", () => {
-    state.conj.mode = "audio";
-    switchView("conj");
-  });
-  verbBtns.appendChild(btnAudio);
-  screen.appendChild(verbBtns);
+  block.appendChild(checkToggle("🆕 Nouveaux ajouts", newOnly, onToggle));
+  return block;
+}
 
-  // Portée de la révision : mots, verbes à l'infinitif, ou tout
-  const scopeRow = el("label", "goal-row hint", "🃏 Réviser : ");
-  const scopeSel = el("select", "conj-select");
-  [
-    ["tout", "Tout (mots + verbes)"],
-    ["mots", "Mots seulement"],
-    ["verbes", "Verbes à l'infinitif"],
-  ].forEach(([value, text]) => {
-    const opt = document.createElement("option");
-    opt.value = value;
-    opt.textContent = text;
-    if (value === reviewScope) opt.selected = true;
-    scopeSel.appendChild(opt);
-  });
-  scopeSel.addEventListener("change", () => {
-    reviewScope = scopeSel.value;
-    localStorage.setItem("hebreu-vocab-review-scope", reviewScope);
-    render();
-  });
-  scopeRow.appendChild(scopeSel);
-  screen.appendChild(scopeRow);
+function renderHome() {
+  screen.appendChild(el("h2", "view-title home-title", `שלום ${activeProfile} !`));
 
-  // Réglage de l'objectif quotidien
-  const goalRow = el("label", "goal-row hint", "🎯 Objectif du jour : ");
-  const goalSel = el("select", "conj-select");
-  [10, 15, 20, 30, 50].forEach((n) => {
-    const opt = document.createElement("option");
-    opt.value = n;
-    opt.textContent = n + " cartes";
-    if (n === goal) opt.selected = true;
-    goalSel.appendChild(opt);
-  });
-  goalSel.addEventListener("change", () => {
-    stats.goal = Number(goalSel.value);
-    saveStats();
-    render();
-  });
-  goalRow.appendChild(goalSel);
-  screen.appendChild(goalRow);
-
-  const banner = el("div", "stats-banner");
-  banner.innerHTML = `
-    <div><div class="big">${total}</div><div class="label">mots au total</div></div>
-    <div><div class="big">${seen}</div><div class="label">déjà travaillés</div></div>
-    <div><div class="big">${learned}</div><div class="label">bien connus</div></div>`;
-  screen.appendChild(banner);
-
-  const grid = el("div", "menu-grid");
-  const games = [
-    ["conj", "🔤", "Conjugaison", "Tableaux, QCM et écriture des verbes aux différents temps."],
-    ["confus", "🎯", "Verbes proches", "Distinguez les verbes qui ne changent que d'une lettre (להציג / להציל…)."],
-    ["flashcards", "🃏", "Flashcards", "Voyez l'hébreu, devinez le français, retournez la carte."],
-    ["quiz", "✅", "QCM", "Un mot, quatre traductions : trouvez la bonne."],
-    ["write", "✍️", "Écrire la traduction", "Tapez la traduction française du mot affiché."],
-    ["progress", "📊", "Progrès", "Vos scores mot par mot, et les mots à retravailler."],
-  ];
-  games.forEach(([view, emoji, title, desc]) => {
-    const card = el(
-      "button",
-      "menu-card",
-      `<span class="emoji">${emoji}</span><strong>${title}</strong><p>${desc}</p>`
-    );
-    card.addEventListener("click", () => switchView(view));
-    grid.appendChild(card);
-  });
-  screen.appendChild(grid);
-
+  // Deux blocs identiques : vocabulaire et verbes
   screen.appendChild(
-    el(
-      "p",
-      "hint",
-      "💡 Les mots que vous ratez reviennent plus souvent, jusqu'à ce que vous les connaissiez."
+    homeBlock("📚", "Vocabulaire", "mots", state.home.vocabNew, (v) => {
+      state.home.vocabNew = v;
+      render();
+    })
+  );
+  screen.appendChild(
+    homeBlock("🔤", "Verbes", "verbes", state.home.verbNew, (v) => {
+      state.home.verbNew = v;
+      render();
+    })
+  );
+
+  // Objectif du jour (cases à cocher) + point du jour
+  screen.appendChild(el("div", "section-label", "🎯 Objectif du jour"));
+  screen.appendChild(
+    checkSingle(
+      "",
+      [10, 15, 20, 30, 50].map((n) => ({ val: n, text: n + " cartes" })),
+      stats.goal,
+      (v) => {
+        stats.goal = Number(v);
+        saveStats();
+        render();
+      }
     )
   );
+  screen.appendChild(
+    el("p", "hint", `Aujourd'hui : ${todayCount()} / ${stats.goal} carte${stats.goal > 1 ? "s" : ""}.`)
+  );
+
+  // Totaux séparés : vocabulaire / verbes
+  const vSeen = VOCAB.filter((w) => progress[w.he] && progress[w.he].seen > 0).length;
+  const vKnown = VOCAB.filter((w) => { const s = progress[w.he]; return s && s.box >= 3; }).length;
+  const infItems = CONJ_ITEMS.filter((c) => c.isInf);
+  const kSeen = infItems.filter((c) => progress[c.key] && progress[c.key].seen > 0).length;
+  const kKnown = infItems.filter((c) => { const s = progress[c.key]; return s && s.box >= 3; }).length;
+
+  screen.appendChild(el("div", "section-label", "📊 Totaux"));
+  screen.appendChild(el("p", "hint totals-cap", "📚 Vocabulaire"));
+  const tv = el("div", "stats-banner");
+  tv.innerHTML = `
+    <div><div class="big">${VOCAB.length}</div><div class="label">mots</div></div>
+    <div><div class="big">${vSeen}</div><div class="label">travaillés</div></div>
+    <div><div class="big">${vKnown}</div><div class="label">bien connus</div></div>`;
+  screen.appendChild(tv);
+  screen.appendChild(el("p", "hint totals-cap", "🔤 Verbes"));
+  const tk = el("div", "stats-banner");
+  tk.innerHTML = `
+    <div><div class="big">${infItems.length}</div><div class="label">verbes</div></div>
+    <div><div class="big">${kSeen}</div><div class="label">travaillés</div></div>
+    <div><div class="big">${kKnown}</div><div class="label">bien connus</div></div>`;
+  screen.appendChild(tk);
 }
 
 /* Tire un nouveau mot ET un sens de question au hasard */
@@ -729,16 +787,20 @@ function categoryFilter() {
    vocabulaire et/ou verbes à l'infinitif. Chaque carte porte une clé
    de progression ; pour les infinitifs, c'est la même que le QCM de
    conjugaison, donc la mémoire est partagée. */
-function reviewCards(scope) {
-  const s = scope || reviewScope;
+function reviewCards(scope, newOnly) {
+  const s = scope || "tout";
   const cards = [];
   if (s !== "verbes") {
-    VOCAB.forEach((w) =>
+    let ws = VOCAB;
+    if (newOnly) ws = ws.filter((w) => w.cat === "🆕 Nouvel ajout");
+    ws.forEach((w) =>
       cards.push({ he: w.he, translit: w.translit, fr: w.fr, cat: w.cat, note: w.note || "", key: w.he })
     );
   }
   if (s !== "mots" && typeof CONJ_ITEMS !== "undefined") {
-    CONJ_ITEMS.filter((c) => c.isInf).forEach((c) =>
+    let cs = CONJ_ITEMS.filter((c) => c.isInf);
+    if (newOnly) cs = cs.filter((c) => NEW_VERBS.has(c.verb));
+    cs.forEach((c) =>
       cards.push({
         he: c.he,
         translit: c.translit,
@@ -770,8 +832,8 @@ function conjMini(verb) {
   return rows ? `<table class="conj-mini">${rows}</table>` : "";
 }
 
-function startReview(mode) {
-  const pool = reviewCards();
+function startReview(mode, scope, newOnly) {
+  const pool = reviewCards(scope, newOnly);
   let queue;
   if (mode === "errors") {
     queue = shuffle(
@@ -787,7 +849,7 @@ function startReview(mode) {
     queue = due.slice(0, stats.goal);
     if (queue.length < stats.goal) queue = queue.concat(neuf.slice(0, stats.goal - queue.length));
   }
-  state.review = { active: true, mode, queue, idx: 0, ok: 0, ko: 0, missed: [], flipped: false };
+  state.review = { active: true, mode, scope: scope || "tout", queue, idx: 0, ok: 0, ko: 0, missed: [], flipped: false };
   state.view = "review";
   render();
 }
@@ -795,9 +857,12 @@ function startReview(mode) {
 function renderReview() {
   const r = state.review;
 
+  const scopeLbl = r.scope === "verbes" ? "des verbes" : r.scope === "mots" ? "du vocabulaire" : "du jour";
+  const dueTitle = "📅 Révision " + scopeLbl;
+
   // Rien à réviser
   if (r.active && r.queue.length === 0) {
-    screen.appendChild(el("h2", "view-title", r.mode === "errors" ? "🔴 Réviser mes erreurs" : "📅 Révision du jour"));
+    screen.appendChild(el("h2", "view-title", r.mode === "errors" ? "🔴 Réviser mes erreurs" : dueTitle));
     screen.appendChild(
       el(
         "p",
@@ -821,7 +886,7 @@ function renderReview() {
   const reverse = r.reverse === undefined ? false : r.reverse;
 
   screen.appendChild(
-    el("h2", "view-title", `${r.mode === "errors" ? "🔴 Mes erreurs" : "📅 Révision du jour"}`)
+    el("h2", "view-title", r.mode === "errors" ? "🔴 Mes erreurs" : dueTitle)
   );
 
   // Barre de progression de la session
@@ -935,8 +1000,6 @@ function renderFlashcards() {
   if (!state.currentWord) nextWord(pool, null);
   const word = state.currentWord;
 
-  screen.appendChild(el("h2", "view-title", "🃏 Flashcards"));
-  screen.appendChild(categoryFilter());
   screen.appendChild(sessionScoreBar());
 
   // Le recto varie selon le sens tiré au sort ; le verso montre tout
@@ -1002,8 +1065,6 @@ function renderQuiz() {
   const word = state.currentWord;
   const reverse = state.reverse; // true : question en français, choix en hébreu
 
-  screen.appendChild(el("h2", "view-title", "✅ QCM"));
-  screen.appendChild(categoryFilter());
   screen.appendChild(sessionScoreBar());
 
   const question = el("div", "quiz-question");
@@ -1060,7 +1121,7 @@ function renderQuiz() {
 
       // Enchaînement automatique (sauf si on a changé d'écran entre-temps)
       setTimeout(() => {
-        if (state.view === "quiz" && state.currentWord === word) {
+        if (state.view === "vocab" && state.vocab.mode === "quiz" && state.currentWord === word) {
           nextWord(pool, word);
           render();
         }
@@ -1079,8 +1140,6 @@ function renderWrite() {
   const word = state.currentWord;
   const reverse = state.reverse; // true : le français est affiché, on écrit l'hébreu
 
-  screen.appendChild(el("h2", "view-title", "✍️ Écrire la traduction"));
-  screen.appendChild(categoryFilter());
   screen.appendChild(sessionScoreBar());
 
   const question = el("div", "quiz-question");
@@ -1153,13 +1212,16 @@ function renderWrite() {
 
 function conjPool() {
   let pool = CONJ_ITEMS;
-  if (state.conj.tense !== "Tous") pool = pool.filter((c) => c.tense === state.conj.tense);
-  if (state.conj.scope === "Nouveaux") pool = pool.filter((c) => NEW_VERBS.has(c.verb));
+  const t = state.conj.tenses, b = state.conj.binyans;
+  if (t.size) pool = pool.filter((c) => t.has(c.tense));
+  if (b.size) pool = pool.filter((c) => b.has(c.verb.binyan));
+  if (state.conj.newOnly) pool = pool.filter((c) => NEW_VERBS.has(c.verb));
   return pool;
 }
 
-function renderConj() {
-  screen.appendChild(el("h2", "view-title", "🔤 Conjugaison"));
+/* ----- Onglet Verbes (QCM / Écrire / Audio / Proches) ----- */
+function renderVerbes() {
+  screen.appendChild(el("h2", "view-title", "🔤 Verbes"));
 
   if (CONJ_ITEMS.length === 0) {
     screen.appendChild(
@@ -1168,18 +1230,18 @@ function renderConj() {
     return;
   }
 
-  // Choix du mode : tableaux / QCM / écrire
   const seg = el("div", "segmented");
   [
-    ["tables", "📖 Tableaux"],
     ["qcm", "✅ QCM"],
     ["write", "✍️ Écrire"],
     ["audio", "🎧 Audio"],
+    ["proches", "🎯 Proches"],
   ].forEach(([mode, label]) => {
     const btn = el("button", "seg-btn" + (state.conj.mode === mode ? " active" : ""), label);
     btn.addEventListener("click", () => {
       state.conj.mode = mode;
       state.conj.current = null;
+      state.confus.current = null;
       state.session = { ok: 0, ko: 0 };
       render();
     });
@@ -1187,46 +1249,49 @@ function renderConj() {
   });
   screen.appendChild(seg);
 
-  // Filtres par temps et par ancienneté (pour les exercices)
-  if (state.conj.mode !== "tables") {
-    const filter = el("div", "conj-filter");
-    filter.appendChild(el("span", "hint", "Temps : "));
-    const sel = el("select", "conj-select");
-    ["Tous", ...CONJ_TENSES].forEach((t) => {
-      const opt = document.createElement("option");
-      opt.value = opt.textContent = t;
-      if (t === state.conj.tense) opt.selected = true;
-      sel.appendChild(opt);
-    });
-    sel.addEventListener("change", () => {
-      state.conj.tense = sel.value;
-      state.conj.current = null;
-      render();
-    });
-    filter.appendChild(sel);
+  // Filtres (temps, binyan, nouveaux) — sauf pour « Proches » (familles)
+  if (state.conj.mode !== "proches") screen.appendChild(verbFilterBar());
 
-    filter.appendChild(el("span", "hint", " Verbes : "));
-    const scopeSel = el("select", "conj-select");
-    [["Tous", "Tous"], ["Nouveaux", "🆕 Nouveaux ajouts"]].forEach(([value, text]) => {
-      const opt = document.createElement("option");
-      opt.value = value;
-      opt.textContent = text;
-      if (value === state.conj.scope) opt.selected = true;
-      scopeSel.appendChild(opt);
-    });
-    scopeSel.addEventListener("change", () => {
-      state.conj.scope = scopeSel.value;
-      state.conj.current = null;
-      render();
-    });
-    filter.appendChild(scopeSel);
-    screen.appendChild(filter);
-  }
-
-  if (state.conj.mode === "tables") renderConjTables();
-  else if (state.conj.mode === "qcm") renderConjQuiz();
+  if (state.conj.mode === "qcm") renderConjQuiz();
   else if (state.conj.mode === "audio") renderConjAudio();
+  else if (state.conj.mode === "proches") renderConfus();
   else renderConjWrite();
+}
+
+/* ----- Onglet Vocabulaire (Flashcards / QCM / Écrire) ----- */
+function renderVocab() {
+  screen.appendChild(el("h2", "view-title", "📚 Vocabulaire"));
+
+  const seg = el("div", "segmented");
+  [
+    ["flashcards", "🃏 Flashcards"],
+    ["quiz", "✅ QCM"],
+    ["write", "✍️ Écrire"],
+  ].forEach(([mode, label]) => {
+    const btn = el("button", "seg-btn" + (state.vocab.mode === mode ? " active" : ""), label);
+    btn.addEventListener("click", () => {
+      state.vocab.mode = mode;
+      state.currentWord = null;
+      state.session = { ok: 0, ko: 0 };
+      render();
+    });
+    seg.appendChild(btn);
+  });
+  screen.appendChild(seg);
+
+  const bar = el("div", "filter-bar");
+  bar.appendChild(
+    checkToggle("🆕 Nouveaux ajouts", state.vocab.newOnly, (v) => {
+      state.vocab.newOnly = v;
+      state.currentWord = null;
+      render();
+    })
+  );
+  screen.appendChild(bar);
+
+  if (state.vocab.mode === "flashcards") renderFlashcards();
+  else if (state.vocab.mode === "quiz") renderQuiz();
+  else renderWrite();
 }
 
 /* ------------------------------------------------------------
@@ -1314,8 +1379,7 @@ function renderConjAudio() {
     <div class="audio-arrow">↓</div>
     ${blankHtml}`;
   screen.appendChild(q);
-  // Lecture automatique (après le geste de navigation, OK sur mobile)
-  setTimeout(() => speak(givenText, givenLang), 250);
+  // Pas de lecture automatique : l'audio ne part qu'au clic sur 🔊.
 
   // Distracteurs : même temps, en préférant les verbes proches
   const rootOf = (v) => hebrewLetters(String(v.racine || ""));
@@ -1370,8 +1434,6 @@ function renderConjAudio() {
         if (o === item) b.classList.add("correct");
       });
       if (!isCorrect) btn.classList.add("wrong");
-      // On (ré)écoute l'hébreu de la bonne réponse pour l'associer au son
-      speak(item.he, "he");
 
       // Révèle les deux phrases complètes + la translittération.
       // Le petit « i » (à côté du verbe hébreu) déplie la fiche complète.
@@ -1452,8 +1514,6 @@ function pickConfus(avoid) {
 }
 
 function renderConfus() {
-  screen.appendChild(el("h2", "view-title", "🎯 Verbes proches"));
-
   if (VERB_FAMILIES.length === 0) {
     screen.appendChild(
       el("p", "hint", "Pas encore de familles de verbes proches à travailler.")
@@ -1461,7 +1521,7 @@ function renderConfus() {
     return;
   }
 
-  const seg = el("div", "segmented");
+  const seg = el("div", "segmented sub-seg");
   [
     ["qcm", "✅ Quiz"],
     ["browse", "📖 Familles"],
@@ -1516,8 +1576,7 @@ function renderConfusQuiz() {
       <div class="conf-fr">${item.fr}</div>`;
   }
   screen.appendChild(q);
-  // Lecture automatique de l'hébreu quand on doit le reconnaître à l'oreille
-  if (reverse) setTimeout(() => speak(item.he), 250);
+  // Pas de lecture automatique : l'audio ne part qu'au clic sur 🔊.
 
   // Options = toute la famille (max 4), la cible incluse
   let opts = fam.entries.slice();
@@ -1554,7 +1613,6 @@ function renderConfusQuiz() {
         if (o.he === item.he && o.fr === item.fr) b.classList.add("correct");
       });
       if (!isCorrect) btn.classList.add("wrong");
-      if (!reverse) speak(item.he);
 
       // Récap de toute la famille pour bien fixer les différences
       const recap = el("div", "conf-recap");
@@ -1777,97 +1835,21 @@ function conjQuestionBox(item, hideInf) {
 }
 
 /* --- Mode tableaux : consulter la conjugaison complète d'un verbe --- */
-function renderConjTables() {
-  // Pour comparer sans accents ni majuscules ("écrire" ↔ "ecrire")
-  const fold = (s) => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  // Les verbes triés par ordre alphabétique français
-  const sorted = VERBES.map((_, i) => i).sort((a, b) =>
-    VERBES[a].fr.localeCompare(VERBES[b].fr, "fr")
-  );
-
-  // Recherche intelligente : tape "re" → tous les verbes contenant
-  // "re" (début, milieu ou fin), dans le français, la prononciation
-  // ou l'hébreu
-  const search = el("div", "verb-search");
-  const input = el("input", "write-input");
-  input.type = "search";
-  input.placeholder = "🔍 Chercher un verbe…";
-  input.autocapitalize = "off";
-  input.autocomplete = "off";
-  search.appendChild(input);
-  const results = el("div", "verb-results");
-  search.appendChild(results);
-  screen.appendChild(search);
-
-  input.addEventListener("input", () => {
-    const raw = input.value.trim();
-    const q = fold(raw);
-    results.innerHTML = "";
-    if (!q) return;
-    const matches = sorted.filter((i) => {
-      const v = VERBES[i];
-      return fold(v.fr).includes(q) || fold(v.translit).includes(q) || v.inf.includes(raw);
-    });
-    // Pertinence : ceux qui COMMENCENT par la recherche d'abord,
-    // puis les autres — chaque groupe en ordre alphabétique
-    matches.sort((a, b) => {
-      const pa = fold(VERBES[a].fr).startsWith(q) ? 0 : 1;
-      const pb = fold(VERBES[b].fr).startsWith(q) ? 0 : 1;
-      return pa - pb;
-    });
-    matches.forEach((i) => {
-      const v = VERBES[i];
-      const btn = el("button", "verb-result", `<strong>${v.fr}</strong> — <span class="he">${v.inf}</span> · ${v.translit}`);
-      btn.type = "button";
-      btn.addEventListener("click", () => {
-        state.conj.verb = i;
-        render();
-      });
-      results.appendChild(btn);
-    });
-    if (matches.length === 0) {
-      results.appendChild(el("p", "hint", "Aucun verbe trouvé."));
-    }
-  });
-
-  const picker = el("div", "conj-filter");
-  picker.appendChild(el("span", "hint", "Verbe : "));
-  const sel = el("select", "conj-select");
-  sorted.forEach((i) => {
-    const v = VERBES[i];
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.textContent = `${v.fr} — ${v.inf} (${v.translit})`;
-    if (i === state.conj.verb) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  sel.addEventListener("change", () => {
-    state.conj.verb = Number(sel.value);
-    render();
-  });
-  picker.appendChild(sel);
-  screen.appendChild(picker);
-
-  const verb = VERBES[state.conj.verb];
-  if (verb.racine || verb.binyan) {
-    screen.appendChild(
-      el(
-        "p",
-        "hint",
-        [verb.racine ? `Racine : <span class="he">${verb.racine}</span>` : "", verb.binyan ? `Binyan : <span class="he">${verb.binyan}</span>` : ""]
-          .filter(Boolean)
-          .join(" · ")
-      )
-    );
-  }
+/* Tableau complet de conjugaison d'un verbe (HTML), affiché dans la
+   Recherche quand on ouvre un verbe. */
+function verbTablesHtml(verb) {
+  let html = "";
+  const meta = [
+    verb.racine ? `Racine : <span class="he">${verb.racine}</span>` : "",
+    verb.binyan ? `Binyan : <span class="he">${verb.binyan}</span>` : "",
+  ].filter(Boolean).join(" · ");
+  if (meta) html += `<p class="hint conj-meta">${meta}</p>`;
   if (Object.keys(verb.temps).length === 0) {
-    screen.appendChild(el("p", "hint", "Pas encore de formes pour ce verbe — complétez l'Excel ou le fichier verbes.js."));
+    html += `<p class="hint">Pas encore de formes pour ce verbe.</p>`;
   }
   Object.entries(verb.temps).forEach(([tense, forms]) => {
-    const block = el("div", "conj-table-block");
-    block.appendChild(el("h3", "conj-tense-title", tense));
-    const table = el("table", "conj-table");
-    table.innerHTML = forms
+    html += `<div class="conj-table-block"><h3 class="conj-tense-title">${tense}</h3><table class="conj-table">`;
+    html += forms
       .map(
         (f) => `<tr>
           <td class="personne">${f.p}</td>
@@ -1876,9 +1858,9 @@ function renderConjTables() {
         </tr>`
       )
       .join("");
-    block.appendChild(table);
-    screen.appendChild(block);
+    html += `</table></div>`;
   });
+  return html;
 }
 
 /* Représentation française d'une forme (pour le sens inversé du QCM) :
@@ -1999,7 +1981,7 @@ function renderConjQuiz() {
 
       // Enchaînement automatique
       setTimeout(() => {
-        if (state.view === "conj" && state.conj.mode === "qcm" && state.conj.current === item) {
+        if (state.view === "verbes" && state.conj.mode === "qcm" && state.conj.current === item) {
           pickConj(pool, item);
           render();
         }
@@ -2162,15 +2144,22 @@ function renderSearch() {
         <span class="search-tag">${it.tag}</span>`;
       if (it.type === "verbe") {
         row.classList.add("is-verb");
+        const open = state.search.openVerb === it.verbIndex;
+        if (open) row.classList.add("open");
         row.title = "Voir la conjugaison";
         row.addEventListener("click", () => {
-          state.conj.mode = "tables";
-          state.conj.verb = it.verbIndex;
-          switchView("conj");
+          state.search.openVerb = open ? null : it.verbIndex;
+          runSearch();
         });
-      } else {
-        row.disabled = true; // un mot n'est pas cliquable (rien à ouvrir)
+        results.appendChild(row);
+        if (open) {
+          const tbl = el("div", "search-conj");
+          tbl.innerHTML = verbTablesHtml(VERBES[it.verbIndex]);
+          results.appendChild(tbl);
+        }
+        return;
       }
+      row.disabled = true; // un mot n'est pas cliquable (rien à ouvrir)
       results.appendChild(row);
     });
     if (matches.length === 0) {
@@ -2220,22 +2209,13 @@ function renderProgress() {
   // Barre de filtres
   const bar = el("div", "prog-filters");
   const addFilter = (labelTxt, options, current, apply) => {
-    const wrap = el("label", "prog-filter", labelTxt + " ");
-    const sel = el("select", "conj-select");
-    options.forEach(([value, text]) => {
-      const opt = document.createElement("option");
-      opt.value = value;
-      opt.textContent = text;
-      if (value === current) opt.selected = true;
-      sel.appendChild(opt);
-    });
-    sel.addEventListener("change", () => {
-      apply(sel.value);
-      f.shown = 300;
-      render();
-    });
-    wrap.appendChild(sel);
-    bar.appendChild(wrap);
+    bar.appendChild(
+      checkSingle(labelTxt, options.map(([val, text]) => ({ val, text })), current, (v) => {
+        apply(v);
+        f.shown = 300;
+        render();
+      })
+    );
   };
   addFilter("Contenu :", [["Tout", "Tout"], ["Mots", "Mots"], ["Conjugaison", "Conjugaison"]], f.content, (v) => (f.content = v));
   addFilter("Statut :", [["Tous", "Tous"], ["Déjà vus", "Déjà vus"], ["Jamais vus", "Jamais vus"]], f.status, (v) => (f.status = v));
