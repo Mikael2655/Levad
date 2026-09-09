@@ -13,6 +13,7 @@ const CORE = [
   "css/style.css",
   "js/vocab.js",
   "js/verbes.js",
+  "js/niqqud.js",
   "js/app.js",
   "icon.png",
 ];

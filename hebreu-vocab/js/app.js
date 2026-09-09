@@ -2409,9 +2409,16 @@ function speak(text, lang) {
   if (!("speechSynthesis" in window) || !text) return;
   const code = lang === "fr" ? "fr-FR" : "he-IL";
   const re = lang === "fr" ? /fr([-_]?[A-Z]{2})?/i : /he([-_]?IL)?/i;
+  // Pour l'hébreu : on remplace chaque mot connu par sa version vocalisée
+  // (niqqud), ce qui améliore nettement la prononciation. L'affichage,
+  // lui, reste sans points — seul le texte envoyé au moteur audio change.
+  let toSpeak = String(text);
+  if (lang !== "fr" && typeof NIQQUD !== "undefined") {
+    toSpeak = toSpeak.split(/(\s+)/).map((tok) => NIQQUD[tok] || tok).join("");
+  }
   try {
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
+    const u = new SpeechSynthesisUtterance(toSpeak);
     u.lang = code;
     const voices = speechSynthesis.getVoices() || [];
     const v = voices.find((x) => re.test(x.lang));
