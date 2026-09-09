@@ -1260,6 +1260,21 @@ function frVerbOnly(item) {
   return frOfConj(item).replace(/^[Ii]l\s+/, "");
 }
 
+// Fiche complète d'un verbe (hébreu) : infinitif, racine/binyan et
+// conjugaison aux 3 temps. Réutilisée par le bouton « i » de l'audio.
+function verbInfoHtml(verb) {
+  const inf = `<div class="vi-row"><span class="vi-label">Infinitif</span>` +
+    `<span class="he vi-he">${verb.inf} ${speakBtn(verb.inf)}</span>` +
+    `<span class="vi-tr">${verb.translit}</span></div>`;
+  const rac = verb.racine
+    ? `<div class="vi-row"><span class="vi-label">Racine</span>` +
+      `<span class="he vi-he">${verb.racine}</span>` +
+      (verb.binyan ? `<span class="vi-tr">${verb.binyan}</span>` : "") +
+      `</div>`
+    : "";
+  return `<div class="vi-head">📖 ${verb.fr}</div>${inf}${rac}${conjMini(verb)}`;
+}
+
 function renderConjAudio() {
   const pool = audioPool();
   if (pool.length === 0) {
@@ -1358,15 +1373,21 @@ function renderConjAudio() {
       // On (ré)écoute l'hébreu de la bonne réponse pour l'associer au son
       speak(item.he, "he");
 
-      // Révèle les deux phrases complètes + la translittération
-      screen.appendChild(
-        el(
-          "div",
-          "feedback " + (isCorrect ? "good" : "bad"),
-          `${isCorrect ? "✔" : "✘"} <span class="he">${heSentence}</span> ${speakBtn(heSentence)}<br>` +
-            `<em>${frSentence}</em> <span class="feedback-tr">(${item.translit})</span>`
-        )
-      );
+      // Révèle les deux phrases complètes + la translittération.
+      // Le petit « i » (à côté du verbe hébreu) déplie la fiche complète.
+      const fb = el("div", "feedback " + (isCorrect ? "good" : "bad"));
+      fb.innerHTML =
+        `${isCorrect ? "✔" : "✘"} <span class="he">${heSentence}</span> ${speakBtn(item.he)}` +
+        ` <button type="button" class="verb-info-btn" title="Voir le verbe en détail" aria-label="Détails du verbe">i</button>` +
+        `<br><em>${frSentence}</em> <span class="feedback-tr">(${item.translit})</span>`;
+      screen.appendChild(fb);
+
+      const panel = el("div", "verb-info-panel", verbInfoHtml(item.verb));
+      panel.hidden = true;
+      screen.appendChild(panel);
+      fb.querySelector(".verb-info-btn").addEventListener("click", () => {
+        panel.hidden = !panel.hidden;
+      });
 
       const next = el("button", "btn btn-primary conf-next", "Suivant →");
       next.addEventListener("click", () => {

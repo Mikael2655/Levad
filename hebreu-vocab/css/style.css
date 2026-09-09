@@ -839,3 +839,48 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
   letter-spacing: 1px;
 }
 .feedback-tr { color: var(--muted); font-size: 0.9rem; }
+
+/* ---------- Fiche verbe (bouton « i » de l'audio à trous) ---------- */
+.verb-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  background: var(--card);
+  color: var(--accent);
+  font-weight: 800;
+  font-style: italic;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.verb-info-btn:active { transform: scale(0.9); }
+.verb-info-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.6rem 0.8rem;
+  margin-top: 0.5rem;
+}
+.vi-head { font-weight: 800; margin-bottom: 0.4rem; }
+.vi-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.25rem 0;
+  border-top: 1px solid var(--line);
+}
+.vi-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  min-width: 4.5rem;
+}
+.vi-he { font-size: 1.3rem; font-weight: 700; direction: rtl; }
+.vi-tr { color: var(--muted); font-size: 0.85rem; }
+.verb-info-panel .conj-mini { margin-top: 0.5rem; }
