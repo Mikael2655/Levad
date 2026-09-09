@@ -673,7 +673,6 @@ function renderHome() {
     ["flashcards", "🃏", "Flashcards", "Voyez l'hébreu, devinez le français, retournez la carte."],
     ["quiz", "✅", "QCM", "Un mot, quatre traductions : trouvez la bonne."],
     ["write", "✍️", "Écrire la traduction", "Tapez la traduction française du mot affiché."],
-    ["search", "🔍", "Recherche", "Cherchez un mot ou un verbe, en français ou en hébreu."],
     ["progress", "📊", "Progrès", "Vos scores mot par mot, et les mots à retravailler."],
   ];
   games.forEach(([view, emoji, title, desc]) => {
