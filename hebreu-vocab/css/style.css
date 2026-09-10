@@ -962,3 +962,17 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
 }
 .tables-link:hover { border-color: var(--accent); }
 .tables-back { margin: 0 0 0.4rem; text-align: left; }
+
+/* Filtres « Temps » / « Binyan » : libellé au-dessus, toutes les
+   cases sur une seule ligne (défile si l'écran est trop étroit). */
+.check-block { display: flex; flex-direction: column; gap: 0.2rem; }
+.check-block .check-label { margin: 0; }
+.check-line {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.check-line .check-item { flex: 0 0 auto; font-size: 0.8rem; padding: 0.16rem 0.45rem; }
