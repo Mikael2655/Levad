@@ -856,6 +856,8 @@ function startReview(mode, scope, newOnly) {
     queue = due.slice(0, stats.goal);
     if (queue.length < stats.goal) queue = queue.concat(neuf.slice(0, stats.goal - queue.length));
   }
+  // Sens tiré au sort pour chaque carte : hébreu→français ou l'inverse
+  queue.forEach((c) => (c.rev = Math.random() < 0.5));
   state.review = { active: true, mode, scope: scope || "tout", queue, idx: 0, ok: 0, ko: 0, missed: [], flipped: false };
   state.view = "review";
   render();
@@ -890,7 +892,7 @@ function renderReview() {
   if (r.idx >= r.queue.length) return renderReviewRecap();
 
   const word = r.queue[r.idx];
-  const reverse = r.reverse === undefined ? false : r.reverse;
+  const reverse = !!word.rev; // true : on montre le français, on cherche l'hébreu
 
   screen.appendChild(
     el("h2", "view-title", r.mode === "errors" ? "🔴 Mes erreurs" : dueTitle)
@@ -907,17 +909,21 @@ function renderReview() {
   // Flashcard
   const scene = el("div", "flash-scene");
   const card = el("div", "flash-card" + (r.flipped ? " flipped" : "") + (word.verb ? " has-conj" : ""));
+  const front = reverse
+    ? `<span class="word-cat">${word.cat}</span>
+       <div class="fr-word" style="font-size:1.5rem">${word.fr}</div>
+       <div class="tap-hint">👆 Touchez pour voir l'hébreu</div>`
+    : `<span class="word-cat">${word.cat}</span>
+       <div class="he-word he">${word.he} ${speakBtn(word.he)}</div>
+       <div class="translit">${word.translit}</div>
+       <div class="tap-hint">👆 Touchez pour voir la traduction</div>`;
   card.innerHTML = `
-    <div class="flash-face front">
-      <span class="word-cat">${word.cat}</span>
-      <div class="he-word he">${word.he} ${speakBtn(word.he)}</div>
-      <div class="translit">${word.translit}</div>
-      <div class="tap-hint">👆 Touchez pour voir la traduction</div>
-    </div>
+    <div class="flash-face front">${front}</div>
     <div class="flash-face back">
       <span class="word-cat">${word.cat}</span>
       <div class="fr-word" style="font-size:1.4rem">${word.fr}</div>
       <div class="he-word he" style="font-size:1.6rem">${word.he} ${speakBtn(word.he)}</div>
+      <div class="translit">${word.translit}</div>
       ${word.verb ? conjMini(word.verb) : ""}
       ${!word.verb && word.note ? `<div class="word-note">💡 ${word.note}</div>` : ""}
     </div>`;
