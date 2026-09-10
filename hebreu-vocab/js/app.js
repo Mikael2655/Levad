@@ -244,6 +244,7 @@ const state = {
   home: { vocabNew: false, verbNew: false }, // options de l'accueil
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
   search: { q: "", openVerb: null }, // onglet Recherche (openVerb = verbe déplié)
+  tables: { q: "", openVerb: null }, // page « Tableaux de conjugaison »
   review: { active: false, mode: "due", queue: [], idx: 0, ok: 0, ko: 0, missed: [], flipped: false }, // révision du jour
 };
 
@@ -577,6 +578,7 @@ function render() {
     verbes: renderVerbes,
     vocab: renderVocab,
     search: renderSearch,
+    tables: renderTables,
     review: renderReview,
     progress: renderProgress,
   };
@@ -2092,6 +2094,12 @@ function renderSearch() {
 
   screen.appendChild(el("h2", "view-title", "🔍 Recherche"));
 
+  // Lien vers les tableaux de conjugaison, au-dessus de la barre de recherche
+  const tablesLink = el("button", "tables-link", "📖 Tableaux de conjugaison des verbes →");
+  tablesLink.type = "button";
+  tablesLink.addEventListener("click", () => switchView("tables"));
+  screen.appendChild(tablesLink);
+
   const search = el("div", "verb-search");
   const input = el("input", "write-input");
   input.type = "search";
@@ -2170,6 +2178,83 @@ function renderSearch() {
   input.addEventListener("input", runSearch);
   if (state.search.q) runSearch();
   input.focus();
+}
+
+/* ----- Page « Tableaux de conjugaison » (depuis la Recherche) ----- */
+function renderTables() {
+  const fold = (s) => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const sorted = VERBES.map((_, i) => i).sort((a, b) =>
+    VERBES[a].fr.localeCompare(VERBES[b].fr, "fr")
+  );
+
+  const back = el("button", "btn-link tables-back", "← Retour à la recherche");
+  back.addEventListener("click", () => switchView("search"));
+  screen.appendChild(back);
+
+  screen.appendChild(el("h2", "view-title", "📖 Tableaux de conjugaison"));
+  screen.appendChild(
+    el("p", "hint", "Cherchez un verbe, puis touchez-le pour voir sa conjugaison complète aux 3 temps.")
+  );
+
+  const box = el("div", "verb-search");
+  const input = el("input", "write-input");
+  input.type = "search";
+  input.placeholder = "🔍 Chercher un verbe…";
+  input.autocapitalize = "off";
+  input.autocomplete = "off";
+  input.value = state.tables.q;
+  box.appendChild(input);
+  const results = el("div", "verb-results");
+  box.appendChild(results);
+  screen.appendChild(box);
+
+  function run() {
+    const raw = input.value.trim();
+    state.tables.q = raw;
+    const q = fold(raw);
+    const qHe = hebrewLetters(raw);
+    results.innerHTML = "";
+    let matches = sorted;
+    if (q || qHe) {
+      matches = sorted.filter((i) => {
+        const v = VERBES[i];
+        return qHe ? hebrewLetters(v.inf).includes(qHe) : fold(v.fr).includes(q) || fold(v.translit).includes(q);
+      });
+      matches.sort((a, b) => {
+        const pa = fold(VERBES[a].fr).startsWith(q) ? 0 : 1;
+        const pb = fold(VERBES[b].fr).startsWith(q) ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        return VERBES[a].fr.localeCompare(VERBES[b].fr, "fr");
+      });
+    }
+    results.appendChild(
+      el("p", "hint", `${matches.length} verbe${matches.length > 1 ? "s" : ""}${matches.length > 200 ? " (200 affichés)" : ""}.`)
+    );
+    matches.slice(0, 200).forEach((i) => {
+      const v = VERBES[i];
+      const open = state.tables.openVerb === i;
+      const row = el(
+        "button",
+        "verb-result" + (open ? " open" : ""),
+        `<strong>${v.fr}</strong> — <span class="he">${v.inf}</span> · ${v.translit}`
+      );
+      row.type = "button";
+      row.addEventListener("click", () => {
+        state.tables.openVerb = open ? null : i;
+        run();
+      });
+      results.appendChild(row);
+      if (open) {
+        const t = el("div", "search-conj");
+        t.innerHTML = verbTablesHtml(v);
+        results.appendChild(t);
+      }
+    });
+    if (matches.length === 0) results.appendChild(el("p", "hint", "Aucun verbe trouvé."));
+  }
+
+  input.addEventListener("input", run);
+  run();
 }
 
 /* ----- Page Progrès ----- */
