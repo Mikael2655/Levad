@@ -241,7 +241,7 @@ const state = {
   conj: { mode: "qcm", tenses: new Set(), binyans: new Set(), newOnly: false, verb: 0, current: null, reverse: false, audioRev: false }, // onglet Verbes
   confus: { mode: "qcm", family: null, current: null, reverse: false }, // sous-menu Verbes proches
   vocab: { mode: "flashcards", newOnly: false }, // onglet Vocabulaire
-  combine: { verb: null, word: null, reverse: false }, // onglet Combiné
+  combine: { phrase: null, reverse: false }, // onglet Combiné
   home: { vocabNew: false, verbNew: false }, // options de l'accueil
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
   search: { q: "", openVerb: null }, // onglet Recherche (openVerb = verbe déplié)
@@ -384,6 +384,15 @@ const VERB_FAMILIES = buildVerbFamilies();
 const BINYANS = typeof VERBES !== "undefined"
   ? [...new Set(VERBES.map((v) => v.binyan).filter(Boolean))]
   : [];
+
+// Forme du présent (masc. sing.) par infinitif, pour le jeu Combiné
+const VERB_PRES_HE = {};
+if (typeof VERBES !== "undefined") {
+  VERBES.forEach((v) => {
+    const p = v.temps && v.temps["Présent"] && v.temps["Présent"][0];
+    if (v.inf && p) VERB_PRES_HE[v.inf] = p.he;
+  });
+}
 
 const screen = document.getElementById("screen");
 
@@ -1320,84 +1329,138 @@ function renderVocab() {
 function frFirst(s) {
   return String(s).replace(/\([^)]*\)/g, "").split("/")[0].trim();
 }
+
+/* Banque de phrases écrites à la main : chacune emploie un vrai verbe
+   (au présent) et un vrai mot de vocabulaire, avec une version
+   française et hébraïque cohérentes (articles/particules corrects).
+   { v: infinitif du verbe (→ forme présent depuis les données),
+     vFr: verbe conjugué en français,
+     nHe: mot hébreu, nFr: mot français,
+     frT/heT: gabarits avec {V} et {N} } */
+const COMBINE_PHRASES = [
+  { v: "לנהוג", vFr: "conduit", nHe: "רחוב", nFr: "rue", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
+  { v: "לסגור", vFr: "ferme", nHe: "חלון", nFr: "fenêtre", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
+  { v: "לכתוב", vFr: "écrit", nHe: "מכתב", nFr: "lettre", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
+  { v: "להכין", vFr: "prépare", nHe: "עוגה", nFr: "gâteau", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
+  { v: "לרוץ", vFr: "court", nHe: "רחוב", nFr: "rue", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
+  { v: "לשמוע", vFr: "écoute", nHe: "סיפור", nFr: "histoire", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
+  { v: "לבשל", vFr: "cuisine", nHe: "ארוחה", nFr: "repas", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
+  { v: "לחפש", vFr: "cherche", nHe: "מפתח", nFr: "clé", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
+  { v: "לבחור", vFr: "choisit", nHe: "שמלה", nFr: "robe", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
+  { v: "לבנות", vFr: "construit", nHe: "סירה", nFr: "bateau", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
+  { v: "לקנות", vFr: "achète", nHe: "מחשב", nFr: "ordinateur", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
+  { v: "לאהוב", vFr: "aime", nHe: "סוס", nFr: "cheval", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
+  { v: "לשיר", vFr: "chante", nHe: "רחוב", nFr: "rue", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
+  { v: "לחכות", vFr: "attend", nHe: "רופא", nFr: "médecin", frT: "Il {V} le {N}.", heT: "הוא {V} ל{N}." },
+  { v: "לשלוח", vFr: "envoie", nHe: "מכתב", nFr: "lettre", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
+  { v: "ללמוד", vFr: "étudie", nHe: "שפה", nFr: "langue", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
+  { v: "לשמור", vFr: "garde", nHe: "מפתח", nFr: "clé", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
+  { v: "לרקוד", vFr: "danse", nHe: "רחוב", nFr: "rue", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
+  { v: "לישון", vFr: "dort", nHe: "סירה", nFr: "bateau", frT: "Il {V} dans le {N}.", heT: "הוא {V} ב{N}." },
+  { v: "לראות", vFr: "regarde", nHe: "סרט", nFr: "film", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
+  { v: "לאכול", vFr: "mange", nHe: "עוגה", nFr: "gâteau", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
+  { v: "לעלות", vFr: "monte", nHe: "רכבת", nFr: "train", frT: "Il {V} dans le {N}.", heT: "הוא {V} על ה{N}." },
+  { v: "לנהוג", vFr: "conduit", nHe: "עיר", nFr: "ville", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
+  { v: "לחפש", vFr: "cherche", nHe: "עט", nFr: "stylo", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
+  { v: "לכתוב", vFr: "écrit", nHe: "מחברת", nFr: "cahier", frT: "Il {V} dans le {N}.", heT: "הוא {V} ב{N}." },
+  { v: "לאהוב", vFr: "aime", nHe: "פרח", nFr: "fleur", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
+  { v: "לעלות", vFr: "monte", nHe: "הר", nFr: "montagne", frT: "Il {V} sur la {N}.", heT: "הוא {V} על ה{N}." },
+  { v: "לחכות", vFr: "attend", nHe: "רכבת", nFr: "train", frT: "Il {V} le {N}.", heT: "הוא {V} ל{N}." },
+  { v: "לחכות", vFr: "attend", nHe: "ידיד", nFr: "ami", frT: "Il {V} un {N}.", heT: "הוא {V} ל{N}." },
+  { v: "לקנות", vFr: "achète", nHe: "פרח", nFr: "fleur", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
+  { v: "לראות", vFr: "voit", nHe: "הר", nFr: "montagne", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
+  { v: "לשמור", vFr: "garde", nHe: "סוס", nFr: "cheval", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
+  { v: "לבנות", vFr: "construit", nHe: "עיר", nFr: "ville", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
+  { v: "לשלוח", vFr: "envoie", nHe: "מטוס", nFr: "avion", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
+  { v: "לאהוב", vFr: "aime", nHe: "סרט", nFr: "film", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
+].filter((ph) => VERB_PRES_HE[ph.v]); // ne garde que les verbes résolus
+
+// Pool des formes de présent (pour les distracteurs verbe), construit à
+// la demande (frVerbOnly dépend de constantes définies plus bas).
+let _combineVerbPool = null;
+function combineVerbPool() {
+  if (!_combineVerbPool) {
+    _combineVerbPool = CONJ_ITEMS
+      .filter((c) => c.tense === "Présent" && !c.isInf)
+      .map((c) => ({ he: c.he, fr: frVerbOnly(c) }));
+  }
+  return _combineVerbPool;
+}
+
 function pickCombine() {
-  const verbs = CONJ_ITEMS.filter(
-    (c) => !c.isInf && (c.tense === "Présent" || c.tense === "Passé" || c.tense === "Futur") && frConjOk(c)
-  );
-  const verb = pickWord(verbs, state.combine.verb);
-  const word = pickWord(VOCAB, state.combine.word);
-  state.combine = { verb, word, reverse: Math.random() < 0.5 };
+  const list = COMBINE_PHRASES;
+  let ph = list[Math.floor(Math.random() * list.length)];
+  let guard = 0;
+  while (state.combine.phrase && ph === state.combine.phrase && list.length > 1 && guard++ < 8) {
+    ph = list[Math.floor(Math.random() * list.length)];
+  }
+  state.combine = { phrase: ph, reverse: Math.random() < 0.5 };
 }
 
 function renderCombine() {
-  if (typeof CONJ_ITEMS === "undefined" || CONJ_ITEMS.length === 0) {
-    screen.appendChild(el("h2", "view-title", "🔀 Combiné"));
-    screen.appendChild(el("p", "hint", "Ajoutez des verbes pour activer ce jeu."));
+  screen.appendChild(el("h2", "view-title", "🔀 Combiné"));
+  if (COMBINE_PHRASES.length === 0) {
+    screen.appendChild(el("p", "hint", "Jeu indisponible : aucune phrase à afficher."));
     return;
   }
-  if (!state.combine.verb) pickCombine();
-  const { verb, word, reverse } = state.combine;
+  if (!state.combine.phrase) pickCombine();
+  const ph = state.combine.phrase;
+  const reverse = state.combine.reverse;
+  const vHe = VERB_PRES_HE[ph.v];
 
-  screen.appendChild(el("h2", "view-title", "🔀 Combiné"));
   screen.appendChild(sessionScoreBar());
 
-  const vFr = "il " + frVerbOnly(verb); // « il a vécu »
-  const nFr = frFirst(word.fr); // « quartier »
-
-  // La « phrase » : verbe conjugué + mot, les deux surlignés
+  const hl = (s) => `<span class="cb-hl">${s}</span>`;
   const q = el("div", "quiz-question");
   if (reverse) {
+    const s = ph.heT.replace("{V}", hl(vHe)).replace("{N}", hl(ph.nHe));
     q.innerHTML =
-      `<div class="cb-sentence he" dir="rtl">הוא <span class="cb-hl">${verb.he}</span> — <span class="cb-hl">${word.he}</span></div>` +
+      `<div class="cb-sentence he" dir="rtl">${s}</div>` +
       `<div class="conf-listen">Touche la bonne traduction française de chaque mot surligné.</div>`;
   } else {
+    const s = ph.frT.replace("{V}", hl(ph.vFr)).replace("{N}", hl(ph.nFr));
     q.innerHTML =
-      `<div class="cb-sentence"><span class="cb-hl">${vFr}</span> — <span class="cb-hl">${nFr}</span></div>` +
+      `<div class="cb-sentence">${s}</div>` +
       `<div class="conf-listen">Touche la bonne traduction en hébreu de chaque mot surligné.</div>`;
   }
   screen.appendChild(q);
 
+  const verbCorrect = { he: vHe, fr: ph.vFr };
+  const wordCorrect = { he: ph.nHe, fr: ph.nFr };
+  const disp = (o) => (reverse ? o.fr : o.he);
+
   let doneCount = 0;
   const nextWrap = el("div");
 
-  function group(kind, correct, pool, displayKey) {
-    // Libellé : le mot source qu'on doit traduire
+  function group(kind, correct, pool, keyPrefix) {
     const srcHtml = reverse
       ? `<span class="he">${correct.he}</span>`
-      : kind === "verb"
-      ? `<strong>${vFr}</strong>`
-      : `<strong>${nFr}</strong>`;
+      : `<strong>${kind === "verb" ? ph.vFr : ph.nFr}</strong>`;
     screen.appendChild(el("div", "cb-qlabel", `${kind === "verb" ? "🔤 Verbe" : "📚 Mot"} — ${srcHtml}`));
 
-    const options = (() => {
-      const seen = new Set([displayKey(correct)]);
-      const distractors = [];
-      shuffle(pool).forEach((x) => {
-        if (distractors.length < 3 && x !== correct && !seen.has(displayKey(x))) {
-          seen.add(displayKey(x));
-          distractors.push(x);
-        }
-      });
-      return shuffle([correct, ...distractors]);
-    })();
+    const seen = new Set([disp(correct)]);
+    const distractors = [];
+    shuffle(pool).forEach((x) => {
+      if (distractors.length < 3 && !seen.has(disp(x))) {
+        seen.add(disp(x));
+        distractors.push(x);
+      }
+    });
+    const options = shuffle([correct, ...distractors]);
 
     const box = el("div", "quiz-options");
     screen.appendChild(box);
     let answered = false;
     const btns = [];
     options.forEach((opt) => {
-      const label = reverse
-        ? kind === "verb"
-          ? frVerbOnly(opt)
-          : frFirst(opt.fr)
-        : `<span class="he">${opt.he}</span> ${speakBtn(opt.he)}`;
+      const label = reverse ? opt.fr : `<span class="he">${opt.he}</span> ${speakBtn(opt.he)}`;
       const btn = el("button", "quiz-option" + (reverse ? "" : " option-he"), label);
       btns.push({ btn, opt });
       btn.addEventListener("click", () => {
         if (answered) return;
         answered = true;
         const ok = opt === correct;
-        recordAnswer(correct, ok);
+        recordAnswer({ he: correct.he, key: keyPrefix + correct.he }, ok);
         state.session[ok ? "ok" : "ko"] += 1;
         btns.forEach(({ btn: b, opt: o }) => {
           b.disabled = true;
@@ -1418,9 +1481,9 @@ function renderCombine() {
     });
   }
 
-  const verbPool = CONJ_ITEMS.filter((c) => c.tense === verb.tense && !c.isInf);
-  group("verb", verb, verbPool, (c) => (reverse ? frVerbOnly(c) : c.he));
-  group("word", word, VOCAB, (w) => (reverse ? frFirst(w.fr) : w.he));
+  const wordPool = VOCAB.map((w) => ({ he: w.he, fr: frFirst(w.fr) }));
+  group("verb", verbCorrect, combineVerbPool(), "CB-V|");
+  group("word", wordCorrect, wordPool, "");
 
   screen.appendChild(nextWrap);
 }
