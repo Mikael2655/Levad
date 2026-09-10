@@ -943,3 +943,22 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
 .search-conj .conj-meta { margin: 0.3rem 0; }
 .search-row.is-verb { cursor: pointer; }
 .search-row.open { border-color: var(--accent); }
+
+/* Lien vers les tableaux de conjugaison (en haut de la recherche) */
+.tables-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 0.8rem;
+  cursor: pointer;
+}
+.tables-link:hover { border-color: var(--accent); }
+.tables-back { margin: 0 0 0.4rem; text-align: left; }
