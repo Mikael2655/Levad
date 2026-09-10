@@ -392,9 +392,12 @@ function filteredVocab() {
 
 /* ---- Cases à cocher (remplacent les menus déroulants) ---- */
 // Choix multiple : ensemble vide = « tout ». Bascule l'appartenance au Set.
+// Le libellé est sur sa propre ligne ; toutes les cases sont sur la ligne
+// d'en dessous (une seule ligne, qui défile si l'écran est trop étroit).
 function checkMulti(labelTxt, options, set, onChange) {
-  const wrap = el("div", "check-row");
-  if (labelTxt) wrap.appendChild(el("span", "check-label", labelTxt));
+  const wrap = el("div", "check-block");
+  if (labelTxt) wrap.appendChild(el("div", "check-label", labelTxt));
+  const line = el("div", "check-line");
   options.forEach(({ val, text }) => {
     const on = set.has(val);
     const lab = el("label", "check-item" + (on ? " on" : ""));
@@ -405,8 +408,9 @@ function checkMulti(labelTxt, options, set, onChange) {
       else set.delete(val);
       onChange();
     });
-    wrap.appendChild(lab);
+    line.appendChild(lab);
   });
+  wrap.appendChild(line);
   return wrap;
 }
 // Choix unique (comportement « radio ») rendu en cases à cocher.
@@ -437,6 +441,14 @@ function checkToggle(text, checked, apply) {
 // Barre de filtres des jeux de verbes : temps, binyan, nouveaux ajouts.
 function verbFilterBar() {
   const bar = el("div", "filter-bar");
+  // « Nouveaux ajouts » en première ligne
+  bar.appendChild(
+    checkToggle("🆕 Nouveaux ajouts", state.conj.newOnly, (v) => {
+      state.conj.newOnly = v;
+      state.conj.current = null;
+      render();
+    })
+  );
   bar.appendChild(
     checkMulti("Temps :", CONJ_TENSES.map((t) => ({ val: t, text: t })), state.conj.tenses, () => {
       state.conj.current = null;
@@ -451,13 +463,6 @@ function verbFilterBar() {
       })
     );
   }
-  bar.appendChild(
-    checkToggle("🆕 Nouveaux ajouts", state.conj.newOnly, (v) => {
-      state.conj.newOnly = v;
-      state.conj.current = null;
-      render();
-    })
-  );
   return bar;
 }
 
