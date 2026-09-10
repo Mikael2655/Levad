@@ -244,7 +244,7 @@ const state = {
   home: { vocabNew: false, verbNew: false }, // options de l'accueil
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
   search: { q: "", openVerb: null }, // onglet Recherche (openVerb = verbe déplié)
-  tables: { q: "", openVerb: null }, // page « Tableaux de conjugaison »
+  tables: { q: "", openVerb: null, newOnly: false }, // page « Tableaux de conjugaison »
   review: { active: false, mode: "due", queue: [], idx: 0, ok: 0, ko: 0, missed: [], flipped: false }, // révision du jour
 };
 
@@ -2209,6 +2209,13 @@ function renderTables() {
   input.autocomplete = "off";
   input.value = state.tables.q;
   box.appendChild(input);
+  // Case « nouveaux verbes », au-dessus de la liste
+  box.appendChild(
+    checkToggle("🆕 Nouveaux verbes", state.tables.newOnly, (v) => {
+      state.tables.newOnly = v;
+      render();
+    })
+  );
   const results = el("div", "verb-results");
   box.appendChild(results);
   screen.appendChild(box);
@@ -2220,8 +2227,9 @@ function renderTables() {
     const qHe = hebrewLetters(raw);
     results.innerHTML = "";
     let matches = sorted;
+    if (state.tables.newOnly) matches = matches.filter((i) => NEW_VERBS.has(VERBES[i]));
     if (q || qHe) {
-      matches = sorted.filter((i) => {
+      matches = matches.filter((i) => {
         const v = VERBES[i];
         return qHe ? hebrewLetters(v.inf).includes(qHe) : fold(v.fr).includes(q) || fold(v.translit).includes(q);
       });
@@ -2233,9 +2241,9 @@ function renderTables() {
       });
     }
     results.appendChild(
-      el("p", "hint", `${matches.length} verbe${matches.length > 1 ? "s" : ""}${matches.length > 200 ? " (200 affichés)" : ""}.`)
+      el("p", "hint", `${matches.length} verbe${matches.length > 1 ? "s" : ""} affiché${matches.length > 1 ? "s" : ""} sur ${VERBES.length}.`)
     );
-    matches.slice(0, 200).forEach((i) => {
+    matches.forEach((i) => {
       const v = VERBES[i];
       const open = state.tables.openVerb === i;
       const row = el(
