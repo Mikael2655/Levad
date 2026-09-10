@@ -241,6 +241,7 @@ const state = {
   conj: { mode: "qcm", tenses: new Set(), binyans: new Set(), newOnly: false, verb: 0, current: null, reverse: false, audioRev: false }, // onglet Verbes
   confus: { mode: "qcm", family: null, current: null, reverse: false }, // sous-menu Verbes proches
   vocab: { mode: "flashcards", newOnly: false }, // onglet Vocabulaire
+  combine: { verb: null, word: null, reverse: false }, // onglet Combiné
   home: { vocabNew: false, verbNew: false }, // options de l'accueil
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
   search: { q: "", openVerb: null }, // onglet Recherche (openVerb = verbe déplié)
@@ -582,6 +583,7 @@ function render() {
     home: renderHome,
     verbes: renderVerbes,
     vocab: renderVocab,
+    combine: renderCombine,
     search: renderSearch,
     tables: renderTables,
     review: renderReview,
@@ -1305,6 +1307,122 @@ function renderVocab() {
   if (state.vocab.mode === "flashcards") renderFlashcards();
   else if (state.vocab.mode === "quiz") renderQuiz();
   else renderWrite();
+}
+
+/* ------------------------------------------------------------
+   🔀 Combiné : une petite phrase qui mêle un VERBE (conjugué) et un
+   MOT de vocabulaire. Deux QCM (un par mot) dans les deux sens :
+     • phrase en français → retrouver chaque mot en hébreu ;
+     • phrase en hébreu   → retrouver chaque mot en français.
+   Faute de genre pour les noms, on ne fabrique pas d'article : on
+   juxtapose proprement le verbe et le mot, tous deux surlignés.
+   ------------------------------------------------------------ */
+function frFirst(s) {
+  return String(s).replace(/\([^)]*\)/g, "").split("/")[0].trim();
+}
+function pickCombine() {
+  const verbs = CONJ_ITEMS.filter(
+    (c) => !c.isInf && (c.tense === "Présent" || c.tense === "Passé" || c.tense === "Futur") && frConjOk(c)
+  );
+  const verb = pickWord(verbs, state.combine.verb);
+  const word = pickWord(VOCAB, state.combine.word);
+  state.combine = { verb, word, reverse: Math.random() < 0.5 };
+}
+
+function renderCombine() {
+  if (typeof CONJ_ITEMS === "undefined" || CONJ_ITEMS.length === 0) {
+    screen.appendChild(el("h2", "view-title", "🔀 Combiné"));
+    screen.appendChild(el("p", "hint", "Ajoutez des verbes pour activer ce jeu."));
+    return;
+  }
+  if (!state.combine.verb) pickCombine();
+  const { verb, word, reverse } = state.combine;
+
+  screen.appendChild(el("h2", "view-title", "🔀 Combiné"));
+  screen.appendChild(sessionScoreBar());
+
+  const vFr = "il " + frVerbOnly(verb); // « il a vécu »
+  const nFr = frFirst(word.fr); // « quartier »
+
+  // La « phrase » : verbe conjugué + mot, les deux surlignés
+  const q = el("div", "quiz-question");
+  if (reverse) {
+    q.innerHTML =
+      `<div class="cb-sentence he" dir="rtl">הוא <span class="cb-hl">${verb.he}</span> — <span class="cb-hl">${word.he}</span></div>` +
+      `<div class="conf-listen">Touche la bonne traduction française de chaque mot surligné.</div>`;
+  } else {
+    q.innerHTML =
+      `<div class="cb-sentence"><span class="cb-hl">${vFr}</span> — <span class="cb-hl">${nFr}</span></div>` +
+      `<div class="conf-listen">Touche la bonne traduction en hébreu de chaque mot surligné.</div>`;
+  }
+  screen.appendChild(q);
+
+  let doneCount = 0;
+  const nextWrap = el("div");
+
+  function group(kind, correct, pool, displayKey) {
+    // Libellé : le mot source qu'on doit traduire
+    const srcHtml = reverse
+      ? `<span class="he">${correct.he}</span>`
+      : kind === "verb"
+      ? `<strong>${vFr}</strong>`
+      : `<strong>${nFr}</strong>`;
+    screen.appendChild(el("div", "cb-qlabel", `${kind === "verb" ? "🔤 Verbe" : "📚 Mot"} — ${srcHtml}`));
+
+    const options = (() => {
+      const seen = new Set([displayKey(correct)]);
+      const distractors = [];
+      shuffle(pool).forEach((x) => {
+        if (distractors.length < 3 && x !== correct && !seen.has(displayKey(x))) {
+          seen.add(displayKey(x));
+          distractors.push(x);
+        }
+      });
+      return shuffle([correct, ...distractors]);
+    })();
+
+    const box = el("div", "quiz-options");
+    screen.appendChild(box);
+    let answered = false;
+    const btns = [];
+    options.forEach((opt) => {
+      const label = reverse
+        ? kind === "verb"
+          ? frVerbOnly(opt)
+          : frFirst(opt.fr)
+        : `<span class="he">${opt.he}</span> ${speakBtn(opt.he)}`;
+      const btn = el("button", "quiz-option" + (reverse ? "" : " option-he"), label);
+      btns.push({ btn, opt });
+      btn.addEventListener("click", () => {
+        if (answered) return;
+        answered = true;
+        const ok = opt === correct;
+        recordAnswer(correct, ok);
+        state.session[ok ? "ok" : "ko"] += 1;
+        btns.forEach(({ btn: b, opt: o }) => {
+          b.disabled = true;
+          if (o === correct) b.classList.add("correct");
+        });
+        if (!ok) btn.classList.add("wrong");
+        doneCount += 1;
+        if (doneCount === 2) {
+          const next = el("button", "btn btn-primary conf-next", "Suivant →");
+          next.addEventListener("click", () => {
+            pickCombine();
+            render();
+          });
+          nextWrap.appendChild(next);
+        }
+      });
+      box.appendChild(btn);
+    });
+  }
+
+  const verbPool = CONJ_ITEMS.filter((c) => c.tense === verb.tense && !c.isInf);
+  group("verb", verb, verbPool, (c) => (reverse ? frVerbOnly(c) : c.he));
+  group("word", word, VOCAB, (w) => (reverse ? frFirst(w.fr) : w.he));
+
+  screen.appendChild(nextWrap);
 }
 
 /* ------------------------------------------------------------
