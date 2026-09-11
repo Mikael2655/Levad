@@ -4,11 +4,6 @@
 //  Fidèle au tableau : UNE forme de référence par temps
 //  (présent masc. sing., passé "il", futur "il"), plus la racine
 //  (racine) et la construction (binyan), affichées dans l'app.
-//
-//  Pour enrichir : modifiez l'Excel et redonnez-le moi, ou
-//  éditez ce fichier sur GitHub. Vous pouvez aussi ajouter
-//  d'autres personnes à un temps (une ligne { p, he, t } de plus)
-//  ou d'autres temps : ils apparaîtront automatiquement.
 // ============================================================
 
 const VERBES = [
@@ -5364,6 +5359,51 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "יכעיס", t: "Yakh'is" },
+      ],
+    },
+  },
+  {
+    inf: "לחרחר ריב", translit: "Lekharkher riv", fr: "Démarrer une dispute",
+    racine: "חרחר", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מחרחר ריב", t: "Mekharkher riv" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חרחר ריב", t: "Khirkher riv" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחרחר ריב", t: "Yekharkher riv" },
+      ],
+    },
+  },
+  {
+    inf: "להימנע", translit: "Lehimana (mi)", fr: "Eviter de / s'abstenir de (soi-même)",
+    racine: "מנע", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נמנע", t: "Nimna" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נמנע", t: "Nimna" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יימנע", t: "Yimana" },
+      ],
+    },
+  },
+  {
+    inf: "למנוע", translit: "Limnoa", fr: "Eviter  / empêcher (qqchose/qq'un)",
+    racine: "מנע", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מונע", t: "Monea" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "מנע", t: "Mana" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימנע", t: "Yimna" },
       ],
     },
   },
