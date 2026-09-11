@@ -1,9 +1,6 @@
 // ============================================================
 //  VOTRE VOCABULAIRE — généré depuis votre Excel (onglet Vocabulaire)
 // ============================================================
-//  Chaque mot : he (hébreu), translit (prononciation), fr
-//  (traduction), cat (thème) et note (observation, au dos).
-// ============================================================
 
 const VOCAB = [
   { he: "מאתיים", translit: "Mataim", fr: "200", cat: "Général" },
@@ -1363,4 +1360,8 @@ const VOCAB = [
   { he: "שדה קרב", translit: "Sde krav", fr: "Champs de bataille", cat: "Général" },
   { he: "אדיר", translit: "Adir", fr: "Incroyable", cat: "Général" },
   { he: "צרחות", translit: "Tsrakhot", fr: "Incroyable", cat: "Général", note: "C'est tellement bien que ça fait hurler" },
+  { he: "תגמור עם זה", translit: "Tigmor im ze", fr: "Débarasse toi de ça", cat: "Général" },
+  { he: "ביטוח", translit: "Bitouakh", fr: "Assurance", cat: "Général" },
+  { he: "מר בחור", translit: "Mar bakhour", fr: "Monsieur", cat: "Général" },
+  { he: "אמור להיות", translit: "Amour lehiyot", fr: "Censé être", cat: "Général" },
 ];
