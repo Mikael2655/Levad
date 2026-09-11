@@ -1448,15 +1448,32 @@ function renderCombine() {
   screen.appendChild(sessionScoreBar());
 
   const hl = (s) => `<span class="cb-hl">${s}</span>`;
+  const frSent = ph.frT.replace("{V}", hl(ph.vFr)).replace("{N}", hl(ph.nFr));
+  const heSent = ph.heT.replace("{V}", hl(vHe)).replace("{N}", hl(ph.nHe));
+  const original = reverse ? `<span class="he" dir="rtl">${heSent}</span>` : frSent;
+  const translation = reverse ? frSent : `<span class="he" dir="rtl">${heSent}</span>`;
+  const consigne = reverse
+    ? "Touche la bonne traduction française de chaque mot surligné."
+    : "Touche la bonne traduction en hébreu de chaque mot surligné.";
+
   const q = el("div", "quiz-question");
-  if (reverse) {
-    const s = ph.heT.replace("{V}", hl(vHe)).replace("{N}", hl(ph.nHe));
-    q.innerHTML = `<div class="cb-sentence he" dir="rtl">${s}</div><div class="conf-listen">Touche la bonne traduction française de chaque mot surligné.</div>`;
-  } else {
-    const s = ph.frT.replace("{V}", hl(ph.vFr)).replace("{N}", hl(ph.nFr));
-    q.innerHTML = `<div class="cb-sentence">${s}</div><div class="conf-listen">Touche la bonne traduction en hébreu de chaque mot surligné.</div>`;
-  }
+  q.innerHTML =
+    `<div class="cb-sentence">${original}</div>` +
+    `<div class="cb-flip-hint">👆 Touchez la phrase pour la traduction complète</div>` +
+    `<div class="cb-trans" hidden>${translation}</div>` +
+    `<div class="conf-listen">${consigne}</div>`;
   screen.appendChild(q);
+  // Toucher la phrase → afficher / masquer la traduction complète
+  const sentEl = q.querySelector(".cb-sentence");
+  const transEl = q.querySelector(".cb-trans");
+  const hintEl = q.querySelector(".cb-flip-hint");
+  sentEl.style.cursor = "pointer";
+  sentEl.addEventListener("click", () => {
+    transEl.hidden = !transEl.hidden;
+    hintEl.textContent = transEl.hidden
+      ? "👆 Touchez la phrase pour la traduction complète"
+      : "👆 Touchez la phrase pour masquer la traduction";
+  });
 
   const verbCorrect = { he: vHe, fr: ph.vFr };
   const wordCorrect = { he: ph.nHe, fr: ph.nFr };
