@@ -241,7 +241,7 @@ const state = {
   conj: { mode: "qcm", tenses: new Set(), binyans: new Set(), newOnly: false, verb: 0, current: null, reverse: false, audioRev: false }, // onglet Verbes
   confus: { mode: "qcm", family: null, current: null, reverse: false }, // sous-menu Verbes proches
   vocab: { mode: "flashcards", newOnly: false }, // onglet Vocabulaire
-  combine: { phrase: null, reverse: false }, // onglet Combiné
+  combine: { phrase: null, reverse: false, newV: false, newN: false }, // onglet Combiné
   home: { vocabNew: false, verbNew: false }, // options de l'accueil
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
   search: { q: "", openVerb: null }, // onglet Recherche (openVerb = verbe déplié)
@@ -385,14 +385,22 @@ const BINYANS = typeof VERBES !== "undefined"
   ? [...new Set(VERBES.map((v) => v.binyan).filter(Boolean))]
   : [];
 
-// Forme du présent (masc. sing.) par infinitif, pour le jeu Combiné
-const VERB_PRES_HE = {};
-if (typeof VERBES !== "undefined") {
-  VERBES.forEach((v) => {
-    const p = v.temps && v.temps["Présent"] && v.temps["Présent"][0];
-    if (v.inf && p) VERB_PRES_HE[v.inf] = p.he;
-  });
+// Index et helpers pour le jeu Combiné
+const VERB_BY_INF = {};
+if (typeof VERBES !== "undefined") VERBES.forEach((v) => { if (v.inf) VERB_BY_INF[v.inf] = v; });
+const VOCAB_BY_HE = {};
+if (typeof VOCAB !== "undefined") VOCAB.forEach((w) => { if (!(w.he in VOCAB_BY_HE)) VOCAB_BY_HE[w.he] = w; });
+const NEW_VERB_INF = new Set([...(typeof NEW_VERBS !== "undefined" ? NEW_VERBS : [])].map((v) => v.inf));
+// Forme hébraïque d'un verbe à un temps donné (repli sur le présent)
+function verbFormHe(inf, tense) {
+  const v = VERB_BY_INF[inf];
+  if (!v) return "";
+  const t = v.temps && v.temps[tense] && v.temps[tense][0];
+  const pr = v.temps && v.temps["Présent"] && v.temps["Présent"][0];
+  return (t && t.he) || (pr && pr.he) || "";
 }
+function verbIsNew(inf) { return NEW_VERB_INF.has(inf); }
+function wordIsNew(he) { const w = VOCAB_BY_HE[he]; return !!(w && w.cat === "🆕 Nouvel ajout"); }
 
 const screen = document.getElementById("screen");
 
@@ -1330,110 +1338,112 @@ function frFirst(s) {
   return String(s).replace(/\([^)]*\)/g, "").split("/")[0].trim();
 }
 
-/* Banque de phrases écrites à la main : chacune emploie un vrai verbe
-   (au présent) et un vrai mot de vocabulaire, avec une version
-   française et hébraïque cohérentes (articles/particules corrects).
-   { v: infinitif du verbe (→ forme présent depuis les données),
-     vFr: verbe conjugué en français,
-     nHe: mot hébreu, nFr: mot français,
-     frT/heT: gabarits avec {V} et {N} } */
+/* Banque de phrases écrites à la main : de VRAIES phrases (parfois
+   longues), où seuls DEUX mots sont à trouver — un verbe et un mot,
+   tous deux de vos listes. Les autres mots (le contexte) peuvent ne
+   pas figurer dans le vocabulaire : ils aident à deviner par le sens.
+   { v: infinitif → forme hébraïque au temps vT (depuis les données),
+     vT: temps du verbe, vFr: verbe conjugué en français,
+     nHe/nFr: le mot, frT/heT: la phrase avec {V} et {N}.
+   Sujets masculins singuliers → la forme hébraïque (masc. sing.) reste
+   correcte. */
 const COMBINE_PHRASES = [
-  { v: "לנהוג", vFr: "conduit", nHe: "רחוב", nFr: "rue", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לסגור", vFr: "ferme", nHe: "חלון", nFr: "fenêtre", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לכתוב", vFr: "écrit", nHe: "מכתב", nFr: "lettre", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
-  { v: "להכין", vFr: "prépare", nHe: "עוגה", nFr: "gâteau", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
-  { v: "לרוץ", vFr: "court", nHe: "רחוב", nFr: "rue", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לשמוע", vFr: "écoute", nHe: "סיפור", nFr: "histoire", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
-  { v: "לבשל", vFr: "cuisine", nHe: "ארוחה", nFr: "repas", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
-  { v: "לחפש", vFr: "cherche", nHe: "מפתח", nFr: "clé", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לבחור", vFr: "choisit", nHe: "שמלה", nFr: "robe", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
-  { v: "לבנות", vFr: "construit", nHe: "סירה", nFr: "bateau", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
-  { v: "לקנות", vFr: "achète", nHe: "מחשב", nFr: "ordinateur", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
-  { v: "לאהוב", vFr: "aime", nHe: "סוס", nFr: "cheval", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לשיר", vFr: "chante", nHe: "רחוב", nFr: "rue", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לחכות", vFr: "attend", nHe: "רופא", nFr: "médecin", frT: "Il {V} le {N}.", heT: "הוא {V} ל{N}." },
-  { v: "לשלוח", vFr: "envoie", nHe: "מכתב", nFr: "lettre", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
-  { v: "ללמוד", vFr: "étudie", nHe: "שפה", nFr: "langue", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
-  { v: "לשמור", vFr: "garde", nHe: "מפתח", nFr: "clé", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לרקוד", vFr: "danse", nHe: "רחוב", nFr: "rue", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לישון", vFr: "dort", nHe: "סירה", nFr: "bateau", frT: "Il {V} dans le {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לראות", vFr: "regarde", nHe: "סרט", nFr: "film", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
-  { v: "לאכול", vFr: "mange", nHe: "עוגה", nFr: "gâteau", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
-  { v: "לעלות", vFr: "monte", nHe: "רכבת", nFr: "train", frT: "Il {V} dans le {N}.", heT: "הוא {V} על ה{N}." },
-  { v: "לנהוג", vFr: "conduit", nHe: "עיר", nFr: "ville", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לחפש", vFr: "cherche", nHe: "עט", nFr: "stylo", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לכתוב", vFr: "écrit", nHe: "מחברת", nFr: "cahier", frT: "Il {V} dans le {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לאהוב", vFr: "aime", nHe: "פרח", nFr: "fleur", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לעלות", vFr: "monte", nHe: "הר", nFr: "montagne", frT: "Il {V} sur la {N}.", heT: "הוא {V} על ה{N}." },
-  { v: "לחכות", vFr: "attend", nHe: "רכבת", nFr: "train", frT: "Il {V} le {N}.", heT: "הוא {V} ל{N}." },
-  { v: "לחכות", vFr: "attend", nHe: "ידיד", nFr: "ami", frT: "Il {V} un {N}.", heT: "הוא {V} ל{N}." },
-  { v: "לקנות", vFr: "achète", nHe: "פרח", nFr: "fleur", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
-  { v: "לראות", vFr: "voit", nHe: "הר", nFr: "montagne", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לשמור", vFr: "garde", nHe: "סוס", nFr: "cheval", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לבנות", vFr: "construit", nHe: "עיר", nFr: "ville", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
-  { v: "לעלות", vFr: "monte", nHe: "מטוס", nFr: "avion", frT: "Il {V} dans l'{N}.", heT: "הוא {V} על ה{N}." },
-  { v: "לאהוב", vFr: "aime", nHe: "סרט", nFr: "film", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לפתוח", vFr: "ouvre", nHe: "חלון", nFr: "fenêtre", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לקרוא", vFr: "lit", nHe: "עיתון", nFr: "journal", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לשבור", vFr: "casse", nHe: "מחשב", nFr: "ordinateur", frT: "Il {V} l'{N}.", heT: "הוא {V} את ה{N}." },
-  { v: "ללבוש", vFr: "porte", nHe: "מעיל", nFr: "manteau", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
-  { v: "ללבוש", vFr: "porte", nHe: "כובע", nFr: "chapeau", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
-  { v: "לחתוך", vFr: "coupe", nHe: "עוגה", nFr: "gâteau", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לסדר", vFr: "range", nHe: "משרד", nFr: "bureau", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לטייל", vFr: "se balade", nHe: "יער", nFr: "forêt", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לטייל", vFr: "se balade", nHe: "עיר", nFr: "ville", frT: "Il {V} dans la {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לפגוש", vFr: "rencontre", nHe: "רופא", nFr: "médecin", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לפגוש", vFr: "rencontre", nHe: "ידיד", nFr: "ami", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
-  { v: "לעזור", vFr: "aide", nHe: "ידיד", nFr: "ami", frT: "Il {V} un {N}.", heT: "הוא {V} ל{N}." },
-  { v: "להביא", vFr: "apporte", nHe: "עוגה", nFr: "gâteau", frT: "Il {V} un {N}.", heT: "הוא {V} {N}." },
-  { v: "לתת", vFr: "donne", nHe: "פרח", nFr: "fleur", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
-  { v: "לקבל", vFr: "reçoit", nHe: "מכתב", nFr: "lettre", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
-  { v: "למכור", vFr: "vend", nHe: "סוס", nFr: "cheval", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "למכור", vFr: "vend", nHe: "מחשב", nFr: "ordinateur", frT: "Il {V} l'{N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לשלם", vFr: "paie", nHe: "ארוחה", nFr: "repas", frT: "Il {V} le {N}.", heT: "הוא {V} על ה{N}." },
-  { v: "למצוא", vFr: "trouve", nHe: "מפתח", nFr: "clé", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לזכור", vFr: "se souvient", nHe: "סיפור", nFr: "histoire", frT: "Il {V} de l'{N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לשכוח", vFr: "oublie", nHe: "מפתח", nFr: "clé", frT: "Il {V} la {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לעבוד", vFr: "travaille", nHe: "משרד", nFr: "bureau", frT: "Il {V} dans le {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לטעום", vFr: "goûte", nHe: "עוגה", nFr: "gâteau", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לבקר", vFr: "visite", nHe: "עיר", nFr: "ville", frT: "Il {V} la {N}.", heT: "הוא {V} ב{N}." },
-  { v: "לזרוק", vFr: "jette", nHe: "עיתון", nFr: "journal", frT: "Il {V} le {N}.", heT: "הוא {V} את ה{N}." },
-  { v: "לקנות", vFr: "achète", nHe: "נעליים", nFr: "chaussures", frT: "Il {V} des {N}.", heT: "הוא {V} {N}." },
-  { v: "לקנות", vFr: "achète", nHe: "מזוודה", nFr: "valise", frT: "Il {V} une {N}.", heT: "הוא {V} {N}." },
-].filter((ph) => VERB_PRES_HE[ph.v]); // ne garde que les verbes résolus
+  { v: "להסגר", vT: "Passé", vFr: "s'est fermée", nHe: "חלון", nFr: "fenêtre", frT: "La {N} {V} à cause du vent.", heT: "ה{N} {V} בגלל הרוח." },
+  { v: "להשבר", vT: "Passé", vFr: "s'est cassé", nHe: "מחשב", nFr: "ordinateur", frT: "L'{N} {V} ce matin sans raison.", heT: "ה{N} {V} הבוקר בלי סיבה." },
+  { v: "להפתח", vT: "Passé", vFr: "s'est ouverte", nHe: "חלון", nFr: "fenêtre", frT: "La {N} {V} toute seule pendant la nuit.", heT: "ה{N} {V} לבד באמצע הלילה." },
+  { v: "להרדם", vT: "Passé", vFr: "s'est endormi", nHe: "ארוחה", nFr: "repas", frT: "Après le {N}, il {V} sur le canapé.", heT: "אחרי ה{N} הוא {V} על הספה." },
+  { v: "להעלם", vT: "Passé", vFr: "a disparu", nHe: "יער", nFr: "forêt", frT: "Le chien {V} dans la {N} sombre.", heT: "הכלב {V} ב{N} החשוך." },
+  { v: "להשתעל", vT: "Présent", vFr: "tousse", nHe: "רופא", nFr: "médecin", frT: "Il {V} tellement que le {N} s'inquiète.", heT: "הוא {V} כל כך שה{N} דואג." },
+  { v: "להתלונן", vT: "Présent", vFr: "se plaint", nHe: "משבר", nFr: "crise", frT: "Il {V} toujours de la {N} économique.", heT: "הוא תמיד {V} על ה{N} הכלכלי." },
+  { v: "לשכנע", vT: "Passé", vFr: "a convaincu", nHe: "בדיחה", nFr: "blague", frT: "Il m'{V} grâce à une bonne {N}.", heT: "הוא {V} אותי בזכות {N} טובה." },
+  { v: "לצבוע", vT: "Passé", vFr: "a peint", nHe: "חלון", nFr: "fenêtre", frT: "Il {V} la {N} en bleu ce matin.", heT: "הוא {V} את ה{N} בכחול הבוקר." },
+  { v: "למשוך", vT: "Présent", vFr: "attire", nHe: "מטבח", nFr: "cuisine", frT: "Cette odeur {V} les chats vers la {N}.", heT: "הריח הזה {V} את החתולים ל{N}." },
+  { v: "להציל", vT: "Passé", vFr: "a sauvé", nHe: "שריפה", nFr: "incendie", frT: "Le pompier {V} l'enfant de l'{N}.", heT: "הכבאי {V} את הילד מה{N}." },
+  { v: "להסתיר", vT: "Présent", vFr: "cache", nHe: "מפתח", nFr: "clé", frT: "Il {V} la {N} sous le tapis.", heT: "הוא {V} את ה{N} מתחת לשטיח." },
+  { v: "להתנצל", vT: "Passé", vFr: "s'est excusé", nHe: "ידיד", nFr: "ami", frT: "Après la dispute, il {V} auprès de son {N}.", heT: "אחרי הריב הוא {V} בפני ה{N}." },
+  { v: "להודיע", vT: "Passé", vFr: "a prévenu", nHe: "כביש", nFr: "route", frT: "Le guide nous {V} du danger sur la {N}.", heT: "המדריך {V} לנו על הסכנה ב{N}." },
+  { v: "לטפס", vT: "Présent", vFr: "grimpe", nHe: "הר", nFr: "montagne", frT: "L'enfant {V} sur la {N} sans aucune peur.", heT: "הילד {V} על ה{N} בלי שום פחד." },
+  { v: "להיבהל", vT: "Passé", vFr: "a paniqué", nHe: "רחוב", nFr: "rue", frT: "Il {V} à cause du bruit dans la {N}.", heT: "הוא {V} בגלל הרעש ב{N}." },
+  { v: "לשחרר", vT: "Présent", vFr: "libère", nHe: "סוס", nFr: "cheval", frT: "Le fermier {V} le {N} dans le champ.", heT: "האיכר {V} את ה{N} בשדה." },
+  { v: "להציק", vT: "Présent", vFr: "embête", nHe: "ארוחה", nFr: "repas", frT: "Ce bruit m'{V} pendant tout le {N}.", heT: "הרעש הזה {V} לי במשך כל ה{N}." },
+  { v: "לצרוח", vT: "Présent", vFr: "hurle", nHe: "רופא", nFr: "médecin", frT: "Le bébé {V} dès qu'il voit le {N}.", heT: "התינוק {V} ברגע שהוא רואה את ה{N}." },
+  { v: "להכעיס", vT: "Présent", vFr: "énerve", nHe: "כביש", nFr: "route", frT: "Ce chauffeur m'{V} sur la {N} chaque matin.", heT: "הנהג הזה {V} אותי ב{N} כל בוקר." },
+  { v: "למנוע", vT: "Passé", vFr: "a empêché", nHe: "משבר", nFr: "crise", frT: "Rien n'{V} la {N} cette année.", heT: "שום דבר לא {V} את ה{N} השנה." },
+  { v: "לארגן", vT: "Présent", vFr: "organise", nHe: "גינה", nFr: "jardin", frT: "Il {V} une grande fête dans le {N}.", heT: "הוא {V} מסיבה גדולה ב{N}." },
+  { v: "להפוך", vT: "Présent", vFr: "transforme", nHe: "משרד", nFr: "bureau", frT: "Il {V} le vieux garage en {N}.", heT: "הוא {V} את המוסך הישן ל{N}." },
+  { v: "להפטר", vT: "Présent", vFr: "se débarrasse", nHe: "מעיל", nFr: "manteau", frT: "Il {V} enfin de son vieux {N}.", heT: "הוא סוף סוף {V} מה{N} הישן." },
+  { v: "להשבע", vT: "Présent", vFr: "jure", nHe: "יער", nFr: "forêt", frT: "Il {V} qu'il a vu un loup dans la {N}.", heT: "הוא {V} שהוא ראה זאב ב{N}." },
+  { v: "להעלב", vT: "Présent", vFr: "se vexe", nHe: "בדיחה", nFr: "blague", frT: "Il {V} pour la moindre {N}.", heT: "הוא {V} מכל {N} קטנה." },
+  { v: "להתייחס", vT: "Présent", vFr: "considère", nHe: "תוצאה", nFr: "résultat", frT: "Il {V} chaque {N} comme une leçon.", heT: "הוא {V} לכל {N} כמו שיעור." },
+  { v: "לתת", vT: "Présent", vFr: "donne", nHe: "מחמאה", nFr: "compliment", frT: "Il {V} toujours un {N} sincère à ses collègues.", heT: "הוא תמיד {V} {N} כנה לעמיתים שלו." },
+  { v: "לקבל", vT: "Passé", vFr: "a reçu", nHe: "תוצאה", nFr: "résultat", frT: "Il {V} un excellent {N} à l'examen.", heT: "הוא {V} {N} מצוינת במבחן." },
+  { v: "לשלם", vT: "Présent", vFr: "paie", nHe: "ביטוח", nFr: "assurance", frT: "Il {V} l'{N} de sa voiture chaque mois.", heT: "הוא {V} את ה{N} של המכונית כל חודש." },
+  { v: "לקרוא", vT: "Présent", vFr: "lit", nHe: "עיתון", nFr: "journal", frT: "Chaque matin, il {V} le {N} dans le bus.", heT: "כל בוקר הוא {V} את ה{N} באוטובוס." },
+  { v: "לספר", vT: "Présent", vFr: "raconte", nHe: "בדיחה", nFr: "blague", frT: "Il {V} une {N} très drôle à table.", heT: "הוא {V} {N} מאוד מצחיקה ליד השולחן." },
+  { v: "להראות", vHe: "מראה", vT: "Présent", vFr: "montre", nHe: "ירך", nFr: "hanche", frT: "Il {V} sa {N} blessée au médecin.", heT: "הוא {V} את ה{N} הפצועה לרופא." },
+  { v: "לחפש", vT: "Présent", vFr: "cherche", nHe: "כפתור", nFr: "bouton", frT: "Il {V} le {N} de la lumière dans le noir.", heT: "הוא {V} את ה{N} של האור בחושך." },
+  { v: "ללכת", vT: "Présent", vFr: "marche", nHe: "החלמה", nFr: "guérison", frT: "Après une longue {N}, il {V} de nouveau.", heT: "אחרי {N} ארוכה הוא {V} שוב." },
+  { v: "לבקר", vT: "Présent", vFr: "visite", nHe: "בית אבות", nFr: "maison de retraite", frT: "Chaque dimanche, il {V} son grand-père à la {N}.", heT: "כל יום ראשון הוא {V} את סבא שלו ב{N}." },
+  { v: "למצוא", vT: "Passé", vFr: "a trouvé", nHe: "משבר", nFr: "crise", frT: "Il {V} une solution après une longue {N}.", heT: "הוא {V} פתרון אחרי {N} ארוך." },
+  { v: "לשלוח", vT: "Passé", vFr: "a envoyé", nHe: "מכתב", nFr: "lettre", frT: "Il {V} une longue {N} à sa famille.", heT: "הוא {V} {N} ארוך למשפחה שלו." },
+  { v: "ללבוש", vT: "Présent", vFr: "porte", nHe: "מעיל", nFr: "manteau", frT: "Il {V} un {N} chaud à cause de la neige.", heT: "הוא {V} {N} חם בגלל השלג." },
+  { v: "לקנות", vT: "Passé", vFr: "a acheté", nHe: "מזוודה", nFr: "valise", frT: "Il {V} une nouvelle {N} pour son voyage.", heT: "הוא {V} {N} חדשה לטיול שלו." },
+  { v: "לשכוח", vT: "Présent", vFr: "oublie", nHe: "משרד", nFr: "bureau", frT: "Il {V} souvent son parapluie au {N}.", heT: "הוא לעתים קרובות {V} את המטרייה שלו ב{N}." },
+  { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "שפה", nFr: "langue", frT: "Le professeur {V} la {N} avec beaucoup de patience.", heT: "המורה {V} את ה{N} בהרבה סבלנות." },
+  { v: "לבשל", vT: "Présent", vFr: "cuisine", nHe: "ארוחה", nFr: "repas", frT: "Chaque soir, il {V} un bon {N} pour ses enfants.", heT: "כל ערב הוא {V} {N} טובה לילדים שלו." },
+  { v: "לנהוג", vT: "Présent", vFr: "conduit", nHe: "עיר", nFr: "ville", frT: "Il {V} prudemment dans la grande {N}.", heT: "הוא {V} בזהירות ב{N} הגדולה." },
+  { v: "לראות", vT: "Passé", vFr: "a regardé", nHe: "סרט", nFr: "film", frT: "Hier soir, il {V} un {N} passionnant.", heT: "אתמול בערב הוא {V} {N} מרתק." },
+  { v: "למכור", vT: "Passé", vFr: "a vendu", nHe: "מחשב", nFr: "ordinateur", frT: "Il {V} son vieil {N} sur internet.", heT: "הוא {V} את ה{N} הישן שלו באינטרנט." },
+].filter((ph) => ph.vHe || verbFormHe(ph.v, ph.vT));
 
-// Pool des formes de présent (pour les distracteurs verbe), construit à
-// la demande (frVerbOnly dépend de constantes définies plus bas).
-let _combineVerbPool = null;
-function combineVerbPool() {
-  if (!_combineVerbPool) {
-    _combineVerbPool = CONJ_ITEMS
-      .filter((c) => c.tense === "Présent" && !c.isInf)
+// Pool de distracteurs verbe, par temps (construit à la demande)
+const _combineVerbPools = {};
+function combineVerbPool(tense) {
+  if (!_combineVerbPools[tense]) {
+    _combineVerbPools[tense] = CONJ_ITEMS
+      .filter((c) => c.tense === tense && !c.isInf)
       .map((c) => ({ he: c.he, fr: frVerbOnly(c) }));
   }
-  return _combineVerbPool;
+  return _combineVerbPools[tense];
 }
 
+// Phrases retenues selon les cases « nouveaux verbes / nouveaux mots »
+function combinePool() {
+  let pool = COMBINE_PHRASES;
+  if (state.combine.newV) pool = pool.filter((p) => verbIsNew(p.v));
+  if (state.combine.newN) pool = pool.filter((p) => wordIsNew(p.nHe));
+  return pool;
+}
 function pickCombine() {
-  const list = COMBINE_PHRASES;
+  const list = combinePool();
+  if (list.length === 0) { state.combine.phrase = null; return; }
   let ph = list[Math.floor(Math.random() * list.length)];
   let guard = 0;
   while (state.combine.phrase && ph === state.combine.phrase && list.length > 1 && guard++ < 8) {
     ph = list[Math.floor(Math.random() * list.length)];
   }
-  state.combine = { phrase: ph, reverse: Math.random() < 0.5 };
+  state.combine.phrase = ph;
+  state.combine.reverse = Math.random() < 0.5;
 }
 
 function renderCombine() {
   screen.appendChild(el("h2", "view-title", "🔀 Combiné"));
-  if (COMBINE_PHRASES.length === 0) {
-    screen.appendChild(el("p", "hint", "Jeu indisponible : aucune phrase à afficher."));
+
+  // Deux filtres, en première ligne
+  const bar = el("div", "filter-bar");
+  bar.appendChild(checkToggle("🆕 Nouveaux verbes", state.combine.newV, (v) => { state.combine.newV = v; state.combine.phrase = null; render(); }));
+  bar.appendChild(checkToggle("🆕 Nouveaux mots", state.combine.newN, (v) => { state.combine.newN = v; state.combine.phrase = null; render(); }));
+  screen.appendChild(bar);
+
+  const pool = combinePool();
+  if (pool.length === 0) {
+    screen.appendChild(el("p", "hint", "Aucune phrase ne correspond à ce filtre pour l'instant. Décochez une case."));
     return;
   }
-  if (!state.combine.phrase) pickCombine();
+  if (!state.combine.phrase || !pool.includes(state.combine.phrase)) pickCombine();
   const ph = state.combine.phrase;
   const reverse = state.combine.reverse;
-  const vHe = VERB_PRES_HE[ph.v];
+  const vHe = ph.vHe || verbFormHe(ph.v, ph.vT);
 
   screen.appendChild(sessionScoreBar());
 
@@ -1441,14 +1451,10 @@ function renderCombine() {
   const q = el("div", "quiz-question");
   if (reverse) {
     const s = ph.heT.replace("{V}", hl(vHe)).replace("{N}", hl(ph.nHe));
-    q.innerHTML =
-      `<div class="cb-sentence he" dir="rtl">${s}</div>` +
-      `<div class="conf-listen">Touche la bonne traduction française de chaque mot surligné.</div>`;
+    q.innerHTML = `<div class="cb-sentence he" dir="rtl">${s}</div><div class="conf-listen">Touche la bonne traduction française de chaque mot surligné.</div>`;
   } else {
     const s = ph.frT.replace("{V}", hl(ph.vFr)).replace("{N}", hl(ph.nFr));
-    q.innerHTML =
-      `<div class="cb-sentence">${s}</div>` +
-      `<div class="conf-listen">Touche la bonne traduction en hébreu de chaque mot surligné.</div>`;
+    q.innerHTML = `<div class="cb-sentence">${s}</div><div class="conf-listen">Touche la bonne traduction en hébreu de chaque mot surligné.</div>`;
   }
   screen.appendChild(q);
 
@@ -1459,22 +1465,13 @@ function renderCombine() {
   let doneCount = 0;
   const nextWrap = el("div");
 
-  function group(kind, correct, pool, keyPrefix) {
-    const srcHtml = reverse
-      ? `<span class="he">${correct.he}</span>`
-      : `<strong>${kind === "verb" ? ph.vFr : ph.nFr}</strong>`;
+  function group(kind, correct, pool2, keyPrefix) {
+    const srcHtml = reverse ? `<span class="he">${correct.he}</span>` : `<strong>${kind === "verb" ? ph.vFr : ph.nFr}</strong>`;
     screen.appendChild(el("div", "cb-qlabel", `${kind === "verb" ? "🔤 Verbe" : "📚 Mot"} — ${srcHtml}`));
-
     const seen = new Set([disp(correct)]);
     const distractors = [];
-    shuffle(pool).forEach((x) => {
-      if (distractors.length < 3 && !seen.has(disp(x))) {
-        seen.add(disp(x));
-        distractors.push(x);
-      }
-    });
+    shuffle(pool2).forEach((x) => { if (distractors.length < 3 && !seen.has(disp(x))) { seen.add(disp(x)); distractors.push(x); } });
     const options = shuffle([correct, ...distractors]);
-
     const box = el("div", "quiz-options");
     screen.appendChild(box);
     let answered = false;
@@ -1489,18 +1486,12 @@ function renderCombine() {
         const ok = opt === correct;
         recordAnswer({ he: correct.he, key: keyPrefix + correct.he }, ok);
         state.session[ok ? "ok" : "ko"] += 1;
-        btns.forEach(({ btn: b, opt: o }) => {
-          b.disabled = true;
-          if (o === correct) b.classList.add("correct");
-        });
+        btns.forEach(({ btn: b, opt: o }) => { b.disabled = true; if (o === correct) b.classList.add("correct"); });
         if (!ok) btn.classList.add("wrong");
         doneCount += 1;
         if (doneCount === 2) {
           const next = el("button", "btn btn-primary conf-next", "Suivant →");
-          next.addEventListener("click", () => {
-            pickCombine();
-            render();
-          });
+          next.addEventListener("click", () => { pickCombine(); render(); });
           nextWrap.appendChild(next);
         }
       });
@@ -1509,7 +1500,7 @@ function renderCombine() {
   }
 
   const wordPool = VOCAB.map((w) => ({ he: w.he, fr: frFirst(w.fr) }));
-  group("verb", verbCorrect, combineVerbPool(), "CB-V|");
+  group("verb", verbCorrect, combineVerbPool(ph.vT), "CB-V|");
   group("word", wordCorrect, wordPool, "");
 
   screen.appendChild(nextWrap);
