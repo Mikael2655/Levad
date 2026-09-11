@@ -1010,3 +1010,7 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
   margin: 0.2rem 0 0.5rem;
   line-height: 1.5;
 }
+
+/* Option déjà répondue : bloquée logiquement mais le 🔊 reste actif */
+.quiz-option.locked { cursor: default; }
+.quiz-option.locked:not(.correct):not(.wrong):hover { border-color: var(--line); }
