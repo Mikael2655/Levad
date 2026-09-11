@@ -1385,10 +1385,18 @@ function pickCombine() {
 function renderCombine() {
   screen.appendChild(el("h2", "view-title", "🔀 Combiné"));
 
-  // Deux filtres, en première ligne
+  // Les deux filtres sur une seule ligne (moins de défilement)
   const bar = el("div", "filter-bar");
-  bar.appendChild(checkToggle("🆕 Nouveaux verbes", state.combine.newV, (v) => { state.combine.newV = v; state.combine.phrase = null; render(); }));
-  bar.appendChild(checkToggle("🆕 Nouveaux mots", state.combine.newN, (v) => { state.combine.newN = v; state.combine.phrase = null; render(); }));
+  const frow = el("div", "check-row");
+  const mkToggle = (text, checked, apply) => {
+    const lab = el("label", "check-item" + (checked ? " on" : ""));
+    lab.innerHTML = `<input type="checkbox"${checked ? " checked" : ""}><span>${text}</span>`;
+    lab.querySelector("input").addEventListener("change", (e) => apply(e.target.checked));
+    return lab;
+  };
+  frow.appendChild(mkToggle("🆕 Nouveaux verbes", state.combine.newV, (v) => { state.combine.newV = v; state.combine.phrase = null; render(); }));
+  frow.appendChild(mkToggle("🆕 Nouveaux mots", state.combine.newN, (v) => { state.combine.newN = v; state.combine.phrase = null; render(); }));
+  bar.appendChild(frow);
   screen.appendChild(bar);
 
   const pool = combinePool();
@@ -1405,21 +1413,27 @@ function renderCombine() {
 
   const hl = (s) => `<span class="cb-hl">${s}</span>`;
   const frSent = ph.frT.replace("{V}", hl(ph.vFr)).replace("{N}", hl(ph.nFr));
-  const heSent = ph.heT.replace("{V}", hl(vHe)).replace("{N}", hl(ph.nHe));
+  // Le verbe {V} est toujours un repère ; le mot {N} est parfois intégré
+  // directement à la phrase (forme indéfinie / état construit). Dans ce cas
+  // on souligne quand même le mot là où il apparaît, pour qu'il ne manque
+  // jamais de soulignement.
+  let heSent = ph.heT.replace("{V}", hl(vHe));
+  if (heSent.includes("{N}")) {
+    heSent = heSent.replace("{N}", hl(ph.nHe));
+  } else {
+    const i = heSent.indexOf(ph.nHe);
+    if (i >= 0) heSent = heSent.slice(0, i) + hl(ph.nHe) + heSent.slice(i + ph.nHe.length);
+  }
   const heRaw = ph.heT.replace("{V}", vHe).replace("{N}", ph.nHe); // pour l'audio
   const heBlock = `<span class="he" dir="rtl">${heSent}</span> ${speakBtn(heRaw)}`;
   const original = reverse ? heBlock : frSent;
   const translation = reverse ? frSent : heBlock;
-  const consigne = reverse
-    ? "Touche la bonne traduction française de chaque mot surligné."
-    : "Touche la bonne traduction en hébreu de chaque mot surligné.";
 
-  const q = el("div", "quiz-question");
+  const q = el("div", "quiz-question cb-q");
   q.innerHTML =
     `<div class="cb-sentence">${original}</div>` +
     `<div class="cb-flip-hint">👆 Touchez la phrase pour la traduction complète</div>` +
-    `<div class="cb-trans" hidden>${translation}</div>` +
-    `<div class="conf-listen">${consigne}</div>`;
+    `<div class="cb-trans" hidden>${translation}</div>`;
   screen.appendChild(q);
   // Toucher la phrase → afficher / masquer la traduction complète
   const sentEl = q.querySelector(".cb-sentence");
@@ -1439,16 +1453,17 @@ function renderCombine() {
 
   let doneCount = 0;
   const nextWrap = el("div");
+  const groupsWrap = el("div", "cb-groups");
 
   function group(kind, correct, pool2, keyPrefix) {
     const srcHtml = reverse ? `<span class="he">${correct.he}</span>` : `<strong>${kind === "verb" ? ph.vFr : ph.nFr}</strong>`;
-    screen.appendChild(el("div", "cb-qlabel", `${kind === "verb" ? "🔤 Verbe" : "📚 Mot"} — ${srcHtml}`));
+    groupsWrap.appendChild(el("div", "cb-qlabel", `${kind === "verb" ? "🔤 Verbe" : "📚 Mot"} — ${srcHtml}`));
     const seen = new Set([disp(correct)]);
     const distractors = [];
     shuffle(pool2).forEach((x) => { if (distractors.length < 3 && !seen.has(disp(x))) { seen.add(disp(x)); distractors.push(x); } });
     const options = shuffle([correct, ...distractors]);
     const box = el("div", "quiz-options");
-    screen.appendChild(box);
+    groupsWrap.appendChild(box);
     let answered = false;
     const btns = [];
     options.forEach((opt) => {
@@ -1477,9 +1492,17 @@ function renderCombine() {
   }
 
   const wordPool = VOCAB.map((w) => ({ he: w.he, fr: frFirst(w.fr) }));
-  group("verb", verbCorrect, combineVerbPool(ph.vT), "CB-V|");
-  group("word", wordCorrect, wordPool, "");
+  const doVerb = () => group("verb", verbCorrect, combineVerbPool(ph.vT), "CB-V|");
+  const doWord = () => group("word", wordCorrect, wordPool, "");
+  // Ordre des deux QCM = ordre d'apparition des mots dans la phrase montrée
+  const orderSrc = reverse ? ph.heT : ph.frT;
+  const vPos = orderSrc.indexOf("{V}");
+  let nPos = orderSrc.indexOf("{N}");
+  if (nPos < 0) nPos = reverse ? ph.heT.indexOf(ph.nHe) : ph.frT.indexOf(ph.nFr);
+  const verbFirst = nPos < 0 || vPos <= nPos;
+  if (verbFirst) { doVerb(); doWord(); } else { doWord(); doVerb(); }
 
+  screen.appendChild(groupsWrap);
   screen.appendChild(nextWrap);
 }
 

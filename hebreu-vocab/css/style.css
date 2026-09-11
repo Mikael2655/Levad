@@ -1011,6 +1011,15 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
   line-height: 1.5;
 }
 
+/* Combiné : mise en page compacte, pour valider sans avoir à défiler */
+.quiz-question.cb-q { padding: 0.9rem 1rem; margin-bottom: 0.5rem; }
+.cb-q .cb-sentence { font-size: 1.3rem; line-height: 1.35; margin-bottom: 0.25rem; }
+.cb-q .conf-listen { margin: 0.25rem 0 0; font-size: 0.85rem; }
+.cb-groups .cb-qlabel { margin: 0.4rem 0 0.18rem; font-size: 0.9rem; }
+.cb-groups .quiz-options { gap: 0.35rem; }
+.cb-groups .quiz-option { padding: 0.5rem 0.8rem; font-size: 1rem; }
+.cb-groups .option-he .he { font-size: 1.15rem; }
+
 /* Option déjà répondue : bloquée logiquement mais le 🔊 reste actif */
 .quiz-option.locked { cursor: default; }
 .quiz-option.locked:not(.correct):not(.wrong):hover { border-color: var(--line); }
