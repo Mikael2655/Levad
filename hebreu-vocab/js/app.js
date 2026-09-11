@@ -1409,8 +1409,6 @@ function renderCombine() {
   const reverse = state.combine.reverse;
   const vHe = ph.vHe || verbFormHe(ph.v, ph.vT);
 
-  screen.appendChild(sessionScoreBar());
-
   const hl = (s) => `<span class="cb-hl">${s}</span>`;
   const frSent = ph.frT.replace("{V}", hl(ph.vFr)).replace("{N}", hl(ph.nFr));
   // Le verbe {V} est toujours un repère ; le mot {N} est parfois intégré
