@@ -1394,6 +1394,36 @@ const COMBINE_PHRASES = [
   { v: "לנהוג", vT: "Présent", vFr: "conduit", nHe: "עיר", nFr: "ville", frT: "Il {V} prudemment dans la grande {N}.", heT: "הוא {V} בזהירות ב{N} הגדולה." },
   { v: "לראות", vT: "Passé", vFr: "a regardé", nHe: "סרט", nFr: "film", frT: "Hier soir, il {V} un {N} passionnant.", heT: "אתמול בערב הוא {V} {N} מרתק." },
   { v: "למכור", vT: "Passé", vFr: "a vendu", nHe: "מחשב", nFr: "ordinateur", frT: "Il {V} son vieil {N} sur internet.", heT: "הוא {V} את ה{N} הישן שלו באינטרנט." },
+  { v: "לכתוב", vT: "Présent", vFr: "écrit", nHe: "מחברת", nFr: "cahier", frT: "Il {V} une belle histoire dans son {N}.", heT: "הוא {V} סיפור יפה ב{N} שלו." },
+  { v: "לשחק", vT: "Présent", vFr: "joue", nHe: "גינה", nFr: "jardin", frT: "Il {V} au ballon dans le {N}.", heT: "הוא {V} בכדור ב{N}." },
+  { v: "לצחוק", vT: "Présent", vFr: "rit", nHe: "סרט", nFr: "film", frT: "Il {V} pendant tout le {N}.", heT: "הוא {V} במשך כל ה{N}." },
+  { v: "לבכות", vT: "Présent", vFr: "pleure", nHe: "סיפור", nFr: "histoire", frT: "Il {V} à la fin de cette {N} triste.", heT: "הוא {V} בסוף ה{N} העצוב." },
+  { v: "לשאול", vT: "Présent", vFr: "demande", nHe: "עיר", nFr: "ville", frT: "Il {V} son chemin dans la grande {N}.", heT: "הוא {V} את הדרך ב{N} הגדולה." },
+  { v: "לנוח", vT: "Présent", vFr: "se repose", nHe: "גינה", nFr: "jardin", frT: "Après une longue promenade, il {V} dans le {N}.", heT: "אחרי טיול ארוך הוא {V} ב{N}." },
+  { v: "לשטוף", vT: "Présent", vFr: "lave", nHe: "מטבח", nFr: "cuisine", frT: "Il {V} le sol de la {N}.", heT: "הוא {V} את רצפת ה{N}." },
+  { v: "להתגרש", vT: "Présent", vFr: "divorce", nHe: "משבר", nFr: "crise", frT: "Après une longue {N}, il {V} enfin.", heT: "אחרי {N} ארוך הוא סוף סוף {V}." },
+  { v: "להתמודד", vT: "Présent", vFr: "affronte", nHe: "משבר", nFr: "crise", frT: "Il {V} la {N} avec beaucoup de courage.", heT: "הוא {V} עם ה{N} בהרבה אומץ." },
+  { v: "להקיא", vT: "Passé", vFr: "a vomi", nHe: "ארוחה", nFr: "repas", frT: "Il {V} à cause du mauvais {N}.", heT: "הוא {V} בגלל ה{N} הגרועה." },
+  { v: "לגרור", vT: "Présent", vFr: "traine", nHe: "מזוודה", nFr: "valise", frT: "Il {V} sa lourde {N} dans la gare.", heT: "הוא {V} את ה{N} הכבדה בתחנה." },
+  { v: "לחתוך", vT: "Présent", vFr: "coupe", nHe: "עוגה", nFr: "gâteau", frT: "Il {V} le {N} en huit parts égales.", heT: "הוא {V} את ה{N} לשמונה חלקים שווים." },
+  { v: "לסדר", vT: "Présent", vFr: "range", nHe: "משרד", nFr: "bureau", frT: "Il {V} les papiers dans le {N}.", heT: "הוא {V} את הניירות ב{N}." },
+  { v: "לפתוח", vT: "Présent", vFr: "ouvre", nHe: "מכתב", nFr: "lettre", frT: "Il {V} la {N} avec beaucoup d'impatience.", heT: "הוא {V} את ה{N} בהרבה קוצר רוח." },
+  { v: "לזרוק", vT: "Présent", vFr: "jette", nHe: "נעליים", nFr: "chaussures", frT: "Il {V} ses vieilles {N} à la poubelle.", heT: "הוא {V} את ה{N} הישנות לפח." },
+  { v: "ללבוש", vT: "Présent", vFr: "porte", nHe: "כובע", nFr: "chapeau", frT: "Il {V} un beau {N} sous le soleil.", heT: "הוא {V} {N} יפה מתחת לשמש." },
+  { v: "לקנות", vT: "Présent", vFr: "achète", nHe: "מצלמה", nFr: "appareil photo", frT: "Il {V} un {N} cher au magasin.", heT: "הוא {V} {N} יקרה בחנות." },
+  { v: "לשתות", vT: "Présent", vFr: "boit", nHe: "רכבת", nFr: "train", frT: "Il {V} un café dans le {N} du matin.", heT: "הוא {V} קפה ב{N} של הבוקר." },
+  { v: "לישון", vT: "Présent", vFr: "dort", nHe: "רחוב", nFr: "rue", frT: "Il {V} mal à cause du bruit de la {N}.", heT: "הוא {V} רע בגלל הרעש של ה{N}." },
+  { v: "לשלוח", vT: "Présent", vFr: "envoie", nHe: "הר", nFr: "montagne", frT: "Il {V} une belle photo de la {N}.", heT: "הוא {V} תמונה יפה של ה{N}." },
+  { v: "לשיר", vT: "Présent", vFr: "chante", nHe: "גינה", nFr: "jardin", frT: "Il {V} à la fête dans le {N}.", heT: "הוא {V} במסיבה ב{N}." },
+  { v: "לפגוש", vT: "Présent", vFr: "rencontre", nHe: "כבאי", nFr: "pompier", frT: "Il {V} un vieux {N} au marché.", heT: "הוא {V} {N} זקן בשוק." },
+  { v: "לתת", vT: "Présent", vFr: "donne", nHe: "עט", nFr: "stylo", frT: "Il {V} un {N} neuf à son fils.", heT: "הוא {V} {N} חדש לבן שלו." },
+  { v: "לחכות", vT: "Présent", vFr: "attend", nHe: "ידיד", nFr: "ami", frT: "Il {V} son {N} devant le cinéma.", heT: "הוא {V} ל{N} מול הקולנוע." },
+  { v: "ללמוד", vT: "Présent", vFr: "étudie", nHe: "חומר", nFr: "matière", frT: "Il {V} une {N} difficile à l'université.", heT: "הוא {V} {N} קשה באוניברסיטה." },
+  { v: "להכין", vT: "Présent", vFr: "prépare", nHe: "ארוחה", nFr: "repas", frT: "Chaque soir, il {V} un bon {N} pour sa famille.", heT: "כל ערב הוא {V} {N} טובה למשפחה שלו." },
+  { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "עיקרון", nFr: "principe", frT: "Le professeur {V} le {N} avec un exemple.", heT: "המורה {V} את ה{N} עם דוגמה." },
+  { v: "להראות", vHe: "מראה", vT: "Présent", vFr: "montre", nHe: "אגודל", nFr: "pouce", frT: "Il {V} son {N} blessé au médecin.", heT: "הוא {V} את ה{N} הפצוע לרופא." },
+  { v: "לחתוך", vT: "Présent", vFr: "coupe", nHe: "אצבע", nFr: "doigt", frT: "Il {V} son {N} avec le couteau.", heT: "הוא {V} את ה{N} עם הסכין." },
+  { v: "לשחרר", vT: "Présent", vFr: "libère", nHe: "גינה", nFr: "jardin", frT: "Il {V} les oiseaux dans le {N}.", heT: "הוא {V} את הציפורים ב{N}." },
 ].filter((ph) => ph.vHe || verbFormHe(ph.v, ph.vT));
 
 // Pool de distracteurs verbe, par temps (construit à la demande)
@@ -1450,8 +1480,10 @@ function renderCombine() {
   const hl = (s) => `<span class="cb-hl">${s}</span>`;
   const frSent = ph.frT.replace("{V}", hl(ph.vFr)).replace("{N}", hl(ph.nFr));
   const heSent = ph.heT.replace("{V}", hl(vHe)).replace("{N}", hl(ph.nHe));
-  const original = reverse ? `<span class="he" dir="rtl">${heSent}</span>` : frSent;
-  const translation = reverse ? frSent : `<span class="he" dir="rtl">${heSent}</span>`;
+  const heRaw = ph.heT.replace("{V}", vHe).replace("{N}", ph.nHe); // pour l'audio
+  const heBlock = `<span class="he" dir="rtl">${heSent}</span> ${speakBtn(heRaw)}`;
+  const original = reverse ? heBlock : frSent;
+  const translation = reverse ? frSent : heBlock;
   const consigne = reverse
     ? "Touche la bonne traduction française de chaque mot surligné."
     : "Touche la bonne traduction en hébreu de chaque mot surligné.";
@@ -1503,7 +1535,9 @@ function renderCombine() {
         const ok = opt === correct;
         recordAnswer({ he: correct.he, key: keyPrefix + correct.he }, ok);
         state.session[ok ? "ok" : "ko"] += 1;
-        btns.forEach(({ btn: b, opt: o }) => { b.disabled = true; if (o === correct) b.classList.add("correct"); });
+        // On ne désactive PAS les boutons (sinon le 🔊 intégré cesse de
+        // fonctionner) : le drapeau « answered » bloque déjà une 2e réponse.
+        btns.forEach(({ btn: b, opt: o }) => { b.classList.add("locked"); if (o === correct) b.classList.add("correct"); });
         if (!ok) btn.classList.add("wrong");
         doneCount += 1;
         if (doneCount === 2) {
@@ -1659,7 +1693,7 @@ function renderConjAudio() {
       state.session[isCorrect ? "ok" : "ko"] += 1;
 
       buttons.forEach(({ btn: b, opt: o }) => {
-        b.disabled = true;
+        b.classList.add("locked"); // pas de disabled : garde le 🔊 cliquable
         if (o === item) b.classList.add("correct");
       });
       if (!isCorrect) btn.classList.add("wrong");
@@ -1838,7 +1872,7 @@ function renderConfusQuiz() {
       state.session[isCorrect ? "ok" : "ko"] += 1;
 
       buttons.forEach(({ btn: b, opt: o }) => {
-        b.disabled = true;
+        b.classList.add("locked"); // pas de disabled : garde le 🔊 cliquable
         if (o.he === item.he && o.fr === item.fr) b.classList.add("correct");
       });
       if (!isCorrect) btn.classList.add("wrong");
