@@ -1363,12 +1363,17 @@ function combineVerbPool(tense) {
   return _combineVerbPools[tense];
 }
 
-// Phrases retenues selon les cases « nouveaux verbes / nouveaux mots »
+// Phrases retenues selon les cases « nouveaux verbes / nouveaux mots ».
+// Quand les DEUX cases sont cochées, on prend l'union (phrases avec un
+// verbe récent OU un mot récent) et non l'intersection : cocher plus de
+// cases doit élargir la révision des nouveautés, pas la réduire à une
+// poignée de phrases.
 function combinePool() {
-  let pool = COMBINE_PHRASES;
-  if (state.combine.newV) pool = pool.filter((p) => verbIsNew(p.v));
-  if (state.combine.newN) pool = pool.filter((p) => wordIsNew(p.nHe));
-  return pool;
+  const { newV, newN } = state.combine;
+  if (newV && newN) return COMBINE_PHRASES.filter((p) => verbIsNew(p.v) || wordIsNew(p.nHe));
+  if (newV) return COMBINE_PHRASES.filter((p) => verbIsNew(p.v));
+  if (newN) return COMBINE_PHRASES.filter((p) => wordIsNew(p.nHe));
+  return COMBINE_PHRASES;
 }
 function pickCombine() {
   const list = combinePool();
