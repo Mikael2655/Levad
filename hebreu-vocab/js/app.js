@@ -893,7 +893,7 @@ function startReview(mode, scope, newOnly) {
 function renderReview() {
   const r = state.review;
 
-  const scopeLbl = r.scope === "verbes" ? "des verbes" : r.scope === "mots" ? "des mots" : "du jour";
+  const scopeLbl = r.scope === "verbes" ? "des verbes" : r.scope === "mots" ? "du vocabulaire" : "du jour";
   const dueTitle = "📅 Révision " + scopeLbl;
 
   // Rien à réviser
@@ -1300,7 +1300,7 @@ function renderVerbes() {
 
 /* ----- Onglet Vocabulaire (Flashcards / QCM / Écrire) ----- */
 function renderVocab() {
-  screen.appendChild(el("h2", "view-title", "📚 Mots"));
+  screen.appendChild(el("h2", "view-title", "📚 Vocabulaire"));
 
   const seg = el("div", "segmented");
   [
