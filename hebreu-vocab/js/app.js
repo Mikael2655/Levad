@@ -161,13 +161,22 @@ function statsKey() {
   return STATS_PREFIX + activeProfile;
 }
 function loadStats() {
-  if (!activeProfile) return { goal: 20, days: {} };
+  const def = () => ({ goals: { verbes: 20, mots: 20 }, days: {} });
+  if (!activeProfile) return def();
   try {
     const s = JSON.parse(localStorage.getItem(statsKey())) || {};
-    return { goal: s.goal || 20, days: s.days || {} };
+    const legacy = s.goal || 20; // ancien objectif unique → repris pour les deux blocs
+    const g = s.goals && typeof s.goals === "object" ? s.goals : {};
+    return { goals: { verbes: g.verbes || legacy, mots: g.mots || legacy }, days: s.days || {} };
   } catch {
-    return { goal: 20, days: {} };
+    return def();
   }
+}
+// Objectif du jour propre à chaque bloc (verbes / mots)
+function goalFor(scope) {
+  const g = stats.goals || {};
+  if (scope === "mots") return g.mots || 20;
+  return g.verbes || 20;
 }
 function saveStats() {
   if (activeProfile) localStorage.setItem(statsKey(), JSON.stringify(stats));
@@ -680,7 +689,26 @@ function updateProfileChip() {
 }
 
 /* ----- Accueil ----- */
-function homeBlock(icon, name, scope, newOnly, onToggle) {
+// Menu déroulant « objectif du jour » propre à un bloc.
+function goalSelect(scope) {
+  const sel = el("select", "goal-select");
+  [10, 15, 20, 30, 50].forEach((n) => {
+    const o = document.createElement("option");
+    o.value = String(n);
+    o.textContent = `${n} cartes aujourd'hui`;
+    if (n === goalFor(scope)) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.setAttribute("aria-label", "Objectif du jour");
+  sel.addEventListener("change", () => {
+    stats.goals[scope] = Number(sel.value);
+    saveStats();
+    render();
+  });
+  return sel;
+}
+
+function homeBlock(icon, name, scope, total, totalLabel, seen, known, newOnly, onToggle) {
   const pool = reviewCards(scope, newOnly);
   const dueCount = pool.filter((c) => isDue(progress[c.key])).length;
   const errCount = pool.filter((c) => {
@@ -688,7 +716,6 @@ function homeBlock(icon, name, scope, newOnly, onToggle) {
     return s && s.seen >= 2 && s.ko > s.ok;
   }).length;
   const streak = currentStreak();
-  const label = scope === "verbes" ? "des verbes" : "du vocabulaire";
 
   const block = el("div", "home-block");
   block.appendChild(
@@ -698,11 +725,21 @@ function homeBlock(icon, name, scope, newOnly, onToggle) {
       `<span class="hb-title">${icon} ${name}</span><span class="daily-streak">🔥 <strong>${streak}</strong> <span>j</span></span>`
     )
   );
+
+  // Trois compteurs : total / travaillés / bien connus
+  const banner = el("div", "stats-banner");
+  banner.innerHTML = `
+    <div><div class="big">${total}</div><div class="label">${totalLabel}</div></div>
+    <div><div class="big">${seen}</div><div class="label">travaillés</div></div>
+    <div><div class="big">${known}</div><div class="label">bien connus</div></div>`;
+  block.appendChild(banner);
+
+  // Deux boutons d'action
   const actions = el("div", "daily-actions");
   const btnDue = el(
     "button",
     "btn btn-primary",
-    `📅 Révision ${label}${dueCount ? ` <span class="pill">${dueCount}</span>` : ""}`
+    `📅 Révision${dueCount ? ` <span class="pill">${dueCount}</span>` : ""}`
   );
   btnDue.addEventListener("click", () => startReview("due", scope, newOnly));
   actions.appendChild(btnDue);
@@ -716,67 +753,37 @@ function homeBlock(icon, name, scope, newOnly, onToggle) {
   actions.appendChild(btnErr);
   block.appendChild(actions);
 
-  block.appendChild(checkToggle("🆕 Nouveaux ajouts", newOnly, onToggle));
+  // Bas du bloc : « Nouveaux ajouts » + menu déroulant de l'objectif
+  const bottom = el("div", "hb-bottom");
+  bottom.appendChild(checkToggle("🆕 Nouveaux ajouts", newOnly, onToggle));
+  bottom.appendChild(goalSelect(scope));
+  block.appendChild(bottom);
   return block;
 }
 
 function renderHome() {
   screen.appendChild(el("h2", "view-title home-title", `שלום ${activeProfile} !`));
 
-  // Deux blocs identiques : vocabulaire et verbes
+  // Stats verbes
+  const infItems = CONJ_ITEMS.filter((c) => c.isInf);
+  const kSeen = infItems.filter((c) => progress[c.key] && progress[c.key].seen > 0).length;
+  const kKnown = infItems.filter((c) => { const s = progress[c.key]; return s && s.box >= 3; }).length;
+  // Stats mots
+  const vSeen = VOCAB.filter((w) => progress[w.he] && progress[w.he].seen > 0).length;
+  const vKnown = VOCAB.filter((w) => { const s = progress[w.he]; return s && s.box >= 3; }).length;
+
   screen.appendChild(
-    homeBlock("📚", "Vocabulaire", "mots", state.home.vocabNew, (v) => {
-      state.home.vocabNew = v;
-      render();
-    })
-  );
-  screen.appendChild(
-    homeBlock("🔤", "Verbes", "verbes", state.home.verbNew, (v) => {
+    homeBlock("🔤", "Verbes", "verbes", infItems.length, "verbes", kSeen, kKnown, state.home.verbNew, (v) => {
       state.home.verbNew = v;
       render();
     })
   );
-
-  // Objectif du jour (cases à cocher) + point du jour
-  screen.appendChild(el("div", "section-label", "🎯 Objectif du jour"));
   screen.appendChild(
-    checkSingle(
-      "",
-      [10, 15, 20, 30, 50].map((n) => ({ val: n, text: n + " cartes" })),
-      stats.goal,
-      (v) => {
-        stats.goal = Number(v);
-        saveStats();
-        render();
-      }
-    )
+    homeBlock("📚", "Mots", "mots", VOCAB.length, "mots", vSeen, vKnown, state.home.vocabNew, (v) => {
+      state.home.vocabNew = v;
+      render();
+    })
   );
-  screen.appendChild(
-    el("p", "hint", `Aujourd'hui : ${todayCount()} / ${stats.goal} carte${stats.goal > 1 ? "s" : ""}.`)
-  );
-
-  // Totaux séparés : vocabulaire / verbes
-  const vSeen = VOCAB.filter((w) => progress[w.he] && progress[w.he].seen > 0).length;
-  const vKnown = VOCAB.filter((w) => { const s = progress[w.he]; return s && s.box >= 3; }).length;
-  const infItems = CONJ_ITEMS.filter((c) => c.isInf);
-  const kSeen = infItems.filter((c) => progress[c.key] && progress[c.key].seen > 0).length;
-  const kKnown = infItems.filter((c) => { const s = progress[c.key]; return s && s.box >= 3; }).length;
-
-  screen.appendChild(el("div", "section-label", "📊 Totaux"));
-  screen.appendChild(el("p", "hint totals-cap", "📚 Vocabulaire"));
-  const tv = el("div", "stats-banner");
-  tv.innerHTML = `
-    <div><div class="big">${VOCAB.length}</div><div class="label">mots</div></div>
-    <div><div class="big">${vSeen}</div><div class="label">travaillés</div></div>
-    <div><div class="big">${vKnown}</div><div class="label">bien connus</div></div>`;
-  screen.appendChild(tv);
-  screen.appendChild(el("p", "hint totals-cap", "🔤 Verbes"));
-  const tk = el("div", "stats-banner");
-  tk.innerHTML = `
-    <div><div class="big">${infItems.length}</div><div class="label">verbes</div></div>
-    <div><div class="big">${kSeen}</div><div class="label">travaillés</div></div>
-    <div><div class="big">${kKnown}</div><div class="label">bien connus</div></div>`;
-  screen.appendChild(tk);
 }
 
 /* Tire un nouveau mot ET un sens de question au hasard */
@@ -872,8 +879,9 @@ function startReview(mode, scope, newOnly) {
     // Les cartes dues aujourd'hui, complétées par des nouvelles jusqu'à l'objectif
     const due = shuffle(pool.filter((c) => isDue(progress[c.key])));
     const neuf = shuffle(pool.filter((c) => !progress[c.key] || progress[c.key].seen === 0));
-    queue = due.slice(0, stats.goal);
-    if (queue.length < stats.goal) queue = queue.concat(neuf.slice(0, stats.goal - queue.length));
+    const goal = goalFor(scope);
+    queue = due.slice(0, goal);
+    if (queue.length < goal) queue = queue.concat(neuf.slice(0, goal - queue.length));
   }
   // Sens tiré au sort pour chaque carte : hébreu→français ou l'inverse
   queue.forEach((c) => (c.rev = Math.random() < 0.5));
@@ -885,7 +893,7 @@ function startReview(mode, scope, newOnly) {
 function renderReview() {
   const r = state.review;
 
-  const scopeLbl = r.scope === "verbes" ? "des verbes" : r.scope === "mots" ? "du vocabulaire" : "du jour";
+  const scopeLbl = r.scope === "verbes" ? "des verbes" : r.scope === "mots" ? "des mots" : "du jour";
   const dueTitle = "📅 Révision " + scopeLbl;
 
   // Rien à réviser
@@ -992,7 +1000,7 @@ function renderReviewRecap() {
 
   const streak = currentStreak();
   screen.appendChild(
-    el("p", "hint", `🔥 Série : ${streak} jour${streak > 1 ? "s" : ""} d'affilée. Aujourd'hui : ${todayCount()} / ${stats.goal}.`)
+    el("p", "hint", `🔥 Série : ${streak} jour${streak > 1 ? "s" : ""} d'affilée. Aujourd'hui : ${todayCount()} / ${goalFor(r.scope)}.`)
   );
 
   if (r.missed.length > 0) {
@@ -1292,7 +1300,7 @@ function renderVerbes() {
 
 /* ----- Onglet Vocabulaire (Flashcards / QCM / Écrire) ----- */
 function renderVocab() {
-  screen.appendChild(el("h2", "view-title", "📚 Vocabulaire"));
+  screen.appendChild(el("h2", "view-title", "📚 Mots"));
 
   const seg = el("div", "segmented");
   [
