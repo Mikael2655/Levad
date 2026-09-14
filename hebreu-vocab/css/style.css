@@ -926,7 +926,24 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
   margin-bottom: 0.5rem;
 }
 .hb-title { font-size: 1.1rem; font-weight: 800; }
-.home-block .daily-actions { margin-bottom: 0.4rem; }
+.home-block .stats-banner { box-shadow: none; padding: 0.55rem 0.4rem; margin: 0.1rem 0 0.6rem; border: 1px solid var(--line); }
+.home-block .stats-banner .big { font-size: 1.35rem; }
+.home-block .daily-actions { margin-bottom: 0.5rem; }
+/* Bas du bloc : « Nouveaux ajouts » à gauche, objectif à droite */
+.hb-bottom { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+.hb-bottom .check-row { margin: 0; }
+.goal-select {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.3rem 1.6rem 0.3rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 0.55rem center;
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
 .totals-cap { margin: 0.6rem 0 0.2rem; font-weight: 700; color: var(--ink); }
 
 /* Sous-segments (Verbes proches : Quiz / Familles) */
