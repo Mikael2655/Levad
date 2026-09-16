@@ -189,7 +189,7 @@ const VERBES = [
   },
   {
     inf: "להיות צריך", translit: "Lihiyot tsarikh", fr: "Avoir besoin / devoir",
-    racine: "", binyan: "",
+    racine: "צרך", binyan: "פעל",
     temps: {
       "Présent": [
         { p: "masc. sing. (אני/אתה/הוא)", he: "צריך", t: "Tsarikh" },
@@ -3848,7 +3848,7 @@ const VERBES = [
     },
   },
   {
-    inf: "לאפשר", translit: "Le'afcher", fr: "Permettre / autoriser",
+    inf: "לאפשר", translit: "Le'afcher", fr: "Permettre",
     racine: "אפשר", binyan: "פיעל",
     temps: {
       "Présent": [
@@ -5404,6 +5404,66 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "ימנע", t: "Yimna" },
+      ],
+    },
+  },
+  {
+    inf: "להפריד", translit: "Leafrid", fr: "Séparer",
+    racine: "פרד", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מפריד", t: "Maprid" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הפריד", t: "Hifrid" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפריד", t: "Yafrid" },
+      ],
+    },
+  },
+  {
+    inf: "להפריע", translit: "Leafria", fr: "Déranger",
+    racine: "פרע", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מפריע", t: "Mafria" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הפריע", t: "Hifria" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפריע", t: "Yafria" },
+      ],
+    },
+  },
+  {
+    inf: "לאסור", translit: "Le'esor", fr: "Interdire",
+    racine: "אסר", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "אוסר", t: "Oser" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "אסר", t: "Asar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאסור", t: "Ye'esor" },
+      ],
+    },
+  },
+  {
+    inf: "להתיר", translit: "Leatir", fr: "Autoriser (≠ interdire)",
+    racine: "נתר", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתיר", t: "Matir" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התיר", t: "Hitir" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתיר", t: "Yatir" },
       ],
     },
   },

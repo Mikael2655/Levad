@@ -256,4 +256,19 @@ const COMBINE_PHRASES_RAW = [
   { v: "לחפש", vT: "Présent", vFr: "cherche", nHe: "רועה", nFr: "berger", frT: "Dans la montagne, il {V} un vieux {N}.", heT: "בהר הוא {V} רועה זקן." },
   { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "לקוח", nFr: "client", frT: "Le vendeur {V} le prix au {N}.", heT: "המוכר {V} את המחיר ל{N}." },
   { v: "לאכול", vT: "Présent", vFr: "mange", nHe: "חסה", nFr: "laitue", frT: "Avec le poulet, il {V} de la {N} verte et fraîche.", heT: "עם העוף הוא {V} חסה ירוקה וטרייה." },
+  // ============================================================
+  //  Ajout : phrases avec les nouveaux verbes (séparer, déranger,
+  //  interdire, autoriser) et le nouveau mot « approche » (גישה)
+  // ============================================================
+  { v: "להפריד", vT: "Présent", vFr: "sépare", nHe: "מלח", nFr: "sel", frT: "En cuisine, il {V} le {N} du sucre.", heT: "במטבח הוא {V} את ה{N} מהסוכר." },
+  { v: "להפריע", vT: "Présent", vFr: "dérange", nHe: "רעש", nFr: "bruit", frT: "Ce {N} me {V} pendant le travail.", heT: "ה{N} הזה {V} לי בזמן העבודה." },
+  { v: "להפריע", vT: "Présent", vFr: "dérange", nHe: "שכן", nFr: "voisin", frT: "Le {N} bruyant me {V} tous les soirs.", heT: "ה{N} הרעשן {V} לי כל ערב." },
+  { v: "להפריע", vT: "Présent", vFr: "dérange", nHe: "סרט", nFr: "film", frT: "Le bavardage {V} les gens pendant le {N}.", heT: "הפטפוט {V} לאנשים במהלך ה{N}." },
+  { v: "לאסור", vT: "Présent", vFr: "interdit", nHe: "מלח", nFr: "sel", frT: "Le médecin {V} le {N} au malade.", heT: "הרופא {V} את ה{N} על החולה." },
+  { v: "לאסור", vT: "Présent", vFr: "interdit", nHe: "עוגה", nFr: "gâteau", frT: "Le père {V} le {N} avant le dîner.", heT: "האבא {V} את ה{N} לפני ארוחת הערב." },
+  { v: "לאסור", vT: "Présent", vFr: "interdit", nHe: "משחק", nFr: "jeu", frT: "Le professeur {V} le {N} vidéo en classe.", heT: "המורה {V} את ה{N} בכיתה." },
+  { v: "להתיר", vT: "Présent", vFr: "autorise", nHe: "עוגה", nFr: "gâteau", frT: "Le dimanche, il {V} un petit {N}.", heT: "ביום ראשון הוא {V} עוגה קטנה." },
+  { v: "להתיר", vT: "Présent", vFr: "autorise", nHe: "משחק", nFr: "jeu", frT: "Après les devoirs, il {V} le {N} vidéo.", heT: "אחרי שיעורי הבית הוא {V} את ה{N}." },
+  { v: "להתיר", vT: "Présent", vFr: "autorise", nHe: "סרט", nFr: "film", frT: "Le vendredi soir, il {V} un {N} aux enfants.", heT: "בערב שישי הוא {V} סרט לילדים." },
+  { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "גישה", nFr: "approche", frT: "Il {V} sa nouvelle {N} au patron.", heT: "הוא {V} את ה{N} החדשה שלו למנהל." },
 ];
