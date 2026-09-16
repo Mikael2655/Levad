@@ -271,4 +271,6 @@ const COMBINE_PHRASES_RAW = [
   { v: "להתיר", vT: "Présent", vFr: "autorise", nHe: "משחק", nFr: "jeu", frT: "Après les devoirs, il {V} le {N} vidéo.", heT: "אחרי שיעורי הבית הוא {V} את ה{N}." },
   { v: "להתיר", vT: "Présent", vFr: "autorise", nHe: "סרט", nFr: "film", frT: "Le vendredi soir, il {V} un {N} aux enfants.", heT: "בערב שישי הוא {V} סרט לילדים." },
   { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "גישה", nFr: "approche", frT: "Il {V} sa nouvelle {N} au patron.", heT: "הוא {V} את ה{N} החדשה שלו למנהל." },
+  { v: "לראות", vT: "Présent", vFr: "voit", nHe: "בתשלום", nFr: "payant", frT: "Il {V} que le concert est {N}.", heT: "הוא {V} שההופעה {N}." },
+  { v: "לחפש", vT: "Présent", vFr: "cherche", nHe: "בתשלום", nFr: "payant", frT: "Au parking {N}, il {V} de la monnaie.", heT: "בחניון {N} הוא {V} כסף קטן." },
 ];
