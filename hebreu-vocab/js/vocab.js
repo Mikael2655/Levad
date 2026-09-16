@@ -10,7 +10,7 @@ const VOCAB = [
   { he: "יומיים", translit: "Yomaim", fr: "2 jours", cat: "Général" },
   { he: "חודשיים", translit: "Khodchaim", fr: "2 mois", cat: "Général" },
   { he: "שבועיים", translit: "Chvouaim", fr: "2 semaines", cat: "Général" },
-  { he: "בזכות", translit: "Bizkhout", fr: "à cause / grâce à", cat: "Général" },
+  { he: "בזכות", translit: "Bizkhout", fr: "Grâce à", cat: "Général" },
   { he: "בגלל", translit: "Biglal", fr: "à cause / parce", cat: "Général" },
   { he: "ימינה", translit: "Yamina", fr: "à droite", cat: "Général" },
   { he: "חוסל", translit: "Khousal", fr: "A été éliminé", cat: "Général" },
@@ -1364,4 +1364,6 @@ const VOCAB = [
   { he: "ביטוח", translit: "Bitouakh", fr: "Assurance", cat: "Général" },
   { he: "מר בחור", translit: "Mar bakhour", fr: "Monsieur", cat: "Général" },
   { he: "אמור להיות", translit: "Amour lehiyot", fr: "Censé être", cat: "Général" },
+  { he: "גישה", translit: "Gicha", fr: "Approche (une)", cat: "Général", note: "Sleng : ani begicha che… = je pars du principe que" },
+  { he: "בתשלום", translit: "Betachloum", fr: "Payant", cat: "Général" },
 ];
