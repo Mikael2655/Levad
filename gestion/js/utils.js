@@ -42,6 +42,23 @@ function monthsBetween(isoA, isoB) {
 function addDays(iso, n) {
   const d = parseISO(iso); d.setDate(d.getDate() + n); return toISO(d);
 }
+function daysBetween(isoA, isoB) {
+  return Math.round((parseISO(isoB) - parseISO(isoA)) / 86400000) + 1; // inclusif des deux bornes
+}
+/* Dernier jour (inclus) de la période calendaire (mois ou trimestre) contenant la date donnée. */
+function periodEndForDate(iso, freqMonths) {
+  const d = parseISO(iso);
+  if (freqMonths === 3) {
+    const qStartMonth = Math.floor(d.getMonth() / 3) * 3;
+    return toISO(new Date(d.getFullYear(), qStartMonth + 3, 0));
+  }
+  return endOfMonth(iso);
+}
+/* Premier jour de la période calendaire (mois ou trimestre) se terminant à la date donnée. */
+function periodStartForEnd(iso, freqMonths) {
+  const d = parseISO(iso);
+  return toISO(new Date(d.getFullYear(), d.getMonth() - freqMonths + 1, 1));
+}
 function fmtDate(iso) {
   if (!iso) return "";
   const d = parseISO(iso);

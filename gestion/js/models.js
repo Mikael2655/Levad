@@ -40,9 +40,14 @@ function defaultContract() {
     machineIds: [],
     lines: [],                       // voir defaultLine()
     nextBillingDate: todayISO(),     // prochaine échéance (avance à chaque facturation)
-    lastBilledCounters: {},          // { [lineId]: dernier relevé facturé }
-    lastBilledPeriodEnd: "",         // fin de la dernière période dont le dépassement a été facturé
+    lastBilledCounters: {},          // { [machineId:lineId]: dernier relevé facturé }
+    lastBilledPeriodEnd: "",         // fin (incluse) de la dernière période facturée ; "" = aucune facture encore émise
     terminatedAt: "", terminationInvoiceId: "", terminationReason: "",
+    replacesContractId: "", replacedByContractId: "",
+    indexationMode: "default",       // "default" (taux société) | "none" (jamais) | "custom"
+    indexationRate: 0,               // % utilisé seulement si indexationMode = "custom"
+    lastIndexationAt: "",            // dernière date anniversaire déjà appliquée ("" = jamais, part de startDate)
+    indexationHistory: [],           // [{date, rate}]
     createdAt: todayISO(),
   };
 }

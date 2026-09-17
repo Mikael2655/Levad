@@ -54,11 +54,14 @@ const BILLING_FREQUENCIES = { monthly: "Mensuelle", quarterly: "Trimestrielle" }
 const FREQ_MONTHS = { monthly: 1, quarterly: 3 };
 
 /* Statuts contrat / facture / machine. */
-const CONTRACT_STATUS = { active: "En cours", terminated: "Résilié" };
+const CONTRACT_STATUS = { active: "En cours", terminated: "Résilié", replaced: "Remplacé (renouvelé)" };
 const INVOICE_STATUS = {
   draft: "Brouillon", sent: "Envoyée", chorus: "Déposée sur Chorus Pro",
   unpaid: "Non soldée", paid: "Soldée",
 };
+const INDEXATION_MODES = { default: "Taux par défaut de la société", none: "Jamais (prix fixe)", custom: "Taux personnalisé" };
+const INVOICE_TYPE_LABELS = { period: "Période", termination: "Résiliation", avoir: "Avoir (renouvellement)" };
+function invoiceTypeLabel(t) { return INVOICE_TYPE_LABELS[t] || t; }
 const MACHINE_ACQUISITION = {
   achat_client: "Achat client",
   location_interne: "Location Levad",
@@ -68,6 +71,7 @@ const MACHINE_EXIT = {
   laisse_client: "Laissée chez le client (achetée)",
   detruite: "Récupérée pour destruction",
   revendue: "Récupérée pour revente",
+  transfert: "Transférée (renouvellement de contrat)",
 };
 
 const VAT_RATE_DEFAULT = 20;
@@ -81,6 +85,7 @@ function DEFAULT_COMPANY_SETTINGS() {
     ics: "",   // Identifiant Créancier SEPA (ICS), fourni par votre banque
     iban: "", bic: "",
     invoicePrefix: "F",
+    defaultIndexationRate: 0,   // % d'augmentation annuelle appliqué par défaut à tous les contrats (anniversaire du contrat)
   };
 }
 

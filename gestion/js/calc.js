@@ -1,19 +1,32 @@
 /* ============================================================
    Moteur de facturation.
    ------------------------------------------------------------
-   Principe : chaque contrat porte une échéance `nextBillingDate`.
-   À chaque passage de facturation on facture, À ÉCHOIR, la période
-   qui commence à `nextBillingDate` (forfaits fixes + engagement de
-   volume), et on solde, À ÉCHU, le dépassement de la période qui
-   vient de s'achever (`lastBilledPeriodEnd` → `nextBillingDate`),
-   à partir des relevés de compteurs saisis entre-temps.
-   Après facturation, `nextBillingDate` avance d'1 ou 3 mois et
-   `lastBilledPeriodEnd` prend la valeur de l'ancienne échéance.
+   Les périodes sont calées sur le calendrier (mois civil, ou
+   trimestre civil Jan-Mar/Avr-Juin/Juil-Sep/Oct-Déc), pas sur la
+   date anniversaire du contrat. `contract.nextBillingDate` est le
+   premier jour de la période à échoir ; `contract.lastBilledPeriodEnd`
+   est le dernier jour (inclus) déjà facturé — "" tant qu'aucune
+   facture n'a encore été émise.
 
-   Règle de relevé : entre deux facturations, on retient la valeur
-   la plus élevée (= la plus récente, la saisie étant bloquée en
-   dessous du relevé précédent) et on soustrait le dernier compteur
-   déjà facturé pour obtenir la consommation de la période.
+   Premshe facture : si l'installation (`startDate`) ne tombe pas
+   pile au début d'une période calendaire, la première facturation
+   combine un PRORATA de la période en cours (du jour d'installation
+   à la fin de la période) + la période civile complète suivante,
+   en une seule facture, À ÉCHOIR.
+
+   Dépassement compteur : `lastBilledCounters` retient, par machine et
+   par ligne, le dernier relevé déjà facturé. À chaque facturation, on
+   reprend le relevé le plus haut disponible (= le plus récent, la
+   saisie étant bloquée en dessous du relevé précédent) et on
+   soustrait ce compteur déjà facturé pour obtenir la consommation à
+   solder — inutile de rejouer les dates de période, la valeur du
+   compteur fait foi.
+
+   Indexation annuelle : à la date anniversaire du contrat (mois/jour
+   de `startDate`), les lignes fixes et les prix de dépassement sont
+   augmentés du taux effectif (par défaut celui de la société, sauf
+   contrat en taux personnalisé ou exclu). Appliquée automatiquement
+   juste avant de facturer un contrat.
    ============================================================ */
 
 function periodLabel(contract, periodStartISO) {
@@ -32,9 +45,10 @@ function contractsDueForRun(targetDate) {
 
 function machineLineKey(machineId, lineId) { return `${machineId}:${lineId}`; }
 
-/* Relevé "utile" d'une machine pour une ligne compteur, entre deux dates
-   (borne basse exclue, borne haute incluse) : la valeur la plus haute
-   trouvée (= la plus récente, par construction monotone). */
+/* Relevé "utile" d'une machine pour une ligne compteur, à une date donnée
+   (borne haute incluse) : la valeur la plus haute trouvée (= la plus
+   récente, par construction monotone). Pas de borne basse nécessaire :
+   `lastBilledCounters` sert déjà de référence "déjà facturé". */
 function bestReadingInRange(machineId, counterType, fromISOExclusive, toISOInclusive) {
   const rows = Store.meterReadings.filter((r) => r.machineId === machineId
     && r[counterType] != null
@@ -44,50 +58,147 @@ function bestReadingInRange(machineId, counterType, fromISOExclusive, toISOInclu
   return rows.reduce((best, r) => (best == null || r[counterType] > best ? r[counterType] : best), null);
 }
 
-/* Calcule (sans rien enregistrer) le détail de facturation d'un contrat
-   pour un passage de facturation à `targetDate`. */
-function previewContractInvoice(contract, targetDate) {
-  const freq = FREQ_MONTHS[contract.billingFrequency];
-  const periodStart = contract.nextBillingDate;
-  const periodEnd = addMonths(periodStart, freq);
-  const prevPeriodEnd = contract.lastBilledPeriodEnd || contract.startDate;
-
+/* Lignes de dépassement non encore facturées, à une date donnée, pour
+   toutes les lignes "compteur" du contrat (comparaison relevé le plus
+   haut disponible vs dernier compteur déjà facturé). */
+function computeOverageLines(contract, uptoDate) {
   const lines = [];
-  const missingMeters = [];
-
-  contract.lines.filter((l) => l.type === "fixed").forEach((l) => {
-    lines.push(invoiceLine(`${l.label} — ${periodLabel(contract, periodStart)} (à échoir)`, 1, l.amountHT, l.vatRate, { kind: "fixed", lineRef: l.id }));
-  });
-
+  const missing = [];
   contract.lines.filter((l) => l.type === "metered").forEach((l) => {
-    const machines = contract.machineIds.length ? contract.machineIds : [];
     let consumption = 0;
-    machines.forEach((mid) => {
+    let anyMachine = false;
+    (contract.machineIds || []).forEach((mid) => {
+      anyMachine = true;
       const key = machineLineKey(mid, l.id);
       const baseline = contract.lastBilledCounters[key] || 0;
-      const val = bestReadingInRange(mid, l.counterType, prevPeriodEnd, targetDate);
-      if (val == null) { missingMeters.push({ machineId: mid, counterType: l.counterType, line: l.label }); return; }
+      const val = bestReadingInRange(mid, l.counterType, null, uptoDate);
+      if (val == null) { missing.push({ machineId: mid, counterType: l.counterType, line: l.label }); return; }
       consumption += Math.max(0, val - baseline);
     });
+    if (!anyMachine) return;
     const overageQty = round2(Math.max(0, consumption - (l.includedQty || 0)));
     if (overageQty > 0) {
-      lines.push(invoiceLine(`${l.label} — ${periodLabel(contract, prevPeriodEnd)} (${overageQty} unités × ${l.overageUnitPrice} € HT, à échu)`,
+      lines.push(invoiceLine(`${l.label} — dépassement (${overageQty} unités × ${l.overageUnitPrice} € HT, à échu)`,
         overageQty, l.overageUnitPrice, l.vatRate, { kind: "overage", lineRef: l.id }));
     }
   });
-
-  const totals = sumInvoiceTotals(lines);
-  return { periodStart, periodEnd, prevPeriodEnd, lines, missingMeters, ...totals };
+  return { lines, missing };
 }
 
-/* Génère et enregistre la facture, fait avancer l'échéance du contrat
-   et les compteurs déjà facturés. */
+/* Fait avancer les compteurs "déjà facturés" (baseline) au relevé le
+   plus haut disponible à `uptoDate`, pour toutes les lignes compteur. */
+function advanceOverageBaselines(contract, uptoDate) {
+  contract.lines.filter((l) => l.type === "metered").forEach((l) => {
+    (contract.machineIds || []).forEach((mid) => {
+      const val = bestReadingInRange(mid, l.counterType, null, uptoDate);
+      if (val != null) contract.lastBilledCounters[machineLineKey(mid, l.id)] = val;
+    });
+  });
+}
+
+/* --- Indexation annuelle (date anniversaire du contrat) --- */
+function effectiveIndexationRate(contract, companySettings) {
+  if (contract.indexationMode === "none") return 0;
+  if (contract.indexationMode === "custom") return Number(contract.indexationRate) || 0;
+  return Number((companySettings || Store.companySettings()).defaultIndexationRate) || 0;
+}
+/* Nombre d'anniversaires en attente d'application à `uptoDate`, sans rien modifier. */
+function pendingIndexationCount(contract, uptoDate) {
+  let from = contract.lastIndexationAt || contract.startDate;
+  let n = 0;
+  while (addMonths(from, 12) <= uptoDate) { from = addMonths(from, 12); n++; if (n > 25) break; }
+  return n;
+}
+/* Applique (et enregistre sur `contract`) les augmentations dues jusqu'à `uptoDate`. */
+function applyPendingIndexation(contract, uptoDate) {
+  const companySettings = Store.companySettings();
+  contract.lastIndexationAt = contract.lastIndexationAt || contract.startDate;
+  contract.indexationHistory = contract.indexationHistory || [];
+  let applied = 0;
+  while (addMonths(contract.lastIndexationAt, 12) <= uptoDate) {
+    contract.lastIndexationAt = addMonths(contract.lastIndexationAt, 12);
+    const rate = effectiveIndexationRate(contract, companySettings);
+    if (rate) {
+      contract.lines.forEach((l) => {
+        if (l.type === "fixed") l.amountHT = round2(l.amountHT * (1 + rate / 100));
+        else if (l.type === "metered") l.overageUnitPrice = Math.round(l.overageUnitPrice * (1 + rate / 100) * 1000) / 1000;
+      });
+      contract.indexationHistory.push({ date: contract.lastIndexationAt, rate });
+    }
+    applied++;
+    if (applied > 25) break;
+  }
+  return applied;
+}
+
+/* Calcule (sans rien enregistrer) le détail de facturation d'un contrat
+   pour un passage de facturation à `targetDate`. Le contrat passé en
+   argument doit déjà porter les prix à jour (voir applyPendingIndexation) :
+   utilisez un clone pour un simple aperçu, l'objet réel pour générer. */
+function previewContractInvoice(contract, targetDate) {
+  const freq = FREQ_MONTHS[contract.billingFrequency];
+  const isFirst = !contract.lastBilledPeriodEnd;
+  const lines = [];
+  let periodStart, periodEnd;
+
+  if (isFirst) {
+    const stubEnd = periodEndForDate(contract.startDate, freq);
+    const stubPeriodStart = periodStartForEnd(stubEnd, freq);
+    if (contract.startDate === stubPeriodStart) {
+      periodStart = contract.startDate;
+      periodEnd = stubEnd;
+      contract.lines.filter((l) => l.type === "fixed").forEach((l) => {
+        lines.push(invoiceLine(`${l.label} — ${periodLabel(contract, periodStart)} (à échoir)`, 1, l.amountHT, l.vatRate, { kind: "fixed", lineRef: l.id }));
+      });
+    } else {
+      const stubDays = daysBetween(contract.startDate, stubEnd);
+      const totalDays = daysBetween(stubPeriodStart, stubEnd);
+      contract.lines.filter((l) => l.type === "fixed").forEach((l) => {
+        const prorata = round2(l.amountHT * stubDays / totalDays);
+        lines.push(invoiceLine(`${l.label} — prorata du ${fmtDate(contract.startDate)} au ${fmtDate(stubEnd)} (${stubDays}/${totalDays}j, à échoir)`, 1, prorata, l.vatRate, { kind: "fixed", lineRef: l.id }));
+      });
+      const fullStart = addDays(stubEnd, 1);
+      const fullEnd = periodEndForDate(fullStart, freq);
+      contract.lines.filter((l) => l.type === "fixed").forEach((l) => {
+        lines.push(invoiceLine(`${l.label} — ${periodLabel(contract, fullStart)} (à échoir)`, 1, l.amountHT, l.vatRate, { kind: "fixed", lineRef: l.id }));
+      });
+      periodStart = contract.startDate;
+      periodEnd = fullEnd;
+    }
+  } else {
+    periodStart = contract.nextBillingDate;
+    periodEnd = periodEndForDate(periodStart, freq);
+    contract.lines.filter((l) => l.type === "fixed").forEach((l) => {
+      lines.push(invoiceLine(`${l.label} — ${periodLabel(contract, periodStart)} (à échoir)`, 1, l.amountHT, l.vatRate, { kind: "fixed", lineRef: l.id }));
+    });
+  }
+
+  const { lines: overageLines, missing } = computeOverageLines(contract, targetDate);
+  lines.push(...overageLines);
+
+  const totals = sumInvoiceTotals(lines);
+  return { periodStart, periodEnd, lines, missingMeters: missing, ...totals };
+}
+
+/* Aperçu affichable (écran Facturation) : applique l'indexation sur un
+   clone pour ne rien modifier, et signale si une augmentation est due. */
+function previewContractInvoiceForDisplay(contract, targetDate) {
+  const c = clone(contract);
+  const indexationDue = pendingIndexationCount(contract, targetDate);
+  if (indexationDue) applyPendingIndexation(c, targetDate);
+  return { ...previewContractInvoice(c, targetDate), indexationDue };
+}
+
+/* Génère et enregistre la facture, applique l'indexation due, fait
+   avancer l'échéance du contrat et les compteurs déjà facturés. */
 async function generateContractInvoice(contract, targetDate, actingUserId) {
+  applyPendingIndexation(contract, targetDate);
   const preview = previewContractInvoice(contract, targetDate);
   const number = await Store.nextSeq("invoiceNumber");
+  const company = Store.companySettings();
   const inv = defaultInvoice();
   Object.assign(inv, {
-    number: `F${new Date(targetDate).getFullYear()}-${String(number).padStart(5, "0")}`,
+    number: `${company.invoicePrefix || "F"}${new Date(targetDate).getFullYear()}-${String(number).padStart(5, "0")}`,
     clientId: contract.clientId, contractId: contract.id, type: "period",
     date: targetDate, dueDate: targetDate,
     periodStart: preview.periodStart, periodEnd: preview.periodEnd,
@@ -96,15 +207,9 @@ async function generateContractInvoice(contract, targetDate, actingUserId) {
   });
   await Store.put("invoices", inv);
 
-  const freq = FREQ_MONTHS[contract.billingFrequency];
-  contract.lines.filter((l) => l.type === "metered").forEach((l) => {
-    (contract.machineIds || []).forEach((mid) => {
-      const val = bestReadingInRange(mid, l.counterType, preview.prevPeriodEnd, targetDate);
-      if (val != null) contract.lastBilledCounters[machineLineKey(mid, l.id)] = val;
-    });
-  });
-  contract.lastBilledPeriodEnd = preview.periodStart;
-  contract.nextBillingDate = addMonths(preview.periodStart, freq);
+  advanceOverageBaselines(contract, targetDate);
+  contract.lastBilledPeriodEnd = preview.periodEnd;
+  contract.nextBillingDate = addDays(preview.periodEnd, 1);
   await Store.put("contracts", contract);
   return inv;
 }
@@ -151,12 +256,13 @@ async function terminateContract(contract, terminationDate, reason, invoiceIt) {
   if (invoiceIt) {
     const calc = computeTerminationInvoice(contract, terminationDate);
     const number = await Store.nextSeq("invoiceNumber");
+    const company = Store.companySettings();
     const inv = defaultInvoice();
     const lines = [];
     if (calc.fixedPart > 0) lines.push(invoiceLine(`Résiliation — solde des forfaits (${calc.remainingQuarters} trimestre(s) restant(s) × ${calc.quarterlyPackage} € HT)`, calc.remainingQuarters, calc.quarterlyPackage, VAT_RATE_DEFAULT, { kind: "termination" }));
     if (calc.variablePart > 0) lines.push(invoiceLine(`Résiliation — moyenne des dépassements (${calc.avgOverageQuarterly} € HT/trim. × ${calc.remainingQuarters})`, calc.remainingQuarters, calc.avgOverageQuarterly, VAT_RATE_DEFAULT, { kind: "termination" }));
     Object.assign(inv, {
-      number: `F${new Date(terminationDate).getFullYear()}-${String(number).padStart(5, "0")}`,
+      number: `${company.invoicePrefix || "F"}${new Date(terminationDate).getFullYear()}-${String(number).padStart(5, "0")}`,
       clientId: contract.clientId, contractId: contract.id, type: "termination",
       date: terminationDate, dueDate: terminationDate,
       periodStart: contract.lastBilledPeriodEnd || contract.startDate, periodEnd: terminationDate,
@@ -171,6 +277,74 @@ async function terminateContract(contract, terminationDate, reason, invoiceIt) {
   contract.terminationInvoiceId = invoiceId;
   await Store.put("contracts", contract);
   return invoiceId;
+}
+
+/* ------------------------------------------------------------
+   Renouvellement / remplacement de contrat : on arrête le contrat
+   existant à la date de bascule, on établit un avoir au prorata des
+   jours non consommés de la dernière facture déjà émise (partie
+   fixe), et on facture en plus les éventuelles pages/unités
+   consommées et pas encore soldées (relevés à jour). Contrairement à
+   la résiliation, pas de pénalité : c'est un règlement de compte au
+   réel, le client reste chez Levad avec un nouveau contrat.
+   ------------------------------------------------------------ */
+function computeRenewalSettlement(contract, cutoverDate) {
+  const creditLines = [];
+  let referenceInvoice = null;
+  let unusedDays = 0, totalDays = 0;
+
+  if (contract.lastBilledPeriodEnd && contract.lastBilledPeriodEnd > cutoverDate) {
+    referenceInvoice = Store.invoices.find((i) => i.contractId === contract.id && i.type === "period" && i.periodEnd === contract.lastBilledPeriodEnd);
+    if (referenceInvoice) {
+      totalDays = daysBetween(referenceInvoice.periodStart, referenceInvoice.periodEnd);
+      unusedDays = daysBetween(addDays(cutoverDate, 1), referenceInvoice.periodEnd);
+      referenceInvoice.lines.filter((l) => l.kind === "fixed").forEach((l) => {
+        const credit = round2(-l.amountHT * unusedDays / totalDays);
+        creditLines.push(invoiceLine(`Avoir — ${l.label} (prorata ${unusedDays}/${totalDays}j non consommés, facture ${referenceInvoice.number})`, 1, credit, l.vatRate, { kind: "renewal-credit" }));
+      });
+    }
+  }
+
+  const { lines: overageLines, missing } = computeOverageLines(contract, cutoverDate);
+
+  const allLines = [...creditLines, ...overageLines];
+  const totals = sumInvoiceTotals(allLines);
+  return { referenceInvoice, unusedDays, totalDays, creditLines, overageLines, missingMeters: missing, lines: allLines, ...totals };
+}
+
+/* Termine le contrat existant à `cutoverDate`, émet l'avoir/complément
+   s'il y a lieu, libère ses machines (transfert) et renvoie
+   { avoirInvoiceId, oldContract } pour enchaîner sur le nouveau contrat. */
+async function renewContract(contract, cutoverDate) {
+  const settlement = computeRenewalSettlement(contract, cutoverDate);
+  let avoirInvoiceId = "";
+  if (settlement.lines.length) {
+    const number = await Store.nextSeq("invoiceNumber");
+    const company = Store.companySettings();
+    const inv = defaultInvoice();
+    Object.assign(inv, {
+      number: `${company.invoicePrefix || "F"}${new Date(cutoverDate).getFullYear()}-${String(number).padStart(5, "0")}`,
+      clientId: contract.clientId, contractId: contract.id, type: "avoir",
+      date: cutoverDate, dueDate: cutoverDate,
+      periodStart: contract.lastBilledPeriodEnd || contract.startDate, periodEnd: cutoverDate,
+      lines: settlement.lines, totalHT: settlement.totalHT, totalVAT: settlement.totalVAT, totalTTC: settlement.totalTTC,
+      status: "draft", createdAt: todayISO(),
+    });
+    await Store.put("invoices", inv);
+    avoirInvoiceId = inv.id;
+  }
+
+  for (const mid of contract.machineIds || []) {
+    const m = Store.machines.find((x) => x.id === mid);
+    if (m) await detachMachine(m, cutoverDate, "transfert");
+  }
+  contract.machineIds = [];
+  contract.status = "replaced";
+  contract.terminatedAt = cutoverDate;
+  contract.terminationReason = "Remplacé par un nouveau contrat";
+  contract.terminationInvoiceId = avoirInvoiceId;
+  await Store.put("contracts", contract);
+  return { avoirInvoiceId, missingMeters: settlement.missingMeters };
 }
 
 /* ------------------------------------------------------------

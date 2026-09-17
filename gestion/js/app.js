@@ -348,7 +348,7 @@ function viewClient(user, clientId) {
       <h2>Factures</h2>
       <table><thead><tr><th>Numéro</th><th>Date</th><th>Type</th><th class="num">Total TTC</th><th>Statut</th><th></th></tr></thead>
       <tbody>${invoices.map((i) => `<tr class="clickable" onclick="setView('invoice',{invoiceId:'${i.id}'})">
-        <td>${esc(i.number)}</td><td>${fmtDate(i.date)}</td><td>${i.type === "termination" ? "Résiliation" : "Période"}</td>
+        <td>${esc(i.number)}</td><td>${fmtDate(i.date)}</td><td>${invoiceTypeLabel(i.type)}</td>
         <td class="num">${fmtMoney(i.totalTTC)}</td><td><span class="badge ${i.status}">${INVOICE_STATUS[i.status]}</span></td><td>→</td>
       </tr>`).join("") || `<tr><td colspan="6" class="muted">Aucune facture.</td></tr>`}</tbody></table>
     </div>`;
@@ -357,9 +357,10 @@ function viewClient(user, clientId) {
 /* ============================================================
    Contrat — création / édition / détail
    ============================================================ */
-function openContractModal(contractId, clientId) {
+function openContractModal(contractId, clientId, prefill) {
   const k = contractId ? clone(Store.contracts.find((x) => x.id === contractId)) : defaultContract();
   if (clientId) k.clientId = clientId;
+  if (!contractId && prefill) { Object.assign(k, prefill); k.nextBillingDate = k.startDate; }
   draft = k;
   openModal(contractId ? "Modifier le contrat" : "Nouveau contrat", contractModalBody(k), `
     <button class="btn" onclick="closeModal()">Annuler</button>
@@ -381,6 +382,12 @@ function contractModalBody(k) {
           ${Object.entries(BILLING_FREQUENCIES).map(([v, l]) => `<option value="${v}" ${k.billingFrequency === v ? "selected" : ""}>${l}</option>`).join("")}
         </select>
       </label>
+      <label class="fld"><span>Indexation annuelle (anniversaire du contrat)</span>
+        <select onchange="draft.indexationMode=this.value;reRenderIndexationRate()">
+          ${Object.entries(INDEXATION_MODES).map(([v, l]) => `<option value="${v}" ${k.indexationMode === v ? "selected" : ""}>${l}</option>`).join("")}
+        </select>
+      </label>
+      <div id="indexation-rate-fld">${indexationRateFieldHtml(k)}</div>
     </div>
     <h3>Lignes de facturation</h3>
     <div id="lines-editor">${linesEditorHtml(k.lines)}</div>
@@ -391,6 +398,11 @@ function contractModalBody(k) {
     </div>`;
 }
 function reRenderLines() { document.getElementById("lines-editor").innerHTML = linesEditorHtml(draft.lines); }
+function indexationRateFieldHtml(k) {
+  if (k.indexationMode !== "custom") return "";
+  return `<label class="fld"><span>Taux personnalisé (% / an)</span><input type="number" step="0.1" value="${k.indexationRate}" oninput="draft.indexationRate=Number(this.value)" /></label>`;
+}
+function reRenderIndexationRate() { document.getElementById("indexation-rate-fld").innerHTML = indexationRateFieldHtml(draft); }
 function linesEditorHtml(lines) {
   return `<div class="lines-editor">` + lines.map((l, i) => {
     if (l.type === "fixed") {
@@ -421,6 +433,10 @@ async function saveContractDraft() {
   const isNew = !Store.contracts.some((x) => x.id === draft.id);
   if (isNew) { draft.createdAt = todayISO(); draft.nextBillingDate = draft.startDate; draft.lastBilledCounters = {}; }
   await Store.put("contracts", draft);
+  if (isNew && draft.replacesContractId) {
+    const old = Store.contracts.find((c) => c.id === draft.replacesContractId);
+    if (old) { old.replacedByContractId = draft.id; await Store.put("contracts", old); }
+  }
   const id = draft.id;
   closeModal(); setView("contract", { contractId: id });
 }
@@ -442,6 +458,7 @@ function viewContract(user, contractId) {
         <div class="row"><button class="icon-btn" onclick="setView('client',{clientId:'${k.clientId}'})">←</button>
           <h2 style="margin:0">${esc(k.label)} <span class="badge ${k.status}">${CONTRACT_STATUS[k.status]}</span></h2></div>
         ${editable && k.status === "active" ? `<div class="row"><button class="btn" onclick="openContractModal('${k.id}')">Modifier</button>
+          <button class="btn" onclick="openRenewModal('${k.id}')">Renouveler / remplacer</button>
           <button class="btn danger" onclick="openTerminateModal('${k.id}')">Résilier</button></div>` : ""}
       </div>
       <div class="grid">
@@ -451,6 +468,9 @@ function viewContract(user, contractId) {
         <div><span class="muted small">Durée / échéance</span><br>${k.durationMonths} mois (fin ${fmtDate(endDate)})</div>
         <div><span class="muted small">Fréquence</span><br>${BILLING_FREQUENCIES[k.billingFrequency]}</div>
         <div><span class="muted small">Prochaine facturation</span><br>${k.status === "active" ? fmtDate(k.nextBillingDate) : "—"}</div>
+        <div><span class="muted small">Indexation</span><br>${esc(INDEXATION_MODES[k.indexationMode] || k.indexationMode)}${k.indexationMode === "custom" ? ` (${k.indexationRate}%/an)` : ""}${k.lastIndexationAt ? ` — dernière application ${fmtDate(k.lastIndexationAt)}` : ""}</div>
+        ${k.replacesContractId ? `<div><span class="muted small">Remplace</span><br><a href="#" onclick="setView('contract',{contractId:'${k.replacesContractId}'});return false">contrat précédent</a></div>` : ""}
+        ${k.replacedByContractId ? `<div><span class="muted small">Remplacé par</span><br><a href="#" onclick="setView('contract',{contractId:'${k.replacedByContractId}'});return false">nouveau contrat</a></div>` : ""}
       </div>
       <h3>Lignes</h3>
       <table><thead><tr><th>Libellé</th><th>Type</th><th class="num">Montant / inclus</th><th class="num">Dépass.</th></tr></thead>
@@ -465,8 +485,8 @@ function viewContract(user, contractId) {
         <td>${editable && k.status === "active" ? `<button class="btn small danger" onclick="openDetachModal('${m.id}')">Détacher</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="3" class="muted">Aucune machine liée.</td></tr>`}</tbody></table>
       ${editable && k.status === "active" ? `<button class="btn small" onclick="openAttachModal('${k.id}')">+ Lier une machine</button>` : ""}
 
-      ${k.status === "terminated" ? `<p class="small muted" style="margin-top:10px">Résilié le ${fmtDate(k.terminatedAt)}${k.terminationReason ? " — " + esc(k.terminationReason) : ""}
-        ${k.terminationInvoiceId ? ` — <a href="#" onclick="setView('invoice',{invoiceId:'${k.terminationInvoiceId}'});return false">facture de résiliation</a>` : ""}</p>` : ""}
+      ${k.status === "terminated" || k.status === "replaced" ? `<p class="small muted" style="margin-top:10px">${k.status === "replaced" ? "Remplacé" : "Résilié"} le ${fmtDate(k.terminatedAt)}${k.terminationReason ? " — " + esc(k.terminationReason) : ""}
+        ${k.terminationInvoiceId ? ` — <a href="#" onclick="setView('invoice',{invoiceId:'${k.terminationInvoiceId}'});return false">${k.status === "replaced" ? "avoir" : "facture de résiliation"}</a>` : ""}</p>` : ""}
     </div>
     <div class="card">
       <h2>Factures du contrat</h2>
@@ -553,6 +573,47 @@ function updateTerminatePreview(contractId) {
   const k = Store.contracts.find((x) => x.id === contractId);
   const date = document.getElementById("term-date").value;
   document.getElementById("term-preview").innerHTML = terminatePreviewHtml(computeTerminationInvoice(k, date));
+}
+
+/* ============================================================
+   Renouvellement / remplacement de contrat
+   ============================================================ */
+function openRenewModal(contractId) {
+  const k = Store.contracts.find((x) => x.id === contractId);
+  const date = todayISO();
+  openModal("Renouveler / remplacer le contrat", renewModalBody(k, date), `
+    <button class="btn" onclick="closeModal()">Annuler</button>
+    <button class="btn primary" onclick="guard(async()=>{
+      const date=document.getElementById('renew-date').value;
+      const clientId='${k.clientId}';
+      const res=await renewContract(Store.contracts.find(c=>c.id==='${k.id}'), date);
+      closeModal();
+      if(res.avoirInvoiceId){ setView('invoice',{invoiceId:res.avoirInvoiceId}); notify('Avoir généré. Créez maintenant le nouveau contrat.','warn'); }
+      openContractModal(null, clientId, { replacesContractId: '${k.id}', startDate: date, activity: '${k.activity}' });
+    })">Confirmer et créer le nouveau contrat</button>`);
+}
+function renewModalBody(k, date) {
+  const calc = computeRenewalSettlement(k, date);
+  return `
+    <label class="fld"><span>Date de bascule (fin de l'ancien contrat / début du nouveau)</span>
+      <input id="renew-date" type="date" value="${date}" onchange="updateRenewPreview('${k.id}')" /></label>
+    <div id="renew-preview">${renewPreviewHtml(calc)}</div>
+    <p class="small muted">Assurez-vous d'avoir saisi un relevé de compteur à jour avant de confirmer (bouton « Compteurs » dans le menu) pour que le complément de dépassement soit exact.</p>`;
+}
+function renewPreviewHtml(calc) {
+  const missing = calc.missingMeters.length ? `<div class="banner error">Relevé manquant pour : ${calc.missingMeters.map((m) => esc(m.line)).join(", ")} — le dépassement ne pourra pas être calculé tant que le relevé n'est pas saisi.</div>` : "";
+  if (!calc.lines.length) return missing + `<div class="banner warn">Aucun avoir ni complément à facturer (rien de prépayé au-delà de cette date, aucun dépassement en attente).</div>`;
+  return missing + `<div class="banner warn" style="margin-top:10px">
+    ${calc.referenceInvoice ? `Jours non consommés sur la facture ${esc(calc.referenceInvoice.number)} : ${calc.unusedDays}/${calc.totalDays}j<br>` : ""}
+    ${calc.creditLines.map((l) => `${esc(l.label)} : <b>${fmtMoney(l.amountHT)}</b>`).join("<br>")}
+    ${calc.overageLines.length ? "<br>" + calc.overageLines.map((l) => `${esc(l.label)} : <b>${fmtMoney(l.amountHT)}</b>`).join("<br>") : ""}
+    <br><b>Solde de l'avoir : ${fmtMoney(calc.totalHT)} HT</b>
+  </div>`;
+}
+function updateRenewPreview(contractId) {
+  const k = Store.contracts.find((x) => x.id === contractId);
+  const date = document.getElementById("renew-date").value;
+  document.getElementById("renew-preview").innerHTML = renewPreviewHtml(computeRenewalSettlement(k, date));
 }
 
 /* ============================================================
@@ -687,7 +748,7 @@ function viewBilling(user) {
   const due = contractsDueForRun(date);
   const rows = due.map((k) => {
     const client = Store.clients.find((c) => c.id === k.clientId);
-    const p = previewContractInvoice(k, date);
+    const p = previewContractInvoiceForDisplay(k, date);
     return { k, client, p };
   });
   const total = rows.reduce((s, r) => s + r.p.totalTTC, 0);
@@ -697,12 +758,12 @@ function viewBilling(user) {
         <div class="row"><label class="fld" style="flex-direction:row;align-items:center;gap:6px"><span>Date de facturation</span>
           <input type="date" value="${date}" onchange="UI.billingDate=this.value;render()" /></label></div>
       </div>
-      <p class="muted small">Contrats dont l'échéance est arrivée au ${fmtDate(date)} (forfait de la période à venir + dépassement de la période précédente, calculé à partir des relevés saisis).</p>
+      <p class="muted small">Contrats dont l'échéance est arrivée au ${fmtDate(date)} (forfait de la période à venir + dépassement de la période précédente, calculé à partir des relevés saisis). La première facture d'un contrat inclut automatiquement le prorata d'installation.</p>
       <table><thead><tr><th><input type="checkbox" onchange="document.querySelectorAll('.bill-chk').forEach(c=>c.checked=this.checked)" /></th>
         <th>Client</th><th>Contrat</th><th>Période</th><th class="num">Total TTC</th><th>Compteurs</th></tr></thead>
       <tbody>${rows.map((r) => `<tr>
         <td><input type="checkbox" class="bill-chk" value="${r.k.id}" checked /></td>
-        <td>${esc(r.client ? r.client.name : "—")}</td><td>${esc(r.k.label)}</td>
+        <td>${esc(r.client ? r.client.name : "—")}</td><td>${esc(r.k.label)} ${r.p.indexationDue ? `<span class="badge active" title="Augmentation annuelle appliquée à cette facturation">🔺 indexé</span>` : ""}</td>
         <td>${fmtDate(r.p.periodStart)} → ${fmtDate(r.p.periodEnd)}</td>
         <td class="num">${fmtMoney(r.p.totalTTC)}</td>
         <td>${r.p.missingMeters.length ? `<span class="badge unpaid" title="Relevé manquant">⚠ manquant</span>` : `<span class="badge active">OK</span>`}</td>
@@ -759,7 +820,7 @@ function viewInvoice(user, invoiceId) {
   return `
     <div class="card">
       <div class="card-head"><div class="row"><button class="icon-btn" onclick="setView('invoices')">←</button>
-        <h2 style="margin:0">${esc(i.number)} <span class="badge ${i.status}">${INVOICE_STATUS[i.status]}</span></h2></div>
+        <h2 style="margin:0">${esc(i.number)} <span class="badge ${i.status}">${INVOICE_STATUS[i.status]}</span>${i.type !== "period" ? ` <span class="badge draft">${invoiceTypeLabel(i.type)}</span>` : ""}</h2></div>
         <button class="btn" onclick="printInvoice('${i.id}')">Imprimer / PDF</button></div>
       <div class="grid">
         <div><span class="muted small">Client</span><br><a href="#" onclick="setView('client',{clientId:'${i.clientId}'});return false">${esc(client ? client.name : "—")}</a></div>
@@ -831,7 +892,7 @@ function printInvoice(invoiceId) {
    Prélèvements SEPA
    ============================================================ */
 function viewSepa(user) {
-  const eligible = Store.invoices.filter((i) => !i.sepaBatchId && (i.status === "sent" || i.status === "unpaid") && i.paymentMethod === "sepa");
+  const eligible = Store.invoices.filter((i) => !i.sepaBatchId && (i.status === "sent" || i.status === "unpaid") && i.paymentMethod === "sepa" && i.type !== "avoir" && i.totalTTC > 0);
   const rows = sepaEligibleInvoices(eligible.map((i) => i.id));
   return `
     <div class="card">
@@ -936,7 +997,9 @@ function viewSettings(user) {
       <label class="fld"><span>ICS (identifiant créancier SEPA)</span><input value="${esc(s.ics)}" oninput="draft.ics=this.value" /></label>
       <label class="fld"><span>IBAN société</span><input value="${esc(s.iban)}" oninput="draft.iban=this.value" /></label>
       <label class="fld"><span>BIC société</span><input value="${esc(s.bic)}" oninput="draft.bic=this.value" /></label>
+      <label class="fld"><span>Indexation annuelle par défaut (% / an)</span><input type="number" step="0.1" value="${s.defaultIndexationRate}" oninput="draft.defaultIndexationRate=Number(this.value)" /></label>
     </div>
+    <p class="small muted">S'applique à tous les contrats à leur date anniversaire, sauf ceux réglés en « jamais » ou en taux personnalisé sur leur fiche.</p>
     <button class="btn primary" style="margin-top:10px" onclick="guard(async()=>{await Store.put('settings',draft);notify('Paramètres enregistrés.','warn');render();})">Enregistrer</button>
   </div>`;
 }

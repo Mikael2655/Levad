@@ -5,6 +5,8 @@
 #   • proposition-commerciale/ → sous /proposition-commerciale/  (ancien
 #     emplacement de l'outil SA/SP + offre — repris désormais dans le dépôt
 #     dédié levad-simulateur, avec le domaine simulateur.levad.fr)
+#   • gestion/         → sous /gestion/         (CRM/ERP interne : clients,
+#     contrats, machines, facturation, SEPA)
 # Le reste du dépôt (projet Next.js) n'est pas publié.
 #
 # Activation (une seule fois) : Settings → Pages → Source : "GitHub Actions"
@@ -19,6 +21,7 @@ on:
       - "belote/**"
       - "belote-tournoi/**"
       - "proposition-commerciale/**"
+      - "gestion/**"
       - ".github/workflows/deploy-hebreu-vocab.yml"
   workflow_dispatch:
 
@@ -49,6 +52,8 @@ jobs:
           cp -r belote-tournoi/. _site/belote-tournoi/
           mkdir -p _site/proposition-commerciale
           cp -r proposition-commerciale/. _site/proposition-commerciale/
+          mkdir -p _site/gestion
+          cp -r gestion/. _site/gestion/
       - uses: actions/configure-pages@v5
         with:
           # Active GitHub Pages automatiquement si le compte le permet

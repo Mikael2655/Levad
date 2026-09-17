@@ -35,7 +35,7 @@ function exportInvoicesCsv(fromISO, toISOdate) {
     const batch = Store.sepaBatches.find((b) => b.id === i.sepaBatchId);
     return [
       i.number, fmtDate(i.date), client ? client.name : "", contract ? (ACTIVITIES[contract.activity] || contract.activity) : "",
-      i.type === "termination" ? "Résiliation" : "Période", i.totalHT.toFixed(2), i.totalVAT.toFixed(2), i.totalTTC.toFixed(2),
+      invoiceTypeLabel(i.type), i.totalHT.toFixed(2), i.totalVAT.toFixed(2), i.totalTTC.toFixed(2),
       INVOICE_STATUS[i.status] || i.status, batch ? batch.numeroRemise : "",
     ];
   });

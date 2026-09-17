@@ -59,18 +59,56 @@ avec un aperçu du montant (forfait à venir + dépassement de la période
 factures, avance l'échéance du contrat et enregistre les compteurs
 facturés.
 
+**Périodes calendaires & prorata d'installation** : les périodes de
+facturation sont calées sur le calendrier (mois civil, ou trimestre civil
+janv-mars / avr-juin / juil-sept / oct-déc), pas sur la date d'installation.
+Si un contrat démarre en cours de période (ex. installation le 17
+septembre), la toute première facture combine automatiquement un **prorata**
+de la période en cours (17 → 30 septembre) et la **période civile complète
+suivante** (1er octobre → 31 décembre) en terme à échoir, dès que la date de
+facturation choisie atteint la fin de la période en cours.
+
+**Indexation annuelle** : à la date anniversaire de chaque contrat
+(mois/jour de sa date de début), les lignes fixes et les prix de
+dépassement sont automatiquement augmentés du taux effectif, appliqué juste
+avant la génération de la facture concernée (un repère « 🔺 indexé »
+s'affiche dans l'écran *Facturation* quand une augmentation est due).
+Réglage à deux niveaux :
+- un taux par défaut, commun à tous les contrats, dans *Paramètres* ;
+- une case par contrat pour l'exclure (« Jamais ») ou lui donner un taux
+  personnalisé, indépendant du taux par défaut.
+
+L'historique des augmentations appliquées est conservé sur chaque contrat.
+
 **Machines** : référence + numéro de série, rattachées à un contrat actif ;
 historique complet des clients successifs (installation, transfert,
 retrait). Au rattachement à un nouveau contrat, le dernier relevé connu de
 la machine sert de base de départ (pas de double facturation en cas de
 revente d'une machine récupérée).
 
-**Résiliation** : `somme des forfaits trimestriels × trimestres restants`
-+ `moyenne trimestrielle des dépassements facturés sur 12 mois (ou 6 mois
-si supérieure) × trimestres restants`. Le nombre de trimestres restants est
-arrondi au trimestre supérieur. La machine n'est pas retirée automatiquement
-du contrat résilié : gérez son devenir (laissée/détruite/revendue) depuis
-la fiche contrat.
+**Résiliation** (le client part définitivement) : `somme des forfaits
+trimestriels × trimestres restants` + `moyenne trimestrielle des
+dépassements facturés sur 12 mois (ou 6 mois si supérieure) × trimestres
+restants`. Le nombre de trimestres restants est arrondi au trimestre
+supérieur. La machine n'est pas retirée automatiquement du contrat résilié :
+gérez son devenir (laissée/détruite/revendue) depuis la fiche contrat.
+
+**Renouvellement / remplacement de contrat** (le client reste, mais change
+de matériel/tarif) : bouton « Renouveler / remplacer » sur la fiche contrat.
+Contrairement à la résiliation, pas de pénalité — c'est un règlement de
+compte au réel :
+1. l'ancien contrat s'arrête à la date de bascule choisie ;
+2. un **avoir** est établi au prorata des jours non consommés de la
+   **dernière facture déjà émise** (partie fixe uniquement), plus, si des
+   relevés plus récents ont été saisis, une ligne complémentaire pour les
+   pages/unités consommées et pas encore facturées ;
+3. ses machines sont détachées (transfert) et redeviennent disponibles ;
+4. l'écran de création du nouveau contrat s'ouvre aussitôt pour le même
+   client, avec le lien vers le contrat remplacé conservé dans les deux
+   sens (traçabilité).
+
+Pensez à saisir un relevé de compteur à jour avant de confirmer un
+renouvellement, pour que le complément de dépassement soit exact.
 
 ## Envoi des factures & SEPA
 
@@ -131,12 +169,10 @@ gestion/
   PDF + `mailto:` pré-rempli.
 - Pas d'intégration API Chorus Pro (dépôt manuel sur le portail, suivi
   local uniquement).
-- La date exacte d'échéance (« à échoir ») est pilotée par un champ
-  `prochaine facturation` par contrat qui avance automatiquement après
-  chaque facturation ; elle n'est pas recalculée à partir d'une règle de
-  calendrier fixe (dernier jour ouvré du mois), pour rester robuste à des
-  facturations manuelles ou décalées. Ajustez-la manuellement sur un
-  contrat si besoin (modifier le contrat).
+- Le prorata d'installation et l'avoir de renouvellement ne recalculent
+  pas la quantité de pages incluse au contrat pour la période concernée
+  (seule la partie fixe est proratisée) ; le dépassement éventuel de cette
+  période est simplement soldé à la facturation suivante, comme d'habitude.
 - Une seule TVA par ligne, pas de multi-devise, pas de facture
   électronique normée (Factur-X) — à prévoir quand l'obligation
   s'appliquera à votre structure.
