@@ -5467,4 +5467,49 @@ const VERBES = [
       ],
     },
   },
+  {
+    inf: "לציית", translit: "Letsayet", fr: "Obéir",
+    racine: "צית", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מציית", t: "Metsayet" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ציית", t: "Tsiyet" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יציית", t: "Yetsayet" },
+      ],
+    },
+  },
+  {
+    inf: "לאלתר", translit: "Le'alter", fr: "Improviser",
+    racine: "אלתר", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מאלתר", t: "Me'alter" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "אלתר", t: "Ilter" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאלתר", t: "Ye'alter" },
+      ],
+    },
+  },
+  {
+    inf: "לההרס", translit: "Lehehares", fr: "Etre détruit",
+    racine: "הרס", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נהרס", t: "Neheras" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נהרס", t: "Neheras" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייהרס", t: "Yehares" },
+      ],
+    },
+  },
 ];
