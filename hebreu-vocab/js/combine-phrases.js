@@ -273,4 +273,20 @@ const COMBINE_PHRASES_RAW = [
   { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "גישה", nFr: "approche", frT: "Il {V} sa nouvelle {N} au patron.", heT: "הוא {V} את ה{N} החדשה שלו למנהל." },
   { v: "לראות", vT: "Présent", vFr: "voit", nHe: "בתשלום", nFr: "payant", frT: "Il {V} que le concert est {N}.", heT: "הוא {V} שההופעה {N}." },
   { v: "לחפש", vT: "Présent", vFr: "cherche", nHe: "בתשלום", nFr: "payant", frT: "Au parking {N}, il {V} de la monnaie.", heT: "בחניון {N} הוא {V} כסף קטן." },
+  // ============================================================
+  //  Ajout : nouveaux verbes (obéir, improviser, être détruit) et
+  //  nouveaux mots (autorité, ordre, plan, créativité, improvisation,
+  //  violence, quotidien, complexe, valeur)
+  // ============================================================
+  { v: "לציית", vT: "Présent", vFr: "obéit", nHe: "סמכות", nFr: "autorité", frT: "Le soldat {V} à l'{N} sans discuter.", heT: "החייל {V} ל{N} בלי לשאול." },
+  { v: "לציית", vT: "Présent", vFr: "obéit", nHe: "הוראה", nFr: "ordre", frT: "L'élève {V} à l'{N} du professeur.", heT: "התלמיד {V} ל{N} של המורה." },
+  { v: "לאלתר", vT: "Présent", vFr: "improvise", nHe: "תכנית", nFr: "plan", frT: "Sans {N} précis, il {V} tout le temps.", heT: "בלי {N} מסודרת הוא {V} כל הזמן." },
+  { v: "לאלתר", vT: "Présent", vFr: "improvise", nHe: "יצירתיות", nFr: "créativité", frT: "Avec beaucoup de {N}, il {V} une belle mélodie.", heT: "בהרבה {N} הוא {V} מנגינה יפה." },
+  { v: "לאהוב", vT: "Présent", vFr: "aime", nHe: "אילתור", nFr: "improvisation", frT: "Le comédien {V} l'{N} sur scène.", heT: "השחקן {V} את ה{N} על הבמה." },
+  { v: "לההרס", vT: "Présent", vFr: "est détruit", nHe: "מחשב", nFr: "ordinateur", frT: "Après la chute, l'{N} {V} complètement.", heT: "אחרי הנפילה ה{N} {V} לגמרי." },
+  { v: "לההרס", vT: "Présent", vFr: "est détruit", nHe: "ארמון", nFr: "château", frT: "Pendant la guerre, le vieux {N} {V}.", heT: "במהלך המלחמה ה{N} הישן {V}." },
+  { v: "לראות", vT: "Présent", vFr: "voit", nHe: "אלימות", nFr: "violence", frT: "À la télévision, il {V} trop de {N}.", heT: "בטלוויזיה הוא {V} יותר מדי {N}." },
+  { v: "להתלונן", vT: "Présent", vFr: "se plaint", nHe: "שגרה", nFr: "quotidien", frT: "Il {V} du {N} ennuyeux au bureau.", heT: "הוא {V} על ה{N} המשעממת במשרד." },
+  { v: "למכור", vT: "Présent", vFr: "vend", nHe: "ערך", nFr: "valeur", frT: "Il {V} un objet de grande {N}.", heT: "הוא {V} חפץ בעל {N} רב." },
+  { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "מורכב", nFr: "complexe", frT: "Le professeur {V} un sujet {N}.", heT: "המורה {V} נושא {N}." },
 ];

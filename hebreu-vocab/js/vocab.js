@@ -1366,4 +1366,13 @@ const VOCAB = [
   { he: "אמור להיות", translit: "Amour lehiyot", fr: "Censé être", cat: "Général" },
   { he: "גישה", translit: "Gicha", fr: "Approche (une)", cat: "Général", note: "Sleng : ani begicha che… = je pars du principe que" },
   { he: "בתשלום", translit: "Betachloum", fr: "Payant", cat: "Général" },
+  { he: "סמכות", translit: "Samkhout", fr: "Autorité / pouvoir", cat: "Général" },
+  { he: "אלימות", translit: "Alimout", fr: "Violence", cat: "Général" },
+  { he: "שגרה", translit: "Chigra", fr: "Quotidien", cat: "Général" },
+  { he: "יצירתיות", translit: "Yetsiratiyout", fr: "Créativité", cat: "Général" },
+  { he: "אילתור", translit: "iltour", fr: "Improvisation", cat: "Général" },
+  { he: "תכנית", translit: "Tokhnit", fr: "Plan / planning", cat: "Général" },
+  { he: "הוראה", translit: "Hora'a", fr: "Ordre", cat: "Général" },
+  { he: "מורכב", translit: "Mourkhav", fr: "Complexe (compliqué)", cat: "Général" },
+  { he: "ערך", translit: "Erekh", fr: "Valeur", cat: "Général" },
 ];
