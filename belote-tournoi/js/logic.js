@@ -272,17 +272,30 @@
     return w === a ? b : a;
   }
 
-  // Gagnant d'une finale au meilleur des 3 (aller/retour/belle).
+  // Finale en aller-retour. Chaque manche gagnée rapporte 1 point, ou 2 si
+  // elle est gagnée « au rubicon » (vainqueur >= 2× perdant). On joue TOUJOURS
+  // l'aller ET le retour (jamais décidé après la seule aller). À égalité de
+  // points après les deux manches, une belle (3e manche) départage.
   function finalWinner(legs, a, b) {
-    if (!a || !b) return { winner: null, winsA: 0, winsB: 0, needBelle: false };
-    var winsA = 0, winsB = 0;
-    legs.forEach(function (leg) {
-      var w = winnerOf(leg, a, b);
-      if (w === a) winsA++; else if (w === b) winsB++;
-    });
-    var winner = winsA >= 2 ? a : (winsB >= 2 ? b : null);
-    var needBelle = !winner && winsA === 1 && winsB === 1;
-    return { winner: winner, winsA: winsA, winsB: winsB, needBelle: needBelle };
+    if (!a || !b) return { winner: null, ptsA: 0, ptsB: 0, needBelle: false, played: 0 };
+    var ptsA = 0, ptsB = 0, played = 0;
+    for (var i = 0; i < 2; i++) {
+      var sc = scoreOf(legs[i]);
+      if (!sc) continue;
+      played++;
+      var mp = matchPoints(sc.a, sc.b);
+      ptsA += mp.a; ptsB += mp.b;
+    }
+    var winner = null, needBelle = false;
+    if (played >= 2) {
+      if (ptsA > ptsB) winner = a;
+      else if (ptsB > ptsA) winner = b;
+      else {
+        var belle = winnerOf(legs[2], a, b);
+        if (belle) winner = belle; else needBelle = true;
+      }
+    }
+    return { winner: winner, ptsA: ptsA, ptsB: ptsB, needBelle: needBelle, played: played };
   }
 
   // Construit l'état complet du tableau à partir des scores enregistrés.
@@ -308,8 +321,8 @@
         var fw = finalWinner(legs, a, b);
         finalInfo = {
           key: 'final', teamsIn: 2, target: KO_BIG_TARGET, bestOf: 3,
-          teamA: a, teamB: b, legs: legs, winsA: fw.winsA, winsB: fw.winsB,
-          needBelle: fw.needBelle, winner: fw.winner
+          teamA: a, teamB: b, legs: legs, ptsA: fw.ptsA, ptsB: fw.ptsB,
+          needBelle: fw.needBelle, winner: fw.winner, played: fw.played
         };
         rounds.push(finalInfo);
         champion = fw.winner;
