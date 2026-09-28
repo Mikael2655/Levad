@@ -77,6 +77,19 @@
     return (store.config ? esc(store.config.name) + ' · ' : '') + m;
   }
 
+  /* ---- Accès équipe (QR / lien par équipe) ------------------------- */
+  function bindTeam(tid, teamId) {
+    try { localStorage.setItem('bt:teamBind:' + tid, teamId); } catch (e) {}
+    try { localStorage.setItem('bt:lastTid', tid); } catch (e) {}
+  }
+  function boundTeam(tid) {
+    try { return localStorage.getItem('bt:teamBind:' + tid); } catch (e) { return null; }
+  }
+  function teamLink(tid, teamId) {
+    var base = location.origin + location.pathname;
+    return base + '?t=' + encodeURIComponent(tid) + '&eq=' + encodeURIComponent(teamId) + '#/equipe';
+  }
+
   /* ---- Fenêtres modales -------------------------------------------- */
   function openModal(html) {
     var o = document.createElement('div');
@@ -149,6 +162,7 @@
     if (route === '#/new') return renderCreate();
     if (!state.tid) { go('#/'); return; }
     if (state.tid && !store.config) { screen.innerHTML = backList() + '<div class="loading">Chargement…</div>'; return; }
+    if (route === '#/equipe') return renderTeam();
     if (route === '#/classement') return renderStandings();
     if (route === '#/admin') return renderAdmin();
     renderList();
@@ -352,6 +366,80 @@
   }
   function legHasScore(res) { return !!L.scoreOf(res); }
 
+  /* ---- Écran ÉQUIPE (saisie depuis le téléphone de l'équipe) -------- */
+  function renderTeam() {
+    var myId = boundTeam(state.tid);
+    var t = myId ? teamById(myId) : null;
+    if (!t) {
+      screen.innerHTML = backList() + '<div class="notice">Cet accès équipe n\'est plus disponible. Demandez le lien (ou le QR) à l\'organisateur.</div>';
+      return;
+    }
+    var badge = t.pool != null ? ('Poule ' + t.pool + ' · Équipe ' + t.slot) : 'Tableau';
+    var html = '<div class="card"><span class="tag">' + badge + '</span>' +
+      '<h2 style="margin-top:8px">' + teamName(t) + '</h2>' +
+      '<p class="sub">Saisissez vos scores : l\'équipe adverse valide, et tout remonte à l\'organisateur.</p></div>';
+
+    var mine = [];
+    store.matches.filter(function (m) { return m.phase === 'pool' && (m.teamA === myId || m.teamB === myId); })
+      .sort(function (a, b) { return a.id < b.id ? -1 : 1; })
+      .forEach(function (m) { mine.push({ m: m, title: null }); });
+    var br = currentBracket();
+    if (br) {
+      var resolved = L.resolveBracket(br, store.teams, koResults());
+      L.bracketMatchList(resolved).forEach(function (e) {
+        if (!(e.teamA === myId || e.teamB === myId) || !e.teamA || !e.teamB) return;
+        if (e.id === 'final-2' && !(resolved.final && resolved.final.needBelle)) return;
+        var m = Object.assign({}, matchById(e.id) || {}, { id: e.id, teamA: e.teamA, teamB: e.teamB, target: e.target, phase: 'ko', roundKey: e.key });
+        mine.push({ m: m, title: koTitle(e) });
+      });
+    }
+    if (!mine.length) {
+      html += '<div class="card"><p class="sub">Aucun match à saisir pour le moment. Revenez quand vos adversaires seront connus.</p></div>';
+    } else {
+      html += '<div class="card"><h2>Mes matchs</h2>';
+      mine.forEach(function (x) { html += teamMatchCard(x.m, myId, x.title); });
+      html += '</div>';
+    }
+    html += '<a class="back" data-act="exit-team" style="cursor:pointer">Ce n\'est pas votre équipe ? Accès organisateur</a>';
+    screen.innerHTML = html;
+  }
+
+  function teamMatchCard(m, myId, titleOverride) {
+    var ta = teamById(m.teamA), tb = teamById(m.teamB);
+    var prop = m.proposal;
+    var status = m.validated ? '✓ Validé' : (prop ? 'À valider' : 'À jouer');
+    var cls = m.validated ? 'valid' : (prop ? 'proposed' : 'pending');
+    var sA = prop ? prop.scoreA : '', sB = prop ? prop.scoreB : '';
+    var win = (m.validated && prop) ? (prop.scoreA > prop.scoreB ? 'a' : (prop.scoreB > prop.scoreA ? 'b' : '')) : '';
+    var head = '<div class="match-meta"><span class="rk">' +
+      (titleOverride ? esc(titleOverride) : ('Poule ' + (m.pool || '') + ' · ' + m.target + ' pts')) +
+      '</span><span class="status ' + cls + '">' + status + '</span></div>';
+    var teams = '<div class="teams">' +
+      '<span class="team ' + (win === 'a' ? 'win' : '') + '">' + teamName(ta) + '</span>' +
+      '<span class="vs">contre</span>' +
+      '<span class="team b ' + (win === 'b' ? 'win' : '') + '">' + teamName(tb) + '</span></div>';
+    var controls = '<div class="field-2" style="margin-top:10px">' +
+      '<div><label>Points ' + labelName(ta, m.teamA) + '</label>' +
+        '<input type="number" inputmode="numeric" id="sa-' + m.id + '" value="' + sA + '" placeholder="0"></div>' +
+      '<div><label>Points ' + labelName(tb, m.teamB) + '</label>' +
+        '<input type="number" inputmode="numeric" id="sb-' + m.id + '" value="' + sB + '" placeholder="0"></div></div>';
+    var canValidate = prop && !m.validated && prop.byTeamId !== myId;
+    var waiting = prop && !m.validated && prop.byTeamId === myId;
+    if (waiting) {
+      controls += '<p class="sub" style="margin-top:8px">⏳ En attente de validation par l\'équipe adverse. Vous pouvez corriger puis re-proposer.</p>' +
+        '<button class="btn small block" data-act="team-propose" data-match="' + m.id + '">Corriger &amp; re-proposer</button>';
+    } else if (canValidate) {
+      controls += '<p class="sub" style="margin-top:8px">L\'équipe adverse propose ce score. Vérifiez puis validez.</p>' +
+        '<div class="btn-row"><button class="btn primary small" data-act="team-validate" data-match="' + m.id + '">✓ Valider</button>' +
+        '<button class="btn small" data-act="team-propose" data-match="' + m.id + '">Corriger</button></div>';
+    } else if (m.validated) {
+      controls += '<button class="btn small block" data-act="team-propose" data-match="' + m.id + '" style="margin-top:8px">Modifier le score</button>';
+    } else {
+      controls += '<button class="btn primary small block" data-act="team-propose" data-match="' + m.id + '" style="margin-top:10px">Proposer le score</button>';
+    }
+    return '<div class="match">' + head + teams + controls + '</div>';
+  }
+
   /* ---- Fiche de saisie d'un match (admin) -------------------------- */
   function matchCard(m, titleOverride) {
     var ta = teamById(m.teamA), tb = teamById(m.teamB);
@@ -402,10 +490,10 @@
   }
   function renderAdminDash(c) {
     var assigned = store.teams.filter(function (t) { return t.assigned; }).length;
-    var tabs = fmt() === 'poolsonly' ? ['equipes', 'poules', 'reglages']
-      : fmt() === 'ko' ? ['equipes', 'tableau', 'reglages']
-      : ['equipes', 'poules', 'tableau', 'reglages'];
-    var labels = { equipes: 'Équipes', poules: 'Poules', tableau: 'Tableau', reglages: 'Réglages' };
+    var tabs = fmt() === 'poolsonly' ? ['equipes', 'poules', 'acces', 'reglages']
+      : fmt() === 'ko' ? ['equipes', 'tableau', 'acces', 'reglages']
+      : ['equipes', 'poules', 'tableau', 'acces', 'reglages'];
+    var labels = { equipes: 'Équipes', poules: 'Poules', tableau: 'Tableau', acces: 'Accès', reglages: 'Réglages' };
     if (tabs.indexOf(ui.adminTab) < 0) ui.adminTab = 'equipes';
     var nav = '<div class="pool-tabs">' + tabs.map(function (tb) {
       return '<span class="pill ' + (ui.adminTab === tb ? 'active' : '') + '" data-act="admin-tab" data-tab="' + tb + '">' + labels[tb] + '</span>';
@@ -419,9 +507,11 @@
     if (ui.adminTab === 'equipes') body = adminEquipes(c, assigned);
     else if (ui.adminTab === 'poules') body = adminPoules(c);
     else if (ui.adminTab === 'tableau') body = adminTableau(c);
+    else if (ui.adminTab === 'acces') body = adminAcces(c);
     else body = adminReglages(c);
 
     screen.innerHTML = backList() + head + body;
+    if (ui.adminTab === 'acces') drawQRs();
     var input = document.getElementById('new-team');
     if (input) input.focus();
   }
@@ -526,6 +616,33 @@
     return html + '</div>';
   }
 
+  function adminAcces(c) {
+    var teams = store.teams.filter(function (t) { return t.assigned; })
+      .sort(function (a, b) { return (a.pool != null ? a.pool + a.slot : a.pos) < (b.pool != null ? b.pool + b.slot : b.pos) ? -1 : 1; });
+    if (!teams.length) return '<div class="card"><p class="sub">Saisissez d\'abord les équipes (onglet Équipes).</p></div>';
+    var cards = teams.map(function (t) {
+      var link = teamLink(state.tid, t.id);
+      var tag = t.pool != null ? (t.pool + t.slot) : ('Place ' + (t.pos + 1));
+      return '<div class="card" style="text-align:center"><span class="tag">' + tag + '</span>' +
+        '<h3 style="margin:8px 0">' + teamName(t) + '</h3>' +
+        '<div class="qr-box" data-qr="' + esc(link) + '"></div>' +
+        '<button class="btn small block" data-act="copy-link" data-link="' + esc(link) + '" style="margin-top:8px">Copier le lien</button></div>';
+    }).join('');
+    return '<div class="card"><h2>Accès équipes (QR)</h2>' +
+      '<p class="sub">Chaque équipe scanne son QR (ou reçoit son lien) : elle saisit ses scores depuis son téléphone, l\'adversaire valide, et tout remonte ici automatiquement.</p>' +
+      (CFG.firebaseReady ? '' : '<div class="notice">⚠️ Mode local : la saisie multi-téléphone ne fonctionnera qu\'une fois Firebase configuré (voir README).</div>') +
+      '</div>' + cards;
+  }
+  function drawQRs() {
+    if (typeof qrcode === 'undefined') return;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-qr]'), function (box) {
+      try {
+        var qr = qrcode(0, 'M'); qr.addData(box.getAttribute('data-qr')); qr.make();
+        box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+      } catch (e) { box.textContent = 'QR indisponible'; }
+    });
+  }
+
   function adminReglages(c) {
     var phases = fmt() === 'ko'
       ? '<button class="btn small" data-act="set-phase" data-phase="ko">En cours</button><button class="btn small" data-act="set-phase" data-phase="done">Terminé</button>'
@@ -621,6 +738,22 @@
       return;
     }
     if (act === 'admin-clear') { DB.adminClear(tid, mid).then(function () { toast('Score effacé.'); }); return; }
+    if (act === 'team-propose') {
+      var ts = readScores(mid);
+      if (isNaN(ts.sa) || isNaN(ts.sb)) { toast('Saisissez les deux scores.'); return; }
+      if (ts.sa === ts.sb) { toast('Un match ne peut pas être nul.'); return; }
+      DB.propose(tid, mid, matchBase(mid), ts.sa, ts.sb, boundTeam(tid))
+        .then(function () { toast('Score proposé. En attente de validation adverse.'); });
+      return;
+    }
+    if (act === 'team-validate') { DB.validate(tid, mid).then(function () { toast('Score validé ✓'); }); return; }
+    if (act === 'exit-team') { try { localStorage.removeItem('bt:teamBind:' + tid); } catch (e) {} go('#/'); return; }
+    if (act === 'copy-link') {
+      var link = a.getAttribute('data-link');
+      if (navigator.clipboard) navigator.clipboard.writeText(link).then(function () { toast('Lien copié.'); }, function () { toast('Copie impossible.'); });
+      else toast('Copie non supportée.');
+      return;
+    }
     if (act === 'pool-tab') { ui.poolTab = a.getAttribute('data-pool'); render(); return; }
     if (act === 'admin-tab') { ui.adminTab = a.getAttribute('data-tab'); ui.lastDraw = null; render(); return; }
     if (act === 'admin-unlock') return adminUnlock();
@@ -698,8 +831,20 @@
   /* ---- Démarrage --------------------------------------------------- */
   DB.init().then(function (info) {
     me.uid = info.uid; me.mode = info.mode;
-    var urlT = new URLSearchParams(location.search).get('t');
-    if (urlT) { openTournament(urlT); if (!location.hash || location.hash === '#/') location.hash = '#/classement'; }
+    var params = new URLSearchParams(location.search);
+    var urlT = params.get('t'), urlEq = params.get('eq');
+    if (urlT && urlEq) {
+      bindTeam(urlT, urlEq); openTournament(urlT); location.hash = '#/equipe';
+    } else if (urlT) {
+      openTournament(urlT);
+      if (!location.hash || location.hash === '#/') location.hash = '#/classement';
+    } else {
+      // Appareil « équipe » : rouvrir directement l'écran de son équipe.
+      var lastTid = localStorage.getItem('bt:lastTid');
+      if ((!location.hash || location.hash === '#/') && lastTid && boundTeam(lastTid)) {
+        openTournament(lastTid); location.hash = '#/equipe';
+      }
+    }
     if (!location.hash) location.hash = '#/';
     render();
   }).catch(function (e) {

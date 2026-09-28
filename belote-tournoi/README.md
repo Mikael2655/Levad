@@ -32,6 +32,22 @@ plusieurs appareils).
 - **Classement** (vue publique, partageable) : classement des poules,
   meilleurs 3es, et tableau final en direct — selon le format choisi.
 
+## Saisie par les équipes (QR par équipe)
+
+Chaque équipe peut saisir ses propres scores depuis son téléphone, sans jamais
+retaper de nom :
+
+- Dans l'administration, l'onglet **Accès** affiche **un QR (et un lien) par
+  équipe**. L'organisateur les fait scanner (ou les envoie).
+- En scannant son QR, l'équipe arrive **directement sur ses matchs**, son nom
+  et celui de l'adversaire déjà affichés. Son téléphone retient l'accès.
+- Une équipe **propose** le score, l'équipe adverse **valide**. Tant que ce
+  n'est pas validé, le score reste « à confirmer ». Tout remonte en direct
+  chez l'organisateur, qui peut toujours corriger.
+
+⚠️ Cette saisie multi-téléphone nécessite **Firebase** (voir ci-dessous). En
+mode local (un seul appareil), seul l'organisateur peut saisir.
+
 ## Règles du tournoi
 
 - **Poules de 4 équipes** (au moins 6 poules recommandées). Chaque équipe
