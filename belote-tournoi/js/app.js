@@ -171,11 +171,14 @@
 
   /* ---- Accueil : liste des tournois -------------------------------- */
   function renderList() {
-    DB.listTournaments().then(function (list) { ui.tourList = list; paintList(); });
+    DB.listTournaments().then(
+      function (list) { ui.tourList = list; ui.listError = null; paintList(); },
+      function (e) { ui.listError = (e && e.message) || 'erreur de chargement'; paintList(); });
     paintList();
   }
   function paintList() {
     var list = ui.tourList || [];
+    var err = ui.listError ? '<div class="notice">⚠️ Impossible de charger la liste : ' + esc(ui.listError) + '</div>' : '';
     var cards = list.length ? list.map(function (c) {
       var meta = c.format === 'ko'
         ? (c.numTeams + ' équipes · ' + formatLabel('ko'))
@@ -185,7 +188,7 @@
         '<b>' + esc(c.name) + '</b><span>' + meta + '</span></span>' +
         '<button class="pill" data-act="del-tour" data-id="' + esc(c.id) + '" title="Supprimer">🗑</button></div>';
     }).join('') : '<p class="sub">Aucun tournoi enregistré pour l\'instant.</p>';
-    screen.innerHTML = '<div class="card"><h2>Mes tournois</h2>' + cards +
+    screen.innerHTML = '<div class="card"><h2>Mes tournois</h2>' + err + cards +
       '<div style="height:12px"></div>' +
       '<button class="btn primary block" data-act="new-tour">＋ Nouveau tournoi</button></div>';
   }
@@ -713,7 +716,10 @@
         toast(name + (t.pool != null ? ' → Poule ' + t.pool + ', Équipe ' + t.slot : ' entre dans le tableau'));
         render(true);
         var i = document.getElementById('new-team'); if (i) i.focus();
-      }).catch(function () { toast('Toutes les places sont prises.'); });
+      }).catch(function (e) {
+        var msg = (e && e.message) || '';
+        toast(/COMPLET/.test(msg) ? 'Toutes les places sont prises.' : ('Erreur : ' + msg));
+      });
       return;
     }
     if (act === 'rename-team') {
@@ -734,7 +740,8 @@
       var s = readScores(mid);
       if (isNaN(s.sa) || isNaN(s.sb)) { toast('Saisissez les deux scores.'); return; }
       if (s.sa === s.sb) { toast('Un match ne peut pas être nul.'); return; }
-      DB.adminSet(tid, mid, matchBase(mid), s.sa, s.sb).then(function () { toast('Score enregistré.'); });
+      DB.adminSet(tid, mid, matchBase(mid), s.sa, s.sb).then(function () { toast('Score enregistré.'); },
+        function (e) { toast('Erreur : ' + ((e && e.message) || 'écriture refusée')); });
       return;
     }
     if (act === 'admin-clear') { DB.adminClear(tid, mid).then(function () { toast('Score effacé.'); }); return; }
@@ -743,10 +750,11 @@
       if (isNaN(ts.sa) || isNaN(ts.sb)) { toast('Saisissez les deux scores.'); return; }
       if (ts.sa === ts.sb) { toast('Un match ne peut pas être nul.'); return; }
       DB.propose(tid, mid, matchBase(mid), ts.sa, ts.sb, boundTeam(tid))
-        .then(function () { toast('Score proposé. En attente de validation adverse.'); });
+        .then(function () { toast('Score proposé. En attente de validation adverse.'); },
+          function (e) { toast('Erreur : ' + ((e && e.message) || 'écriture refusée')); });
       return;
     }
-    if (act === 'team-validate') { DB.validate(tid, mid).then(function () { toast('Score validé ✓'); }); return; }
+    if (act === 'team-validate') { DB.validate(tid, mid).then(function () { toast('Score validé ✓'); }, function (e) { toast('Erreur : ' + ((e && e.message) || 'écriture refusée')); }); return; }
     if (act === 'exit-team') { try { localStorage.removeItem('bt:teamBind:' + tid); } catch (e) {} go('#/'); return; }
     if (act === 'copy-link') {
       var link = a.getAttribute('data-link');
@@ -789,7 +797,7 @@
       ui.adminTab = 'equipes'; ui.tourList = null;
       toast('Tournoi créé !');
       go('#/admin');
-    });
+    }).catch(function (e) { toast('Création impossible : ' + ((e && e.message) || 'erreur')); });
   }
   function adminUnlock() {
     var pin = document.getElementById('a-pin').value;
