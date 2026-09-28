@@ -848,6 +848,8 @@
     if (!location.hash) location.hash = '#/';
     render();
   }).catch(function (e) {
-    screen.innerHTML = '<div class="notice">Erreur de connexion : ' + esc(e && e.message) + '.</div>';
+    screen.innerHTML = '<div class="notice">⚠️ Connexion à la base impossible : ' + esc(e && e.message) +
+      '.<br><br>Dans la console Firebase, vérifiez que <b>Authentication → Sign-in method → Anonyme</b> est <b>activé</b>, ' +
+      'et que <b>Firestore Database</b> est bien créée (avec les règles publiées).</div>';
   });
 })();

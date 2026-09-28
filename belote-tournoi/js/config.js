@@ -15,12 +15,12 @@
  */
 window.APP_CONFIG = {
   firebase: {
-    apiKey:            "VOTRE_API_KEY",
-    authDomain:        "VOTRE_PROJET.firebaseapp.com",
-    projectId:         "VOTRE_PROJET",
-    storageBucket:     "VOTRE_PROJET.appspot.com",
-    messagingSenderId: "VOTRE_SENDER_ID",
-    appId:             "VOTRE_APP_ID"
+    apiKey:            "AIzaSyD-buFemkSJ4CQ8Mg8btVQYrjgC0IHqr4Q",
+    authDomain:        "tournoi-belote.firebaseapp.com",
+    projectId:         "tournoi-belote",
+    storageBucket:     "tournoi-belote.firebasestorage.app",
+    messagingSenderId: "1075662645970",
+    appId:             "1:1075662645970:web:0eb6b786ba24d9c5049b0b"
   },
 
   // Identifiant du tournoi (permet d'en gérer plusieurs). Modifiable via
