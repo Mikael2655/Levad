@@ -281,7 +281,7 @@
       }).join('') + '</div>' + legend;
     } else {
       body = poolTabs(pools) + standingsTable(standings[ui.poolTab]) + legend +
-        '<p class="sub" style="margin-top:8px">Départage : points, puis goal-average, puis total de points marqués.</p>';
+        '<p class="sub" style="margin-top:8px">Départage : points, puis +/- (différence de points), puis total de points marqués (non affiché).</p>';
     }
     var html = backList() + '<div class="card"><h2>' + esc(c.name) + ' — Classement</h2>' + viewToggle + body + '</div>';
 
@@ -315,10 +315,10 @@
         '<td class="name">' + teamName(r.team) + '<small>' + r.pool + r.slot + '</small></td>' +
         '<td>' + r.played + '</td><td>' + r.wins + '</td>' +
         '<td class="pts-col">' + r.pts + '</td>' +
-        '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td><td>' + r.pf + '</td></tr>';
+        '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td></tr>';
     }).join('');
     return '<table class="standings"><thead><tr>' +
-      '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>V</th><th>Pts</th><th>GA</th><th>Marqués</th>' +
+      '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>V</th><th>Pts</th><th>+/-</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table>';
   }
   function compactStandingsTable(rows) {
@@ -332,7 +332,7 @@
         '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td></tr>';
     }).join('');
     return '<table class="standings compact"><thead><tr>' +
-      '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>Pts</th><th>GA</th>' +
+      '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>Pts</th><th>+/-</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table>';
   }
   function thirdsTable(q) {
@@ -342,10 +342,10 @@
         '<td class="rankbadge">' + (i + 1) + '</td>' +
         '<td class="name">' + teamName(r.team) + '<small>Poule ' + r.pool + '</small></td>' +
         '<td class="pts-col">' + r.pts + '</td>' +
-        '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td><td>' + r.pf + '</td>' +
+        '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td>' +
         '<td>' + (inn ? '✅' : '—') + '</td></tr>';
     }).join('');
-    return '<table class="standings"><thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>Pts</th><th>GA</th><th>Marqués</th><th>Qual.</th></tr></thead><tbody>' + body + '</tbody></table>';
+    return '<table class="standings"><thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>Pts</th><th>+/-</th><th>Qual.</th></tr></thead><tbody>' + body + '</tbody></table>';
   }
 
   /* ---- Tableau (bracket) ------------------------------------------- */
