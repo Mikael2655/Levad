@@ -625,9 +625,21 @@
   }
 
   function adminAcces(c) {
-    var teams = store.teams.filter(function (t) { return t.assigned; })
-      .sort(function (a, b) { return (a.pool != null ? a.pool + a.slot : a.pos) < (b.pool != null ? b.pool + b.slot : b.pos) ? -1 : 1; });
+    var teams = store.teams.filter(function (t) { return t.assigned; }).slice();
+    var sort = ui.accesSort || 'poule';
+    if (sort === 'saisie') {
+      teams.sort(function (a, b) { return (a.assignedAt || 0) - (b.assignedAt || 0); });
+    } else {
+      teams.sort(function (a, b) {
+        var ka = a.pool != null ? (a.pool + a.slot) : ('Z' + ('00' + a.pos).slice(-3));
+        var kb = b.pool != null ? (b.pool + b.slot) : ('Z' + ('00' + b.pos).slice(-3));
+        return ka < kb ? -1 : (ka > kb ? 1 : 0);
+      });
+    }
     if (!teams.length) return '<div class="card"><p class="sub">Saisissez d\'abord les équipes (onglet Équipes).</p></div>';
+    var toggle = '<div class="pool-tabs">' +
+      '<span class="pill ' + (sort === 'poule' ? 'active' : '') + '" data-act="acces-sort" data-s="poule">Par poule</span>' +
+      '<span class="pill ' + (sort === 'saisie' ? 'active' : '') + '" data-act="acces-sort" data-s="saisie">Par ordre de saisie</span></div>';
     var cards = teams.map(function (t) {
       var link = teamLink(state.tid, t.id);
       var tag = t.pool != null ? (t.pool + t.slot) : ('Place ' + (t.pos + 1));
@@ -639,7 +651,7 @@
     return '<div class="card"><h2>Accès équipes (QR)</h2>' +
       '<p class="sub">Chaque équipe scanne son QR (ou reçoit son lien) : elle saisit ses scores depuis son téléphone, l\'adversaire valide, et tout remonte ici automatiquement.</p>' +
       (CFG.firebaseReady ? '' : '<div class="notice">⚠️ Mode local : la saisie multi-téléphone ne fonctionnera qu\'une fois Firebase configuré (voir README).</div>') +
-      '</div>' + cards;
+      toggle + '</div>' + cards;
   }
   function drawQRs() {
     if (typeof qrcode === 'undefined') return;
@@ -783,6 +795,7 @@
     }
     if (act === 'pool-tab') { ui.poolTab = a.getAttribute('data-pool'); render(); return; }
     if (act === 'admin-tab') { ui.adminTab = a.getAttribute('data-tab'); ui.lastDraw = null; render(); return; }
+    if (act === 'acces-sort') { ui.accesSort = a.getAttribute('data-s'); render(); return; }
     if (act === 'admin-unlock') return adminUnlock();
     if (act === 'start-bracket') return startBracket();
     if (act === 'set-phase') { DB.setPhase(tid, a.getAttribute('data-phase')).then(function () { toast('Phase mise à jour.'); }); return; }
