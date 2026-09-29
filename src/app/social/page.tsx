@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 interface SocialPost {
   id: number
@@ -10,7 +10,6 @@ interface SocialPost {
   contentIG: string | null
   imagePrompt: string | null
   status: string
-  scheduledAt: string | null
   publishedAt: string | null
   linkedinPostId: string | null
   instagramPostId: string | null
@@ -24,47 +23,59 @@ interface Config {
   tone: string
   targetAudience: string
   topics: string
-  scheduleDays: string
-  scheduleHour: number
+  notifyEmail: string
   linkedinEnabled: boolean
   instagramEnabled: boolean
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  draft: { label: 'Brouillon', color: 'bg-gray-100 text-gray-600' },
-  scheduled: { label: 'Planifié', color: 'bg-blue-100 text-blue-700' },
-  publishing: { label: 'Publication...', color: 'bg-yellow-100 text-yellow-700' },
-  published: { label: 'Publié', color: 'bg-green-100 text-green-700' },
-  failed: { label: 'Échec', color: 'bg-red-100 text-red-700' },
+const STATUS = {
+  draft:      { label: 'À valider', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400' },
+  published:  { label: 'Publié',    color: 'bg-green-100 text-green-700',  dot: 'bg-green-400' },
+  failed:     { label: 'Échec',     color: 'bg-red-100 text-red-700',      dot: 'bg-red-400' },
 }
 
-export default function SocialPage() {
+function SocialPageInner() {
+  const searchParams = useSearchParams()
   const [posts, setPosts] = useState<SocialPost[]>([])
   const [config, setConfig] = useState<Config | null>(null)
   const [tab, setTab] = useState<'posts' | 'config'>('posts')
-  const [loading, setLoading] = useState(false)
+  const [selected, setSelected] = useState<SocialPost | null>(null)
   const [generating, setGenerating] = useState(false)
-  const [topic, setTopic] = useState('')
-  const [editingPost, setEditingPost] = useState<SocialPost | null>(null)
-  const [publishing, setPublishing] = useState<number | null>(null)
+  const [publishing, setPublishing] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [savingConfig, setSavingConfig] = useState(false)
+  const [topic, setTopic] = useState('')
+  const [activeTab, setActiveTab] = useState<'linkedin' | 'instagram'>('linkedin')
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
-  async function loadPosts() {
-    const res = await fetch('/api/social/posts')
-    const data = await res.json()
-    setPosts(data.posts ?? [])
+  const showToast = (msg: string, ok = true) => {
+    setToast({ msg, ok })
+    setTimeout(() => setToast(null), 3500)
   }
 
-  async function loadConfig() {
+  const loadPosts = useCallback(async () => {
+    const res = await fetch('/api/social/posts')
+    const data = await res.json()
+    const list: SocialPost[] = data.posts ?? []
+    setPosts(list)
+    // Si un postId est dans l'URL (lien email), l'ouvrir
+    const idParam = searchParams.get('post')
+    if (idParam) {
+      const found = list.find(p => p.id === parseInt(idParam))
+      if (found) setSelected(found)
+    }
+  }, [searchParams])
+
+  const loadConfig = useCallback(async () => {
     const res = await fetch('/api/social/config')
     const data = await res.json()
     setConfig(data.config)
-  }
+  }, [])
 
   useEffect(() => {
     loadPosts()
     loadConfig()
-  }, [])
+  }, [loadPosts, loadConfig])
 
   async function handleGenerate() {
     if (!topic.trim()) return
@@ -79,58 +90,66 @@ export default function SocialPage() {
       if (data.post) {
         setTopic('')
         await loadPosts()
-        setEditingPost(data.post)
+        setSelected(data.post)
+        showToast('Post généré — vérifiez et publiez quand vous êtes prêt')
       } else {
-        alert('Erreur: ' + (data.error ?? 'Génération échouée'))
+        showToast(data.error ?? 'Erreur de génération', false)
       }
     } finally {
       setGenerating(false)
     }
   }
 
-  async function handlePublish(postId: number) {
-    setPublishing(postId)
+  async function handleSave() {
+    if (!selected) return
+    setSaving(true)
+    try {
+      const res = await fetch('/api/social/posts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selected.id, contentLI: selected.contentLI, contentIG: selected.contentIG }),
+      })
+      const data = await res.json()
+      if (data.post) {
+        setSelected(data.post)
+        await loadPosts()
+        showToast('Modifications sauvegardées')
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handlePublish() {
+    if (!selected) return
+    setPublishing(true)
     try {
       const res = await fetch('/api/social/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId }),
+        body: JSON.stringify({ postId: selected.id }),
       })
       const data = await res.json()
       await loadPosts()
-      if (!data.success) {
-        alert('Erreurs: ' + data.errors.join('\n'))
+      if (data.success) {
+        showToast('Post publié avec succès !')
+        setSelected(prev => prev ? { ...prev, status: 'published', publishedAt: new Date().toISOString(),
+          linkedinPostId: data.linkedinPostId, instagramPostId: data.instagramPostId } : null)
+      } else if (data.errors?.length > 0) {
+        showToast(data.errors.join(' — '), false)
+        setSelected(prev => prev ? { ...prev, status: 'failed', errorMessage: data.errors.join(' | ') } : null)
       }
     } finally {
-      setPublishing(null)
+      setPublishing(false)
     }
   }
 
-  async function handleSavePost() {
-    if (!editingPost) return
-    setLoading(true)
-    try {
-      await fetch('/api/social/posts', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: editingPost.id,
-          contentLI: editingPost.contentLI,
-          contentIG: editingPost.contentIG,
-        }),
-      })
-      await loadPosts()
-      setEditingPost(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleDelete(id: number) {
-    if (!confirm('Supprimer ce post ?')) return
-    await fetch(`/api/social/posts?id=${id}`, { method: 'DELETE' })
+  async function handleDelete() {
+    if (!selected || !confirm('Supprimer ce post définitivement ?')) return
+    await fetch(`/api/social/posts?id=${selected.id}`, { method: 'DELETE' })
+    setSelected(null)
     await loadPosts()
-    if (editingPost?.id === id) setEditingPost(null)
+    showToast('Post supprimé')
   }
 
   async function handleSaveConfig() {
@@ -142,101 +161,90 @@ export default function SocialPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       })
+      showToast('Configuration sauvegardée')
     } finally {
       setSavingConfig(false)
     }
   }
 
-  const stats = {
-    total: posts.length,
-    published: posts.filter(p => p.status === 'published').length,
-    draft: posts.filter(p => p.status === 'draft').length,
-    failed: posts.filter(p => p.status === 'failed').length,
-  }
+  const drafts = posts.filter(p => p.status === 'draft')
+  const published = posts.filter(p => p.status === 'published')
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all
+          ${toast.ok ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Header */}
       <header className="bg-brand-800 text-white px-6 py-4 shadow">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                <span className="text-brand-800 font-black">L</span>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center">
+              <span className="text-brand-800 font-black text-lg">L</span>
+            </div>
+            <div>
               <span className="font-bold text-lg">Levad</span>
-            </Link>
-            <span className="text-blue-300">/ Réseaux Sociaux</span>
+              <span className="text-blue-300 ml-2 text-sm">/ Réseaux sociaux</span>
+            </div>
           </div>
-          <Link href="/" className="text-sm text-blue-200 hover:text-white transition">← Retour au site</Link>
+          <div className="flex items-center gap-4 text-sm">
+            {drafts.length > 0 && (
+              <span className="bg-amber-400 text-amber-900 font-bold px-2.5 py-0.5 rounded-full text-xs">
+                {drafts.length} à valider
+              </span>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: 'Posts créés', value: stats.total, color: 'bg-white border-gray-200' },
-            { label: 'Publiés', value: stats.published, color: 'bg-green-50 border-green-200' },
-            { label: 'Brouillons', value: stats.draft, color: 'bg-blue-50 border-blue-200' },
-            { label: 'Échecs', value: stats.failed, color: 'bg-red-50 border-red-200' },
-          ].map(s => (
-            <div key={s.label} className={`rounded-xl border p-5 ${s.color}`}>
-              <p className="text-3xl font-bold text-gray-900">{s.value}</p>
-              <p className="text-sm text-gray-500 mt-1">{s.label}</p>
-            </div>
-          ))}
-        </div>
-
+      <main className="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200">
+        <div className="flex gap-1 mb-6 bg-white border border-gray-200 rounded-xl p-1 w-fit">
           {(['posts', 'config'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-5 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
-                tab === t
-                  ? 'border-brand-800 text-brand-800'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition ${
+                tab === t ? 'bg-brand-800 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}>
               {t === 'posts' ? 'Publications' : 'Configuration'}
             </button>
           ))}
         </div>
 
         {tab === 'posts' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Generate + List */}
-            <div className="lg:col-span-1 space-y-4">
-              {/* Generate */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <h2 className="font-semibold text-gray-900 mb-3">Générer un post IA</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Sidebar */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Génération */}
+              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+                <h2 className="font-semibold text-gray-900 mb-1">Générer un post</h2>
+                <p className="text-xs text-gray-400 mb-4">Claude AI rédige les textes LinkedIn et Instagram — vous relisez avant de publier.</p>
                 <div className="space-y-3">
                   <input
                     value={topic}
                     onChange={e => setTopic(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleGenerate()}
-                    placeholder="Ex: les avantages de la GED..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
+                    onKeyDown={e => e.key === 'Enter' && !generating && handleGenerate()}
+                    placeholder="Ex: pourquoi passer à la GED en 2025..."
+                    className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800"
                   />
-                  <button
-                    onClick={handleGenerate}
-                    disabled={generating || !topic.trim()}
-                    className="w-full bg-brand-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-brand-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {generating ? 'Génération en cours...' : 'Générer avec Claude AI'}
+                  <button onClick={handleGenerate} disabled={generating || !topic.trim()}
+                    className="w-full bg-brand-800 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    {generating ? (
+                      <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Génération...</>
+                    ) : 'Générer avec Claude AI'}
                   </button>
                 </div>
                 {config && (
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <p className="text-xs text-gray-400 mb-1">Sujets configurés :</p>
-                    <div className="flex flex-wrap gap-1">
+                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-400 mb-2">Suggestions rapides</p>
+                    <div className="flex flex-wrap gap-1.5">
                       {config.topics.split(',').map(t => (
-                        <button
-                          key={t}
-                          onClick={() => setTopic(t.trim())}
-                          className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded hover:bg-gray-200 transition"
-                        >
+                        <button key={t} onClick={() => setTopic(t.trim())}
+                          className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg hover:bg-brand-800 hover:text-white transition">
                           {t.trim()}
                         </button>
                       ))}
@@ -245,36 +253,48 @@ export default function SocialPage() {
                 )}
               </div>
 
-              {/* Post list */}
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <h2 className="font-semibold text-gray-900 text-sm">{posts.length} post{posts.length > 1 ? 's' : ''}</h2>
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white rounded-xl border border-amber-200 p-4">
+                  <p className="text-2xl font-bold text-amber-600">{drafts.length}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">À valider</p>
+                </div>
+                <div className="bg-white rounded-xl border border-green-200 p-4">
+                  <p className="text-2xl font-bold text-green-600">{published.length}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Publiés</p>
+                </div>
+              </div>
+
+              {/* Liste des posts */}
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900">{posts.length} post{posts.length !== 1 ? 's' : ''}</h3>
                 </div>
                 {posts.length === 0 ? (
-                  <div className="text-center py-10 text-gray-400 text-sm">
-                    <p className="text-3xl mb-2">✍️</p>
-                    <p>Aucun post encore</p>
+                  <div className="text-center py-12 text-gray-400">
+                    <p className="text-4xl mb-2">📝</p>
+                    <p className="text-sm">Aucun post pour l&apos;instant</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-50 max-h-[500px] overflow-y-auto">
+                  <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
                     {posts.map(post => {
-                      const s = STATUS_LABELS[post.status] ?? { label: post.status, color: 'bg-gray-100 text-gray-600' }
+                      const s = STATUS[post.status as keyof typeof STATUS] ?? STATUS.draft
                       return (
-                        <div
-                          key={post.id}
-                          className={`p-4 hover:bg-gray-50 cursor-pointer transition ${editingPost?.id === post.id ? 'bg-blue-50' : ''}`}
-                          onClick={() => setEditingPost(post)}
-                        >
+                        <button key={post.id} onClick={() => setSelected(post)}
+                          className={`w-full text-left p-4 hover:bg-gray-50 transition ${selected?.id === post.id ? 'bg-blue-50 border-l-2 border-brand-800' : ''}`}>
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-medium text-gray-900 line-clamp-2">{post.topic}</p>
-                            <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${s.color}`}>{s.label}</span>
+                            <p className="text-sm font-medium text-gray-900 line-clamp-1">{post.topic}</p>
+                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full shrink-0 ${s.color}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`}></span>
+                              {s.label}
+                            </span>
                           </div>
                           <p className="text-xs text-gray-400 mt-1">
                             {new Date(post.createdAt).toLocaleDateString('fr-FR')}
-                            {post.linkedinPostId && ' · LinkedIn ✓'}
-                            {post.instagramPostId && ' · Instagram ✓'}
+                            {post.linkedinPostId && ' · LI ✓'}
+                            {post.instagramPostId && ' · IG ✓'}
                           </p>
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
@@ -282,91 +302,124 @@ export default function SocialPage() {
               </div>
             </div>
 
-            {/* Right: Edit post */}
-            <div className="lg:col-span-2">
-              {editingPost ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-semibold text-gray-900">{editingPost.topic}</h2>
-                    <div className="flex gap-2">
-                      {editingPost.status !== 'published' && (
-                        <button
-                          onClick={() => handlePublish(editingPost.id)}
-                          disabled={publishing === editingPost.id}
-                          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition disabled:opacity-50"
-                        >
-                          {publishing === editingPost.id ? 'Publication...' : 'Publier maintenant'}
+            {/* Éditeur de post */}
+            <div className="lg:col-span-3">
+              {selected ? (
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                  {/* Post header */}
+                  <div className="px-6 py-4 border-b border-gray-100">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h2 className="font-semibold text-gray-900 text-lg">{selected.topic}</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Généré le {new Date(selected.createdAt).toLocaleString('fr-FR')}
+                          {selected.publishedAt && ` · Publié le ${new Date(selected.publishedAt).toLocaleString('fr-FR')}`}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button onClick={handleSave} disabled={saving || selected.status === 'published'}
+                          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-40 font-medium">
+                          {saving ? 'Sauvegarde...' : 'Sauvegarder'}
                         </button>
-                      )}
-                      <button
-                        onClick={handleSavePost}
-                        disabled={loading}
-                        className="bg-brand-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition disabled:opacity-50"
-                      >
-                        Sauvegarder
-                      </button>
-                      <button
-                        onClick={() => handleDelete(editingPost.id)}
-                        className="text-red-600 hover:text-red-700 px-3 py-2 text-sm transition"
-                      >
-                        Supprimer
-                      </button>
+                        {selected.status !== 'published' && (
+                          <button onClick={handlePublish} disabled={publishing}
+                            className="px-4 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 font-semibold flex items-center gap-2">
+                            {publishing ? (
+                              <><svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Publication...</>
+                            ) : '✓ Publier'}
+                          </button>
+                        )}
+                        {selected.status === 'published' && (
+                          <span className="px-4 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg font-semibold">✓ Publié</span>
+                        )}
+                        <button onClick={handleDelete} className="px-3 py-1.5 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition">
+                          Supprimer
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {editingPost.errorMessage && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-                      {editingPost.errorMessage}
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      LinkedIn
-                      {editingPost.linkedinPostId && <span className="ml-2 text-green-600 text-xs">✓ Publié</span>}
-                    </label>
-                    <textarea
-                      value={editingPost.contentLI ?? ''}
-                      onChange={e => setEditingPost({ ...editingPost, contentLI: e.target.value })}
-                      rows={8}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 font-mono"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">{(editingPost.contentLI ?? '').length} caractères</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Instagram
-                      {editingPost.instagramPostId && <span className="ml-2 text-green-600 text-xs">✓ Publié</span>}
-                    </label>
-                    <textarea
-                      value={editingPost.contentIG ?? ''}
-                      onChange={e => setEditingPost({ ...editingPost, contentIG: e.target.value })}
-                      rows={6}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600 font-mono"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">{(editingPost.contentIG ?? '').length} caractères</p>
-                  </div>
-
-                  {editingPost.imagePrompt && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Prompt image (pour génération IA)</label>
-                      <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-3 italic">{editingPost.imagePrompt}</p>
+                  {/* Error message */}
+                  {selected.errorMessage && (
+                    <div className="mx-6 mt-4 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+                      <strong>Erreur :</strong> {selected.errorMessage}
                     </div>
                   )}
 
-                  <div className="pt-2 border-t border-gray-100 text-xs text-gray-400 flex gap-4">
-                    <span>Créé le {new Date(editingPost.createdAt).toLocaleString('fr-FR')}</span>
-                    {editingPost.publishedAt && (
-                      <span>Publié le {new Date(editingPost.publishedAt).toLocaleString('fr-FR')}</span>
+                  {/* Network tabs */}
+                  <div className="flex border-b border-gray-100 px-6 pt-4">
+                    {(['linkedin', 'instagram'] as const).map(net => (
+                      <button key={net} onClick={() => setActiveTab(net)}
+                        className={`mr-6 pb-3 text-sm font-medium border-b-2 transition -mb-px capitalize ${
+                          activeTab === net ? 'border-brand-800 text-brand-800' : 'border-transparent text-gray-400 hover:text-gray-600'
+                        }`}>
+                        {net === 'linkedin' ? '💼 LinkedIn' : '📸 Instagram'}
+                        {net === 'linkedin' && selected.linkedinPostId && <span className="ml-1 text-green-500">✓</span>}
+                        {net === 'instagram' && selected.instagramPostId && <span className="ml-1 text-green-500">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="p-6">
+                    {activeTab === 'linkedin' && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-gray-700">Texte LinkedIn</label>
+                          <span className="text-xs text-gray-400">{(selected.contentLI ?? '').length} car.</span>
+                        </div>
+                        <textarea
+                          value={selected.contentLI ?? ''}
+                          onChange={e => setSelected({ ...selected, contentLI: e.target.value })}
+                          disabled={selected.status === 'published'}
+                          rows={12}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800 resize-none leading-relaxed disabled:bg-gray-50 disabled:text-gray-600"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Recommandé : 150–300 mots. Cliquez dans le texte pour modifier.</p>
+                      </div>
+                    )}
+
+                    {activeTab === 'instagram' && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-gray-700">Texte Instagram</label>
+                          <span className="text-xs text-gray-400">{(selected.contentIG ?? '').length} car.</span>
+                        </div>
+                        <textarea
+                          value={selected.contentIG ?? ''}
+                          onChange={e => setSelected({ ...selected, contentIG: e.target.value })}
+                          disabled={selected.status === 'published'}
+                          rows={10}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800 resize-none leading-relaxed disabled:bg-gray-50 disabled:text-gray-600"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">Instagram nécessite une image. Définissez INSTAGRAM_DEFAULT_IMAGE_URL dans vos variables.</p>
+                      </div>
+                    )}
+
+                    {selected.imagePrompt && (
+                      <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
+                        <p className="text-xs font-semibold text-purple-700 mb-1 uppercase tracking-wide">Prompt image suggéré</p>
+                        <p className="text-sm text-purple-900 italic">{selected.imagePrompt}</p>
+                        <p className="text-xs text-purple-400 mt-1">Utilisez ce prompt sur Midjourney, DALL-E ou Leonardo pour générer un visuel.</p>
+                      </div>
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-xl border border-gray-200 flex items-center justify-center h-64 text-gray-400">
-                  <div className="text-center">
-                    <p className="text-4xl mb-3">📝</p>
-                    <p>Sélectionnez un post ou générez-en un nouveau</p>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm h-full min-h-96 flex items-center justify-center">
+                  <div className="text-center text-gray-400 p-8">
+                    {drafts.length > 0 ? (
+                      <>
+                        <p className="text-5xl mb-4">📬</p>
+                        <p className="font-medium text-gray-600 text-lg">{drafts.length} post{drafts.length > 1 ? 's' : ''} en attente de validation</p>
+                        <p className="text-sm mt-1">Cliquez sur un post dans la liste pour le lire et le publier</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-5xl mb-4">✨</p>
+                        <p className="font-medium text-gray-600">Prêt à créer votre prochain post ?</p>
+                        <p className="text-sm mt-1">Entrez un sujet à gauche et laissez Claude AI rédiger</p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -375,37 +428,24 @@ export default function SocialPage() {
         )}
 
         {tab === 'config' && config && (
-          <div className="max-w-2xl space-y-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-              <h2 className="font-semibold text-gray-900">Identité de l&apos;entreprise</h2>
-
+          <div className="max-w-xl space-y-5">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+              <h2 className="font-semibold text-gray-900">Entreprise</h2>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nom de l&apos;entreprise</label>
-                <input
-                  value={config.companyName}
-                  onChange={e => setConfig({ ...config, companyName: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                <input value={config.companyName} onChange={e => setConfig({ ...config, companyName: e.target.value })}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800" />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description de l&apos;entreprise</label>
-                <textarea
-                  value={config.companyDesc}
-                  onChange={e => setConfig({ ...config, companyDesc: e.target.value })}
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea value={config.companyDesc} onChange={e => setConfig({ ...config, companyDesc: e.target.value })}
+                  rows={3} className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800" />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ton</label>
-                  <select
-                    value={config.tone}
-                    onChange={e => setConfig({ ...config, tone: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-600"
-                  >
+                  <select value={config.tone} onChange={e => setConfig({ ...config, tone: e.target.value })}
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-800">
                     <option value="professionnel">Professionnel</option>
                     <option value="expert">Expert</option>
                     <option value="accessible">Accessible</option>
@@ -414,114 +454,74 @@ export default function SocialPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Audience cible</label>
-                  <input
-                    value={config.targetAudience}
-                    onChange={e => setConfig({ ...config, targetAudience: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
-                  />
+                  <input value={config.targetAudience} onChange={e => setConfig({ ...config, targetAudience: e.target.value })}
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800" />
                 </div>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Sujets automatiques <span className="text-gray-400">(séparés par des virgules)</span>
-                </label>
-                <input
-                  value={config.topics}
-                  onChange={e => setConfig({ ...config, topics: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sujets <span className="text-gray-400 font-normal">(séparés par des virgules)</span></label>
+                <input value={config.topics} onChange={e => setConfig({ ...config, topics: e.target.value })}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email de notification</label>
+                <input value={config.notifyEmail} onChange={e => setConfig({ ...config, notifyEmail: e.target.value })}
+                  type="email" className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800" />
+                <p className="text-xs text-gray-400 mt-1">Reçoit un email dès qu&apos;un post est prêt à valider</p>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-              <h2 className="font-semibold text-gray-900">Planification automatique</h2>
-              <p className="text-sm text-gray-500">Le cron Vercel se déclenche tous les mardis et jeudis à 9h. Modifiez <code className="bg-gray-100 px-1 rounded">vercel.json</code> pour changer le planning.</p>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Jours de publication</label>
-                  <input
-                    value={config.scheduleDays}
-                    onChange={e => setConfig({ ...config, scheduleDays: e.target.value })}
-                    placeholder="mardi,jeudi"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Heure (UTC)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={23}
-                    value={config.scheduleHour}
-                    onChange={e => setConfig({ ...config, scheduleHour: parseInt(e.target.value) })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
-              <h2 className="font-semibold text-gray-900">Réseaux sociaux</h2>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+              <h2 className="font-semibold text-gray-900">Réseaux actifs</h2>
+              {[
+                { key: 'linkedinEnabled', label: 'LinkedIn', vars: 'LINKEDIN_ACCESS_TOKEN + LINKEDIN_PERSON_URN' },
+                { key: 'instagramEnabled', label: 'Instagram', vars: 'INSTAGRAM_ACCESS_TOKEN + INSTAGRAM_ACCOUNT_ID' },
+              ].map(({ key, label, vars }) => (
+                <div key={key} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">LinkedIn</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Variables: LINKEDIN_ACCESS_TOKEN, LINKEDIN_PERSON_URN</p>
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{vars}</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.linkedinEnabled}
-                      onChange={e => setConfig({ ...config, linkedinEnabled: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-800"></div>
+                    <input type="checkbox" checked={config[key as keyof Config] as boolean}
+                      onChange={e => setConfig({ ...config, [key]: e.target.checked })} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-800"></div>
                   </label>
                 </div>
+              ))}
+            </div>
 
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">Instagram</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Variables: INSTAGRAM_ACCESS_TOKEN, INSTAGRAM_ACCOUNT_ID</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.instagramEnabled}
-                      onChange={e => setConfig({ ...config, instagramEnabled: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-800"></div>
-                  </label>
-                </div>
-              </div>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-                <p className="font-medium mb-1">Variables d&apos;environnement à configurer sur Vercel :</p>
-                <ul className="space-y-1 text-xs font-mono">
-                  <li>ANTHROPIC_API_KEY — Clé API Claude</li>
-                  <li>LINKEDIN_ACCESS_TOKEN — Token OAuth LinkedIn</li>
-                  <li>LINKEDIN_PERSON_URN — Votre URN LinkedIn (ex: abc123)</li>
-                  <li>INSTAGRAM_ACCESS_TOKEN — Token de page Meta</li>
-                  <li>INSTAGRAM_ACCOUNT_ID — ID compte Instagram Business</li>
-                  <li>CRON_SECRET — Secret pour sécuriser le cron</li>
-                </ul>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-sm">
+              <p className="font-semibold text-amber-900 mb-2">Variables à configurer sur Vercel</p>
+              <div className="space-y-1 font-mono text-xs text-amber-800">
+                <p>ANTHROPIC_API_KEY</p>
+                <p>RESEND_API_KEY</p>
+                <p>NEXT_PUBLIC_APP_URL <span className="font-sans text-amber-600">(ex: https://levad.fr)</span></p>
+                <p>LINKEDIN_ACCESS_TOKEN</p>
+                <p>LINKEDIN_PERSON_URN</p>
+                <p>INSTAGRAM_ACCESS_TOKEN</p>
+                <p>INSTAGRAM_ACCOUNT_ID</p>
+                <p>INSTAGRAM_DEFAULT_IMAGE_URL <span className="font-sans text-amber-600">(image par défaut)</span></p>
+                <p>CRON_SECRET</p>
+                <p>DATABASE_URL</p>
               </div>
             </div>
 
-            <button
-              onClick={handleSaveConfig}
-              disabled={savingConfig}
-              className="w-full bg-brand-800 text-white px-6 py-3 rounded-lg font-medium hover:bg-brand-700 transition disabled:opacity-50"
-            >
+            <button onClick={handleSaveConfig} disabled={savingConfig}
+              className="w-full bg-brand-800 text-white py-3 rounded-xl font-semibold hover:bg-brand-700 transition disabled:opacity-50">
               {savingConfig ? 'Sauvegarde...' : 'Sauvegarder la configuration'}
             </button>
           </div>
         )}
       </main>
     </div>
+  )
+}
+
+export default function SocialPage() {
+  return (
+    <Suspense>
+      <SocialPageInner />
+    </Suspense>
   )
 }

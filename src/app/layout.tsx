@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Levad - Solutions Impression, Téléphonie, Informatique & GED',
-  description: 'Levad, votre partenaire pour les systèmes d\'impression, téléphonie, informatique, réseau et gestion électronique de documents.',
+  title: 'Levad Social',
+  description: 'Gestion des publications sur les réseaux sociaux',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

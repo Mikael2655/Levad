@@ -7,8 +7,8 @@ export async function POST(req: NextRequest) {
     const { topic } = await req.json()
     if (!topic) return NextResponse.json({ error: 'topic requis' }, { status: 400 })
 
-    const config = await prisma.socialConfig.findFirst({ where: { id: 1 } })
-    if (!config) return NextResponse.json({ error: 'Configuration manquante' }, { status: 500 })
+    let config = await prisma.socialConfig.findFirst({ where: { id: 1 } })
+    if (!config) config = await prisma.socialConfig.create({ data: { id: 1 } })
 
     const generated = await generateSocialPosts({
       topic,

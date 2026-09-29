@@ -1,52 +1,26 @@
-// Instagram Graph API — requires an Instagram Business account linked to a Facebook Page
-// INSTAGRAM_ACCESS_TOKEN: long-lived Page access token
-// INSTAGRAM_ACCOUNT_ID: Instagram Business Account ID
-
+// Instagram Graph API — nécessite un compte Instagram Business lié à une Page Facebook
 export async function publishToInstagram(caption: string, accessToken: string, igAccountId: string, imageUrl?: string): Promise<string> {
-  const baseUrl = `https://graph.facebook.com/v19.0/${igAccountId}`
+  const base = `https://graph.facebook.com/v19.0/${igAccountId}`
 
-  // Step 1: create media container
-  const containerParams: Record<string, string> = {
-    caption,
-    access_token: accessToken,
-  }
+  const imageSource = imageUrl ?? process.env.INSTAGRAM_DEFAULT_IMAGE_URL
+  if (!imageSource) throw new Error('Instagram nécessite une image. Définissez INSTAGRAM_DEFAULT_IMAGE_URL.')
 
-  if (imageUrl) {
-    containerParams.image_url = imageUrl
-    containerParams.media_type = 'IMAGE'
-  } else {
-    // Instagram requires an image — use a default branded image URL if none provided
-    const defaultImage = process.env.INSTAGRAM_DEFAULT_IMAGE_URL
-    if (!defaultImage) throw new Error('Instagram requires an image. Set INSTAGRAM_DEFAULT_IMAGE_URL or provide imageUrl.')
-    containerParams.image_url = defaultImage
-    containerParams.media_type = 'IMAGE'
-  }
-
-  const containerRes = await fetch(`${baseUrl}/media`, {
+  // 1. Créer le container média
+  const containerRes = await fetch(`${base}/media`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(containerParams),
+    body: JSON.stringify({ caption, image_url: imageSource, media_type: 'IMAGE', access_token: accessToken }),
   })
-
-  if (!containerRes.ok) {
-    const err = await containerRes.text()
-    throw new Error(`Instagram container error: ${containerRes.status} - ${err}`)
-  }
-
+  if (!containerRes.ok) throw new Error(`Instagram container ${containerRes.status}: ${await containerRes.text()}`)
   const { id: creationId } = await containerRes.json()
 
-  // Step 2: publish the container
-  const publishRes = await fetch(`${baseUrl}/media_publish`, {
+  // 2. Publier le container
+  const publishRes = await fetch(`${base}/media_publish`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ creation_id: creationId, access_token: accessToken }),
   })
-
-  if (!publishRes.ok) {
-    const err = await publishRes.text()
-    throw new Error(`Instagram publish error: ${publishRes.status} - ${err}`)
-  }
-
+  if (!publishRes.ok) throw new Error(`Instagram publish ${publishRes.status}: ${await publishRes.text()}`)
   const { id } = await publishRes.json()
   return id as string
 }

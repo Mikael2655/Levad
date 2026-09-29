@@ -16,10 +16,8 @@ model SocialPost {
   contentLI   String?
   contentIG   String?
   imagePrompt String?
-  imageUrl    String?
 
-  status      String   @default("draft") // draft | scheduled | published | failed
-  scheduledAt DateTime?
+  status      String   @default("draft") // draft | published | failed
   publishedAt DateTime?
 
   linkedinPostId  String?
@@ -28,36 +26,14 @@ model SocialPost {
 }
 
 model SocialConfig {
-  id              Int      @id @default(1)
-  companyName     String   @default("Levad")
-  companyDesc     String   @default("Levad est spécialisé dans les solutions d'impression, téléphonie, informatique et GED pour les entreprises.")
-  tone            String   @default("professionnel")
-  targetAudience  String   @default("dirigeants et responsables IT de PME")
-  topics          String   @default("impression,téléphonie,informatique,GED,productivité")
-  scheduleDays    String   @default("mardi,jeudi")
-  scheduleHour    Int      @default(9)
-  linkedinEnabled Boolean  @default(false)
-  instagramEnabled Boolean @default(false)
-  updatedAt       DateTime @updatedAt
-}
-
-model Lead {
-  id         Int      @id @default(autoincrement())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  firstName  String
-  lastName   String
-  email      String
-  phone      String?
-  company    String?
-  jobTitle   String?
-
-  product    String
-  message    String?
-
-  status     String   @default("nouveau")
-  source     String   @default("formulaire")
-  notes      String?
-  assignedTo String?
+  id               Int      @id @default(1)
+  companyName      String   @default("Levad")
+  companyDesc      String   @default("Levad est spécialisé dans les solutions d'impression, téléphonie, informatique et GED pour les entreprises.")
+  tone             String   @default("professionnel")
+  targetAudience   String   @default("dirigeants et responsables IT de PME")
+  topics           String   @default("impression,téléphonie,informatique,GED,productivité")
+  notifyEmail      String   @default("mobadia@levad.fr")
+  linkedinEnabled  Boolean  @default(false)
+  instagramEnabled Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
 }

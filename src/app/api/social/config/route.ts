@@ -3,9 +3,7 @@ import { prisma } from '@/lib/db'
 
 export async function GET() {
   let config = await prisma.socialConfig.findFirst({ where: { id: 1 } })
-  if (!config) {
-    config = await prisma.socialConfig.create({ data: { id: 1 } })
-  }
+  if (!config) config = await prisma.socialConfig.create({ data: { id: 1 } })
   return NextResponse.json({ config })
 }
 
