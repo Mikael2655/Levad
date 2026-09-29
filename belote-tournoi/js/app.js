@@ -657,9 +657,23 @@
       : '<button class="btn small" data-act="set-phase" data-phase="pools">Poules</button>' +
         (fmt() === 'pools' ? '<button class="btn small" data-act="set-phase" data-phase="bracket">Phase finale</button>' : '') +
         '<button class="btn small" data-act="set-phase" data-phase="done">Terminé</button>';
+    var resize = '';
+    if (fmt() !== 'ko' && !(fmt() === 'pools' && c.bracket)) {
+      resize = '<div style="height:20px"></div><h3>Taille du tournoi</h3>' +
+        '<p class="sub">Ajustez si des équipes s\'ajoutent : les équipes et scores déjà saisis sont conservés. ' +
+        'On ne peut retirer que des places encore libres.</p>' +
+        '<div class="field-2">' +
+        '<div><label>Nombre de poules</label><input id="rz-pools" type="number" min="1" max="26" value="' + c.numPools + '"></div>' +
+        '<div><label>Équipes / poule</label><input id="rz-size" type="number" min="2" max="10" value="' + poolSize() + '"></div></div>' +
+        '<button class="btn small block" data-act="resize" style="margin-top:8px">Appliquer la nouvelle taille</button>';
+    } else if (fmt() === 'pools' && c.bracket) {
+      resize = '<div style="height:20px"></div><h3>Taille du tournoi</h3>' +
+        '<p class="sub">Le tableau final est déjà lancé : la taille des poules ne peut plus être modifiée.</p>';
+    }
     return '<div class="card"><h2>Réglages</h2>' +
       '<p class="sub">« ' + esc(c.name) + ' » — ' + formatLabel(fmt()) + '.</p>' +
       '<label>Phase</label><div class="btn-row">' + phases + '</div>' +
+      resize +
       '<div style="height:16px"></div>' +
       '<button class="btn small block" data-act="lock-admin">Verrouiller l\'administration</button>' +
       '<div style="height:20px"></div><h3>Zone dangereuse</h3>' +
@@ -772,6 +786,17 @@
     if (act === 'admin-unlock') return adminUnlock();
     if (act === 'start-bracket') return startBracket();
     if (act === 'set-phase') { DB.setPhase(tid, a.getAttribute('data-phase')).then(function () { toast('Phase mise à jour.'); }); return; }
+    if (act === 'resize') {
+      var np = Math.max(1, Math.min(26, parseInt(document.getElementById('rz-pools').value, 10) || 1));
+      var ps = Math.max(2, Math.min(10, parseInt(document.getElementById('rz-size').value, 10) || 4));
+      DB.resizeTournament(tid, np, ps).then(function () {
+        ui.poolTab = 'A'; toast('Taille mise à jour : ' + np + ' poule(s) de ' + ps + '.'); render();
+      }, function (e) {
+        var m = (e && e.message) || '';
+        toast(/ASSIGNED_IN_REMOVED/.test(m) ? 'Retirez d\'abord les équipes des places à supprimer.' : ('Erreur : ' + m));
+      });
+      return;
+    }
     if (act === 'lock-admin') { sessionStorage.removeItem('bt:admin:' + tid); go('#/classement'); return; }
     if (act === 'reset') {
       modalConfirm('Supprimer définitivement ce tournoi ?', 'Supprimer').then(function (ok) {

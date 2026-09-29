@@ -92,6 +92,31 @@
       return a;
     });
   };
+  // Redimensionne un tournoi à poules : ajoute les places/poules manquantes,
+  // supprime celles en trop SI elles sont vides ; conserve équipes et scores.
+  FirebaseDB.prototype.resizeTournament = function (tid, numPools, poolSize) {
+    var self = this, doc = this._doc(tid);
+    return Promise.all([doc.collection('teams').get(), doc.collection('matches').get()]).then(function (res) {
+      var teams = []; res[0].forEach(function (d) { teams.push(d.data()); });
+      var haveMatch = {}; res[1].forEach(function (d) { haveMatch[d.id] = d.data(); });
+      var desiredTeams = L.makeTeams(numPools, poolSize), desiredIds = {};
+      desiredTeams.forEach(function (t) { desiredIds[t.id] = t; });
+      if (teams.some(function (t) { return !desiredIds[t.id] && t.assigned; }))
+        return Promise.reject(new Error('ASSIGNED_IN_REMOVED'));
+      var curIds = {}; teams.forEach(function (t) { curIds[t.id] = t; });
+      var batch = self.fb.batch();
+      desiredTeams.forEach(function (dt) { if (!curIds[dt.id]) batch.set(doc.collection('teams').doc(dt.id), dt); });
+      teams.forEach(function (t) { if (!desiredIds[t.id]) batch.delete(doc.collection('teams').doc(t.id)); });
+      var desiredMatches = L.makePoolMatches(numPools, poolSize), desiredMIds = {};
+      desiredMatches.forEach(function (m) { desiredMIds[m.id] = m; });
+      desiredMatches.forEach(function (dm) { if (!haveMatch[dm.id]) batch.set(doc.collection('matches').doc(dm.id), dm); });
+      Object.keys(haveMatch).forEach(function (id) {
+        if (haveMatch[id].phase === 'pool' && !desiredMIds[id]) batch.delete(doc.collection('matches').doc(id));
+      });
+      batch.set(doc, { numPools: numPools, poolSize: poolSize }, { merge: true });
+      return batch.commit();
+    });
+  };
   FirebaseDB.prototype.resetTournament = function (tid) {
     var self = this, doc = this._doc(tid);
     function delAll(col) {
@@ -229,6 +254,29 @@
     localStorage.setItem(this._key(tid, 'teams'), JSON.stringify(teams));
     localStorage.setItem(this._key(tid, 'matches'), JSON.stringify(matches));
     return this._write(tid, 'config', Object.assign({ id: tid, createdAt: now() }, config));
+  };
+  LocalDB.prototype.resizeTournament = function (tid, numPools, poolSize) {
+    var cfg = this._read(tid, 'config', null);
+    if (!cfg) return Promise.reject(new Error('NO_CONFIG'));
+    var teams = this._read(tid, 'teams', []);
+    var matches = this._read(tid, 'matches', {});
+    var desiredTeams = L.makeTeams(numPools, poolSize), desiredIds = {};
+    desiredTeams.forEach(function (t) { desiredIds[t.id] = t; });
+    if (teams.some(function (t) { return !desiredIds[t.id] && t.assigned; }))
+      return Promise.reject(new Error('ASSIGNED_IN_REMOVED'));
+    var curById = {}; teams.forEach(function (t) { curById[t.id] = t; });
+    var newTeams = desiredTeams.map(function (dt) { return curById[dt.id] || dt; });
+    var desiredMatches = L.makePoolMatches(numPools, poolSize), desiredMIds = {};
+    desiredMatches.forEach(function (m) { desiredMIds[m.id] = m; });
+    var newMatches = {};
+    Object.keys(matches).forEach(function (id) { if (matches[id].phase !== 'pool') newMatches[id] = matches[id]; });
+    desiredMatches.forEach(function (dm) {
+      newMatches[dm.id] = (matches[dm.id] && matches[dm.id].phase === 'pool') ? matches[dm.id] : dm;
+    });
+    cfg.numPools = numPools; cfg.poolSize = poolSize;
+    localStorage.setItem(this._key(tid, 'teams'), JSON.stringify(newTeams));
+    localStorage.setItem(this._key(tid, 'matches'), JSON.stringify(newMatches));
+    return this._write(tid, 'config', cfg);
   };
   LocalDB.prototype.resetTournament = function (tid) {
     localStorage.removeItem(this._key(tid, 'teams'));
