@@ -388,8 +388,9 @@
       '<p class="sub">Saisissez vos scores : l\'équipe adverse valide, et tout remonte à l\'organisateur.</p></div>';
 
     var mine = [];
+    var pOrder = L.poolMatchOrder(poolSize());
     store.matches.filter(function (m) { return m.phase === 'pool' && (m.teamA === myId || m.teamB === myId); })
-      .sort(function (a, b) { return a.id < b.id ? -1 : 1; })
+      .sort(function (a, b) { return (pOrder[a.slotA + '-' + a.slotB] || 0) - (pOrder[b.slotA + '-' + b.slotB] || 0); })
       .forEach(function (m) { mine.push({ m: m, title: null }); });
     var br = currentBracket();
     if (br) {
@@ -573,8 +574,9 @@
     }).join('') + '</div>';
     var P = ui.poolTab;
     var html = '<div class="card"><h2>Poule ' + P + '</h2>' + tabs + standingsTable(standings[P]) + '</div>';
+    var order = L.poolMatchOrder(poolSize());
     var pm = store.matches.filter(function (m) { return m.phase === 'pool' && m.pool === P; })
-      .sort(function (a, b) { return a.id < b.id ? -1 : 1; });
+      .sort(function (a, b) { return (order[a.slotA + '-' + a.slotB] || 0) - (order[b.slotA + '-' + b.slotB] || 0); });
     html += '<div class="card"><h2>Matchs de la poule ' + P + '</h2>' +
       '<p class="sub">Saisissez le score de chaque rencontre (en ' + L.POOL_TARGET + ' points).</p>';
     pm.forEach(function (m) { html += matchCard(m); });

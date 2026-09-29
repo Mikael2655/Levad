@@ -39,9 +39,40 @@
   }
   var POOL_PAIRS = roundRobinPairs(4); // compat
 
+  // Calendrier round-robin (méthode du cercle) : tours successifs où chaque
+  // équipe joue une fois. Donne l'ordre de déroulement des parties, ex. pour
+  // 4 équipes : (1,2)(3,4) puis (1,3)(2,4) puis (1,4)(2,3).
+  function roundRobinSchedule(n) {
+    var rot = []; for (var i = 2; i <= n; i++) rot.push(i);
+    if (n % 2 === 1) rot.push(0); // 0 = exempt (poule impaire)
+    function ord(a, b) { return a < b ? [a, b] : [b, a]; }
+    var rounds = [];
+    for (var r = 0; r < rot.length; r++) {
+      var pairs = [];
+      if (rot[0] !== 0) pairs.push(ord(1, rot[0]));
+      var i = 1, j = rot.length - 1;
+      while (i < j) { if (rot[i] !== 0 && rot[j] !== 0) pairs.push(ord(rot[i], rot[j])); i++; j--; }
+      rounds.push(pairs);
+      rot.push(rot.shift());
+    }
+    return rounds;
+  }
+  // Liste plate des rencontres dans l'ordre de jeu.
+  function scheduledPairs(n) {
+    var out = [];
+    roundRobinSchedule(n).forEach(function (rd) { rd.forEach(function (p) { out.push(p); }); });
+    return out;
+  }
+  // Index d'ordre de jeu pour trier les matchs : { "slotA-slotB": position }.
+  function poolMatchOrder(n) {
+    var map = {}, pairs = scheduledPairs(n);
+    for (var k = 0; k < pairs.length; k++) map[pairs[k][0] + '-' + pairs[k][1]] = k;
+    return map;
+  }
+
   function makePoolMatches(numPools, poolSize) {
     poolSize = poolSize || 4;
-    var pairs = roundRobinPairs(poolSize);
+    var pairs = scheduledPairs(poolSize);
     var matches = [];
     for (var p = 0; p < numPools; p++) {
       var L = poolLabel(p);
@@ -393,6 +424,7 @@
     POOL_TARGET: POOL_TARGET, KO_BIG_TARGET: KO_BIG_TARGET, POOL_PAIRS: POOL_PAIRS,
     poolLabel: poolLabel, poolIndex: poolIndex,
     makeTeams: makeTeams, makePoolMatches: makePoolMatches, roundRobinPairs: roundRobinPairs,
+    scheduledPairs: scheduledPairs, poolMatchOrder: poolMatchOrder,
     makeKoTeams: makeKoTeams, koBracket: koBracket,
     matchPoints: matchPoints, scoreOf: scoreOf,
     poolStandings: poolStandings, allStandings: allStandings, poolProgress: poolProgress,
