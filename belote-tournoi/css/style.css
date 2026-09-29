@@ -108,7 +108,15 @@ input[type="number"] { -moz-appearance: textfield; }
 .menu-tile span { color: var(--muted); font-size: .86rem; }
 
 /* Classement (tableau de poule) */
-.standings { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.standings { width: 100%; border-collapse: collapse; font-size: .9rem; table-layout: fixed; }
+.standings col.c-rank { width: 30px; }
+.standings col.c-n { width: 40px; }
+.standings col.c-diff { width: 56px; }
+.standings col.c-q { width: 48px; }
+.standings td.name { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+.standings.compact col.c-rank { width: 22px; }
+.standings.compact col.c-n { width: 26px; }
+.standings.compact col.c-diff { width: 46px; }
 .standings th, .standings td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line); }
 .standings th { color: var(--muted); font-weight: 600; font-size: .74rem; text-transform: uppercase; letter-spacing: .3px; }
 .standings td.name { text-align: left; font-weight: 600; }

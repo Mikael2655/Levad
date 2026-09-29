@@ -317,7 +317,9 @@
         '<td class="pts-col">' + r.pts + '</td>' +
         '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td></tr>';
     }).join('');
-    return '<table class="standings"><thead><tr>' +
+    return '<table class="standings">' +
+      '<colgroup><col class="c-rank"><col><col class="c-n"><col class="c-n"><col class="c-n"><col class="c-diff"></colgroup>' +
+      '<thead><tr>' +
       '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>V</th><th>Pts</th><th>+/-</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table>';
   }
@@ -331,7 +333,9 @@
         '<td class="pts-col">' + r.pts + '</td>' +
         '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td></tr>';
     }).join('');
-    return '<table class="standings compact"><thead><tr>' +
+    return '<table class="standings compact">' +
+      '<colgroup><col class="c-rank"><col><col class="c-n"><col class="c-n"><col class="c-diff"></colgroup>' +
+      '<thead><tr>' +
       '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>Pts</th><th>+/-</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table>';
   }
@@ -345,7 +349,9 @@
         '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td>' +
         '<td>' + (inn ? '✅' : '—') + '</td></tr>';
     }).join('');
-    return '<table class="standings"><thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>Pts</th><th>+/-</th><th>Qual.</th></tr></thead><tbody>' + body + '</tbody></table>';
+    return '<table class="standings">' +
+      '<colgroup><col class="c-rank"><col><col class="c-n"><col class="c-diff"><col class="c-q"></colgroup>' +
+      '<thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>Pts</th><th>+/-</th><th>Qual.</th></tr></thead><tbody>' + body + '</tbody></table>';
   }
 
   /* ---- Tableau (bracket) ------------------------------------------- */
