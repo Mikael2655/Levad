@@ -656,7 +656,7 @@
     var teams = store.teams.filter(function (t) { return t.assigned; }).slice();
     var sort = ui.accesSort || 'poule';
     if (sort === 'saisie') {
-      teams.sort(function (a, b) { return (a.assignedAt || 0) - (b.assignedAt || 0); });
+      teams.sort(function (a, b) { return (b.assignedAt || 0) - (a.assignedAt || 0); });
     } else {
       teams.sort(function (a, b) {
         var ka = a.pool != null ? (a.pool + a.slot) : ('Z' + ('00' + a.pos).slice(-3));
@@ -667,7 +667,7 @@
     if (!teams.length) return '<div class="card"><p class="sub">Saisissez d\'abord les équipes (onglet Équipes).</p></div>';
     var toggle = '<div class="pool-tabs">' +
       '<span class="pill ' + (sort === 'poule' ? 'active' : '') + '" data-act="acces-sort" data-s="poule">Par poule</span>' +
-      '<span class="pill ' + (sort === 'saisie' ? 'active' : '') + '" data-act="acces-sort" data-s="saisie">Par ordre de saisie</span></div>';
+      '<span class="pill ' + (sort === 'saisie' ? 'active' : '') + '" data-act="acces-sort" data-s="saisie">Dernière saisie en 1er</span></div>';
     var cards = teams.map(function (t) {
       var link = teamLink(state.tid, t.id);
       var tag = t.pool != null ? (t.pool + t.slot) : ('Place ' + (t.pos + 1));
