@@ -263,15 +263,27 @@
     var standings = L.allStandings(c.numPools, store.teams, store.matches);
     var pools = poolList(c);
     if (pools.indexOf(ui.poolTab) < 0) ui.poolTab = pools[0];
+    var view = ui.standView || 'detail';
 
-    var html = backList() + '<div class="card"><h2>' + esc(c.name) + ' — Classement</h2>' + poolTabs(pools) +
-      standingsTable(standings[ui.poolTab]) +
+    var viewToggle = '<div class="pool-tabs">' +
+      '<span class="pill ' + (view === 'detail' ? 'active' : '') + '" data-act="stand-view" data-v="detail">Détaillé</span>' +
+      '<span class="pill ' + (view === 'condense' ? 'active' : '') + '" data-act="stand-view" data-v="condense">Condensé (toutes poules)</span></div>';
+
+    var body, legend =
       '<div class="legend">' +
         '<span><i style="background:var(--green)"></i>1er</span>' +
         '<span><i style="background:var(--gold)"></i>2e</span>' +
         '<span><i style="background:#9aa5a0"></i>3e</span>' +
-      '</div>' +
-      '<p class="sub" style="margin-top:8px">Départage : points, puis goal-average, puis total de points marqués.</p></div>';
+      '</div>';
+    if (view === 'condense') {
+      body = '<div class="standings-grid">' + pools.map(function (P) {
+        return '<div class="mini-pool"><h4>Poule ' + P + '</h4>' + compactStandingsTable(standings[P]) + '</div>';
+      }).join('') + '</div>' + legend;
+    } else {
+      body = poolTabs(pools) + standingsTable(standings[ui.poolTab]) + legend +
+        '<p class="sub" style="margin-top:8px">Départage : points, puis goal-average, puis total de points marqués.</p>';
+    }
+    var html = backList() + '<div class="card"><h2>' + esc(c.name) + ' — Classement</h2>' + viewToggle + body + '</div>';
 
     if (fmt() === 'pools') {
       var q = L.qualifiers(c.numPools, standings);
@@ -307,6 +319,20 @@
     }).join('');
     return '<table class="standings"><thead><tr>' +
       '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>V</th><th>Pts</th><th>GA</th><th>Marqués</th>' +
+      '</tr></thead><tbody>' + body + '</tbody></table>';
+  }
+  function compactStandingsTable(rows) {
+    if (!rows || !rows.length) return '<p class="sub">—</p>';
+    var body = rows.map(function (r) {
+      return '<tr class="qual-' + (r.rank <= 3 ? r.rank : 0) + '">' +
+        '<td class="rankbadge">' + r.rank + '</td>' +
+        '<td class="name">' + teamName(r.team) + '</td>' +
+        '<td>' + r.played + '</td>' +
+        '<td class="pts-col">' + r.pts + '</td>' +
+        '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td></tr>';
+    }).join('');
+    return '<table class="standings compact"><thead><tr>' +
+      '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>Pts</th><th>GA</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table>';
   }
   function thirdsTable(q) {
@@ -796,6 +822,7 @@
       return;
     }
     if (act === 'pool-tab') { ui.poolTab = a.getAttribute('data-pool'); render(); return; }
+    if (act === 'stand-view') { ui.standView = a.getAttribute('data-v'); render(); return; }
     if (act === 'admin-tab') { ui.adminTab = a.getAttribute('data-tab'); ui.lastDraw = null; render(); return; }
     if (act === 'acces-sort') { ui.accesSort = a.getAttribute('data-s'); render(); return; }
     if (act === 'admin-unlock') return adminUnlock();

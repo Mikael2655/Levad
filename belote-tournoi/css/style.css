@@ -174,6 +174,14 @@ input[type="number"] { -moz-appearance: textfield; }
 .hidden { display: none !important; }
 .muted { color: var(--muted); }
 
+/* Classement condensé : toutes les poules en grille (tient sur un écran PC) */
+.standings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.mini-pool { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--panel-2); }
+.mini-pool h4 { margin: 2px 0 6px; font-size: .85rem; }
+.standings.compact th, .standings.compact td { padding: 3px 4px; font-size: .8rem; }
+.standings.compact td.name { font-size: .82rem; }
+.standings.compact th { font-size: .64rem; }
+
 /* Fenêtre modale (remplace prompt/confirm) */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100;
