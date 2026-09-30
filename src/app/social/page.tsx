@@ -51,6 +51,7 @@ function SocialPageInner() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
   const [searchingUnsplash, setSearchingUnsplash] = useState(false)
   const [unsplashPhotos, setUnsplashPhotos] = useState<{ id: string; url: string; alt: string; author: string; link: string }[]>([])
+  const [unsplashPage, setUnsplashPage] = useState(1)
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -190,19 +191,18 @@ function SocialPageInner() {
     }
   }
 
-  async function handleSearchUnsplash() {
+  async function handleSearchUnsplash(page = 1) {
     if (!selected?.imagePrompt) return
     setSearchingUnsplash(true)
-    setGeneratedImageUrl(null)
-    setUnsplashPhotos([])
+    if (page === 1) { setGeneratedImageUrl(null); setUnsplashPhotos([]) }
     try {
       const res = await fetch('/api/social/unsplash', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: selected.imagePrompt }),
+        body: JSON.stringify({ prompt: selected.imagePrompt, page }),
       })
       const data = await res.json()
-      if (data.photos) setUnsplashPhotos(data.photos)
+      if (data.photos) { setUnsplashPhotos(data.photos); setUnsplashPage(page) }
       else showToast(data.error ?? 'Erreur recherche Unsplash', false)
     } finally {
       setSearchingUnsplash(false)
@@ -473,7 +473,13 @@ function SocialPageInner() {
                         )}
                         {unsplashPhotos.length > 0 && (
                           <div className="mt-3">
-                            <p className="text-xs text-purple-600 mb-2">Clique sur une photo pour la télécharger</p>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-purple-600">Clique sur une photo pour la télécharger</p>
+                              <button onClick={() => handleSearchUnsplash(unsplashPage + 1)} disabled={searchingUnsplash}
+                                className="text-xs text-purple-600 hover:underline disabled:opacity-50">
+                                {searchingUnsplash ? 'Chargement...' : '🔄 Autres photos'}
+                              </button>
+                            </div>
                             <div className="grid grid-cols-2 gap-2">
                               {unsplashPhotos.map(photo => (
                                 <a key={photo.id} href={photo.url} target="_blank" rel="noopener noreferrer" download>

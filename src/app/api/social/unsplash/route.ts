@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
-  const { prompt } = await req.json()
+  const { prompt, page = 1 } = await req.json()
   if (!prompt) return NextResponse.json({ error: 'Prompt manquant' }, { status: 400 })
 
   const accessKey = process.env.UNSPLASH_ACCESS_KEY
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     .join(' ')
 
   const res = await fetch(
-    `https://api.unsplash.com/search/photos?query=${encodeURIComponent(keywords)}&per_page=6&orientation=landscape`,
+    `https://api.unsplash.com/search/photos?query=${encodeURIComponent(keywords)}&per_page=6&page=${page}&orientation=landscape`,
     { headers: { Authorization: `Client-ID ${accessKey}` } }
   )
 
