@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
 
   // Map French topics to English Unsplash search terms
   const topicMap: Record<string, string> = {
-    'téléphonie': 'desk phone office landline business',
-    'telephonie': 'desk phone office landline business',
+    'téléphonie': 'office phone business meeting',
+    'telephonie': 'office phone business meeting',
     'impression': 'office printer document business',
     'informatique': 'computer office IT professional',
     'ged': 'document management office archive',
