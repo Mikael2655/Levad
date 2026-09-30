@@ -322,12 +322,19 @@ function SocialPageInner() {
                           {saving ? 'Sauvegarde...' : 'Sauvegarder'}
                         </button>
                         {selected.status !== 'published' && (
-                          <button onClick={handlePublish} disabled={publishing}
-                            className="px-4 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 font-semibold flex items-center gap-2">
-                            {publishing ? (
-                              <><svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Publication...</>
-                            ) : '✓ Publier'}
-                          </button>
+                          <>
+                            <button onClick={() => {
+                              const text = activeTab === 'linkedin' ? selected.contentLI : selected.contentIG
+                              if (text) { navigator.clipboard.writeText(text); showToast('Texte copié !') }
+                            }} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
+                              📋 Copier
+                            </button>
+                            <a href={`https://www.linkedin.com/feed/?shareActive=true`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                              Ouvrir LinkedIn →
+                            </a>
+                          </>
                         )}
                         {selected.status === 'published' && (
                           <span className="px-4 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg font-semibold">✓ Publié</span>
