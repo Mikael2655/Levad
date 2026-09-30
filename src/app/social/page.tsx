@@ -49,6 +49,8 @@ function SocialPageInner() {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
   const [generatingImage, setGeneratingImage] = useState(false)
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
+  const [searchingUnsplash, setSearchingUnsplash] = useState(false)
+  const [unsplashPhotos, setUnsplashPhotos] = useState<{ id: string; url: string; alt: string; author: string; link: string }[]>([])
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -173,6 +175,7 @@ function SocialPageInner() {
     if (!selected?.imagePrompt) return
     setGeneratingImage(true)
     setGeneratedImageUrl(null)
+    setUnsplashPhotos([])
     try {
       const res = await fetch('/api/social/image', {
         method: 'POST',
@@ -184,6 +187,25 @@ function SocialPageInner() {
       else showToast(data.error ?? 'Erreur génération image', false)
     } finally {
       setGeneratingImage(false)
+    }
+  }
+
+  async function handleSearchUnsplash() {
+    if (!selected?.imagePrompt) return
+    setSearchingUnsplash(true)
+    setGeneratedImageUrl(null)
+    setUnsplashPhotos([])
+    try {
+      const res = await fetch('/api/social/unsplash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: selected.imagePrompt }),
+      })
+      const data = await res.json()
+      if (data.photos) setUnsplashPhotos(data.photos)
+      else showToast(data.error ?? 'Erreur recherche Unsplash', false)
+    } finally {
+      setSearchingUnsplash(false)
     }
   }
 
@@ -424,14 +446,22 @@ function SocialPageInner() {
 
                     {selected.imagePrompt && (
                       <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
-                        <p className="text-xs font-semibold text-purple-700 mb-1 uppercase tracking-wide">Image</p>
+                        <p className="text-xs font-semibold text-purple-700 mb-1 uppercase tracking-wide">Image suggérée</p>
                         <p className="text-sm text-purple-900 italic mb-3">{selected.imagePrompt}</p>
-                        <button onClick={handleGenerateImage} disabled={generatingImage}
-                          className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition disabled:opacity-50 font-medium flex items-center gap-2">
-                          {generatingImage ? (
-                            <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Génération...</>
-                          ) : '🎨 Générer l\'image avec DALL-E'}
-                        </button>
+                        <div className="flex gap-2 flex-wrap">
+                          <button onClick={handleGenerateImage} disabled={generatingImage || searchingUnsplash}
+                            className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition disabled:opacity-50 font-medium flex items-center gap-2">
+                            {generatingImage ? (
+                              <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Génération...</>
+                            ) : '🎨 Générer avec IA'}
+                          </button>
+                          <button onClick={handleSearchUnsplash} disabled={generatingImage || searchingUnsplash}
+                            className="px-4 py-2 bg-white border border-purple-300 text-purple-700 text-sm rounded-lg hover:bg-purple-50 transition disabled:opacity-50 font-medium flex items-center gap-2">
+                            {searchingUnsplash ? (
+                              <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Recherche...</>
+                            ) : '🔍 Photos Unsplash'}
+                          </button>
+                        </div>
                         {generatedImageUrl && (
                           <div className="mt-3">
                             <img src={generatedImageUrl} alt="Image générée" className="w-full rounded-xl border border-purple-200" />
@@ -439,6 +469,19 @@ function SocialPageInner() {
                               className="mt-2 inline-block text-xs text-purple-600 hover:underline">
                               ⬇️ Télécharger l'image
                             </a>
+                          </div>
+                        )}
+                        {unsplashPhotos.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-xs text-purple-600 mb-2">Clique sur une photo pour la télécharger</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {unsplashPhotos.map(photo => (
+                                <a key={photo.id} href={photo.url} target="_blank" rel="noopener noreferrer" download>
+                                  <img src={photo.url} alt={photo.alt} className="w-full h-32 object-cover rounded-lg border border-purple-200 hover:opacity-80 transition cursor-pointer" />
+                                  <p className="text-xs text-gray-400 mt-0.5">📷 {photo.author}</p>
+                                </a>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
