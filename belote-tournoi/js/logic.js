@@ -105,16 +105,13 @@
 
   /* ---- Points d'un match de poule ---------------------------------- */
 
-  // Victoire = 1 pt ; victoire « au double » (vainqueur >= 2× perdant) = 2 pts ;
-  // défaite = 0. (Une égalité parfaite ne rapporte rien : impossible à 1500.)
+  // Victoire = 1 pt, défaite = 0. (Une égalité parfaite ne rapporte rien :
+  // impossible à 1500.) L'écart (rubicon ou non) ne change pas les points ;
+  // il n'intervient que via le goal-average au départage.
   function matchPoints(scoreA, scoreB) {
     if (scoreA == null || scoreB == null) return { a: 0, b: 0 };
     if (scoreA === scoreB) return { a: 0, b: 0 };
-    var aWins = scoreA > scoreB;
-    var winner = aWins ? scoreA : scoreB;
-    var loser = aWins ? scoreB : scoreA;
-    var pts = (winner >= 2 * loser) ? 2 : 1;
-    return aWins ? { a: pts, b: 0 } : { a: 0, b: pts };
+    return scoreA > scoreB ? { a: 1, b: 0 } : { a: 0, b: 1 };
   }
 
   function scoreOf(match) {
