@@ -1,7 +1,5 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function notifyPostReady(params: {
   postId: number
   topic: string
@@ -10,6 +8,7 @@ export async function notifyPostReady(params: {
   appUrl: string
   toEmail: string
 }) {
+  const resend = new Resend(process.env.RESEND_API_KEY)
   const { postId, topic, contentLI, contentIG, appUrl, toEmail } = params
   const reviewUrl = `${appUrl}/social?post=${postId}`
 
