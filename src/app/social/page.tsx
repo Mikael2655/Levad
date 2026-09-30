@@ -47,6 +47,8 @@ function SocialPageInner() {
   const [topic, setTopic] = useState('')
   const [activeTab, setActiveTab] = useState<'linkedin' | 'instagram'>('linkedin')
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
+  const [generatingImage, setGeneratingImage] = useState(false)
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -164,6 +166,24 @@ function SocialPageInner() {
       showToast('Configuration sauvegardée')
     } finally {
       setSavingConfig(false)
+    }
+  }
+
+  async function handleGenerateImage() {
+    if (!selected?.imagePrompt) return
+    setGeneratingImage(true)
+    setGeneratedImageUrl(null)
+    try {
+      const res = await fetch('/api/social/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: selected.imagePrompt }),
+      })
+      const data = await res.json()
+      if (data.imageUrl) setGeneratedImageUrl(data.imageUrl)
+      else showToast(data.error ?? 'Erreur génération image', false)
+    } finally {
+      setGeneratingImage(false)
     }
   }
 
@@ -397,9 +417,23 @@ function SocialPageInner() {
 
                     {selected.imagePrompt && (
                       <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
-                        <p className="text-xs font-semibold text-purple-700 mb-1 uppercase tracking-wide">Prompt image suggéré</p>
-                        <p className="text-sm text-purple-900 italic">{selected.imagePrompt}</p>
-                        <p className="text-xs text-purple-400 mt-1">Utilisez ce prompt sur Midjourney, DALL-E ou Leonardo pour générer un visuel.</p>
+                        <p className="text-xs font-semibold text-purple-700 mb-1 uppercase tracking-wide">Image</p>
+                        <p className="text-sm text-purple-900 italic mb-3">{selected.imagePrompt}</p>
+                        <button onClick={handleGenerateImage} disabled={generatingImage}
+                          className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition disabled:opacity-50 font-medium flex items-center gap-2">
+                          {generatingImage ? (
+                            <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Génération...</>
+                          ) : '🎨 Générer l\'image avec DALL-E'}
+                        </button>
+                        {generatedImageUrl && (
+                          <div className="mt-3">
+                            <img src={generatedImageUrl} alt="Image générée" className="w-full rounded-xl border border-purple-200" />
+                            <a href={generatedImageUrl} download="levad-post.png" target="_blank" rel="noopener noreferrer"
+                              className="mt-2 inline-block text-xs text-purple-600 hover:underline">
+                              ⬇️ Télécharger l'image
+                            </a>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
