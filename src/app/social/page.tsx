@@ -199,7 +199,7 @@ function SocialPageInner() {
       const res = await fetch('/api/social/unsplash', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: selected.imagePrompt, page }),
+        body: JSON.stringify({ topic: selected.topic, page }),
       })
       const data = await res.json()
       if (data.photos) { setUnsplashPhotos(data.photos); setUnsplashPage(page) }

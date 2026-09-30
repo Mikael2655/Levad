@@ -3,32 +3,24 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
-  const { prompt, page = 1 } = await req.json()
-  if (!prompt) return NextResponse.json({ error: 'Prompt manquant' }, { status: 400 })
+  const { topic, page = 1 } = await req.json()
+  if (!topic) return NextResponse.json({ error: 'Topic manquant' }, { status: 400 })
 
   const accessKey = process.env.UNSPLASH_ACCESS_KEY
   if (!accessKey) return NextResponse.json({ error: 'UNSPLASH_ACCESS_KEY manquante' }, { status: 500 })
 
-  // Extract meaningful keywords — skip common filler words
-  const stopwords = new Set([
-    'photo','realistic','taken','showing','their','using','with','from','that','this',
-    'they','have','been','were','will','would','could','should','small','large','french',
-    'simple','modern','typical','natural','slightly','genuine','relatable','staged','style',
-    'feeling','looking','working','sitting','standing','holding','background','environment',
-    'atmosphere','elements','setting','scene','image','picture','photography','documentary',
-    'imperfect','polished','overly','muted','tones','decor','space','open','american','lighting',
-    'soft','focused','calm','expression','casual','dressed','functional','cluttered','coming',
-    'through','while','which','about','after','before','between','during','without','within',
-    'around','against','along','across','behind','below','above','under','over',
-  ])
-
-  const keywords = prompt
-    .replace(/[^a-zA-Z0-9 ]/g, ' ')
-    .toLowerCase()
-    .split(' ')
-    .filter((w: string) => w.length > 3 && !stopwords.has(w))
-    .slice(0, 5)
-    .join(' ')
+  // Map French topics to English Unsplash search terms
+  const topicMap: Record<string, string> = {
+    'téléphonie': 'office phone business communication',
+    'telephonie': 'office phone business communication',
+    'impression': 'office printer document business',
+    'informatique': 'computer office IT professional',
+    'ged': 'document management office archive',
+    'productivité': 'productivity office work professional',
+    'productivite': 'productivity office work professional',
+  }
+  const topicLower = topic.toLowerCase()
+  const keywords = topicMap[topicLower] ?? `${topic} office business professional`
 
   const res = await fetch(
     `https://api.unsplash.com/search/photos?query=${encodeURIComponent(keywords)}&per_page=6&page=${page}&orientation=landscape`,
@@ -46,5 +38,5 @@ export async function POST(req: NextRequest) {
     link: p.links.html,
   }))
 
-  return NextResponse.json({ photos, keywords })
+  return NextResponse.json({ photos, keywords, topic })
 }
