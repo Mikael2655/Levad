@@ -1,6 +1,17 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
+
+async function translateToEnglish(text: string): Promise<string> {
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 128,
+    messages: [{ role: 'user', content: `Translate to English, return only the translation:\n\n${text}` }],
+  })
+  return msg.content[0].type === 'text' ? msg.content[0].text.trim() : text
+}
 
 export async function POST(req: NextRequest) {
   const { topic, page = 1 } = await req.json()
@@ -20,7 +31,7 @@ export async function POST(req: NextRequest) {
     'productivite': 'productivity office work professional',
   }
   const topicLower = topic.toLowerCase()
-  const keywords = topicMap[topicLower] ?? `${topic} office business professional`
+  const keywords = topicMap[topicLower] ?? await translateToEnglish(`${topic} office professional`)
 
   const res = await fetch(
     `https://api.unsplash.com/search/photos?query=${encodeURIComponent(keywords)}&per_page=6&page=${page}&orientation=landscape`,
