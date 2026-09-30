@@ -59,10 +59,10 @@ mode local (un seul appareil), seul l'organisateur peut saisir.
 - Les **2 premiers** de chaque poule + les **meilleurs 3es** (autant que
   nécessaire) sont qualifiés. Le tableau a une taille en puissance de 2 :
   **6 poules → 1/8 de finale à 16 équipes**.
-- **1/8** et **1/4** en 1500 points : seule la victoire compte.
-- **1/2** en **2000 points**. **Petite finale** (3e place) en 2000 points.
-- **Finale** : match **aller / retour**, plus la **belle** si 1 partout. Il faut
-  **2 victoires** pour être sacré.
+- **Tous les matchs se jouent en 1500 points** (1/8, 1/4, 1/2 : seule la
+  victoire compte, pas de différence).
+- **Finale** et **petite finale** (3e place) : au **meilleur des 3**
+  (2 manches gagnantes) — aller, retour, et **belle** si 1-1.
 
 ## Sauvegarde en ligne (optionnel : Firebase)
 
