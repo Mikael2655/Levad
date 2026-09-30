@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ imageUrl })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Erreur inconnue'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    const detail = (e as Record<string, unknown>)?.status ?? (e as Record<string, unknown>)?.code ?? ''
+    const keyPresent = !!process.env.OPENAI_API_KEY
+    return NextResponse.json({ error: msg, detail, keyPresent }, { status: 500 })
   }
 }
