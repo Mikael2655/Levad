@@ -105,16 +105,13 @@
 
   /* ---- Points d'un match de poule ---------------------------------- */
 
-  // Victoire = 1 pt ; victoire « au double » (vainqueur >= 2× perdant) = 2 pts ;
-  // défaite = 0. (Une égalité parfaite ne rapporte rien : impossible à 1500.)
+  // Victoire = 1 pt, défaite = 0. (Une égalité parfaite ne rapporte rien :
+  // impossible à 1500.) L'écart (rubicon ou non) ne change pas les points ;
+  // il n'intervient que via le goal-average au départage.
   function matchPoints(scoreA, scoreB) {
     if (scoreA == null || scoreB == null) return { a: 0, b: 0 };
     if (scoreA === scoreB) return { a: 0, b: 0 };
-    var aWins = scoreA > scoreB;
-    var winner = aWins ? scoreA : scoreB;
-    var loser = aWins ? scoreB : scoreA;
-    var pts = (winner >= 2 * loser) ? 2 : 1;
-    return aWins ? { a: pts, b: 0 } : { a: 0, b: pts };
+    return scoreA > scoreB ? { a: 1, b: 0 } : { a: 0, b: 1 };
   }
 
   function scoreOf(match) {
@@ -303,30 +300,18 @@
     return w === a ? b : a;
   }
 
-  // Finale en aller-retour. Chaque manche gagnée rapporte 1 point, ou 2 si
-  // elle est gagnée « au rubicon » (vainqueur >= 2× perdant). On joue TOUJOURS
-  // l'aller ET le retour (jamais décidé après la seule aller). À égalité de
-  // points après les deux manches, une belle (3e manche) départage.
+  // Finale au meilleur des 3 (2 manches gagnantes) : aller, retour, puis belle
+  // si 1-1. On joue toujours l'aller ET le retour ; la belle départage à 1-1.
   function finalWinner(legs, a, b) {
-    if (!a || !b) return { winner: null, ptsA: 0, ptsB: 0, needBelle: false, played: 0 };
-    var ptsA = 0, ptsB = 0, played = 0;
-    for (var i = 0; i < 2; i++) {
-      var sc = scoreOf(legs[i]);
-      if (!sc) continue;
-      played++;
-      var mp = matchPoints(sc.a, sc.b);
-      ptsA += mp.a; ptsB += mp.b;
-    }
-    var winner = null, needBelle = false;
-    if (played >= 2) {
-      if (ptsA > ptsB) winner = a;
-      else if (ptsB > ptsA) winner = b;
-      else {
-        var belle = winnerOf(legs[2], a, b);
-        if (belle) winner = belle; else needBelle = true;
-      }
-    }
-    return { winner: winner, ptsA: ptsA, ptsB: ptsB, needBelle: needBelle, played: played };
+    if (!a || !b) return { winner: null, winsA: 0, winsB: 0, needBelle: false };
+    var winsA = 0, winsB = 0;
+    legs.forEach(function (leg) {
+      var w = winnerOf(leg, a, b);
+      if (w === a) winsA++; else if (w === b) winsB++;
+    });
+    var winner = winsA >= 2 ? a : (winsB >= 2 ? b : null);
+    var needBelle = !winner && winsA === 1 && winsB === 1;
+    return { winner: winner, winsA: winsA, winsB: winsB, needBelle: needBelle };
   }
 
   // Construit l'état complet du tableau à partir des scores enregistrés.
@@ -352,8 +337,8 @@
         var fw = finalWinner(legs, a, b);
         finalInfo = {
           key: 'final', teamsIn: 2, target: KO_BIG_TARGET, bestOf: 3,
-          teamA: a, teamB: b, legs: legs, ptsA: fw.ptsA, ptsB: fw.ptsB,
-          needBelle: fw.needBelle, winner: fw.winner, played: fw.played
+          teamA: a, teamB: b, legs: legs, winsA: fw.winsA, winsB: fw.winsB,
+          needBelle: fw.needBelle, winner: fw.winner
         };
         rounds.push(finalInfo);
         champion = fw.winner;

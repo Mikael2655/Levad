@@ -52,8 +52,8 @@ mode local (un seul appareil), seul l'organisateur peut saisir.
 
 - **Poules de 4 équipes** (au moins 6 poules recommandées). Chaque équipe
   rencontre les 3 autres.
-- Matchs de poule en **1500 points**. **Victoire = 1 pt**, **victoire au double**
-  (vainqueur ≥ 2× le score adverse) **= 2 pts**, **défaite = 0**.
+- Matchs de poule en **1500 points**. **Victoire = 1 pt**, **défaite = 0**
+  (l'écart de score ne change pas les points).
 - Départage : **points**, puis **goal-average** (différence de points), puis
   **total de points marqués**.
 - Les **2 premiers** de chaque poule + les **meilleurs 3es** (autant que

@@ -398,10 +398,9 @@
       rows += '<div style="font-size:.72rem;color:var(--muted);margin:2px 0">' + lbl + '</div>' + bmatch(f.teamA, f.teamB, res, w);
     }
     rows += '<div style="text-align:center;font-size:.8rem;margin-top:4px">' +
-      (teamTag(f.teamA) || 'A') + ' <b>' + f.ptsA + '</b> – <b>' + f.ptsB + '</b> ' + (teamTag(f.teamB) || 'B') +
-      ' <span class="muted">pts</span>' +
-      (f.played < 2 ? '<br><span class="muted" style="font-size:.72rem">aller + retour obligatoires</span>' :
-        (f.needBelle ? '<br><span class="muted" style="font-size:.72rem">égalité → belle</span>' : '')) + '</div>';
+      (teamTag(f.teamA) || 'A') + ' <b>' + f.winsA + '</b> – <b>' + f.winsB + '</b> ' + (teamTag(f.teamB) || 'B') +
+      ' <span class="muted">manche(s)</span>' +
+      (f.needBelle ? '<br><span class="muted" style="font-size:.72rem">1-1 → belle décisive</span>' : '') + '</div>';
     return rows;
   }
   function legHasScore(res) { return !!L.scoreOf(res); }
