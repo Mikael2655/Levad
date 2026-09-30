@@ -458,7 +458,7 @@ function SocialPageInner() {
                         <input
                           type="text"
                           placeholder="Mots-clés Unsplash (ex: office meeting professional)"
-                          value={customUnsplashKeywords ?? ''}
+                          value={customUnsplashKeywords ?? selected.topic}
                           onChange={e => setCustomUnsplashKeywords(e.target.value || null)}
                           className="w-full text-sm border border-purple-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 mb-3"
                         />
