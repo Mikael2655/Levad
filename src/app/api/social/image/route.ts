@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
     const response = await openai.images.generate({
-      model: 'dall-e-3',
+      model: 'gpt-image-1',
       prompt: prompt,
       n: 1,
       size: '1024x1024',
