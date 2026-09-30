@@ -336,7 +336,7 @@
         });
         var fw = finalWinner(legs, a, b);
         finalInfo = {
-          key: 'final', teamsIn: 2, target: KO_BIG_TARGET, bestOf: 3,
+          key: 'final', teamsIn: 2, target: POOL_TARGET, bestOf: 3,
           teamA: a, teamB: b, legs: legs, winsA: fw.winsA, winsB: fw.winsB,
           needBelle: fw.needBelle, winner: fw.winner
         };
@@ -344,7 +344,7 @@
         champion = fw.winner;
         break;
       }
-      var target = teamsIn <= 4 ? KO_BIG_TARGET : POOL_TARGET;
+      var target = POOL_TARGET; // tous les matchs se jouent en 1500
       var matches = [];
       var nextParticipants = [];
       for (var k = 0; k < teamsIn / 2; k++) {
@@ -368,14 +368,16 @@
       rIdx++;
     }
 
-    // Petite finale (3e place) entre les 2 perdants de 1/2.
+    // Petite finale (3e place) entre les 2 perdants de 1/2, au meilleur des 3.
     var thirdPlace = null;
     if (sfLosers) {
-      var res3 = results['p3'] || null;
       var la = sfLosers[0], lb = sfLosers[1];
+      var legs3 = ['p3-0', 'p3-1', 'p3-2'].map(function (id) { return results[id] || null; });
+      var fw3 = finalWinner(legs3, la, lb);
       thirdPlace = {
-        id: 'p3', key: 'p3', target: KO_BIG_TARGET, bestOf: 1,
-        teamA: la, teamB: lb, result: res3, winner: winnerOf(res3, la, lb)
+        id: 'p3', key: 'p3', target: POOL_TARGET, bestOf: 3,
+        teamA: la, teamB: lb, legs: legs3, winsA: fw3.winsA, winsB: fw3.winsB,
+        needBelle: fw3.needBelle, winner: fw3.winner
       };
     }
     return { rounds: rounds, thirdPlace: thirdPlace, size: size,
@@ -399,8 +401,10 @@
       }
     });
     if (resolved.thirdPlace) {
-      list.push({ id: 'p3', key: 'p3', teamA: resolved.thirdPlace.teamA,
-        teamB: resolved.thirdPlace.teamB, target: resolved.thirdPlace.target });
+      for (var j = 0; j < 3; j++) {
+        list.push({ id: 'p3-' + j, key: 'p3', leg: j,
+          teamA: resolved.thirdPlace.teamA, teamB: resolved.thirdPlace.teamB, target: resolved.thirdPlace.target });
+      }
     }
     return list;
   }
