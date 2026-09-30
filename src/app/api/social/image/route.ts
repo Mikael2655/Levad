@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
       quality: 'high',
     })
 
-    const imageUrl = response.data?.[0]?.url
+    const item = response.data?.[0]
+    const imageUrl = item?.url ?? (item?.b64_json ? `data:image/png;base64,${item.b64_json}` : null)
     return NextResponse.json({ imageUrl })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Erreur inconnue'
