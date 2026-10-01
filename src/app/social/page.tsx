@@ -107,6 +107,21 @@ function SocialPageInner() {
     }
   }
 
+  async function handleMarkPublished() {
+    if (!selected) return
+    const res = await fetch('/api/social/posts', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: selected.id, status: 'published', publishedAt: new Date().toISOString() }),
+    })
+    const data = await res.json()
+    if (data.post) {
+      setSelected(data.post)
+      await loadPosts()
+      showToast('Marqué comme publié')
+    }
+  }
+
   async function handleSave() {
     if (!selected) return
     setSaving(true)
@@ -114,7 +129,7 @@ function SocialPageInner() {
       const res = await fetch('/api/social/posts', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: selected.id, contentLI: selected.contentLI, contentIG: selected.contentIG }),
+        body: JSON.stringify({ id: selected.id, topic: selected.topic, contentLI: selected.contentLI, contentIG: selected.contentIG }),
       })
       const data = await res.json()
       if (data.post) {
@@ -353,14 +368,19 @@ function SocialPageInner() {
                   {/* Post header */}
                   <div className="px-6 py-4 border-b border-gray-100">
                     <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h2 className="font-semibold text-gray-900 text-lg">{selected.topic}</h2>
+                      <div className="flex-1 min-w-0">
+                        <input
+                          value={selected.topic}
+                          onChange={e => setSelected({ ...selected, topic: e.target.value })}
+                          disabled={selected.status === 'published'}
+                          className="font-semibold text-gray-900 text-lg bg-transparent border-b border-transparent hover:border-gray-300 focus:border-brand-800 focus:outline-none w-full disabled:cursor-default"
+                        />
                         <p className="text-xs text-gray-400 mt-0.5">
                           Généré le {new Date(selected.createdAt).toLocaleString('fr-FR')}
                           {selected.publishedAt && ` · Publié le ${new Date(selected.publishedAt).toLocaleString('fr-FR')}`}
                         </p>
                       </div>
-                      <div className="flex gap-2 shrink-0">
+                      <div className="flex gap-2 shrink-0 flex-wrap justify-end">
                         <button onClick={handleSave} disabled={saving || selected.status === 'published'}
                           className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-40 font-medium">
                           {saving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -373,11 +393,16 @@ function SocialPageInner() {
                             }} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
                               📋 Copier
                             </button>
-                            <a href="https://www.linkedin.com/feed/?shareActive=true"
-                              target="_blank" rel="noopener noreferrer"
-                              className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
-                              Ouvrir LinkedIn →
-                            </a>
+                            <button onClick={handlePublish} disabled={publishing}
+                              className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition disabled:opacity-50 font-semibold flex items-center gap-2">
+                              {publishing ? (
+                                <><svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Publication...</>
+                              ) : '🔗 Publier sur LinkedIn'}
+                            </button>
+                            <button onClick={handleMarkPublished}
+                              className="px-3 py-1.5 text-sm border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition font-medium">
+                              ✓ Marquer publié
+                            </button>
                           </>
                         )}
                         {selected.status === 'published' && (
