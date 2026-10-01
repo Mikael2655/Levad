@@ -5,8 +5,24 @@ import { prisma } from '@/lib/db'
 import { generateSocialPosts, selectTopic } from '@/lib/claude-ai'
 import { notifyPostReady } from '@/lib/email'
 
-// Vercel Cron: "0 7 * * 2,4" (mardi + jeudi 7h UTC = 8h ou 9h Paris)
-// Génère un post et planifie sa publication le même jour à 9h (heure de Paris)
+// Vercel Cron: "0 7 * * 1,3" (lundi + mercredi 7h UTC)
+// Génère un brouillon et propose une publication le lendemain (mardi/jeudi) à 18h heure de Paris
+function parisOffsetHours(at: Date): number {
+  const part = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', timeZoneName: 'shortOffset' })
+    .formatToParts(at).find(p => p.type === 'timeZoneName')?.value ?? 'GMT+1'
+  const m = part.match(/GMT([+-]\d+)/)
+  return m ? parseInt(m[1], 10) : 1
+}
+
+function tomorrowAtParisHour(hour: number): Date {
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .formatToParts(tomorrow)
+  const get = (t: string) => parseInt(parts.find(p => p.type === t)!.value, 10)
+  const guess = new Date(Date.UTC(get('year'), get('month') - 1, get('day'), hour))
+  return new Date(guess.getTime() - parisOffsetHours(guess) * 60 * 60 * 1000)
+}
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -40,10 +56,7 @@ export async function GET(req: NextRequest) {
       targetAudience: config.targetAudience,
     })
 
-    // Planifie la publication à 9h heure de Paris (UTC+1 hiver / UTC+2 été)
-    // Le cron tourne à 7h UTC, on planifie 2h plus tard = 9h UTC = 10h-11h Paris
-    const scheduledAt = new Date()
-    scheduledAt.setUTCHours(9, 0, 0, 0)
+    const scheduledAt = tomorrowAtParisHour(18)
 
     const post = await prisma.socialPost.create({
       data: {
