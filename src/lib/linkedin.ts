@@ -7,7 +7,7 @@ export async function publishToLinkedIn(content: string, accessToken: string, pe
       'X-Restli-Protocol-Version': '2.0.0',
     },
     body: JSON.stringify({
-      author: `urn:li:person:${personUrn}`,
+      author: personUrn,
       lifecycleState: 'PUBLISHED',
       specificContent: {
         'com.linkedin.ugc.ShareContent': {
