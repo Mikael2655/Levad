@@ -1,0 +1,65 @@
+# Publie les applications statiques du dépôt sur GitHub Pages.
+#   • hebreu-vocab/    → à la racine du site (https://<user>.github.io/Levad/)
+#   • belote/          → sous /belote/          (compteur de points)
+#   • belote-tournoi/  → sous /belote-tournoi/  (gestion de tournoi)
+#   • proposition-commerciale/ → sous /proposition-commerciale/  (ancien
+#     emplacement de l'outil SA/SP + offre — repris désormais dans le dépôt
+#     dédié levad-simulateur, avec le domaine simulateur.levad.fr)
+#   • gestion/         → sous /gestion/         (CRM/ERP interne : clients,
+#     contrats, machines, facturation, SEPA)
+# Le reste du dépôt (projet Next.js) n'est pas publié.
+#
+# Activation (une seule fois) : Settings → Pages → Source : "GitHub Actions"
+
+name: Déployer les apps sur GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "hebreu-vocab/**"
+      - "belote/**"
+      - "belote-tournoi/**"
+      - "proposition-commerciale/**"
+      - "gestion/**"
+      - ".github/workflows/deploy-hebreu-vocab.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assembler le site (hébreu à la racine, belote et tournoi en sous-dossiers)
+        run: |
+          mkdir -p _site
+          cp -r hebreu-vocab/. _site/
+          mkdir -p _site/belote
+          cp -r belote/. _site/belote/
+          mkdir -p _site/belote-tournoi
+          cp -r belote-tournoi/. _site/belote-tournoi/
+          mkdir -p _site/proposition-commerciale
+          cp -r proposition-commerciale/. _site/proposition-commerciale/
+          mkdir -p _site/gestion
+          cp -r gestion/. _site/gestion/
+      - uses: actions/configure-pages@v5
+        with:
+          # Active GitHub Pages automatiquement si le compte le permet
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

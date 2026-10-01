@@ -1,0 +1,1042 @@
+/* ============================================================
+   Mon vocabulaire hébreu — styles
+   Mobile d'abord, s'adapte aux grands écrans.
+   ============================================================ */
+
+:root {
+  --bg: #f6f4ef;
+  --card: #ffffff;
+  --ink: #232323;
+  --muted: #6e6a63;
+  --accent: #2b5fa3;        /* bleu principal */
+  --accent-dark: #1e4679;
+  --good: #2e7d4f;
+  --good-bg: #e2f3e8;
+  --bad: #b3372f;
+  --bad-bg: #fbe7e5;
+  --gold: #c99a2e;
+  --radius: 14px;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  --line: #e3ded4;          /* bordures claires */
+}
+
+/* 🌙 Mode sombre : on ne redéfinit que les couleurs */
+:root[data-theme="dark"] {
+  --bg: #16181c;
+  --card: #23262d;
+  --ink: #e8e6e1;
+  --muted: #9a978f;
+  --accent: #5b8fd6;
+  --accent-dark: #24313f;
+  --good: #55b37e;
+  --good-bg: #1e3a2b;
+  --bad: #e0736b;
+  --bad-bg: #3a2321;
+  --gold: #e0b354;
+  --line: #3a3e46;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tout texte hébreu : police dédiée, droite → gauche, bien espacé */
+.he, .logo-he {
+  font-family: "Noto Sans Hebrew", "Arial Hebrew", "David", "Segoe UI", sans-serif;
+  direction: rtl;
+  unicode-bidi: isolate;
+  line-height: 1.4;
+}
+
+/* ---------- En-tête ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.8rem 1rem;
+  background: var(--accent);
+  color: #fff;
+}
+.logo {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.logo-he { color: #ffd97a; margin-inline-end: 0.35rem; }
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.cat-filter {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.profile-chip {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.35rem 0.8rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: pointer;
+}
+.profile-chip:hover { background: rgba(255, 255, 255, 0.3); }
+
+.icon-btn {
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.3rem 0.5rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+.icon-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+/* 🔊 Bouton haut-parleur près d'un mot */
+.speak-btn {
+  font-size: 0.9em;
+  line-height: 1;
+  padding: 0.15em 0.35em;
+  margin-inline-start: 0.3rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.speak-btn:hover { background: var(--line); }
+.speak-btn:active { transform: scale(0.9); }
+.cat-filter select {
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+  border: none;
+}
+
+/* ---------- Onglets ---------- */
+.tabs {
+  display: flex;
+  overflow-x: auto;
+  background: var(--accent-dark);
+}
+.tab {
+  flex: 1 0 auto;
+  padding: 0.7rem 0.9rem;
+  border: none;
+  background: none;
+  color: #cfe0f5;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+}
+.tab.active {
+  color: #fff;
+  border-bottom-color: var(--gold);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- Écran principal ---------- */
+#screen {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.2rem 1rem 2rem;
+}
+
+.view-title { margin: 0.2rem 0 1rem; font-size: 1.3rem; }
+.hint { color: var(--muted); font-size: 0.92rem; }
+
+/* ---------- Accueil ---------- */
+.menu-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+@media (min-width: 480px) {
+  .menu-grid { grid-template-columns: 1fr 1fr; }
+}
+.menu-card {
+  background: var(--card);
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.2rem 1rem;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.menu-card:hover { transform: translateY(-2px); }
+.menu-card .emoji { font-size: 1.8rem; display: block; margin-bottom: 0.4rem; }
+.menu-card strong { font-size: 1.05rem; }
+.menu-card p { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.88rem; }
+
+.stats-banner {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.9rem 1rem;
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+  gap: 0.5rem;
+}
+.stats-banner .big { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+.stats-banner .label { font-size: 0.8rem; color: var(--muted); }
+
+/* ---------- Panneau « du jour » (accueil) ---------- */
+.daily-panel {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.8rem;
+}
+.daily-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+.daily-streak strong { font-size: 1.2rem; color: var(--gold); }
+.daily-streak span { color: var(--muted); font-size: 0.8rem; }
+.daily-goal strong { color: var(--accent); font-size: 1.1rem; }
+.daily-bar {
+  height: 8px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.daily-bar-fill {
+  height: 100%;
+  background: var(--good);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.daily-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+.daily-actions .btn { flex: 1; min-width: 45%; }
+.pill {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.85em;
+  margin-inline-start: 0.3rem;
+}
+.btn-neutral .pill { background: rgba(0, 0, 0, 0.12); }
+.goal-row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 1rem; }
+
+/* ---------- Session de révision ---------- */
+.review-progress { margin-bottom: 0.8rem; }
+.review-count { text-align: center; font-weight: 700; color: var(--muted); margin-bottom: 0.3rem; }
+.review-score { display: flex; justify-content: center; gap: 1.2rem; margin-top: 0.4rem; font-weight: 700; }
+.review-score .ok { color: var(--good); }
+.review-score .ko { color: var(--bad); }
+.btn-link {
+  display: block;
+  margin: 1rem auto 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- Choix du profil ---------- */
+.profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
+}
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.profile-btn {
+  flex: 1;
+  font: inherit;
+  font-size: 1.1rem;
+  text-align: left;
+  padding: 0.9rem 1.1rem;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+.profile-btn:hover { border-color: var(--accent); }
+.profile-delete {
+  font: inherit;
+  padding: 0.5rem 0.7rem;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.profile-delete:hover { color: var(--bad); background: var(--bad-bg); }
+
+/* ---------- Flashcards ---------- */
+.flash-scene {
+  perspective: 1000px;
+  margin: 0.5rem 0 1rem;
+}
+.flash-card {
+  position: relative;
+  width: 100%;
+  min-height: 260px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease;
+}
+.flash-card.flipped { transform: rotateY(180deg); }
+.flash-card.has-conj { min-height: 380px; } /* place pour la conjugaison au verso */
+
+/* Mini-tableau de conjugaison au dos d'une carte de verbe */
+.conj-mini {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.4rem;
+}
+.conj-mini td {
+  padding: 0.3rem 0.3rem;
+  border-top: 1px solid var(--line);
+  vertical-align: middle;
+}
+.conj-mini .cm-tense { font-size: 0.8rem; color: var(--accent); font-weight: 700; text-align: left; }
+.conj-mini .cm-he { font-size: 1.25rem; font-weight: 700; text-align: right; white-space: nowrap; }
+.conj-mini .cm-tr { font-size: 0.82rem; color: var(--muted); font-style: italic; text-align: right; }
+.flash-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1.5rem;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backface-visibility: hidden;
+  text-align: center;
+}
+.flash-face.back { transform: rotateY(180deg); }
+
+.he-word {
+  font-size: 3rem;
+  font-weight: 700;
+}
+.translit { color: var(--muted); font-style: italic; font-size: 1.1rem; }
+.fr-word { font-size: 1.7rem; font-weight: 700; color: var(--accent); }
+.word-cat {
+  font-size: 0.78rem;
+  background: var(--bg);
+  color: var(--muted);
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+}
+.tap-hint { color: var(--muted); font-size: 0.85rem; }
+.word-note {
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 0.5rem 0.8rem;
+  max-width: 100%;
+}
+
+.flash-buttons {
+  display: flex;
+  gap: 0.8rem;
+}
+.flash-buttons button { flex: 1; }
+
+/* ---------- Boutons génériques ---------- */
+.btn {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.75rem 1.1rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: filter 0.12s ease, transform 0.08s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-good    { background: var(--good);   color: #fff; }
+.btn-bad     { background: var(--bad);    color: #fff; }
+.btn-neutral { background: var(--line); color: var(--ink); }
+.btn:hover { filter: brightness(1.08); }
+.btn[disabled] { opacity: 0.45; cursor: default; }
+
+/* ---------- QCM ---------- */
+.quiz-question {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.quiz-options {
+  display: grid;
+  gap: 0.7rem;
+}
+.quiz-option {
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 0.85rem 1rem;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s ease;
+}
+.quiz-option:hover:not([disabled]) { border-color: var(--accent); }
+.quiz-option.correct { background: var(--good-bg); border-color: var(--good); }
+.quiz-option.wrong   { background: var(--bad-bg);  border-color: var(--bad); }
+.quiz-option[disabled] { cursor: default; }
+
+/* ---------- Mode écriture ---------- */
+.write-form { display: flex; gap: 0.6rem; margin-top: 1rem; }
+.write-input {
+  flex: 1;
+  font: inherit;
+  font-size: 1.1rem;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+}
+.write-input:focus { outline: none; border-color: var(--accent); }
+
+.feedback {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+.feedback.good { background: var(--good-bg); color: var(--good); }
+.feedback.bad  { background: var(--bad-bg);  color: var(--bad); }
+
+/* ---------- Score de session ---------- */
+.session-score {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+.session-score .ok  { color: var(--good); }
+.session-score .ko  { color: var(--bad); }
+
+/* ---------- Conjugaison ---------- */
+.segmented {
+  display: flex;
+  background: var(--line);
+  border-radius: var(--radius);
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 0.9rem;
+}
+.seg-btn {
+  flex: 1;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.55rem 0.4rem;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.seg-btn.active {
+  background: var(--card);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.conj-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.conj-select {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border-radius: 10px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  max-width: 100%;
+}
+
+.conj-badges {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+.badge {
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: var(--bg);
+  color: var(--muted);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+}
+.badge-tense {
+  background: var(--accent);
+  color: #fff;
+}
+
+.option-he .he { font-size: 1.5rem; font-weight: 700; }
+.option-he { text-align: center; }
+
+.verb-search { margin-bottom: 0.8rem; }
+.verb-search .write-input { width: 100%; }
+.verb-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+.verb-result {
+  font: inherit;
+  font-size: 0.95rem;
+  text-align: left;
+  padding: 0.55rem 0.8rem;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.verb-result:hover { border-color: var(--accent); }
+.verb-result .he { font-size: 1.1rem; }
+
+/* Résultats de la recherche globale (mots + verbes) */
+.search-row {
+  font: inherit;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.9rem;
+  cursor: default;
+}
+.search-row.is-verb { cursor: pointer; }
+.search-row.is-verb:hover { border-color: var(--accent); }
+.search-row[disabled] { opacity: 1; } /* les mots restent bien lisibles */
+.search-row .he { font-size: 1.4rem; font-weight: 700; min-width: 5.5rem; text-align: right; }
+.search-row .infos { flex: 1; min-width: 0; }
+.search-row .infos .fr { font-weight: 600; }
+.search-row .infos .translit { font-size: 0.85rem; color: var(--muted); }
+.search-tag {
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  white-space: nowrap;
+}
+.search-results { max-height: none; }
+
+.conj-table-block {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+.conj-tense-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+.conj-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.conj-table td {
+  padding: 0.45rem 0.3rem;
+  border-top: 1px solid var(--line);
+  vertical-align: middle;
+}
+.conj-table .personne { font-size: 0.85rem; color: var(--muted); }
+.conj-table .form {
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+.conj-table .translit { font-size: 0.9rem; text-align: right; padding-inline-start: 0.6rem; }
+
+.feedback .he { font-size: 1.25rem; font-weight: 700; }
+
+/* ---------- Page Progrès ---------- */
+.progress-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7rem;
+  margin-bottom: 1.2rem;
+}
+.progress-summary .cell {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.8rem 0.4rem;
+  text-align: center;
+}
+.progress-summary .big { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+.progress-summary .label { font-size: 0.75rem; color: var(--muted); }
+
+.prog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  margin: 0.8rem 0 0.3rem;
+}
+.prog-filter {
+  font-size: 0.85rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.prog-filter .conj-select { font-size: 0.88rem; padding: 0.25rem 0.4rem; }
+
+.word-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.word-row {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.7rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.word-row .he { font-size: 1.35rem; font-weight: 700; min-width: 5.5rem; text-align: right; }
+.word-row .infos { flex: 1; }
+.word-row .infos .fr { font-weight: 600; }
+.word-row .infos .translit { font-size: 0.85rem; }
+.level-dots { display: flex; gap: 3px; }
+.level-dots span {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.level-dots span.on { background: var(--good); }
+.word-row.struggling .level-dots span.on { background: var(--bad); }
+
+.reset-zone { margin-top: 1.5rem; text-align: center; }
+.backup-text {
+  width: 100%;
+  min-height: 110px;
+  font: 0.78rem/1.4 monospace;
+  padding: 0.6rem;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  resize: vertical;
+}
+
+/* ---------- Affichage compact sur téléphone ----------
+   Objectif : le QCM (surtout en conjugaison) tient à l'écran
+   sans avoir à faire défiler. */
+@media (max-width: 520px) {
+  #screen { padding: 0.6rem 0.8rem 1.2rem; }
+  .view-title { margin: 0.1rem 0 0.5rem; font-size: 1.1rem; }
+  .session-score { margin-bottom: 0.5rem; gap: 1rem; font-size: 0.9rem; }
+  .segmented { margin-bottom: 0.5rem; padding: 3px; }
+  .seg-btn { padding: 0.4rem 0.3rem; font-size: 0.88rem; }
+  .conj-filter { margin-bottom: 0.5rem; }
+  .conj-select { padding: 0.25rem 0.5rem; font-size: 0.9rem; }
+
+  .quiz-question { padding: 0.8rem 0.9rem; margin-bottom: 0.6rem; }
+  .quiz-question .he-word { font-size: 2.1rem; }
+  .quiz-question .fr-word { font-size: 1.35rem; }
+  .quiz-question .translit { font-size: 0.95rem; }
+  .conj-badges { margin-bottom: 0.4rem; }
+  .badge { font-size: 0.75rem; padding: 0.15rem 0.6rem; }
+
+  .quiz-options { gap: 0.45rem; }
+  .quiz-option { padding: 0.55rem 0.8rem; font-size: 0.98rem; }
+  .option-he .he { font-size: 1.25rem; }
+
+  .feedback { margin-top: 0.6rem; padding: 0.6rem 0.8rem; font-size: 0.92rem; }
+  .flash-card { min-height: 230px; }
+  .topbar { padding: 0.5rem 0.8rem; }
+  .tab { padding: 0.5rem 0.7rem; font-size: 0.9rem; }
+  .footer { display: none; }
+  /* L'onglet actif fait office de titre, et l'astuce est dans le champ :
+     on gagne la place nécessaire quand le clavier est ouvert */
+  .view-title:not(.home-title) { display: none; }
+  .write-hint { display: none; }
+}
+
+/* ---------- Pied de page ---------- */
+.footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 1rem;
+}
+code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
+
+/* ---------- 🎯 Verbes proches (paires minimales) ---------- */
+.section-label {
+  margin: 1rem 0 0.4rem;
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: var(--ink);
+}
+.conf-listen {
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+.conf-fr {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+/* La lettre qui distingue les verbes de la famille */
+.conf-diff {
+  color: var(--bad);
+  font-weight: 800;
+  border-bottom: 3px solid var(--bad);
+  padding: 0 1px;
+}
+.quiz-option.correct .conf-diff { color: var(--good); border-color: var(--good); }
+.conf-next { margin-top: 0.9rem; width: 100%; }
+
+/* Récap de la famille (après réponse) + mode Familles */
+.conf-recap {
+  margin-top: 0.9rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.6rem 0.8rem;
+}
+.conf-recap-title {
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+.conf-recap-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.2rem;
+  border-top: 1px solid var(--line);
+}
+.conf-recap-row:first-of-type { border-top: none; }
+.conf-recap-row.is-target { background: var(--good-bg); border-radius: 8px; }
+.conf-recap-he {
+  font-size: 1.5rem;
+  font-weight: 700;
+  min-width: 4.5rem;
+  text-align: right;
+  direction: rtl;
+}
+.conf-recap-tr {
+  color: var(--muted);
+  font-size: 0.85rem;
+  min-width: 4.5rem;
+}
+.conf-recap-fr { flex: 1; font-size: 0.95rem; }
+
+.conf-fam-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+}
+.conf-fam-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.5rem 0.8rem;
+}
+
+/* ---------- 🎧 Audio à trous ---------- */
+.audio-q { text-align: center; }
+.audio-play {
+  display: inline-block;
+  margin: 0.2rem 0 0.6rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.audio-play:active { transform: scale(0.96); }
+.audio-given {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.3rem 0;
+}
+.audio-arrow { color: var(--muted); font-size: 1.1rem; line-height: 1; }
+.audio-blankline {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0.2rem 0;
+  color: var(--ink);
+}
+.audio-blank {
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.feedback-tr { color: var(--muted); font-size: 0.9rem; }
+
+/* ---------- Fiche verbe (bouton « i » de l'audio à trous) ---------- */
+.verb-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  background: var(--card);
+  color: var(--accent);
+  font-weight: 800;
+  font-style: italic;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.verb-info-btn:active { transform: scale(0.9); }
+.verb-info-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.6rem 0.8rem;
+  margin-top: 0.5rem;
+}
+.vi-head { font-weight: 800; margin-bottom: 0.4rem; }
+.vi-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.25rem 0;
+  border-top: 1px solid var(--line);
+}
+.vi-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  min-width: 4.5rem;
+}
+.vi-he { font-size: 1.3rem; font-weight: 700; direction: rtl; }
+.vi-tr { color: var(--muted); font-size: 0.85rem; }
+.verb-info-panel .conj-mini { margin-top: 0.5rem; }
+
+/* ---------- Cases à cocher (filtres) ---------- */
+.filter-bar { margin: 0.4rem 0 0.6rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.check-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.5rem;
+  font-size: 0.82rem;
+}
+.check-label { color: var(--muted); font-weight: 700; margin-right: 0.15rem; }
+.check-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.check-item.on { border-color: var(--accent); background: var(--good-bg); }
+.check-item input { margin: 0; accent-color: var(--accent); }
+.check-item span { user-select: none; }
+
+/* ---------- Accueil : blocs vocabulaire / verbes ---------- */
+.home-block {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.8rem 0.9rem;
+  margin-bottom: 0.9rem;
+}
+.home-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.hb-title { font-size: 1.1rem; font-weight: 800; }
+.home-block .stats-banner { box-shadow: none; padding: 0.55rem 0.4rem; margin: 0.1rem 0 0.6rem; border: 1px solid var(--line); }
+.home-block .stats-banner .big { font-size: 1.35rem; }
+.home-block .daily-actions { margin-bottom: 0.5rem; }
+/* Bas du bloc : « Nouveaux ajouts » à gauche, objectif à droite */
+.hb-bottom { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+.hb-bottom .check-row { margin: 0; }
+.goal-select {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.3rem 1.6rem 0.3rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 0.55rem center;
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.totals-cap { margin: 0.6rem 0 0.2rem; font-weight: 700; color: var(--ink); }
+
+/* Sous-segments (Verbes proches : Quiz / Familles) */
+.segmented.sub-seg { margin-top: 0.2rem; }
+
+/* Tableau de conjugaison déplié dans la recherche */
+.search-conj {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.4rem 0.7rem 0.7rem;
+  margin: 0.2rem 0 0.6rem;
+}
+.search-conj .conj-meta { margin: 0.3rem 0; }
+.search-row.is-verb { cursor: pointer; }
+.search-row.open { border-color: var(--accent); }
+
+/* Lien vers les tableaux de conjugaison (en haut de la recherche) */
+.tables-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 0.8rem;
+  cursor: pointer;
+}
+.tables-link:hover { border-color: var(--accent); }
+.tables-back { margin: 0 0 0.4rem; text-align: left; }
+
+/* Filtres « Temps » / « Binyan » : libellé au-dessus, toutes les
+   cases sur une seule ligne (défile si l'écran est trop étroit). */
+.check-block { display: flex; flex-direction: column; gap: 0.2rem; }
+.check-block .check-label { margin: 0; }
+.check-line {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.check-line .check-item { flex: 0 0 auto; font-size: 0.8rem; padding: 0.16rem 0.45rem; }
+
+/* ---------- 🔀 Combiné ---------- */
+.cb-sentence {
+  font-size: 1.5rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+.cb-hl {
+  color: var(--accent);
+  border-bottom: 3px solid var(--accent);
+  padding: 0 2px;
+}
+.cb-qlabel {
+  margin: 0.7rem 0 0.35rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.cb-qlabel .he { font-size: 1.3rem; font-weight: 700; }
+
+/* Combiné : traduction complète de la phrase (au toucher) */
+.cb-flip-hint { text-align: center; color: var(--muted); font-size: 0.8rem; margin: 0.1rem 0 0.3rem; }
+.cb-trans {
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--good-bg);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  margin: 0.2rem 0 0.5rem;
+  line-height: 1.5;
+}
+
+/* Combiné : mise en page compacte, pour valider sans avoir à défiler */
+.quiz-question.cb-q { padding: 0.9rem 1rem; margin-bottom: 0.5rem; }
+.cb-q .cb-sentence { font-size: 1.3rem; line-height: 1.35; margin-bottom: 0.25rem; }
+.cb-q .conf-listen { margin: 0.25rem 0 0; font-size: 0.85rem; }
+.cb-groups .cb-qlabel { margin: 0.4rem 0 0.18rem; font-size: 0.9rem; }
+.cb-groups .quiz-options { gap: 0.35rem; }
+.cb-groups .quiz-option { padding: 0.5rem 0.8rem; font-size: 1rem; }
+.cb-groups .option-he .he { font-size: 1.15rem; }
+
+/* Option déjà répondue : bloquée logiquement mais le 🔊 reste actif */
+.quiz-option.locked { cursor: default; }
+.quiz-option.locked:not(.correct):not(.wrong):hover { border-color: var(--line); }

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>עברית — Mon vocabulaire hébreu</title>
+  <!-- Pour l'iPhone : icône et affichage en "vraie app" depuis l'écran d'accueil -->
+  <meta name="theme-color" content="#2b5fa3">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Hébreu">
+  <link rel="apple-touch-icon" href="icon.png">
+  <!-- Police hébraïque lisible (avec repli sur les polices système si hors ligne) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <h1 class="logo" data-action="home" role="button" tabindex="0">
+      <span class="logo-he" dir="rtl">עִבְרִית</span> Mon hébreu
+    </h1>
+    <div class="topbar-right">
+      <button id="search-btn" class="icon-btn" title="Rechercher" aria-label="Rechercher">🔍</button>
+      <button id="theme-toggle" class="icon-btn" title="Mode clair / sombre" aria-label="Mode clair / sombre">🌙</button>
+      <button id="profile-chip" class="profile-chip" title="Changer de profil"></button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-view="home">🏠 Accueil</button>
+    <button class="tab" data-view="verbes">🔤 Verbes</button>
+    <button class="tab" data-view="vocab">📚 Mots</button>
+    <button class="tab" data-view="combine">🔀 Combiné</button>
+    <button class="tab" data-view="progress">📊 Progrès</button>
+  </nav>
+
+  <!-- Chaque "vue" (écran) de l'application est rendue ici par app.js -->
+  <main id="screen"></main>
+
+  <footer class="footer">
+    Ajoutez vos mots dans <code>js/vocab.js</code> et vos verbes dans <code>js/verbes.js</code> — בהצלחה ! (bonne chance !)
+  </footer>
+
+  <script src="js/vocab.js"></script>
+  <script src="js/verbes.js"></script>
+  <script src="js/niqqud.js"></script>
+  <script src="js/combine-phrases.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // Copie hors-ligne de l'app (service worker) — voir sw.js
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>
