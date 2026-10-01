@@ -192,7 +192,7 @@ function SocialPageInner() {
     const res = await fetch('/api/social/posts', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: selected.id, status, scheduledAt, imageUrl: scheduledAt ? selectedPhotoUrl : null }),
+      body: JSON.stringify({ id: selected.id, status, scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null, imageUrl: scheduledAt ? selectedPhotoUrl : null }),
     })
     const data = await res.json()
     if (data.post) {
@@ -519,7 +519,7 @@ function SocialPageInner() {
                         <span className="text-sm font-medium text-blue-800">📅 Publication planifiée :</span>
                         <input
                           type="datetime-local"
-                          defaultValue={selected.scheduledAt ? new Date(selected.scheduledAt).toISOString().slice(0, 16) : ''}
+                          defaultValue={selected.scheduledAt ? new Date(new Date(selected.scheduledAt).getTime() - new Date(selected.scheduledAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
                           id={`schedule-${selected.id}`}
                           className="text-sm border border-blue-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
