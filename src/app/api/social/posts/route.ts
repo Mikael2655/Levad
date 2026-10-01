@@ -11,7 +11,7 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, topic, contentLI, contentIG, status, publishedAt } = await req.json()
+    const { id, topic, contentLI, contentIG, status, publishedAt, scheduledAt } = await req.json()
     const post = await prisma.socialPost.update({
       where: { id },
       data: {
@@ -20,6 +20,7 @@ export async function PATCH(req: NextRequest) {
         ...(contentIG !== undefined && { contentIG }),
         ...(status !== undefined && { status }),
         ...(publishedAt !== undefined && { publishedAt: new Date(publishedAt) }),
+        ...(scheduledAt !== undefined && { scheduledAt: scheduledAt ? new Date(scheduledAt) : null }),
       },
     })
     return NextResponse.json({ post })

@@ -10,6 +10,7 @@ interface SocialPost {
   contentIG: string | null
   imagePrompt: string | null
   status: string
+  scheduledAt: string | null
   publishedAt: string | null
   linkedinPostId: string | null
   instagramPostId: string | null
@@ -29,9 +30,10 @@ interface Config {
 }
 
 const STATUS = {
-  draft:      { label: 'À valider', color: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400' },
-  published:  { label: 'Publié',    color: 'bg-green-100 text-green-700',  dot: 'bg-green-400' },
-  failed:     { label: 'Échec',     color: 'bg-red-100 text-red-700',      dot: 'bg-red-400' },
+  draft:      { label: 'À valider',  color: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400' },
+  scheduled:  { label: 'Planifié',   color: 'bg-blue-100 text-blue-700',    dot: 'bg-blue-400' },
+  published:  { label: 'Publié',     color: 'bg-green-100 text-green-700',  dot: 'bg-green-400' },
+  failed:     { label: 'Échec',      color: 'bg-red-100 text-red-700',      dot: 'bg-red-400' },
 }
 
 function SocialPageInner() {
@@ -176,6 +178,24 @@ function SocialPageInner() {
     }
   }
 
+  async function handleSchedule(scheduledAt: string | null) {
+    if (!selected) return
+    // Auto-save content first
+    await saveContent(selected)
+    const status = scheduledAt ? 'scheduled' : 'draft'
+    const res = await fetch('/api/social/posts', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: selected.id, status, scheduledAt }),
+    })
+    const data = await res.json()
+    if (data.post) {
+      setSelected(data.post)
+      await loadPosts()
+      showToast(scheduledAt ? `Publication planifiée pour le ${new Date(scheduledAt).toLocaleString('fr-FR')}` : 'Planification annulée')
+    }
+  }
+
   async function handleDelete() {
     if (!selected || !confirm('Supprimer ce post définitivement ?')) return
     await fetch(`/api/social/posts?id=${selected.id}`, { method: 'DELETE' })
@@ -242,6 +262,7 @@ function SocialPageInner() {
   }
 
   const drafts = posts.filter(p => p.status === 'draft')
+  const scheduled = posts.filter(p => p.status === 'scheduled')
   const published = posts.filter(p => p.status === 'published')
 
   return (
@@ -327,6 +348,11 @@ function SocialPageInner() {
                 {drafts.length} à valider
               </span>
             )}
+            {scheduled.length > 0 && (
+              <span className="bg-blue-400 text-blue-900 font-bold px-2.5 py-0.5 rounded-full text-xs">
+                {scheduled.length} planifié{scheduled.length > 1 ? 's' : ''}
+              </span>
+            )}
           </div>
         </div>
       </header>
@@ -381,12 +407,16 @@ function SocialPageInner() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white rounded-xl border border-amber-200 p-4">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-white rounded-xl border border-amber-200 p-3">
                   <p className="text-2xl font-bold text-amber-600">{drafts.length}</p>
                   <p className="text-xs text-gray-500 mt-0.5">À valider</p>
                 </div>
-                <div className="bg-white rounded-xl border border-green-200 p-4">
+                <div className="bg-white rounded-xl border border-blue-200 p-3">
+                  <p className="text-2xl font-bold text-blue-600">{scheduled.length}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Planifiés</p>
+                </div>
+                <div className="bg-white rounded-xl border border-green-200 p-3">
                   <p className="text-2xl font-bold text-green-600">{published.length}</p>
                   <p className="text-xs text-gray-500 mt-0.5">Publiés</p>
                 </div>
@@ -447,7 +477,7 @@ function SocialPageInner() {
                           {selected.publishedAt && ` · Publié le ${new Date(selected.publishedAt).toLocaleString('fr-FR')}`}
                         </p>
                       </div>
-                      <div className="flex gap-2 shrink-0 flex-wrap justify-end">
+                      <div className="flex gap-2 shrink-0 flex-wrap justify-end items-center">
                         {selected.status !== 'published' && (
                           <>
                             <button onClick={handleSave} disabled={saving}
@@ -456,7 +486,7 @@ function SocialPageInner() {
                             </button>
                             <button onClick={() => setShowPreview(true)}
                               className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition font-semibold">
-                              Prévisualiser et publier →
+                              Prévisualiser →
                             </button>
                           </>
                         )}
@@ -473,6 +503,40 @@ function SocialPageInner() {
                   {selected.errorMessage && (
                     <div className="mx-6 mt-4 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
                       <strong>Erreur :</strong> {selected.errorMessage}
+                    </div>
+                  )}
+
+                  {/* Planification */}
+                  {selected.status !== 'published' && (
+                    <div className="mx-6 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-sm font-medium text-blue-800">📅 Publication planifiée :</span>
+                        <input
+                          type="datetime-local"
+                          defaultValue={selected.scheduledAt ? new Date(selected.scheduledAt).toISOString().slice(0, 16) : ''}
+                          id={`schedule-${selected.id}`}
+                          className="text-sm border border-blue-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                        <button
+                          onClick={() => {
+                            const input = document.getElementById(`schedule-${selected.id}`) as HTMLInputElement
+                            handleSchedule(input.value || null)
+                          }}
+                          className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition">
+                          {selected.status === 'scheduled' ? 'Mettre à jour' : 'Planifier'}
+                        </button>
+                        {selected.status === 'scheduled' && (
+                          <button onClick={() => handleSchedule(null)}
+                            className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition">
+                            Annuler
+                          </button>
+                        )}
+                      </div>
+                      {selected.scheduledAt && selected.status === 'scheduled' && (
+                        <p className="text-xs text-blue-600 mt-2">
+                          Sera publié automatiquement le {new Date(selected.scheduledAt).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
+                        </p>
+                      )}
                     </div>
                   )}
 
