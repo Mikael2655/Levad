@@ -8,10 +8,10 @@ export async function notifyPostReady(params: {
   appUrl: string
   toEmail: string
 }) {
+  const resend = new Resend(process.env.RESEND_API_KEY)
   const { postId, topic, contentLI, contentIG, appUrl, toEmail } = params
   const reviewUrl = `${appUrl}/social?post=${postId}`
 
-  const resend = new Resend(process.env.RESEND_API_KEY)
   await resend.emails.send({
     from: 'Levad Social <social@levad.fr>',
     to: toEmail,

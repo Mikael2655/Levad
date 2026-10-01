@@ -1,4 +1,3 @@
-export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { publishToLinkedIn } from '@/lib/linkedin'
@@ -6,7 +5,7 @@ import { publishToInstagram } from '@/lib/instagram'
 
 export async function POST(req: NextRequest) {
   try {
-    const { postId } = await req.json()
+    const { postId, imageUrl } = await req.json()
     if (!postId) return NextResponse.json({ error: 'postId requis' }, { status: 400 })
 
     const [post, config] = await Promise.all([
@@ -23,12 +22,11 @@ export async function POST(req: NextRequest) {
 
     if (config.linkedinEnabled && post.contentLI) {
       const token = process.env.LINKEDIN_ACCESS_TOKEN
-      const urn = process.env.LINKEDIN_PERSON_URN
-      if (!token || !urn) {
-        errors.push('LinkedIn non configuré (LINKEDIN_ACCESS_TOKEN / LINKEDIN_PERSON_URN manquants)')
+      if (!token) {
+        errors.push('LinkedIn non configuré (LINKEDIN_ACCESS_TOKEN manquant)')
       } else {
         try {
-          linkedinPostId = await publishToLinkedIn(post.contentLI, token, urn)
+          linkedinPostId = await publishToLinkedIn(post.contentLI, token, imageUrl)
         } catch (e) {
           errors.push(`LinkedIn: ${String(e)}`)
         }

@@ -17,7 +17,8 @@ model SocialPost {
   contentIG   String?
   imagePrompt String?
 
-  status      String   @default("draft") // draft | published | failed
+  status      String   @default("draft") // draft | scheduled | published | failed
+  scheduledAt DateTime?
   publishedAt DateTime?
 
   linkedinPostId  String?
