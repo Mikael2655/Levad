@@ -54,6 +54,9 @@ function SocialPageInner() {
   const [unsplashPage, setUnsplashPage] = useState(1)
   const [customImagePrompt, setCustomImagePrompt] = useState<string | null>(null)
   const [customUnsplashKeywords, setCustomUnsplashKeywords] = useState<string | null>(null)
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -65,7 +68,6 @@ function SocialPageInner() {
     const data = await res.json()
     const list: SocialPost[] = data.posts ?? []
     setPosts(list)
-    // Si un postId est dans l'URL (lien email), l'ouvrir
     const idParam = searchParams.get('post')
     if (idParam) {
       const found = list.find(p => p.id === parseInt(idParam))
@@ -84,6 +86,17 @@ function SocialPageInner() {
     loadConfig()
   }, [loadPosts, loadConfig])
 
+  // Reset image state when switching post
+  function selectPost(post: SocialPost) {
+    setSelected(post)
+    setSelectedPhotoUrl(null)
+    setGeneratedImageUrl(null)
+    setUnsplashPhotos([])
+    setCustomImagePrompt(null)
+    setCustomUnsplashKeywords(null)
+    setShowPreview(false)
+  }
+
   async function handleGenerate() {
     if (!topic.trim()) return
     setGenerating(true)
@@ -97,7 +110,7 @@ function SocialPageInner() {
       if (data.post) {
         setTopic('')
         await loadPosts()
-        setSelected(data.post)
+        selectPost(data.post)
         showToast('Post généré — vérifiez et publiez quand vous êtes prêt')
       } else {
         showToast(data.error ?? 'Erreur de génération', false)
@@ -107,19 +120,12 @@ function SocialPageInner() {
     }
   }
 
-  async function handleMarkPublished() {
-    if (!selected) return
-    const res = await fetch('/api/social/posts', {
+  async function saveContent(post: SocialPost) {
+    await fetch('/api/social/posts', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: selected.id, status: 'published', publishedAt: new Date().toISOString() }),
+      body: JSON.stringify({ id: post.id, topic: post.topic, contentLI: post.contentLI, contentIG: post.contentIG }),
     })
-    const data = await res.json()
-    if (data.post) {
-      setSelected(data.post)
-      await loadPosts()
-      showToast('Marqué comme publié')
-    }
   }
 
   async function handleSave() {
@@ -146,6 +152,9 @@ function SocialPageInner() {
     if (!selected) return
     setPublishing(true)
     try {
+      // Auto-save modifications before publishing
+      await saveContent(selected)
+
       const res = await fetch('/api/social/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -157,6 +166,7 @@ function SocialPageInner() {
         showToast('Post publié avec succès !')
         setSelected(prev => prev ? { ...prev, status: 'published', publishedAt: new Date().toISOString(),
           linkedinPostId: data.linkedinPostId, instagramPostId: data.instagramPostId } : null)
+        setShowPreview(false)
       } else if (data.errors?.length > 0) {
         showToast(data.errors.join(' — '), false)
         setSelected(prev => prev ? { ...prev, status: 'failed', errorMessage: data.errors.join(' | ') } : null)
@@ -194,6 +204,7 @@ function SocialPageInner() {
     setGeneratingImage(true)
     setGeneratedImageUrl(null)
     setUnsplashPhotos([])
+    setSelectedPhotoUrl(null)
     try {
       const res = await fetch('/api/social/image', {
         method: 'POST',
@@ -201,8 +212,12 @@ function SocialPageInner() {
         body: JSON.stringify({ prompt: customImagePrompt ?? selected.imagePrompt }),
       })
       const data = await res.json()
-      if (data.imageUrl) setGeneratedImageUrl(data.imageUrl)
-      else showToast(data.error ?? 'Erreur génération image', false)
+      if (data.imageUrl) {
+        setGeneratedImageUrl(data.imageUrl)
+        setSelectedPhotoUrl(data.imageUrl)
+      } else {
+        showToast(data.error ?? 'Erreur génération image', false)
+      }
     } finally {
       setGeneratingImage(false)
     }
@@ -211,7 +226,7 @@ function SocialPageInner() {
   async function handleSearchUnsplash(page = 1) {
     if (!selected) return
     setSearchingUnsplash(true)
-    if (page === 1) { setGeneratedImageUrl(null); setUnsplashPhotos([]) }
+    if (page === 1) { setGeneratedImageUrl(null); setUnsplashPhotos([]); setSelectedPhotoUrl(null) }
     try {
       const res = await fetch('/api/social/unsplash', {
         method: 'POST',
@@ -236,6 +251,61 @@ function SocialPageInner() {
         <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all
           ${toast.ok ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
           {toast.msg}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setLightboxUrl(null)}>
+          <img src={lightboxUrl} alt="Photo" className="max-w-full max-h-full rounded-xl object-contain" onClick={e => e.stopPropagation()} />
+          <button className="absolute top-4 right-4 text-white text-2xl font-bold hover:text-gray-300" onClick={() => setLightboxUrl(null)}>✕</button>
+        </div>
+      )}
+
+      {/* Preview modal */}
+      {showPreview && selected && (
+        <div className="fixed inset-0 z-40 bg-black/60 flex items-center justify-center p-4" onClick={() => setShowPreview(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Prévisualisation LinkedIn</h3>
+              <button onClick={() => setShowPreview(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            {/* LinkedIn card mock */}
+            <div className="p-5">
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-full bg-brand-800 flex items-center justify-center text-white font-bold text-lg">
+                      {config?.companyName?.[0] ?? 'L'}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm text-gray-900">{config?.companyName ?? 'Levad'}</p>
+                      <p className="text-xs text-gray-400">Maintenant · 🌐</p>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                    {selected.contentLI}
+                  </div>
+                </div>
+                {selectedPhotoUrl && (
+                  <img src={selectedPhotoUrl} alt="Image du post" className="w-full object-cover max-h-64" />
+                )}
+              </div>
+            </div>
+            <div className="p-5 border-t border-gray-100 flex gap-3 justify-end">
+              <button onClick={() => setShowPreview(false)}
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 font-medium">
+                Modifier
+              </button>
+              <button onClick={handlePublish} disabled={publishing}
+                className="px-5 py-2 text-sm bg-blue-700 text-white rounded-lg hover:bg-blue-800 font-semibold disabled:opacity-50 flex items-center gap-2">
+                {publishing ? (
+                  <><svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Publication...</>
+                ) : '🔗 Publier maintenant'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -278,7 +348,6 @@ function SocialPageInner() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             {/* Sidebar */}
             <div className="lg:col-span-2 space-y-4">
-              {/* Génération */}
               <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
                 <h2 className="font-semibold text-gray-900 mb-1">Générer un post</h2>
                 <p className="text-xs text-gray-400 mb-4">Claude AI rédige les textes LinkedIn et Instagram — vous relisez avant de publier.</p>
@@ -312,7 +381,6 @@ function SocialPageInner() {
                 )}
               </div>
 
-              {/* Stats */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white rounded-xl border border-amber-200 p-4">
                   <p className="text-2xl font-bold text-amber-600">{drafts.length}</p>
@@ -324,9 +392,8 @@ function SocialPageInner() {
                 </div>
               </div>
 
-              {/* Liste des posts */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                <div className="px-4 py-3 border-b border-gray-100">
                   <h3 className="text-sm font-semibold text-gray-900">{posts.length} post{posts.length !== 1 ? 's' : ''}</h3>
                 </div>
                 {posts.length === 0 ? (
@@ -339,7 +406,7 @@ function SocialPageInner() {
                     {posts.map(post => {
                       const s = STATUS[post.status as keyof typeof STATUS] ?? STATUS.draft
                       return (
-                        <button key={post.id} onClick={() => setSelected(post)}
+                        <button key={post.id} onClick={() => selectPost(post)}
                           className={`w-full text-left p-4 hover:bg-gray-50 transition ${selected?.id === post.id ? 'bg-blue-50 border-l-2 border-brand-800' : ''}`}>
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-sm font-medium text-gray-900 line-clamp-1">{post.topic}</p>
@@ -381,27 +448,15 @@ function SocialPageInner() {
                         </p>
                       </div>
                       <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-                        <button onClick={handleSave} disabled={saving || selected.status === 'published'}
-                          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-40 font-medium">
-                          {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-                        </button>
                         {selected.status !== 'published' && (
                           <>
-                            <button onClick={() => {
-                              const text = activeTab === 'linkedin' ? selected.contentLI : selected.contentIG
-                              if (text) { navigator.clipboard.writeText(text); showToast('Texte copié !') }
-                            }} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">
-                              📋 Copier
+                            <button onClick={handleSave} disabled={saving}
+                              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-40 font-medium">
+                              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
                             </button>
-                            <button onClick={handlePublish} disabled={publishing}
-                              className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition disabled:opacity-50 font-semibold flex items-center gap-2">
-                              {publishing ? (
-                                <><svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Publication...</>
-                              ) : '🔗 Publier sur LinkedIn'}
-                            </button>
-                            <button onClick={handleMarkPublished}
-                              className="px-3 py-1.5 text-sm border border-green-300 text-green-700 rounded-lg hover:bg-green-50 transition font-medium">
-                              ✓ Marquer publié
+                            <button onClick={() => setShowPreview(true)}
+                              className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition font-semibold">
+                              Prévisualiser et publier →
                             </button>
                           </>
                         )}
@@ -415,7 +470,6 @@ function SocialPageInner() {
                     </div>
                   </div>
 
-                  {/* Error message */}
                   {selected.errorMessage && (
                     <div className="mx-6 mt-4 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
                       <strong>Erreur :</strong> {selected.errorMessage}
@@ -473,7 +527,7 @@ function SocialPageInner() {
 
                     {selected.imagePrompt && (
                       <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
-                        <p className="text-xs font-semibold text-purple-700 mb-2 uppercase tracking-wide">Image suggérée</p>
+                        <p className="text-xs font-semibold text-purple-700 mb-2 uppercase tracking-wide">Image</p>
                         <textarea
                           value={customImagePrompt ?? selected.imagePrompt}
                           onChange={e => setCustomImagePrompt(e.target.value)}
@@ -501,19 +555,35 @@ function SocialPageInner() {
                             ) : '🔍 Photos Unsplash'}
                           </button>
                         </div>
+
+                        {/* AI generated image */}
                         {generatedImageUrl && (
                           <div className="mt-3">
-                            <img src={generatedImageUrl} alt="Image générée" className="w-full rounded-xl border border-purple-200" />
+                            <p className="text-xs text-purple-600 mb-1">Cliquez sur l&apos;image pour la sélectionner</p>
+                            <div
+                              className={`relative cursor-pointer rounded-xl overflow-hidden border-4 transition ${selectedPhotoUrl === generatedImageUrl ? 'border-purple-500' : 'border-transparent'}`}
+                              onClick={() => setSelectedPhotoUrl(prev => prev === generatedImageUrl ? null : generatedImageUrl)}>
+                              <img src={generatedImageUrl} alt="Image générée" className="w-full rounded-lg" />
+                              {selectedPhotoUrl === generatedImageUrl && (
+                                <div className="absolute top-2 right-2 bg-purple-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">✓</div>
+                              )}
+                            </div>
+                            <button onClick={() => setLightboxUrl(generatedImageUrl)} className="mt-1 text-xs text-purple-600 hover:underline">
+                              🔍 Voir en grand
+                            </button>
+                            {' · '}
                             <a href={generatedImageUrl} download="levad-post.png" target="_blank" rel="noopener noreferrer"
-                              className="mt-2 inline-block text-xs text-purple-600 hover:underline">
-                              ⬇️ Télécharger l'image
+                              className="text-xs text-purple-600 hover:underline">
+                              ⬇️ Télécharger
                             </a>
                           </div>
                         )}
+
+                        {/* Unsplash photos */}
                         {unsplashPhotos.length > 0 && (
                           <div className="mt-3">
                             <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs text-purple-600">Clique sur une photo pour la télécharger</p>
+                              <p className="text-xs text-purple-600">Cliquez pour sélectionner · double-clic pour agrandir</p>
                               <button onClick={() => handleSearchUnsplash(unsplashPage + 1)} disabled={searchingUnsplash}
                                 className="text-xs text-purple-600 hover:underline disabled:opacity-50">
                                 {searchingUnsplash ? 'Chargement...' : '🔄 Autres photos'}
@@ -521,12 +591,28 @@ function SocialPageInner() {
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               {unsplashPhotos.map(photo => (
-                                <a key={photo.id} href={photo.url} target="_blank" rel="noopener noreferrer" download>
-                                  <img src={photo.url} alt={photo.alt} className="w-full h-32 object-cover rounded-lg border border-purple-200 hover:opacity-80 transition cursor-pointer" />
-                                  <p className="text-xs text-gray-400 mt-0.5">📷 {photo.author}</p>
-                                </a>
+                                <div key={photo.id} className="relative">
+                                  <div
+                                    className={`relative cursor-pointer rounded-lg overflow-hidden border-4 transition ${selectedPhotoUrl === photo.url ? 'border-purple-500' : 'border-transparent'}`}
+                                    onClick={() => setSelectedPhotoUrl(prev => prev === photo.url ? null : photo.url)}
+                                    onDoubleClick={() => setLightboxUrl(photo.url)}>
+                                    <img src={photo.url} alt={photo.alt} className="w-full h-32 object-cover hover:opacity-90 transition" />
+                                    {selectedPhotoUrl === photo.url && (
+                                      <div className="absolute top-1 right-1 bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">✓</div>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-400 mt-0.5 truncate">📷 {photo.author}</p>
+                                </div>
                               ))}
                             </div>
+                          </div>
+                        )}
+
+                        {selectedPhotoUrl && (
+                          <div className="mt-3 p-2 bg-purple-100 rounded-lg flex items-center gap-2">
+                            <img src={selectedPhotoUrl} alt="Sélectionnée" className="w-10 h-10 object-cover rounded" />
+                            <p className="text-xs text-purple-700 font-medium flex-1">Image sélectionnée pour la prévisualisation</p>
+                            <button onClick={() => setSelectedPhotoUrl(null)} className="text-purple-400 hover:text-purple-700 text-lg leading-none">✕</button>
                           </div>
                         )}
                       </div>
@@ -603,7 +689,7 @@ function SocialPageInner() {
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
               <h2 className="font-semibold text-gray-900">Réseaux actifs</h2>
               {[
-                { key: 'linkedinEnabled', label: 'LinkedIn', vars: 'LINKEDIN_ACCESS_TOKEN + LINKEDIN_PERSON_URN' },
+                { key: 'linkedinEnabled', label: 'LinkedIn', vars: 'LINKEDIN_ACCESS_TOKEN' },
                 { key: 'instagramEnabled', label: 'Instagram', vars: 'INSTAGRAM_ACCESS_TOKEN + INSTAGRAM_ACCOUNT_ID' },
               ].map(({ key, label, vars }) => (
                 <div key={key} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl">
@@ -625,12 +711,10 @@ function SocialPageInner() {
               <div className="space-y-1 font-mono text-xs text-amber-800">
                 <p>ANTHROPIC_API_KEY</p>
                 <p>RESEND_API_KEY</p>
-                <p>NEXT_PUBLIC_APP_URL <span className="font-sans text-amber-600">(ex: https://levad.fr)</span></p>
+                <p>NEXT_PUBLIC_APP_URL</p>
                 <p>LINKEDIN_ACCESS_TOKEN</p>
-                <p>LINKEDIN_PERSON_URN</p>
                 <p>INSTAGRAM_ACCESS_TOKEN</p>
                 <p>INSTAGRAM_ACCOUNT_ID</p>
-                <p>INSTAGRAM_DEFAULT_IMAGE_URL <span className="font-sans text-amber-600">(image par défaut)</span></p>
                 <p>CRON_SECRET</p>
                 <p>DATABASE_URL</p>
               </div>
