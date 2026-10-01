@@ -40,3 +40,25 @@ export async function notifyPostReady(params: {
 </body></html>`,
   })
 }
+
+export async function notifyTokenExpiry(params: { daysLeft: number; expiresAt: string; toEmail: string }) {
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const { daysLeft, expiresAt, toEmail } = params
+  const state = daysLeft < 0 ? `a expiré le ${expiresAt}` : daysLeft === 0 ? `expire aujourd'hui (${expiresAt})` : `expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''} (${expiresAt})`
+
+  await resend.emails.send({
+    from: 'Levad Social <social@levad.fr>',
+    to: toEmail,
+    subject: `⚠️ Jeton LinkedIn : ${daysLeft < 0 ? 'expiré' : `expire dans ${daysLeft} j`}`,
+    html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1a1a1a;">
+  <p>Le jeton d'accès LinkedIn de l'outil Levad Social <strong>${state}</strong>.</p>
+  <p>Sans renouvellement, les publications planifiées passeront en échec.</p>
+  <ol>
+    <li>Générez un nouveau jeton dans le portail développeur LinkedIn.</li>
+    <li>Dans Vercel, mettez à jour <code>LINKEDIN_ACCESS_TOKEN</code> et <code>LINKEDIN_TOKEN_EXPIRES_AT</code> (nouvelle date, format AAAA-MM-JJ).</li>
+    <li>Relancez un déploiement.</li>
+  </ol>
+</body></html>`,
+  })
+}

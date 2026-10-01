@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { generateSocialPosts, selectTopic } from '@/lib/claude-ai'
-import { notifyPostReady } from '@/lib/email'
+import { notifyPostReady, notifyTokenExpiry } from '@/lib/email'
 
 // Vercel Cron: "0 7 * * 1,3" (lundi + mercredi 7h UTC)
 // Génère un brouillon et propose une publication le lendemain (mardi/jeudi) à 18h heure de Paris
@@ -32,6 +32,18 @@ export async function GET(req: NextRequest) {
   try {
     const config = await prisma.socialConfig.findFirst({ where: { id: 1 } })
     if (!config) return NextResponse.json({ skipped: 'no config' })
+
+    const tokenExpiresAt = process.env.LINKEDIN_TOKEN_EXPIRES_AT
+    if (tokenExpiresAt && process.env.RESEND_API_KEY) {
+      const daysLeft = Math.ceil((new Date(`${tokenExpiresAt}T23:59:59Z`).getTime() - Date.now()) / 86400000)
+      if (!Number.isNaN(daysLeft) && daysLeft <= 10) {
+        try {
+          await notifyTokenExpiry({ daysLeft, expiresAt: tokenExpiresAt, toEmail: config.notifyEmail })
+        } catch (e) {
+          console.error('[cron/social] token expiry email failed', e)
+        }
+      }
+    }
 
     // Récupère les sujets récents (14 derniers jours) pour éviter les répétitions
     const recentPosts = await prisma.socialPost.findMany({
