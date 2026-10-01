@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const id = new URL(req.url).searchParams.get('id')
+  if (id) {
+    const post = await prisma.socialPost.findUnique({ where: { id: parseInt(id) } })
+    return NextResponse.json({ post })
+  }
   const posts = await prisma.socialPost.findMany({
     orderBy: { createdAt: 'desc' },
     take: 50,
+    omit: { imageUrl: true },
   })
   return NextResponse.json({ posts })
 }
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, topic, contentLI, contentIG, status, publishedAt, scheduledAt } = await req.json()
+    const { id, topic, contentLI, contentIG, status, publishedAt, scheduledAt, imageUrl } = await req.json()
     const post = await prisma.socialPost.update({
       where: { id },
       data: {
@@ -20,6 +26,7 @@ export async function PATCH(req: NextRequest) {
         ...(contentIG !== undefined && { contentIG }),
         ...(status !== undefined && { status }),
         ...(publishedAt !== undefined && { publishedAt: new Date(publishedAt) }),
+        ...(imageUrl !== undefined && { imageUrl }),
         ...(scheduledAt !== undefined && { scheduledAt: scheduledAt ? new Date(scheduledAt) : null }),
       },
     })

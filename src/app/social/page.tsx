@@ -9,6 +9,7 @@ interface SocialPost {
   contentLI: string | null
   contentIG: string | null
   imagePrompt: string | null
+  imageUrl?: string | null
   status: string
   scheduledAt: string | null
   publishedAt: string | null
@@ -93,6 +94,11 @@ function SocialPageInner() {
     setSelected(post)
     setSelectedPhotoUrl(null)
     setGeneratedImageUrl(null)
+    if (post.status === 'scheduled') {
+      fetch(`/api/social/posts?id=${post.id}`).then(r => r.json()).then(d => {
+        if (d.post?.imageUrl) setSelectedPhotoUrl(d.post.imageUrl)
+      }).catch(() => {})
+    }
     setUnsplashPhotos([])
     setCustomImagePrompt(null)
     setCustomUnsplashKeywords(null)
@@ -186,7 +192,7 @@ function SocialPageInner() {
     const res = await fetch('/api/social/posts', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: selected.id, status, scheduledAt }),
+      body: JSON.stringify({ id: selected.id, status, scheduledAt, imageUrl: scheduledAt ? selectedPhotoUrl : null }),
     })
     const data = await res.json()
     if (data.post) {

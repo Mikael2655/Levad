@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
           errors.push('LINKEDIN_ACCESS_TOKEN manquant')
         } else {
           try {
-            linkedinPostId = await publishToLinkedIn(post.contentLI, token)
+            linkedinPostId = await publishToLinkedIn(post.contentLI, token, post.imageUrl ?? undefined)
           } catch (e) {
             errors.push(`LinkedIn: ${String(e)}`)
           }

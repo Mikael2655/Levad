@@ -16,6 +16,7 @@ model SocialPost {
   contentLI   String?
   contentIG   String?
   imagePrompt String?
+  imageUrl    String?
 
   status      String   @default("draft") // draft | scheduled | published | failed
   scheduledAt DateTime?
