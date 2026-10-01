@@ -11,28 +11,27 @@ export async function publishToLinkedIn(content: string, accessToken: string): P
   const sub = await getPersonSub(accessToken)
   const author = `urn:li:person:${sub}`
 
-  const res = await fetch('https://api.linkedin.com/rest/posts', {
+  const res = await fetch('https://api.linkedin.com/v2/ugcPosts', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
-      'LinkedIn-Version': '202401',
       'X-Restli-Protocol-Version': '2.0.0',
     },
     body: JSON.stringify({
       author,
       lifecycleState: 'PUBLISHED',
-      visibility: 'PUBLIC',
-      commentary: content,
-      distribution: {
-        feedDistribution: 'MAIN_FEED',
-        targetEntities: [],
-        thirdPartyDistributionChannels: [],
+      specificContent: {
+        'com.linkedin.ugc.ShareContent': {
+          shareCommentary: { text: content },
+          shareMediaCategory: 'NONE',
+        },
       },
+      visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' },
     }),
   })
 
   if (!res.ok) throw new Error(`LinkedIn ${res.status}: ${await res.text()}`)
-  const location = res.headers.get('x-restli-id') ?? res.headers.get('location') ?? ''
-  return location
+  const data = await res.json()
+  return data.id as string
 }
