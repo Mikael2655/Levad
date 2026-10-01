@@ -56,7 +56,7 @@ export async function notifyTokenExpiry(params: { daysLeft: number; expiresAt: s
   <p>Sans renouvellement, les publications planifiées passeront en échec.</p>
   <ol>
     <li>Générez un nouveau jeton dans le portail développeur LinkedIn.</li>
-    <li>Dans Vercel, mettez à jour <code>LINKEDIN_ACCESS_TOKEN</code> et <code>LINKEDIN_TOKEN_EXPIRES_AT</code> (nouvelle date, format AAAA-MM-JJ).</li>
+    <li>Dans Vercel, mettez à jour <code>LINKEDIN_ACCESS_TOKEN</code> avec le nouveau jeton (le prochain rappel se calcule automatiquement).</li>
     <li>Relancez un déploiement.</li>
   </ol>
 </body></html>`,

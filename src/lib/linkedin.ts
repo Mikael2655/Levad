@@ -101,3 +101,30 @@ export async function publishToLinkedIn(content: string, accessToken: string, im
   const data = await res.json()
   return data.id as string
 }
+
+export async function getTokenExpiry(accessToken: string): Promise<Date | null> {
+  const clientId = process.env.LINKEDIN_CLIENT_ID
+  const clientSecret = process.env.LINKEDIN_CLIENT_SECRET
+  if (clientId && clientSecret) {
+    try {
+      const res = await fetch('https://www.linkedin.com/oauth/v2/introspectToken', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, token: accessToken }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.active === false) return new Date(0)
+        if (typeof data.expires_at === 'number') return new Date(data.expires_at * 1000)
+      }
+    } catch (e) {
+      console.error('LinkedIn token introspection failed:', e)
+    }
+  }
+  const fallback = process.env.LINKEDIN_TOKEN_EXPIRES_AT
+  if (fallback) {
+    const d = new Date(`${fallback}T23:59:59Z`)
+    if (!Number.isNaN(d.getTime())) return d
+  }
+  return null
+}

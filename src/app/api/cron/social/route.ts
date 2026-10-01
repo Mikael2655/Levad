@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { generateSocialPosts, selectTopic } from '@/lib/claude-ai'
 import { notifyPostReady, notifyTokenExpiry } from '@/lib/email'
+import { getTokenExpiry } from '@/lib/linkedin'
 
 // Vercel Cron: "0 7 * * 1,3" (lundi + mercredi 7h UTC)
 // Génère un brouillon et propose une publication le lendemain (mardi/jeudi) à 18h heure de Paris
@@ -33,15 +34,22 @@ export async function GET(req: NextRequest) {
     const config = await prisma.socialConfig.findFirst({ where: { id: 1 } })
     if (!config) return NextResponse.json({ skipped: 'no config' })
 
-    const tokenExpiresAt = process.env.LINKEDIN_TOKEN_EXPIRES_AT
-    if (tokenExpiresAt && process.env.RESEND_API_KEY) {
-      const daysLeft = Math.ceil((new Date(`${tokenExpiresAt}T23:59:59Z`).getTime() - Date.now()) / 86400000)
-      if (!Number.isNaN(daysLeft) && daysLeft <= 10) {
-        try {
-          await notifyTokenExpiry({ daysLeft, expiresAt: tokenExpiresAt, toEmail: config.notifyEmail })
-        } catch (e) {
-          console.error('[cron/social] token expiry email failed', e)
+    const linkedinToken = process.env.LINKEDIN_ACCESS_TOKEN
+    if (linkedinToken && process.env.RESEND_API_KEY) {
+      try {
+        const expiry = await getTokenExpiry(linkedinToken)
+        if (expiry) {
+          const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / 86400000)
+          if (daysLeft <= 10) {
+            await notifyTokenExpiry({
+              daysLeft,
+              expiresAt: expiry.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' }),
+              toEmail: config.notifyEmail,
+            })
+          }
         }
+      } catch (e) {
+        console.error('[cron/social] token expiry check failed', e)
       }
     }
 
