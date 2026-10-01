@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db'
 import { publishToLinkedIn } from '@/lib/linkedin'
 import { publishToInstagram } from '@/lib/instagram'
 
-// Vercel Cron: "*/15 * * * *" (toutes les 15 minutes)
+// Vercel Cron: "0 9 * * *" (une fois par jour, limite du plan Hobby)
 // Publie les posts dont scheduledAt est passé et status === 'scheduled'
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
