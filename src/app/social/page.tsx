@@ -158,7 +158,7 @@ function SocialPageInner() {
       const res = await fetch('/api/social/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postId: selected.id }),
+        body: JSON.stringify({ postId: selected.id, imageUrl: selectedPhotoUrl }),
       })
       const data = await res.json()
       await loadPosts()
