@@ -1,29 +1,15 @@
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { generateSocialPosts, selectTopic } from '@/lib/claude-ai'
 import { notifyPostReady, notifyTokenExpiry } from '@/lib/email'
 import { getTokenExpiry } from '@/lib/linkedin'
+import { generateQueuedPost, QUEUE_STATUSES, queueTarget, rebuildSlots } from '@/lib/queue'
 
 // Vercel Cron: "0 7 * * 1,3" (lundi + mercredi 7h UTC)
-// Génère un brouillon et propose une publication le lendemain (mardi/jeudi) à 18h heure de Paris
-function parisOffsetHours(at: Date): number {
-  const part = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', timeZoneName: 'shortOffset' })
-    .formatToParts(at).find(p => p.type === 'timeZoneName')?.value ?? 'GMT+1'
-  const m = part.match(/GMT([+-]\d+)/)
-  return m ? parseInt(m[1], 10) : 1
-}
-
-function tomorrowAtParisHour(hour: number): Date {
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' })
-    .formatToParts(tomorrow)
-  const get = (t: string) => parseInt(parts.find(p => p.type === t)!.value, 10)
-  const guess = new Date(Date.UTC(get('year'), get('month') - 1, get('day'), hour))
-  return new Date(guess.getTime() - parisOffsetHours(guess) * 60 * 60 * 1000)
-}
-
+// Filet de sécurité : complète la file d'attente jusqu'à la taille cible (2 posts max par passage),
+// et prévient si le jeton LinkedIn arrive à expiration.
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -53,56 +39,32 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Récupère les sujets récents (14 derniers jours) pour éviter les répétitions
-    const recentPosts = await prisma.socialPost.findMany({
-      where: { createdAt: { gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) } },
-      select: { topic: true },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    })
-    const recentTopics = recentPosts.map(p => p.topic)
-    const configTopics = config.topics.split(',').map(t => t.trim()).filter(Boolean)
+    await rebuildSlots()
+    const count = await prisma.socialPost.count({ where: { status: { in: QUEUE_STATUSES } } })
+    const toCreate = Math.min(Math.max(queueTarget() - count, 0), 2)
 
-    // Claude choisit le sujet le plus pertinent
-    const { topic, angle } = await selectTopic(recentTopics, configTopics)
-    const fullTopic = angle ? `${topic} — ${angle}` : topic
-
-    // Génère le contenu
-    const generated = await generateSocialPosts({
-      topic: fullTopic,
-      companyName: config.companyName,
-      companyDesc: config.companyDesc,
-      tone: config.tone,
-      targetAudience: config.targetAudience,
-    })
-
-    const scheduledAt = tomorrowAtParisHour(18)
-
-    const post = await prisma.socialPost.create({
-      data: {
-        topic: fullTopic,
-        contentLI: generated.linkedin,
-        contentIG: generated.instagram,
-        imagePrompt: generated.imagePrompt,
-        status: 'draft',
-        scheduledAt,
-      },
-    })
-
-    // Notification email pour validation
+    const created: number[] = []
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://social.levad.fr'
-    if (process.env.RESEND_API_KEY) {
-      await notifyPostReady({
-        postId: post.id,
-        topic: fullTopic,
-        contentLI: generated.linkedin,
-        contentIG: generated.instagram,
-        appUrl,
-        toEmail: config.notifyEmail,
-      })
+    for (let i = 0; i < toCreate; i++) {
+      const post = await generateQueuedPost()
+      created.push(post.id)
+      if (process.env.RESEND_API_KEY) {
+        try {
+          await notifyPostReady({
+            postId: post.id,
+            topic: post.topic,
+            contentLI: post.contentLI ?? '',
+            contentIG: post.contentIG ?? '',
+            appUrl,
+            toEmail: config.notifyEmail,
+          })
+        } catch (e) {
+          console.error('[cron/social] notify failed', e)
+        }
+      }
     }
 
-    return NextResponse.json({ success: true, postId: post.id, topic: fullTopic, scheduledAt })
+    return NextResponse.json({ success: true, queue: count, created })
   } catch (err) {
     console.error('[cron/social]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

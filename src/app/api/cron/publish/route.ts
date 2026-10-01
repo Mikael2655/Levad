@@ -1,12 +1,15 @@
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { publishToLinkedIn } from '@/lib/linkedin'
-import { publishToInstagram } from '@/lib/instagram'
+import { publishEverywhere } from '@/lib/publish'
+import { generateQueuedPost, latestSlotAtOrBefore, rebuildSlots, sortQueue } from '@/lib/queue'
 
-// Vercel Cron: "0 9 * * *" (une fois par jour, limite du plan Hobby)
-// Publie les posts dont scheduledAt est passé et status === 'scheduled'
+const SLOT_WINDOW_MS = 6 * 3600000
+
+// Appelé toutes les 15 minutes. Au créneau (mardi/jeudi 18h Paris, fenêtre de 6 h),
+// publie le premier post VALIDÉ de la file, puis en génère un nouveau pour garder la file pleine.
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -18,64 +21,58 @@ export async function GET(req: NextRequest) {
     if (!config) return NextResponse.json({ skipped: 'no config' })
 
     const now = new Date()
-    const duePosts = await prisma.socialPost.findMany({
+    const slot = latestSlotAtOrBefore(now)
+    if (!slot || now.getTime() - slot.getTime() > SLOT_WINDOW_MS) {
+      await rebuildSlots()
+      return NextResponse.json({ published: 0, reason: 'hors créneau' })
+    }
+
+    const consumed = await prisma.socialPost.count({
       where: {
-        status: 'scheduled',
-        scheduledAt: { lte: now },
+        OR: [
+          { status: 'published', publishedAt: { gte: slot } },
+          { status: 'failed', updatedAt: { gte: slot } },
+        ],
+      },
+    })
+    if (consumed > 0) return NextResponse.json({ published: 0, reason: 'créneau déjà traité' })
+
+    const validated = sortQueue(await prisma.socialPost.findMany({
+      where: { status: 'scheduled' },
+      select: { id: true, status: true, scheduledAt: true },
+    }))
+    if (validated.length === 0) {
+      await rebuildSlots()
+      return NextResponse.json({ published: 0, reason: 'aucun post validé' })
+    }
+
+    const post = await prisma.socialPost.findUniqueOrThrow({ where: { id: validated[0].id } })
+    const { published, linkedinPostId, instagramPostId, errors } =
+      await publishEverywhere(post, config, post.imageUrl)
+
+    await prisma.socialPost.update({
+      where: { id: post.id },
+      data: {
+        status: published ? 'published' : 'failed',
+        publishedAt: published ? now : undefined,
+        linkedinPostId: linkedinPostId ?? undefined,
+        instagramPostId: instagramPostId ?? undefined,
+        errorMessage: errors.length > 0 ? errors.join(' | ') : undefined,
       },
     })
 
-    if (duePosts.length === 0) return NextResponse.json({ published: 0 })
-
-    const results = []
-    for (const post of duePosts) {
-      const errors: string[] = []
-      let linkedinPostId: string | undefined
-      let instagramPostId: string | undefined
-
-      if (config.linkedinEnabled && post.contentLI) {
-        const token = process.env.LINKEDIN_ACCESS_TOKEN
-        if (!token) {
-          errors.push('LINKEDIN_ACCESS_TOKEN manquant')
-        } else {
-          try {
-            linkedinPostId = await publishToLinkedIn(post.contentLI, token, post.imageUrl ?? undefined)
-          } catch (e) {
-            errors.push(`LinkedIn: ${String(e)}`)
-          }
-        }
+    if (published) {
+      try {
+        await generateQueuedPost()
+      } catch (e) {
+        console.error('[cron/publish] refill failed', e)
+        await rebuildSlots()
       }
-
-      if (config.instagramEnabled && post.contentIG) {
-        const token = process.env.INSTAGRAM_ACCESS_TOKEN
-        const accountId = process.env.INSTAGRAM_ACCOUNT_ID
-        if (!token || !accountId) {
-          errors.push('Instagram non configuré')
-        } else {
-          try {
-            instagramPostId = await publishToInstagram(post.contentIG, token, accountId)
-          } catch (e) {
-            errors.push(`Instagram: ${String(e)}`)
-          }
-        }
-      }
-
-      const published = !!(linkedinPostId || instagramPostId)
-      await prisma.socialPost.update({
-        where: { id: post.id },
-        data: {
-          status: published ? 'published' : errors.length > 0 ? 'failed' : 'published',
-          publishedAt: published ? now : undefined,
-          linkedinPostId: linkedinPostId ?? undefined,
-          instagramPostId: instagramPostId ?? undefined,
-          errorMessage: errors.length > 0 ? errors.join(' | ') : undefined,
-        },
-      })
-
-      results.push({ id: post.id, topic: post.topic, published, errors })
+    } else {
+      await rebuildSlots()
     }
 
-    return NextResponse.json({ published: results.filter(r => r.published).length, results })
+    return NextResponse.json({ published: published ? 1 : 0, postId: post.id, errors })
   } catch (err) {
     console.error('[cron/publish]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

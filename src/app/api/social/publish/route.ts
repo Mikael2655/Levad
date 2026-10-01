@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { publishToLinkedIn } from '@/lib/linkedin'
-import { publishToInstagram } from '@/lib/instagram'
+import { publishEverywhere } from '@/lib/publish'
+import { generateQueuedPost, rebuildSlots } from '@/lib/queue'
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,48 +19,30 @@ export async function POST(req: NextRequest) {
     if (!post) return NextResponse.json({ error: 'Post introuvable' }, { status: 404 })
     if (!config) return NextResponse.json({ error: 'Configuration manquante' }, { status: 500 })
 
-    const errors: string[] = []
-    let linkedinPostId: string | undefined
-    let instagramPostId: string | undefined
+    const { published, linkedinPostId, instagramPostId, errors } =
+      await publishEverywhere(post, config, imageUrl ?? post.imageUrl)
 
-    if (config.linkedinEnabled && post.contentLI) {
-      const token = process.env.LINKEDIN_ACCESS_TOKEN
-      if (!token) {
-        errors.push('LinkedIn non configuré (LINKEDIN_ACCESS_TOKEN manquant)')
-      } else {
-        try {
-          linkedinPostId = await publishToLinkedIn(post.contentLI, token, imageUrl)
-        } catch (e) {
-          errors.push(`LinkedIn: ${String(e)}`)
-        }
-      }
-    }
-
-    if (config.instagramEnabled && post.contentIG) {
-      const token = process.env.INSTAGRAM_ACCESS_TOKEN
-      const accountId = process.env.INSTAGRAM_ACCOUNT_ID
-      if (!token || !accountId) {
-        errors.push('Instagram non configuré (INSTAGRAM_ACCESS_TOKEN / INSTAGRAM_ACCOUNT_ID manquants)')
-      } else {
-        try {
-          instagramPostId = await publishToInstagram(post.contentIG, token, accountId)
-        } catch (e) {
-          errors.push(`Instagram: ${String(e)}`)
-        }
-      }
-    }
-
-    const published = !!(linkedinPostId || instagramPostId)
     await prisma.socialPost.update({
       where: { id: postId },
       data: {
-        status: published ? 'published' : errors.length > 0 ? 'failed' : 'draft',
+        status: published ? 'published' : errors.length > 0 ? 'failed' : undefined,
         publishedAt: published ? new Date() : undefined,
         linkedinPostId: linkedinPostId ?? undefined,
         instagramPostId: instagramPostId ?? undefined,
         errorMessage: errors.length > 0 ? errors.join(' | ') : undefined,
       },
     })
+
+    if (published) {
+      try {
+        await generateQueuedPost()
+      } catch (e) {
+        console.error('[publish] refill failed', e)
+        await rebuildSlots()
+      }
+    } else {
+      await rebuildSlots()
+    }
 
     return NextResponse.json({ success: published, linkedinPostId, instagramPostId, errors })
   } catch (err) {

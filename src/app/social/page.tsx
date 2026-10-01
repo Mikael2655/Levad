@@ -32,7 +32,7 @@ interface Config {
 
 const STATUS = {
   draft:      { label: 'À valider',  color: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400' },
-  scheduled:  { label: 'Planifié',   color: 'bg-blue-100 text-blue-700',    dot: 'bg-blue-400' },
+  scheduled:  { label: 'Validé',     color: 'bg-blue-100 text-blue-700',    dot: 'bg-blue-400' },
   published:  { label: 'Publié',     color: 'bg-green-100 text-green-700',  dot: 'bg-green-400' },
   failed:     { label: 'Échec',      color: 'bg-red-100 text-red-700',      dot: 'bg-red-400' },
 }
@@ -60,6 +60,9 @@ function SocialPageInner() {
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [listFilter, setListFilter] = useState<'queue' | 'published' | 'failed'>('queue')
+  const [fillCount, setFillCount] = useState(10)
+  const [fillProgress, setFillProgress] = useState<string | null>(null)
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -94,7 +97,7 @@ function SocialPageInner() {
     setSelected(post)
     setSelectedPhotoUrl(null)
     setGeneratedImageUrl(null)
-    if (post.status === 'scheduled') {
+    if (post.status === 'scheduled' || post.status === 'draft') {
       fetch(`/api/social/posts?id=${post.id}`).then(r => r.json()).then(d => {
         if (d.post?.imageUrl) setSelectedPhotoUrl(d.post.imageUrl)
       }).catch(() => {})
@@ -184,22 +187,66 @@ function SocialPageInner() {
     }
   }
 
-  async function handleSchedule(scheduledAt: string | null) {
+  function formatSlot(iso: string | null) {
+    if (!iso) return ''
+    return new Date(iso).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })
+  }
+
+  async function handleValidate(validated: boolean) {
     if (!selected) return
-    // Auto-save content first
-    await saveContent(selected)
-    const status = scheduledAt ? 'scheduled' : 'draft'
-    const res = await fetch('/api/social/posts', {
-      method: 'PATCH',
+    const res = await fetch('/api/social/queue', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: selected.id, status, scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null, imageUrl: scheduledAt ? selectedPhotoUrl : null }),
+      body: JSON.stringify({
+        action: 'validate',
+        id: selected.id,
+        validated,
+        topic: selected.topic,
+        contentLI: selected.contentLI,
+        contentIG: selected.contentIG,
+        imageUrl: selectedPhotoUrl,
+      }),
     })
     const data = await res.json()
     if (data.post) {
       setSelected(data.post)
       await loadPosts()
-      showToast(scheduledAt ? `Publication planifiée pour le ${new Date(scheduledAt).toLocaleString('fr-FR')}` : 'Planification annulée')
+      showToast(validated ? 'Post validé : il sera publié automatiquement à son créneau' : 'Validation retirée')
+    } else {
+      showToast(data.error ?? 'Erreur', false)
     }
+  }
+
+  async function handleMove(id: number, direction: 'up' | 'down') {
+    await fetch('/api/social/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'move', id, direction }),
+    })
+    await loadPosts()
+  }
+
+  async function handleFill() {
+    for (let i = 1; i <= fillCount; i++) {
+      setFillProgress(`Génération ${i}/${fillCount}…`)
+      try {
+        const res = await fetch('/api/social/queue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'generate' }),
+        })
+        const data = await res.json()
+        if (!data.post) {
+          showToast(data.error ?? 'Erreur de génération', false)
+          break
+        }
+        await loadPosts()
+      } catch {
+        showToast('Erreur de génération', false)
+        break
+      }
+    }
+    setFillProgress(null)
   }
 
   async function handleDelete() {
@@ -270,6 +317,11 @@ function SocialPageInner() {
   const drafts = posts.filter(p => p.status === 'draft')
   const scheduled = posts.filter(p => p.status === 'scheduled')
   const published = posts.filter(p => p.status === 'published')
+  const failed = posts.filter(p => p.status === 'failed')
+  const byDate = (a: SocialPost, b: SocialPost) =>
+    (a.scheduledAt ? new Date(a.scheduledAt).getTime() : Infinity) - (b.scheduledAt ? new Date(b.scheduledAt).getTime() : Infinity) || a.id - b.id
+  const queue = [...scheduled].sort(byDate).concat([...drafts].sort(byDate))
+  const listed = listFilter === 'queue' ? queue : listFilter === 'published' ? published : failed
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -356,7 +408,7 @@ function SocialPageInner() {
             )}
             {scheduled.length > 0 && (
               <span className="bg-blue-400 text-blue-900 font-bold px-2.5 py-0.5 rounded-full text-xs">
-                {scheduled.length} planifié{scheduled.length > 1 ? 's' : ''}
+                {scheduled.length} validé{scheduled.length > 1 ? 's' : ''}
               </span>
             )}
           </div>
@@ -398,6 +450,19 @@ function SocialPageInner() {
                     ) : 'Générer avec Claude AI'}
                   </button>
                 </div>
+                <div className="mt-4 pt-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-400 mb-2">Ou préparer la file à l&apos;avance : Claude choisit les sujets, vous validez quand vous voulez.</p>
+                  <div className="flex gap-2">
+                    <select value={fillCount} onChange={e => setFillCount(parseInt(e.target.value))} disabled={!!fillProgress}
+                      className="border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white">
+                      {[5, 10, 20].map(n => <option key={n} value={n}>{n} posts</option>)}
+                    </select>
+                    <button onClick={handleFill} disabled={!!fillProgress}
+                      className="flex-1 bg-white border border-brand-800 text-brand-800 py-2 rounded-xl text-sm font-semibold hover:bg-brand-800 hover:text-white transition disabled:opacity-50">
+                      {fillProgress ?? 'Remplir la file'}
+                    </button>
+                  </div>
+                </div>
                 {config && (
                   <div className="mt-4 pt-3 border-t border-gray-100">
                     <p className="text-xs text-gray-400 mb-2">Suggestions rapides</p>
@@ -420,7 +485,7 @@ function SocialPageInner() {
                 </div>
                 <div className="bg-white rounded-xl border border-blue-200 p-3">
                   <p className="text-2xl font-bold text-blue-600">{scheduled.length}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Planifiés</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Validés</p>
                 </div>
                 <div className="bg-white rounded-xl border border-green-200 p-3">
                   <p className="text-2xl font-bold text-green-600">{published.length}</p>
@@ -429,34 +494,60 @@ function SocialPageInner() {
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <h3 className="text-sm font-semibold text-gray-900">{posts.length} post{posts.length !== 1 ? 's' : ''}</h3>
+                <div className="px-3 py-3 border-b border-gray-100 flex gap-1">
+                  {([
+                    ['queue', `File d'attente (${queue.length})`],
+                    ['published', `Publiés (${published.length})`],
+                    ...(failed.length > 0 ? [['failed', `Échecs (${failed.length})`]] : []),
+                  ] as [typeof listFilter, string][]).map(([key, label]) => (
+                    <button key={key} onClick={() => setListFilter(key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${listFilter === key ? 'bg-brand-800 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+                      {label}
+                    </button>
+                  ))}
                 </div>
-                {posts.length === 0 ? (
+                {listed.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <p className="text-4xl mb-2">📝</p>
-                    <p className="text-sm">Aucun post pour l&apos;instant</p>
+                    <p className="text-sm">{listFilter === 'queue' ? 'La file est vide : cliquez sur « Remplir la file »' : 'Aucun post'}</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
-                    {posts.map(post => {
+                  <div className="divide-y divide-gray-50 max-h-[32rem] overflow-y-auto">
+                    {listed.map((post, idx) => {
                       const s = STATUS[post.status as keyof typeof STATUS] ?? STATUS.draft
+                      const inQueue = listFilter === 'queue'
+                      const prev = listed[idx - 1]
+                      const next = listed[idx + 1]
+                      const canUp = inQueue && prev && prev.status === post.status
+                      const canDown = inQueue && next && next.status === post.status
                       return (
-                        <button key={post.id} onClick={() => selectPost(post)}
-                          className={`w-full text-left p-4 hover:bg-gray-50 transition ${selected?.id === post.id ? 'bg-blue-50 border-l-2 border-brand-800' : ''}`}>
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-medium text-gray-900 line-clamp-1">{post.topic}</p>
-                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full shrink-0 ${s.color}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`}></span>
-                              {s.label}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {new Date(post.createdAt).toLocaleDateString('fr-FR')}
-                            {post.linkedinPostId && ' · LI ✓'}
-                            {post.instagramPostId && ' · IG ✓'}
-                          </p>
-                        </button>
+                        <div key={post.id}
+                          className={`flex items-stretch ${selected?.id === post.id ? 'bg-blue-50 border-l-2 border-brand-800' : ''}`}>
+                          {inQueue && (
+                            <div className="flex flex-col justify-center px-1.5 text-gray-400">
+                              <button onClick={() => handleMove(post.id, 'up')} disabled={!canUp} title="Monter"
+                                className="leading-none px-1 hover:text-brand-800 disabled:opacity-20">▲</button>
+                              <button onClick={() => handleMove(post.id, 'down')} disabled={!canDown} title="Descendre"
+                                className="leading-none px-1 hover:text-brand-800 disabled:opacity-20">▼</button>
+                            </div>
+                          )}
+                          <button onClick={() => selectPost(post)} className="flex-1 min-w-0 text-left p-4 hover:bg-gray-50 transition">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-medium text-gray-900 line-clamp-1">{post.topic}</p>
+                              <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full shrink-0 ${s.color}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`}></span>
+                                {s.label}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {inQueue && post.scheduledAt
+                                ? `📅 ${formatSlot(post.scheduledAt)}`
+                                : new Date(post.publishedAt ?? post.createdAt).toLocaleDateString('fr-FR')}
+                              {post.linkedinPostId && ' · LI ✓'}
+                              {post.instagramPostId && ' · IG ✓'}
+                            </p>
+                          </button>
+                        </div>
                       )
                     })}
                   </div>
@@ -512,37 +603,33 @@ function SocialPageInner() {
                     </div>
                   )}
 
-                  {/* Planification */}
-                  {selected.status !== 'published' && (
-                    <div className="mx-6 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-sm font-medium text-blue-800">📅 Publication planifiée :</span>
-                        <input
-                          type="datetime-local"
-                          defaultValue={selected.scheduledAt ? new Date(new Date(selected.scheduledAt).getTime() - new Date(selected.scheduledAt).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
-                          id={`schedule-${selected.id}`}
-                          className="text-sm border border-blue-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                        <button
-                          onClick={() => {
-                            const input = document.getElementById(`schedule-${selected.id}`) as HTMLInputElement
-                            handleSchedule(input.value || null)
-                          }}
-                          className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition">
-                          {selected.status === 'scheduled' ? 'Mettre à jour' : 'Planifier'}
-                        </button>
-                        {selected.status === 'scheduled' && (
-                          <button onClick={() => handleSchedule(null)}
-                            className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition">
-                            Annuler
+                  {/* Validation */}
+                  {(selected.status === 'draft' || selected.status === 'scheduled') && (
+                    <div className={`mx-6 mt-4 p-4 rounded-xl border ${selected.status === 'scheduled' ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                      <div className="flex items-center gap-3 flex-wrap justify-between">
+                        <div>
+                          <p className={`text-sm font-semibold ${selected.status === 'scheduled' ? 'text-green-800' : 'text-amber-800'}`}>
+                            {selected.status === 'scheduled' ? '✅ Validé' : '⏳ À valider'}
+                            {selected.scheduledAt && ` · créneau prévu : ${formatSlot(selected.scheduledAt)}`}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {selected.status === 'scheduled'
+                              ? 'Sera publié automatiquement à son créneau (avec l\'image choisie).'
+                              : 'Rien n\'est publié tant que vous n\'avez pas validé. Choisissez l\'image puis validez.'}
+                          </p>
+                        </div>
+                        {selected.status === 'scheduled' ? (
+                          <button onClick={() => handleValidate(false)}
+                            className="px-4 py-1.5 text-sm border border-green-300 text-green-700 rounded-lg hover:bg-green-100 font-medium transition">
+                            Retirer la validation
+                          </button>
+                        ) : (
+                          <button onClick={() => handleValidate(true)}
+                            className="px-4 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition">
+                            ✅ Valider pour publication
                           </button>
                         )}
                       </div>
-                      {selected.scheduledAt && selected.status === 'scheduled' && (
-                        <p className="text-xs text-blue-600 mt-2">
-                          Sera publié automatiquement le {new Date(selected.scheduledAt).toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'short' })}
-                        </p>
-                      )}
                     </div>
                   )}
 

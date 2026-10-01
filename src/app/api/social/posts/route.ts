@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { rebuildSlots } from '@/lib/queue'
 
 export async function GET(req: NextRequest) {
   const id = new URL(req.url).searchParams.get('id')
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
   const posts = await prisma.socialPost.findMany({
     orderBy: { createdAt: 'desc' },
-    take: 50,
+    take: 100,
     omit: { imageUrl: true },
   })
   return NextResponse.json({ posts })
@@ -43,5 +44,6 @@ export async function DELETE(req: NextRequest) {
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id requis' }, { status: 400 })
   await prisma.socialPost.delete({ where: { id: parseInt(id) } })
+  await rebuildSlots()
   return NextResponse.json({ success: true })
 }

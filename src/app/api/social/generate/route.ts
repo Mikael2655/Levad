@@ -1,8 +1,10 @@
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { generateSocialPosts } from '@/lib/claude-ai'
+import { rebuildSlots } from '@/lib/queue'
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,7 +32,9 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json({ post })
+    await rebuildSlots()
+    const fresh = await prisma.socialPost.findUnique({ where: { id: post.id }, omit: { imageUrl: true } })
+    return NextResponse.json({ post: fresh })
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
