@@ -514,34 +514,32 @@ function SocialPageInner() {
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-white rounded-xl border border-amber-200 p-3">
-                  <p className="text-2xl font-bold text-amber-600">{drafts.length}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">À valider</p>
-                </div>
-                <div className="bg-white rounded-xl border border-blue-200 p-3">
-                  <p className="text-2xl font-bold text-blue-600">{scheduled.length}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Validés</p>
-                </div>
-                <div className="bg-white rounded-xl border border-green-200 p-3">
+              <div className={`grid gap-2 ${failed.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                <button onClick={() => setListFilter('queue')}
+                  className={`text-left bg-white rounded-xl border p-3 transition ${listFilter === 'queue' ? 'border-brand-800 ring-2 ring-brand-800' : 'border-gray-200 hover:border-brand-800'}`}>
+                  <p className="text-2xl font-bold text-brand-800">{queue.length}</p>
+                  <p className="text-xs font-semibold text-gray-700 mt-0.5">File d&apos;attente</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    <span className="text-amber-600 font-medium">{drafts.length} à valider</span>
+                    {' · '}
+                    <span className="text-blue-600 font-medium">{scheduled.length} validé{scheduled.length > 1 ? 's' : ''}</span>
+                  </p>
+                </button>
+                <button onClick={() => setListFilter('published')}
+                  className={`text-left bg-white rounded-xl border p-3 transition ${listFilter === 'published' ? 'border-green-500 ring-2 ring-green-500' : 'border-gray-200 hover:border-green-500'}`}>
                   <p className="text-2xl font-bold text-green-600">{published.length}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Publiés</p>
-                </div>
+                  <p className="text-xs font-semibold text-gray-700 mt-0.5">Publié{published.length > 1 ? 's' : ''}</p>
+                </button>
+                {failed.length > 0 && (
+                  <button onClick={() => setListFilter('failed')}
+                    className={`text-left bg-white rounded-xl border p-3 transition ${listFilter === 'failed' ? 'border-red-500 ring-2 ring-red-500' : 'border-gray-200 hover:border-red-500'}`}>
+                    <p className="text-2xl font-bold text-red-600">{failed.length}</p>
+                    <p className="text-xs font-semibold text-gray-700 mt-0.5">Échec{failed.length > 1 ? 's' : ''}</p>
+                  </button>
+                )}
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-3 py-3 border-b border-gray-100 flex gap-1">
-                  {([
-                    ['queue', `File d'attente (${queue.length})`],
-                    ['published', `Publiés (${published.length})`],
-                    ...(failed.length > 0 ? [['failed', `Échecs (${failed.length})`]] : []),
-                  ] as [typeof listFilter, string][]).map(([key, label]) => (
-                    <button key={key} onClick={() => setListFilter(key)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${listFilter === key ? 'bg-brand-800 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
                 {listFilter === 'queue' && (
                   <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 space-y-2">
                     <p className="text-xs text-gray-600">
