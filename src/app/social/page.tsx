@@ -64,6 +64,7 @@ function SocialPageInner() {
   const [fillCount, setFillCount] = useState(10)
   const [fillProgress, setFillProgress] = useState<string | null>(null)
   const [fillError, setFillError] = useState<string | null>(null)
+  const [hold, setHold] = useState<string | null>(null)
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -75,6 +76,7 @@ function SocialPageInner() {
     const data = await res.json()
     const list: SocialPost[] = data.posts ?? []
     setPosts(list)
+    setHold(data.hold ?? null)
     const idParam = searchParams.get('post')
     if (idParam) {
       const found = list.find(p => p.id === parseInt(idParam))
@@ -225,6 +227,26 @@ function SocialPageInner() {
       body: JSON.stringify({ action: 'move', id, direction }),
     })
     await loadPosts()
+  }
+
+  async function handleShift() {
+    await fetch('/api/social/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'shift' }),
+    })
+    await loadPosts()
+    showToast('Prochaine publication décalée d\'un créneau, toute la file suit')
+  }
+
+  async function handleHold(day: string | null) {
+    await fetch('/api/social/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'hold', day }),
+    })
+    await loadPosts()
+    showToast(day ? `Aucune publication avant le ${new Date(day).toLocaleDateString('fr-FR')}` : 'Décalage annulé')
   }
 
   async function queueCall(body: object) {
@@ -520,6 +542,33 @@ function SocialPageInner() {
                     </button>
                   ))}
                 </div>
+                {listFilter === 'queue' && (
+                  <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 space-y-2">
+                    <p className="text-xs text-gray-600">
+                      {scheduled.length > 0 && scheduled[0].scheduledAt
+                        ? <>Prochaine publication : <strong>{formatSlot([...scheduled].sort(byDate)[0].scheduledAt)}</strong></>
+                        : 'Aucun post validé : rien ne sera publié.'}
+                      {hold && <span className="block text-amber-700 mt-0.5">⏸ Décalage actif : rien avant le {new Date(hold).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}</span>}
+                    </p>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <button onClick={handleShift}
+                        className="px-3 py-1.5 text-xs border border-gray-300 bg-white rounded-lg hover:bg-gray-100 font-medium">
+                        Décaler d&apos;un créneau
+                      </button>
+                      <label className="text-xs text-gray-500 flex items-center gap-1.5">
+                        ou rien avant le
+                        <input type="date" onChange={e => e.target.value && handleHold(e.target.value)}
+                          className="border border-gray-300 rounded-lg px-2 py-1 text-xs bg-white" />
+                      </label>
+                      {hold && (
+                        <button onClick={() => handleHold(null)}
+                          className="px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-100 rounded-lg font-medium">
+                          Annuler le décalage
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {listed.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <p className="text-4xl mb-2">📝</p>

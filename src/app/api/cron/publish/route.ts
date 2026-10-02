@@ -4,7 +4,7 @@ export const maxDuration = 60
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { publishEverywhere } from '@/lib/publish'
-import { generateQueuedPost, latestSlotAtOrBefore, rebuildSlots, sortQueue } from '@/lib/queue'
+import { generateQueuedPost, getHold, latestSlotAtOrBefore, rebuildSlots, sortQueue } from '@/lib/queue'
 
 const SLOT_WINDOW_MS = 6 * 3600000
 
@@ -25,6 +25,12 @@ export async function GET(req: NextRequest) {
     if (!slot || now.getTime() - slot.getTime() > SLOT_WINDOW_MS) {
       await rebuildSlots()
       return NextResponse.json({ published: 0, reason: 'hors créneau' })
+    }
+
+    const hold = await getHold(true)
+    if (hold && slot.getTime() <= hold.getTime()) {
+      await rebuildSlots()
+      return NextResponse.json({ published: 0, reason: 'créneau décalé' })
     }
 
     const consumed = await prisma.socialPost.count({

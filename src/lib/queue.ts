@@ -4,6 +4,7 @@ import { generateSocialPosts, selectTopic, type SelectedTopic } from '@/lib/clau
 export const SLOT_HOUR_PARIS = 18
 const SLOT_WEEKDAYS = [2, 4] // mardi, jeudi
 export const QUEUE_STATUSES = ['draft', 'scheduled'] // draft = à valider, scheduled = validé
+const HOLD_STATUS = 'hold' // ligne technique : « ne rien publier avant scheduledAt »
 
 export function queueTarget(): number {
   const n = parseInt(process.env.QUEUE_TARGET ?? '10', 10)
@@ -17,7 +18,7 @@ function parisOffsetHours(at: Date): number {
   return m ? parseInt(m[1], 10) : 1
 }
 
-function parisToUtc(y: number, m0: number, d: number, hour: number): Date {
+export function parisToUtc(y: number, m0: number, d: number, hour: number): Date {
   const guess = new Date(Date.UTC(y, m0, d, hour))
   return new Date(guess.getTime() - parisOffsetHours(guess) * 3600000)
 }
@@ -65,12 +66,35 @@ export function sortQueue<T extends QueueRow>(rows: T[]): T[] {
 
 // Réattribue un créneau (mardi/jeudi 18h Paris) à chaque post de la file, dans l'ordre :
 // d'abord les posts validés, puis ceux à valider.
+// includePast = true : renvoie aussi un décalage dont l'heure est passée (le cron en a besoin
+// pour ne pas publier le créneau sauté). Les décalages vieux de plus d'un jour sont supprimés.
+export async function getHold(includePast = false): Promise<Date | null> {
+  const row = await prisma.socialPost.findFirst({ where: { status: HOLD_STATUS } })
+  if (!row?.scheduledAt) return null
+  const age = Date.now() - row.scheduledAt.getTime()
+  if (age > 86400000) {
+    await prisma.socialPost.deleteMany({ where: { status: HOLD_STATUS } })
+    return null
+  }
+  if (age >= 0 && !includePast) return null
+  return row.scheduledAt
+}
+
+async function setHold(until: Date | null): Promise<void> {
+  await prisma.socialPost.deleteMany({ where: { status: HOLD_STATUS } })
+  if (until) {
+    await prisma.socialPost.create({ data: { topic: '__hold__', status: HOLD_STATUS, scheduledAt: until } })
+  }
+}
+
 export async function rebuildSlots(): Promise<void> {
+  const hold = await getHold()
   const queue = await prisma.socialPost.findMany({
     where: { status: { in: QUEUE_STATUSES } },
     select: { id: true, status: true, scheduledAt: true },
   })
-  let slot = nextSlotAfter(new Date())
+  const now = new Date()
+  let slot = nextSlotAfter(hold && hold.getTime() > now.getTime() ? hold : now)
   const ops = []
   for (const p of sortQueue(queue)) {
     if (!p.scheduledAt || p.scheduledAt.getTime() !== slot.getTime()) {
@@ -109,6 +133,7 @@ export async function pickTopic(): Promise<SelectedTopic> {
   const config = await loadConfig()
   const recent = await prisma.socialPost.findMany({
     where: {
+      status: { not: HOLD_STATUS },
       OR: [
         { status: { in: QUEUE_STATUSES } },
         { createdAt: { gte: new Date(Date.now() - 60 * 86400000) } },
@@ -152,4 +177,26 @@ export async function writeQueuedPost(picked: SelectedTopic) {
 
 export async function generateQueuedPost() {
   return writeQueuedPost(await pickTopic())
+}
+
+// Décale toute la file d'un créneau : le prochain créneau n'est pas utilisé.
+export async function shiftOneSlot(): Promise<void> {
+  await rebuildSlots()
+  const hold = await getHold()
+  const now = new Date()
+  const head = nextSlotAfter(hold && hold.getTime() > now.getTime() ? hold : now)
+  await setHold(head)
+  await rebuildSlots()
+}
+
+// Ne rien publier avant le jour indiqué (AAAA-MM-JJ, heure de Paris) ; null pour annuler le décalage.
+export async function holdUntilDay(day: string | null): Promise<void> {
+  if (!day) {
+    await setHold(null)
+  } else {
+    const m = day.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+    if (!m) throw new Error('Date invalide')
+    await setHold(new Date(parisToUtc(+m[1], +m[2] - 1, +m[3], 0).getTime() - 1))
+  }
+  await rebuildSlots()
 }

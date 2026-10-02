@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { rebuildSlots } from '@/lib/queue'
+import { getHold, rebuildSlots } from '@/lib/queue'
 
 export async function GET(req: NextRequest) {
   const id = new URL(req.url).searchParams.get('id')
@@ -11,11 +11,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ post })
   }
   const posts = await prisma.socialPost.findMany({
+    where: { status: { not: 'hold' } },
     orderBy: { createdAt: 'desc' },
     take: 100,
     omit: { imageUrl: true },
   })
-  return NextResponse.json({ posts })
+  const hold = await getHold()
+  return NextResponse.json({ posts, hold: hold ? hold.toISOString() : null })
 }
 
 export async function PATCH(req: NextRequest) {
