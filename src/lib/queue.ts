@@ -116,7 +116,7 @@ export async function generateQueuedPost() {
   const recentTopics = recent.map(p => p.topic.split(' — ')[0])
   const configTopics = config.topics.split(',').map(t => t.trim()).filter(Boolean)
 
-  const { topic, angle } = await selectTopic(recentTopics, configTopics)
+  const { topic, angle, facts } = await selectTopic(recentTopics, configTopics)
   const fullTopic = angle ? `${topic} — ${angle}` : topic
 
   const generated = await generateSocialPosts({
@@ -125,6 +125,7 @@ export async function generateQueuedPost() {
     companyDesc: config.companyDesc,
     tone: config.tone,
     targetAudience: config.targetAudience,
+    context: facts,
   })
 
   const post = await prisma.socialPost.create({
