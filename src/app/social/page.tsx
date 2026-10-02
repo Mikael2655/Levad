@@ -63,6 +63,7 @@ function SocialPageInner() {
   const [listFilter, setListFilter] = useState<'queue' | 'published' | 'failed'>('queue')
   const [fillCount, setFillCount] = useState(10)
   const [fillProgress, setFillProgress] = useState<string | null>(null)
+  const [fillError, setFillError] = useState<string | null>(null)
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -226,27 +227,39 @@ function SocialPageInner() {
     await loadPosts()
   }
 
+  async function queueCall(body: object) {
+    const res = await fetch('/api/social/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const text = await res.text()
+    let data: { error?: string; picked?: unknown; post?: unknown } = {}
+    try { data = JSON.parse(text) } catch { /* réponse non JSON (délai dépassé) */ }
+    if (!res.ok || data.error) {
+      throw new Error(data.error ?? `Erreur serveur ${res.status}${res.status === 504 ? ' (délai dépassé)' : ''}`)
+    }
+    return data
+  }
+
   async function handleFill() {
+    setFillError(null)
+    let done = 0
     for (let i = 1; i <= fillCount; i++) {
-      setFillProgress(`Génération ${i}/${fillCount}…`)
       try {
-        const res = await fetch('/api/social/queue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'generate' }),
-        })
-        const data = await res.json()
-        if (!data.post) {
-          showToast(data.error ?? 'Erreur de génération', false)
-          break
-        }
+        setFillProgress(`Recherche du sujet ${i}/${fillCount}…`)
+        const { picked } = await queueCall({ action: 'pick' })
+        setFillProgress(`Rédaction ${i}/${fillCount}…`)
+        await queueCall({ action: 'write', picked })
+        done++
         await loadPosts()
-      } catch {
-        showToast('Erreur de génération', false)
+      } catch (e) {
+        setFillError(`Arrêt après ${done} post${done > 1 ? 's' : ''} : ${e instanceof Error ? e.message : String(e)}`)
         break
       }
     }
     setFillProgress(null)
+    if (done > 0) showToast(`${done} post${done > 1 ? 's' : ''} ajouté${done > 1 ? 's' : ''} à la file`)
   }
 
   async function handleDelete() {
@@ -462,6 +475,7 @@ function SocialPageInner() {
                       {fillProgress ?? 'Remplir la file'}
                     </button>
                   </div>
+                  {fillError && <p className="text-xs text-red-600 mt-2 break-words">{fillError}</p>}
                 </div>
                 {config && (
                   <div className="mt-4 pt-3 border-t border-gray-100">

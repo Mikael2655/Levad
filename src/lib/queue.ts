@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db'
-import { generateSocialPosts, selectTopic } from '@/lib/claude-ai'
+import { generateSocialPosts, selectTopic, type SelectedTopic } from '@/lib/claude-ai'
 
 export const SLOT_HOUR_PARIS = 18
 const SLOT_WEEKDAYS = [2, 4] // mardi, jeudi
@@ -98,10 +98,15 @@ export async function movePost(id: number, direction: 'up' | 'down'): Promise<bo
   return true
 }
 
-export async function generateQueuedPost() {
+async function loadConfig() {
   let config = await prisma.socialConfig.findFirst({ where: { id: 1 } })
   if (!config) config = await prisma.socialConfig.create({ data: { id: 1 } })
+  return config
+}
 
+// Étape 1 : choisir le sujet (avec recherche web), sans rien écrire en base.
+export async function pickTopic(): Promise<SelectedTopic> {
+  const config = await loadConfig()
   const recent = await prisma.socialPost.findMany({
     where: {
       OR: [
@@ -115,9 +120,13 @@ export async function generateQueuedPost() {
   })
   const recentTopics = recent.map(p => p.topic.split(' — ')[0])
   const configTopics = config.topics.split(',').map(t => t.trim()).filter(Boolean)
+  return selectTopic(recentTopics, configTopics)
+}
 
-  const { topic, angle, facts } = await selectTopic(recentTopics, configTopics)
-  const fullTopic = angle ? `${topic} — ${angle}` : topic
+// Étape 2 : rédiger le post pour ce sujet et l'ajouter à la file.
+export async function writeQueuedPost(picked: SelectedTopic) {
+  const config = await loadConfig()
+  const fullTopic = picked.angle ? `${picked.topic} — ${picked.angle}` : picked.topic
 
   const generated = await generateSocialPosts({
     topic: fullTopic,
@@ -125,7 +134,7 @@ export async function generateQueuedPost() {
     companyDesc: config.companyDesc,
     tone: config.tone,
     targetAudience: config.targetAudience,
-    context: facts,
+    context: picked.facts,
   })
 
   const post = await prisma.socialPost.create({
@@ -139,4 +148,8 @@ export async function generateQueuedPost() {
   })
   await rebuildSlots()
   return post
+}
+
+export async function generateQueuedPost() {
+  return writeQueuedPost(await pickTopic())
 }

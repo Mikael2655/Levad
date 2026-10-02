@@ -62,9 +62,9 @@ Réponds uniquement avec ce JSON (sans markdown) :
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2048,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
       messages: [{ role: 'user', content: prompt }],
-    })
+    }, { timeout: 35000 })
     const text = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('\n')
     return extractJson<SelectedTopic>(text)
   } catch (e) {

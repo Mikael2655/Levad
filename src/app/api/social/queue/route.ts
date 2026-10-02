@@ -3,11 +3,22 @@ export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { generateQueuedPost, movePost, rebuildSlots } from '@/lib/queue'
+import { generateQueuedPost, movePost, pickTopic, rebuildSlots, writeQueuedPost } from '@/lib/queue'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+
+    if (body.action === 'pick') {
+      return NextResponse.json({ picked: await pickTopic() })
+    }
+
+    if (body.action === 'write') {
+      const { topic, angle, facts } = body.picked ?? {}
+      if (!topic) return NextResponse.json({ error: 'sujet manquant' }, { status: 400 })
+      const post = await writeQueuedPost({ topic, angle: angle ?? '', facts })
+      return NextResponse.json({ post })
+    }
 
     if (body.action === 'generate') {
       const post = await generateQueuedPost()
