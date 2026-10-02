@@ -143,7 +143,7 @@ export async function pickTopic(): Promise<SelectedTopic> {
     orderBy: { createdAt: 'desc' },
     take: 40,
   })
-  const recentTopics = recent.map(p => p.topic.split(' — ')[0])
+  const recentTopics = recent.map(p => p.topic.slice(0, 120))
   const configTopics = config.topics.split(',').map(t => t.trim()).filter(Boolean)
   return selectTopic(recentTopics, configTopics)
 }
