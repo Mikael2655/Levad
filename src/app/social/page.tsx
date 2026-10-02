@@ -895,8 +895,10 @@ function SocialPageInner() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Sujets <span className="text-gray-400 font-normal">(séparés par des virgules)</span></label>
-                <input value={config.topics} onChange={e => setConfig({ ...config, topics: e.target.value })}
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800" />
+                <textarea value={config.topics} onChange={e => setConfig({ ...config, topics: e.target.value })}
+                  rows={Math.max(4, Math.ceil(config.topics.length / 70) + 1)}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-brand-800" />
+                <p className="text-xs text-gray-400 mt-1">{config.topics.split(',').filter(t => t.trim()).length} sujets</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email de notification</label>
@@ -924,20 +926,6 @@ function SocialPageInner() {
                   </label>
                 </div>
               ))}
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-sm">
-              <p className="font-semibold text-amber-900 mb-2">Variables à configurer sur Vercel</p>
-              <div className="space-y-1 font-mono text-xs text-amber-800">
-                <p>ANTHROPIC_API_KEY</p>
-                <p>RESEND_API_KEY</p>
-                <p>NEXT_PUBLIC_APP_URL</p>
-                <p>LINKEDIN_ACCESS_TOKEN</p>
-                <p>INSTAGRAM_ACCESS_TOKEN</p>
-                <p>INSTAGRAM_ACCOUNT_ID</p>
-                <p>CRON_SECRET</p>
-                <p>DATABASE_URL</p>
-              </div>
             </div>
 
             <button onClick={handleSaveConfig} disabled={savingConfig}
