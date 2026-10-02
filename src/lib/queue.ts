@@ -1,10 +1,11 @@
 import { prisma } from '@/lib/db'
-import { generateSocialPosts, selectTopic, type SelectedTopic } from '@/lib/claude-ai'
+import { generateSocialPosts, NEWS_THEMES, selectTopic, type SelectedTopic } from '@/lib/claude-ai'
 
 export const SLOT_HOUR_PARIS = 18
 const SLOT_WEEKDAYS = [2, 4] // mardi, jeudi
 export const QUEUE_STATUSES = ['draft', 'scheduled'] // draft = à valider, scheduled = validé
 const HOLD_STATUS = 'hold' // ligne technique : « ne rien publier avant scheduledAt »
+const CURSOR_STATUS = 'themecursor' // ligne technique : ordre des thèmes (contentLI = JSON)
 
 export function queueTarget(): number {
   const n = parseInt(process.env.QUEUE_TARGET ?? '10', 10)
@@ -128,12 +129,46 @@ async function loadConfig() {
   return config
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
+// Thème suivant : l'ordre est tiré au sort une fois par cycle, puis suivi dans l'ordre.
+// Tous les thèmes passent une fois avant qu'un thème ne revienne. L'état est gardé dans une ligne technique.
+async function nextTheme(configTopics: string[]): Promise<string> {
+  const pool = Array.from(new Set([...configTopics, ...NEWS_THEMES]))
+  const row = await prisma.socialPost.findFirst({ where: { status: CURSOR_STATUS } })
+  let state: { bag: string[]; known: string[] } = { bag: [], known: [] }
+  try {
+    if (row?.contentLI) state = JSON.parse(row.contentLI)
+  } catch { /* état illisible : on repart d'un nouveau cycle */ }
+
+  const added = pool.filter(t => !state.known.includes(t))
+  let bag = state.bag.filter(t => pool.includes(t))
+  if (added.length > 0) bag = shuffle([...bag, ...added])
+  if (bag.length === 0) bag = shuffle(pool)
+
+  const theme = bag.shift() as string
+  const data = { contentLI: JSON.stringify({ bag, known: pool }) }
+  if (row) {
+    await prisma.socialPost.update({ where: { id: row.id }, data })
+  } else {
+    await prisma.socialPost.create({ data: { topic: '__themes__', status: CURSOR_STATUS, ...data } })
+  }
+  return theme
+}
+
 // Étape 1 : choisir le sujet (avec recherche web), sans rien écrire en base.
 export async function pickTopic(): Promise<SelectedTopic> {
   const config = await loadConfig()
   const recent = await prisma.socialPost.findMany({
     where: {
-      status: { not: HOLD_STATUS },
+      status: { notIn: [HOLD_STATUS, CURSOR_STATUS] },
       OR: [
         { status: { in: QUEUE_STATUSES } },
         { createdAt: { gte: new Date(Date.now() - 60 * 86400000) } },
@@ -145,7 +180,7 @@ export async function pickTopic(): Promise<SelectedTopic> {
   })
   const recentTopics = recent.map(p => p.topic.slice(0, 120))
   const configTopics = config.topics.split(',').map(t => t.trim()).filter(Boolean)
-  return selectTopic(recentTopics, configTopics)
+  return selectTopic(recentTopics, await nextTheme(configTopics))
 }
 
 // Étape 2 : rédiger le post pour ce sujet et l'ajouter à la file.

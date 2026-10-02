@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ post })
   }
   const posts = await prisma.socialPost.findMany({
-    where: { status: { not: 'hold' } },
+    where: { status: { notIn: ['hold', 'themecursor'] } },
     orderBy: { createdAt: 'desc' },
     take: 100,
     omit: { imageUrl: true },

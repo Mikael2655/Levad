@@ -31,7 +31,7 @@ export interface SelectedTopic {
   facts?: string
 }
 
-const NEWS_THEMES = [
+export const NEWS_THEMES = [
   'la réforme de la facture électronique obligatoire',
   'la fin du RTC et la migration vers la téléphonie IP',
   'la cybersécurité des PME',
@@ -39,20 +39,9 @@ const NEWS_THEMES = [
   'la dématérialisation et le zéro papier',
 ]
 
-function pickRandom<T>(arr: T[], n: number): T[] {
-  const copy = [...arr]
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[copy[i], copy[j]] = [copy[j], copy[i]]
-  }
-  return copy.slice(0, n)
-}
-
-export async function selectTopic(recentTopics: string[], configTopics: string[]): Promise<SelectedTopic> {
+export async function selectTopic(recentTopics: string[], theme: string): Promise<SelectedTopic> {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const today = todayFr()
-  // Tirage au sort : 2 thèmes de l'entreprise + 1 thème d'actualité, pour varier les sujets d'un post à l'autre
-  const candidates = [...pickRandom(configTopics, 2), ...pickRandom(NEWS_THEMES, 1)]
 
   const prompt = `Tu es expert en marketing B2B pour une PME française spécialisée en téléphonie IP, impression, informatique et GED.
 
@@ -60,8 +49,8 @@ DATE DU JOUR : ${today}. Tout ce que tu écris doit être cohérent avec cette d
 
 Posts déjà écrits ou en attente (à ne pas répéter, ni le sujet ni l'angle) : ${recentTopics.join(' | ') || 'aucun'}
 
-THÈMES TIRÉS AU SORT POUR CE POST : ${candidates.join(' ; ')}
-Tu dois choisir ton sujet dans l'un de ces thèmes, pas ailleurs. Prends celui qui a l'actualité la plus intéressante et qui est le plus éloigné des posts déjà écrits. Si un thème a déjà été traité récemment, trouve un angle vraiment différent (autre cas d'usage, autre chiffre, autre secteur) ou prends un autre des thèmes tirés.
+THÈME IMPOSÉ POUR CE POST : ${theme}
+Ton sujet doit porter sur ce thème, pas sur un autre. Trouve l'actualité la plus récente et la plus intéressante liée à ce thème. Si ce thème a déjà été traité dans un post récent, prends un angle vraiment différent (autre cas d'usage, autre chiffre, autre secteur).
 
 Rédige pour des dirigeants de PME françaises. Appuie-toi sur la recherche web pour trouver des informations récentes (derniers jours ou dernières semaines) et vérifier les échéances et chiffres avant de les citer.
 
@@ -69,7 +58,7 @@ Réponds uniquement avec ce JSON (sans markdown) :
 {"topic": "titre court du sujet", "angle": "angle précis et accrocheur pour PME française", "facts": "3 à 5 faits ou chiffres vérifiés et datés (avec leur source), utiles pour rédiger le post"}`
 
   const fallback = (): SelectedTopic => ({
-    topic: configTopics[Math.floor(Math.random() * configTopics.length)] ?? 'téléphonie IP',
+    topic: theme,
     angle: '',
   })
 
