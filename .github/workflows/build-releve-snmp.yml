@@ -27,35 +27,29 @@ jobs:
         with:
           python-version: "3.12"
       - name: Installer l'outil d'emballage
-        run: python -m pip install pyinstaller
+        run: python -m pip install pyinstaller certifi
       - name: Fabriquer le programme
-        run: python -m PyInstaller --onefile --name LEVAD-Releve releve-snmp/releve_snmp.py
+        run: python -m PyInstaller --onefile --name LEVAD-Releve --paths releve-snmp --hidden-import config_envoi --collect-data certifi releve-snmp/releve_snmp.py
       - name: Essai rapide (le programme démarre et gère une machine absente)
         shell: bash
         run: |
           if [ "${{ matrix.nom }}" = "Windows" ]; then EXE=dist/LEVAD-Releve.exe; else EXE=dist/LEVAD-Releve; fi
           "$EXE" 127.0.0.1 --delai 0.5 --dossier "$RUNNER_TEMP/essai" | tee essai.txt
           grep -q "Pas de réponse" essai.txt
-      - name: Préparer le dossier à envoyer au client
+      - name: Windows - le programme seul (pas de zip à ouvrir pour le client)
+        if: matrix.nom == 'Windows'
+        shell: bash
+        run: mkdir -p envoi && cp dist/LEVAD-Releve.exe envoi/
+      - name: Mac - dossier zippé (le zip conserve le droit de lancement)
+        if: matrix.nom == 'Mac'
         shell: bash
         run: |
           mkdir -p envoi/LEVAD-Releve
-          if [ "${{ matrix.nom }}" = "Windows" ]; then
-            cp dist/LEVAD-Releve.exe envoi/LEVAD-Releve/
-            cp releve-snmp/client/LISEZ-MOI-Windows.txt envoi/LEVAD-Releve/
-          else
-            cp dist/LEVAD-Releve envoi/LEVAD-Releve/
-            cp releve-snmp/client/Lancer-LEVAD.command envoi/LEVAD-Releve/
-            cp releve-snmp/client/LISEZ-MOI-Mac.txt envoi/LEVAD-Releve/
-            chmod +x envoi/LEVAD-Releve/LEVAD-Releve envoi/LEVAD-Releve/Lancer-LEVAD.command
-            (cd envoi && zip -qr -X ../LEVAD-Releve-Mac.zip LEVAD-Releve)
-          fi
-      - name: Archive Windows (zip)
-        if: matrix.nom == 'Windows'
-        shell: pwsh
-        run: Compress-Archive -Path envoi/LEVAD-Releve -DestinationPath LEVAD-Releve-Windows.zip
+          cp dist/LEVAD-Releve releve-snmp/client/Lancer-LEVAD.command releve-snmp/client/LISEZ-MOI-Mac.txt envoi/LEVAD-Releve/
+          chmod +x envoi/LEVAD-Releve/LEVAD-Releve envoi/LEVAD-Releve/Lancer-LEVAD.command
+          (cd envoi && zip -qr -X LEVAD-Releve-Mac.zip LEVAD-Releve && rm -rf LEVAD-Releve)
       - uses: actions/upload-artifact@v4
         with:
           name: LEVAD-Releve-${{ matrix.nom }}
-          path: LEVAD-Releve-${{ matrix.nom }}.zip
+          path: envoi/*
           retention-days: 90

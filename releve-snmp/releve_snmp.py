@@ -11,7 +11,8 @@ Ce que fait ce programme :
 
 Ce que le programme NE FAIT PAS :
   - aucune écriture sur les machines (uniquement des lectures : GET / GETNEXT / GETBULK) ;
-  - aucun envoi hors du réseau local (les adresses publiques sont refusées) ;
+  - en mode normal, aucun envoi hors du réseau local (les adresses publiques sont refusées) ;
+  - en mode client uniquement, le résultat final est envoyé à LEVAD en HTTPS (voir config_envoi.py) ;
   - aucun serveur, aucune base de données, aucune fenêtre.
 
 Aucune installation de bibliothèque n'est nécessaire : le dialogue SNMP (version 2c)
@@ -29,6 +30,22 @@ import random
 import socket
 import sys
 import time
+import io
+import contextlib
+import platform
+import ssl
+import urllib.request
+
+VERSION_PROGRAMME = "0.3"
+
+# Adresse de réception et jeton : ils sont dans le petit fichier config_envoi.py.
+# Si l'adresse est vide, le mode client n'envoie rien et enregistre un fichier à la place.
+try:
+    from config_envoi import URL_RECEPTION, JETON
+except ImportError:
+    URL_RECEPTION, JETON = "", ""
+URL_RECEPTION = os.environ.get("LEVAD_URL", URL_RECEPTION)
+JETON = os.environ.get("LEVAD_JETON", JETON)
 
 # ----------------------------------------------------------------------------
 # 1. Les "adresses" (OID) que l'on sait lire
@@ -518,7 +535,36 @@ def ouvrir_client(ip, communaute, delai, port, versions):
     raise derniere
 
 
-def lire_machine(ip, communaute, delai, port=161, versions=(1, 0)):
+def racines_a_lire():
+    """
+    Les branches à lire, découpées en petits morceaux : on les lit plusieurs à la fois,
+    ce qui est beaucoup plus rapide que de tout parcourir d'un seul trait.
+    """
+    racines = [BRANCHES["systeme"], BRANCHES["peripheriques"]]
+    racines += ["%s.%d" % (BRANCHES["imprimante_standard"], n) for n in range(1, 32)]
+    racines += ["%s.1.%d" % (BRANCHES["canon_prive"], n) for n in range(1, 21)]
+    racines += ["%s.%d" % (BRANCHES["canon_prive"], n) for n in range(2, 6)]
+    return racines
+
+
+def lire_branches(client, racines, progres=None):
+    """Lit les branches en parallèle. Retourne (valeurs brutes {oid: valeur}, nombre de branches incomplètes)."""
+    brut, incompletes = {}, 0
+
+    def une_branche(racine):
+        return client.parcourir(racine)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        for valeurs, probleme in pool.map(une_branche, racines):
+            brut.update(dict(valeurs))
+            if probleme:
+                incompletes += 1
+            if progres:
+                progres()
+    return brut, incompletes
+
+
+def lire_machine(ip, communaute, delai, port=161, versions=(1, 0), progres=None):
     """Interroge une machine et retourne un dictionnaire avec tout ce qui a été trouvé."""
     r = {"ip": ip, "repond": False, "erreur": None, "non_lu": [], "avertissements": []}
 
@@ -533,12 +579,10 @@ def lire_machine(ip, communaute, delai, port=161, versions=(1, 0)):
     descr, objet, nom = base[OID_SYS_DESCR], base[OID_SYS_OBJECT_ID], base[OID_SYS_NAME]
 
     # Étape 2 : on parcourt les branches utiles et on garde tout en brut
-    brut = {}
-    for nom_branche, racine in BRANCHES.items():
-        valeurs, probleme = client.parcourir(racine)
-        brut.update(dict(valeurs))
-        if probleme:
-            r["avertissements"].append("Lecture de la branche %s incomplète : %s" % (nom_branche, probleme))
+    brut, incompletes = lire_branches(client, racines_a_lire(), progres)
+    if incompletes:
+        r["avertissements"].append("Lecture incomplète de %d branche(s) : la machine a parfois "
+                                   "cessé de répondre." % incompletes)
     r["brut"] = brut
 
     # Étape 3 : interprétation
@@ -719,8 +763,8 @@ def decouvrir(plage, communaute, delai, port=161, versions=(1, 0)):
 
     def sonder(ip):
         try:
-            _, v = ouvrir_client(ip, communaute, delai, port, versions)
-            return ip, v[OID_SYS_DESCR] or "(répond, sans description)"
+            c, v = ouvrir_client(ip, communaute, delai, port, versions)
+            return ip, v[OID_SYS_DESCR] or "(répond, sans description)", c.version
         except ErreurSnmp:
             return None
 
@@ -728,7 +772,7 @@ def decouvrir(plage, communaute, delai, port=161, versions=(1, 0)):
     with concurrent.futures.ThreadPoolExecutor(max_workers=100) as pool:
         for res in pool.map(sonder, adresses):
             if res:
-                trouvees.append({"ip": res[0], "description": res[1]})
+                trouvees.append({"ip": res[0], "description": res[1], "version": res[2]})
     trouvees.sort(key=lambda x: _cle(x["ip"]))
     return trouvees
 
@@ -780,29 +824,57 @@ def dossier_de_sortie():
     return bureau if os.path.isdir(bureau) else os.path.expanduser("~")
 
 
+def resume_texte(r):
+    """Le résumé lisible d'une machine, sous forme de texte (joint au mail envoyé à LEVAD)."""
+    tampon = io.StringIO()
+    with contextlib.redirect_stdout(tampon):
+        afficher_resume(r)
+    return tampon.getvalue()
+
+
+def envoyer_resultat(donnees, url, jeton):
+    """Envoie le résultat à LEVAD (connexion chiffrée HTTPS). Lève une exception si l'envoi échoue."""
+    try:
+        import certifi
+        contexte = ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        contexte = ssl.create_default_context()
+    corps = json.dumps(donnees, ensure_ascii=False).encode("utf-8")
+    requete = urllib.request.Request(url, data=corps, method="POST", headers={
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": "Bearer " + jeton})
+    with urllib.request.urlopen(requete, timeout=60, context=contexte) as reponse:
+        if not 200 <= reponse.status < 300:
+            raise ErreurSnmp("réponse inattendue du serveur : %s" % reponse.status)
+
+
+def _point():
+    print(".", end="", flush=True)
+
+
 def mode_client(communaute, delai, port, versions, dossier=None):
-    """Cherche tous les copieurs du réseau, les lit, et enregistre le résultat sur le Bureau."""
+    """Cherche tous les copieurs du réseau, les lit et envoie le résultat à LEVAD."""
     print("=" * 70)
     print(" LEVAD - Relevé des copieurs")
     print("=" * 70)
-    print("Ce programme lit (sans rien modifier) les copieurs de votre réseau.")
-    print("Aucune information n'est envoyée sur Internet.")
+    print("Ce programme lit (sans rien modifier) les copieurs de votre réseau,")
+    print("puis transmet le résultat à LEVAD. Il ne change aucun réglage.")
     print("")
+    societe = _question("Nom de votre société : ") or "(non indiqué)"
     plage = plage_locale()
     if plage is None:
         plage = _question("Réseau non détecté. Tapez la plage à analyser (ex. 192.168.1.0/24) : ")
         if not plage:
             print("Rien à faire. Contactez LEVAD.")
             return 1
-    print("Analyse du réseau %s ..." % plage)
+    print("\nAnalyse du réseau %s ..." % plage)
     try:
         trouvees = decouvrir(plage, communaute, min(delai, 1.0), port, versions)
     except ValueError as e:
         print("Erreur : %s" % e)
         return 2
-    ips = [t["ip"] for t in trouvees]
-    print("%d équipement(s) répondent en SNMP." % len(ips))
-    if not ips:
+    print("%d équipement(s) répondent en SNMP." % len(trouvees))
+    if not trouvees:
         saisie = _question("Aucun copieur trouvé. Si vous connaissez son adresse IP, tapez-la "
                            "(sinon Entrée) : ")
         if saisie:
@@ -811,38 +883,49 @@ def mode_client(communaute, delai, port, versions, dossier=None):
             except ValueError as e:
                 print("Erreur : %s" % e)
                 return 2
-            ips = [saisie]
+            trouvees = [{"ip": saisie, "version": None}]
         else:
             print("Aucun copieur n'a répondu. Il faut peut-être activer le SNMP sur le copieur :")
             print("merci de prévenir LEVAD, qui vous guidera.")
 
-    resultats, autres = [], []
-    for ip in ips:
-        print("\nLecture de %s ..." % ip)
+    resultats = []
+    for i, t in enumerate(trouvees, 1):
+        print("\n[%d/%d] Lecture de %s " % (i, len(trouvees), t["ip"]), end="", flush=True)
+        # on réutilise la version SNMP déjà trouvée à la découverte (plus rapide)
+        v = versions if t.get("version") is None else (t["version"],)
         try:
-            r = lire_machine(ip, communaute, delai, port, versions)
+            r = lire_machine(t["ip"], communaute, delai, port, v, progres=_point)
         except Exception as e:
-            r = {"ip": ip, "repond": False, "erreur": "erreur inattendue : %s" % e,
+            r = {"ip": t["ip"], "repond": False, "erreur": "erreur inattendue : %s" % e,
                  "non_lu": [], "avertissements": []}
-        if _est_une_imprimante(r) or not r["repond"]:
-            resultats.append(r)
-            afficher_resume(r)
+        if _est_une_imprimante(r):
+            print(" OK : %s %s" % (r.get("marque") or "", r.get("modele") or ""))
+            r["resume_texte"] = resume_texte(r)
         else:
-            autres.append(ip)
+            print(" (pas une imprimante, ignoré)")
             r.pop("brut", None)
-            resultats.append(r)
-    if autres:
-        print("\n(Autres équipements ignorés, ce ne sont pas des imprimantes : %s)" % ", ".join(autres))
+        resultats.append(r)
 
-    dossier = dossier or dossier_de_sortie()
     horodatage = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    chemin = os.path.join(dossier, "LEVAD_releve_%s.json" % horodatage)
-    with open(chemin, "w", encoding="utf-8") as f:
-        json.dump({"date": horodatage, "pc": socket.gethostname(), "plage": plage,
-                   "machines": resultats}, f, ensure_ascii=False, indent=2)
+    donnees = {"date": horodatage, "societe": societe, "pc": socket.gethostname(),
+               "systeme": platform.platform(), "plage": plage,
+               "version_programme": VERSION_PROGRAMME, "machines": resultats}
+    nb = sum(1 for r in resultats if _est_une_imprimante(r))
     print("")
     print("=" * 70)
-    print("Terminé. Le résultat est enregistré dans ce fichier :")
+    if URL_RECEPTION:
+        print("Envoi du résultat à LEVAD ...")
+        try:
+            envoyer_resultat(donnees, URL_RECEPTION, JETON)
+            print("Terminé : %d copieur(s) lu(s), résultat transmis à LEVAD. Merci !" % nb)
+            print("=" * 70)
+            return 0
+        except Exception as e:
+            print("L'envoi n'a pas pu se faire (%s)." % e)
+    chemin = os.path.join(dossier or dossier_de_sortie(), "LEVAD_releve_%s.json" % horodatage)
+    with open(chemin, "w", encoding="utf-8") as f:
+        json.dump(donnees, f, ensure_ascii=False, indent=2)
+    print("Le résultat est enregistré dans ce fichier :")
     print("  " + chemin)
     print("Merci de l'envoyer par mail à LEVAD (en pièce jointe).")
     print("=" * 70)
