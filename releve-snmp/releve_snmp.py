@@ -249,6 +249,11 @@ class PasDeReponse(ErreurSnmp):
     pass
 
 
+# Nombre d'envois refusés par le système (ex. Mac : « No route to host »). Sert à expliquer, quand aucun
+# copieur n'est trouvé, qu'il faut peut-être autoriser le programme à accéder au réseau local.
+ENVOIS_REFUSES = []
+
+
 def _cle(oid):
     """Pour comparer deux OID numériquement."""
     return tuple(int(x) for x in oid.split("."))
@@ -269,7 +274,11 @@ class ClientSnmp:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             for _ in range(self.essais + 1):
-                sock.sendto(paquet, (self.ip, self.port))
+                try:
+                    sock.sendto(paquet, (self.ip, self.port))
+                except OSError as e:     # ex. Mac : « No route to host » vers une adresse sans machine
+                    ENVOIS_REFUSES.append(str(e))
+                    raise ErreurSnmp("machine injoignable (%s)" % e)
                 limite = time.time() + self.delai
                 while True:
                     reste = limite - time.time()
@@ -888,6 +897,11 @@ def mode_client(communaute, delai, port, versions, dossier=None, societe=None):
     except ValueError as e:
         print("Erreur : %s" % e)
         return 2
+    if not trouvees and ENVOIS_REFUSES and sys.platform == "darwin":
+        print("Le Mac a refusé d'envoyer des messages sur le réseau (%s)." % ENVOIS_REFUSES[0])
+        print("Vérifiez : Réglages Système > Confidentialité et sécurité > Réseau local :")
+        print("« Levad Connect » doit être activé. Puis relancez le programme.")
+        ETAT("Le Mac bloque peut-être l'accès au réseau local (voir les consignes).")
     print("%d équipement(s) répondent en SNMP." % len(trouvees))
     ETAT("%d équipement(s) trouvé(s) sur le réseau." % len(trouvees))
     if not trouvees:
