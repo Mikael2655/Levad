@@ -28,26 +28,31 @@ jobs:
           python-version: "3.12"
       - name: Installer l'outil d'emballage
         run: python -m pip install pyinstaller certifi
-      - name: Fabriquer le programme
-        run: python -m PyInstaller --onefile --name Levad-Connect --paths releve-snmp --hidden-import config_envoi --collect-data certifi releve-snmp/releve_snmp.py
-      - name: Essai rapide (le programme démarre et gère une machine absente)
-        shell: bash
+      - name: "Fabriquer le programme (Windows : un seul .exe sans fenêtre noire)"
+        if: matrix.nom == 'Windows'
+        run: python -m PyInstaller --onefile --windowed --name Levad-Connect --paths releve-snmp --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi releve-snmp/levad_connect_gui.py
+      - name: "Fabriquer le programme (Mac : une application)"
+        if: matrix.nom == 'Mac'
+        run: python -m PyInstaller --windowed --name "Levad Connect" --osx-bundle-identifier fr.levad.connect --paths releve-snmp --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi releve-snmp/levad_connect_gui.py
+      - name: Essai Windows (la fenêtre s'ouvre et se ferme sans erreur)
+        if: matrix.nom == 'Windows'
+        shell: pwsh
         run: |
-          if [ "${{ matrix.nom }}" = "Windows" ]; then EXE=dist/Levad-Connect.exe; else EXE=dist/Levad-Connect; fi
-          "$EXE" 127.0.0.1 --delai 0.5 --dossier "$RUNNER_TEMP/essai" | tee essai.txt
-          grep -q "Pas de réponse" essai.txt
+          $p = Start-Process -FilePath dist/Levad-Connect.exe -ArgumentList "--autotest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "La fenêtre ne s'ouvre pas (code $($p.ExitCode))" }
+      - name: Mac - texte d'autorisation réseau local, signature locale, essai, zip
+        if: matrix.nom == 'Mac'
+        run: |
+          APP="dist/Levad Connect.app"
+          plutil -insert NSLocalNetworkUsageDescription -string "Levad Connect cherche les copieurs de votre réseau pour lire leurs compteurs." "$APP/Contents/Info.plist"
+          codesign --force --deep --sign - "$APP"
+          "$APP/Contents/MacOS/Levad Connect" --autotest
+          mkdir -p envoi
+          ditto -c -k --sequesterRsrc --keepParent "$APP" envoi/Levad-Connect-Mac.zip
       - name: Windows - le programme seul (pas de zip à ouvrir pour le client)
         if: matrix.nom == 'Windows'
         shell: bash
         run: mkdir -p envoi && cp dist/Levad-Connect.exe envoi/
-      - name: Mac - dossier zippé (le zip conserve le droit de lancement)
-        if: matrix.nom == 'Mac'
-        shell: bash
-        run: |
-          mkdir -p envoi/Levad-Connect
-          cp dist/Levad-Connect releve-snmp/client/Lancer-Levad-Connect.command releve-snmp/client/LISEZ-MOI-Mac.txt envoi/Levad-Connect/
-          chmod +x envoi/Levad-Connect/Levad-Connect envoi/Levad-Connect/Lancer-Levad-Connect.command
-          (cd envoi && zip -qr -X Levad-Connect-Mac.zip Levad-Connect && rm -rf Levad-Connect)
       - uses: actions/upload-artifact@v4
         with:
           name: Levad-Connect-${{ matrix.nom }}
