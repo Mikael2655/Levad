@@ -86,11 +86,15 @@ class Fenetre:
         self.etat = tk.Label(corps, text="", justify="left", wraplength=500, anchor="w")
         self.etat.pack(anchor="w", pady=(12, 0))
 
+        # Le détail technique (nombre de machines, adresses...) n'est pas montré aux clients.
+        # Pour le support LEVAD : Ctrl + Maj + D (ou Cmd + Maj + D sur Mac) l'affiche.
         self.detail_visible = False
-        self.lien = tk.Label(corps, text="Afficher le détail", fg="#2563eb", cursor="hand2")
-        self.lien.pack(anchor="w", pady=(10, 0))
-        self.lien.bind("<Button-1>", lambda e: self.basculer_detail())
         self.detail = tk.Text(corps, height=8, width=64, state="disabled", font=("Courier", 9))
+        for raccourci in ("<Control-Shift-D>", "<Command-Shift-D>"):
+            try:
+                racine.bind(raccourci, lambda e: self.basculer_detail())
+            except tk.TclError:
+                pass
 
         racine.after(100, self.pomper)
 
@@ -98,11 +102,9 @@ class Fenetre:
     def basculer_detail(self):
         self.detail_visible = not self.detail_visible
         if self.detail_visible:
-            self.detail.pack(anchor="w", pady=(6, 0), fill="both", expand=True)
-            self.lien.config(text="Masquer le détail")
+            self.detail.pack(anchor="w", pady=(10, 0), fill="both", expand=True)
         else:
             self.detail.pack_forget()
-            self.lien.config(text="Afficher le détail")
 
     def ecrire_detail(self, texte):
         self.detail.config(state="normal")
@@ -181,8 +183,8 @@ class Fenetre:
             self.etat.config(text=message, fg="#b45309")
             messagebox.showwarning(TITRE, message)
         elif res["envoye"]:
-            message = ("Terminé : %d copieur(s) lu(s). Le résultat a été transmis à LEVAD.\n\n"
-                       "Merci ! Vous pouvez fermer cette fenêtre." % res["copieurs"])
+            message = ("Terminé : le relevé a été transmis à LEVAD.\n\n"
+                       "Merci ! Vous pouvez fermer cette fenêtre.")
             self.etat.config(text=message, fg="#15803d")
             messagebox.showinfo(TITRE, message)
         elif res["fichier"]:

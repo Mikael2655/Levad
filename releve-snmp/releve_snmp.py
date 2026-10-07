@@ -903,7 +903,7 @@ def mode_client(communaute, delai, port, versions, dossier=None, societe=None):
         print("« Levad Connect » doit être activé. Puis relancez le programme.")
         ETAT("Le Mac bloque peut-être l'accès au réseau local (voir les consignes).")
     print("%d équipement(s) répondent en SNMP." % len(trouvees))
-    ETAT("%d équipement(s) trouvé(s) sur le réseau." % len(trouvees))
+    ETAT("Analyse des équipements du réseau…")           # volontairement sans nombre : le client ne voit pas le détail
     if not trouvees:
         saisie = _question("Aucun copieur trouvé. Si vous connaissez son adresse IP, tapez-la "
                            "(sinon Entrée) : ")
@@ -921,7 +921,7 @@ def mode_client(communaute, delai, port, versions, dossier=None, societe=None):
     resultats = []
     for i, t in enumerate(trouvees, 1):
         print("\n[%d/%d] Lecture de %s " % (i, len(trouvees), t["ip"]), end="", flush=True)
-        ETAT("Lecture de l'équipement %d sur %d (%s)…" % (i, len(trouvees), t["ip"]))
+        ETAT("Lecture des copieurs en cours…")
         # on réutilise la version SNMP déjà trouvée à la découverte (plus rapide)
         v = versions if t.get("version") is None else (t["version"],)
         try:

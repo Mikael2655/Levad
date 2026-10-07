@@ -85,7 +85,30 @@ export default function TelechargerPage() {
           <Etape n={4} titre="C'est terminé" texte="Le résultat est transmis automatiquement à LEVAD. Vous pouvez fermer la fenêtre." />
         </ol>
 
-        <h2 className="mt-12 text-xl font-bold">Un message de sécurité s&apos;affiche ?</h2>
+        <h2 className="mt-12 text-xl font-bold">Votre navigateur bloque le téléchargement ?</h2>
+        <p className="mt-2 text-gray-600">
+          C&apos;est normal pour un programme récent : le navigateur demande simplement de confirmer que vous
+          voulez bien le garder.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl bg-gray-50 p-5">
+            <p className="font-semibold">Microsoft Edge</p>
+            <p className="mt-1 text-gray-600">
+              Dans la fenêtre des téléchargements, cliquez sur les <strong>trois points « … »</strong> à côté du
+              fichier, puis sur <strong>Conserver</strong>. Si un second message apparaît, cliquez sur{' '}
+              <strong>Afficher plus</strong>, puis sur <strong>Conserver quand même</strong>.
+            </p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-5">
+            <p className="font-semibold">Google Chrome</p>
+            <p className="mt-1 text-gray-600">
+              Cliquez sur la flèche de téléchargement en haut à droite, puis sur <strong>Conserver</strong>. Si
+              besoin, cliquez ensuite sur <strong>Conserver quand même</strong>.
+            </p>
+          </div>
+        </div>
+
+        <h2 className="mt-12 text-xl font-bold">Un message de sécurité s&apos;affiche à l&apos;ouverture ?</h2>
         <p className="mt-2 text-gray-600">
           C&apos;est normal : le programme est nouveau et n&apos;est pas encore connu de Microsoft et d&apos;Apple.
           Il ne présente aucun danger.
