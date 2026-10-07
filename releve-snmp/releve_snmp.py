@@ -733,6 +733,136 @@ def decouvrir(plage, communaute, delai, port=161, versions=(1, 0)):
     return trouvees
 
 
+# ----------------------------------------------------------------------------
+# 7. Mode client : on double-clique, tout se fait tout seul
+# ----------------------------------------------------------------------------
+def adresse_locale():
+    """Adresse de ce PC sur le réseau local. Aucun paquet n'est envoyé (simple lecture de la config)."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(("10.255.255.255", 1))     # en UDP, "connect" n'émet rien
+        return sock.getsockname()[0]
+    except OSError:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except OSError:
+            return None
+    finally:
+        sock.close()
+
+
+def plage_locale():
+    """La plage 'a.b.c.0/24' du réseau où se trouve ce PC, ou None si ce n'est pas un réseau local."""
+    ip = adresse_locale()
+    if not ip:
+        return None
+    a = ipaddress.IPv4Address(ip)
+    if not (a.is_private and not a.is_loopback):
+        return None
+    return str(ipaddress.IPv4Network(ip + "/24", strict=False))
+
+
+def _question(texte):
+    """Pose une question à l'écran ; réponse vide si personne ne peut répondre."""
+    try:
+        return input(texte).strip()
+    except EOFError:
+        return ""
+
+
+def _est_une_imprimante(r):
+    return r["repond"] and any(o.startswith("1.3.6.1.2.1.43.") for o in r.get("brut", {}))
+
+
+def dossier_de_sortie():
+    """Le Bureau de l'utilisateur s'il existe, sinon son dossier personnel."""
+    bureau = os.path.join(os.path.expanduser("~"), "Desktop")
+    return bureau if os.path.isdir(bureau) else os.path.expanduser("~")
+
+
+def mode_client(communaute, delai, port, versions, dossier=None):
+    """Cherche tous les copieurs du réseau, les lit, et enregistre le résultat sur le Bureau."""
+    print("=" * 70)
+    print(" LEVAD - Relevé des copieurs")
+    print("=" * 70)
+    print("Ce programme lit (sans rien modifier) les copieurs de votre réseau.")
+    print("Aucune information n'est envoyée sur Internet.")
+    print("")
+    plage = plage_locale()
+    if plage is None:
+        plage = _question("Réseau non détecté. Tapez la plage à analyser (ex. 192.168.1.0/24) : ")
+        if not plage:
+            print("Rien à faire. Contactez LEVAD.")
+            return 1
+    print("Analyse du réseau %s ..." % plage)
+    try:
+        trouvees = decouvrir(plage, communaute, min(delai, 1.0), port, versions)
+    except ValueError as e:
+        print("Erreur : %s" % e)
+        return 2
+    ips = [t["ip"] for t in trouvees]
+    print("%d équipement(s) répondent en SNMP." % len(ips))
+    if not ips:
+        saisie = _question("Aucun copieur trouvé. Si vous connaissez son adresse IP, tapez-la "
+                           "(sinon Entrée) : ")
+        if saisie:
+            try:
+                verifier_local(saisie)
+            except ValueError as e:
+                print("Erreur : %s" % e)
+                return 2
+            ips = [saisie]
+        else:
+            print("Aucun copieur n'a répondu. Il faut peut-être activer le SNMP sur le copieur :")
+            print("merci de prévenir LEVAD, qui vous guidera.")
+
+    resultats, autres = [], []
+    for ip in ips:
+        print("\nLecture de %s ..." % ip)
+        try:
+            r = lire_machine(ip, communaute, delai, port, versions)
+        except Exception as e:
+            r = {"ip": ip, "repond": False, "erreur": "erreur inattendue : %s" % e,
+                 "non_lu": [], "avertissements": []}
+        if _est_une_imprimante(r) or not r["repond"]:
+            resultats.append(r)
+            afficher_resume(r)
+        else:
+            autres.append(ip)
+            r.pop("brut", None)
+            resultats.append(r)
+    if autres:
+        print("\n(Autres équipements ignorés, ce ne sont pas des imprimantes : %s)" % ", ".join(autres))
+
+    dossier = dossier or dossier_de_sortie()
+    horodatage = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    chemin = os.path.join(dossier, "LEVAD_releve_%s.json" % horodatage)
+    with open(chemin, "w", encoding="utf-8") as f:
+        json.dump({"date": horodatage, "pc": socket.gethostname(), "plage": plage,
+                   "machines": resultats}, f, ensure_ascii=False, indent=2)
+    print("")
+    print("=" * 70)
+    print("Terminé. Le résultat est enregistré dans ce fichier :")
+    print("  " + chemin)
+    print("Merci de l'envoyer par mail à LEVAD (en pièce jointe).")
+    print("=" * 70)
+    return 0
+
+
+def lancer_mode_client(communaute, delai, port, versions, dossier=None):
+    """Enveloppe du mode client : n'arrête jamais brutalement la fenêtre, attend avant de la fermer."""
+    try:
+        code = mode_client(communaute, delai, port, versions, dossier)
+    except KeyboardInterrupt:
+        code = 1
+    except Exception as e:
+        print("\nUne erreur inattendue est survenue : %s" % e)
+        print("Merci de prévenir LEVAD en indiquant ce message.")
+        code = 3
+    _question("\nAppuyez sur Entrée pour fermer cette fenêtre.")
+    return code
+
+
 def main():
     # Pour que les accents s'affichent aussi dans la console Windows
     for flux in (sys.stdout, sys.stderr):
@@ -757,6 +887,9 @@ def main():
     parser.add_argument("--dossier", help="dossier des fichiers JSON (défaut : resultats/ à côté du programme)")
     parser.add_argument("--version", choices=["auto", "2c", "1"], default="auto",
                         help="version SNMP (défaut : auto = essaie 2c puis 1)")
+    parser.add_argument("--client", action="store_true",
+                        help="mode client : cherche et lit tous les copieurs du réseau "
+                             "(aussi activé quand on lance le programme sans rien préciser)")
     parser.add_argument("--port", type=int, default=161, help=argparse.SUPPRESS)  # pour les essais
     args = parser.parse_args()
 
@@ -768,9 +901,8 @@ def main():
         with open(args.fichier_ips, encoding="utf-8") as f:
             ips += [l.strip() for l in f if l.strip() and not l.startswith("#")]
 
-    if not ips and not args.decouvrir:
-        parser.print_help()
-        return 1
+    if args.client or (not ips and not args.decouvrir):
+        return lancer_mode_client(args.communaute, args.delai, args.port, versions, args.dossier)
 
     try:
         if args.decouvrir:

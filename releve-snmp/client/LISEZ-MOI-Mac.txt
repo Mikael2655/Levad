@@ -1,0 +1,13 @@
+LEVAD - Relevé des copieurs (Mac)
+
+1. Double-cliquez sur le fichier ZIP téléchargé : un dossier apparaît.
+2. Ouvrez ce dossier. Faites un clic droit (ou Ctrl + clic) sur "Lancer-LEVAD.command",
+   puis choisissez "Ouvrir", puis confirmez avec "Ouvrir".
+   (La première fois, le Mac demande confirmation parce que le programme est nouveau,
+   pas parce qu'il est dangereux.)
+3. Une fenêtre s'ouvre et cherche les copieurs (environ une minute).
+   Si le Mac demande l'accès au "réseau local", cliquez sur "Autoriser".
+4. À la fin, un fichier "LEVAD_releve_....json" est créé sur votre Bureau.
+   Envoyez-le par mail à LEVAD en pièce jointe.
+
+Le programme ne fait que LIRE les copieurs. Il ne modifie rien et n'envoie rien sur Internet.
