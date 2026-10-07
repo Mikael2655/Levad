@@ -5,7 +5,7 @@ import { timingSafeEqual } from 'crypto'
 // Réception des relevés envoyés par le programme de relevé LEVAD (dossier releve-snmp/).
 // Le programme poste un JSON ; on le transmet par mail (en pièce jointe, avec un résumé lisible).
 // Variables Vercel : RELEVE_TOKEN (obligatoire, même valeur que dans releve-snmp/config_envoi.py),
-// RELEVE_EMAIL_TO (facultatif), RESEND_API_KEY (déjà présente).
+// RELEVE_EMAIL_TO et RELEVE_EMAIL_FROM (facultatifs), RESEND_API_KEY (obligatoire).
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -102,7 +102,7 @@ async function traiter(req: Request) {
   const resend = new Resend(process.env.RESEND_API_KEY)
   const fichier = `releve_${propre(societe, 40).replace(/[^A-Za-z0-9_-]+/g, '_')}_${propre(data.date, 20).replace(/[^0-9_-]/g, '')}.json`
   const { error } = await resend.emails.send({
-    from: 'Levad Relevés <social@levad.fr>',
+    from: process.env.RELEVE_EMAIL_FROM || 'Levad Relevés <social@levad.fr>',
     to: process.env.RELEVE_EMAIL_TO || 'mobadia@levad.fr',
     subject: `Relevé SNMP — ${societe} — ${imprimantes.length} copieur(s)`,
     html,
