@@ -34,6 +34,7 @@ import io
 import contextlib
 import platform
 import ssl
+import urllib.error
 import urllib.request
 
 VERSION_PROGRAMME = "0.3"
@@ -843,9 +844,17 @@ def envoyer_resultat(donnees, url, jeton):
     requete = urllib.request.Request(url, data=corps, method="POST", headers={
         "Content-Type": "application/json; charset=utf-8",
         "Authorization": "Bearer " + jeton})
-    with urllib.request.urlopen(requete, timeout=60, context=contexte) as reponse:
-        if not 200 <= reponse.status < 300:
-            raise ErreurSnmp("réponse inattendue du serveur : %s" % reponse.status)
+    try:
+        with urllib.request.urlopen(requete, timeout=60, context=contexte) as reponse:
+            if not 200 <= reponse.status < 300:
+                raise ErreurSnmp("réponse inattendue du serveur : %s" % reponse.status)
+    except urllib.error.HTTPError as e:
+        # on affiche le message d'explication renvoyé par le serveur, s'il y en a un
+        try:
+            detail = e.read().decode("utf-8", "replace")[:300]
+        except Exception:
+            detail = ""
+        raise ErreurSnmp("HTTP %s %s" % (e.code, detail))
 
 
 def _point():

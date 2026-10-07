@@ -38,6 +38,17 @@ export async function POST(req: Request) {
   const recu = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
   if (!jetonValide(recu, attendu)) return NextResponse.json({ error: 'refusé' }, { status: 401 })
 
+  try {
+    return await traiter(req)
+  } catch (e) {
+    // Jamais de "500" muet : on journalise et on dit au programme ce qui ne va pas
+    console.error('releve:', e)
+    const detail = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ error: 'erreur serveur', detail: detail.slice(0, 200) }, { status: 500 })
+  }
+}
+
+async function traiter(req: Request) {
   const brut = await req.text()
   if (Buffer.byteLength(brut) > MAX_OCTETS) {
     return NextResponse.json({ error: 'trop volumineux' }, { status: 413 })
@@ -97,7 +108,10 @@ export async function POST(req: Request) {
     html,
     attachments: [{ filename: fichier, content: Buffer.from(brut, 'utf-8') }],
   })
-  if (error) return NextResponse.json({ error: 'envoi du mail impossible' }, { status: 502 })
+  if (error) {
+    console.error('releve: Resend', error)
+    return NextResponse.json({ error: 'envoi du mail impossible', detail: String(error.message ?? '').slice(0, 200) }, { status: 502 })
+  }
 
   return NextResponse.json({ ok: true })
 }
