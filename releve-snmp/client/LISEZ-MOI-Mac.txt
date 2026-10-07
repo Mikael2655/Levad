@@ -1,13 +1,21 @@
 Levad Connect (Mac)
 
-1. Double-cliquez sur le fichier ZIP téléchargé : un dossier apparaît.
-2. Ouvrez ce dossier. Faites un clic droit (ou Ctrl + clic) sur "Lancer-Levad-Connect.command",
-   puis choisissez "Ouvrir", puis confirmez avec "Ouvrir".
-   (La première fois, le Mac demande confirmation parce que le programme est nouveau,
-   pas parce qu'il est dangereux.)
-3. Une fenêtre s'ouvre et cherche les copieurs (environ une minute).
-   Si le Mac demande l'accès au "réseau local", cliquez sur "Autoriser".
-4. À la fin, un fichier "LEVAD_releve_....json" est créé sur votre Bureau.
-   Envoyez-le par mail à LEVAD en pièce jointe.
+1. Double-cliquez sur le fichier ZIP téléchargé : un dossier "Levad-Connect" apparaît.
+2. Ouvrez ce dossier. NE double-cliquez PAS sur "Levad-Connect" (le fichier sans extension).
+   Utilisez uniquement "Lancer-Levad-Connect.command".
+3. Faites un clic droit (ou Ctrl + clic) sur "Lancer-Levad-Connect.command", puis "Ouvrir",
+   puis confirmez avec "Ouvrir".
 
-Le programme ne fait que LIRE les copieurs. Il ne modifie rien et n'envoie rien sur Internet.
+Si le Mac affiche "Apple n'a pas pu confirmer que ... ne contenait pas de logiciel malveillant"
+(le bouton "Ouvrir" n'existe pas dans ce message) :
+   a. Cliquez sur "Terminé" (surtout pas sur "Placer dans la corbeille").
+   b. Ouvrez le menu Pomme > "Réglages Système" > "Confidentialité et sécurité".
+   c. Descendez jusqu'à la section "Sécurité" : vous voyez "Lancer-Levad-Connect.command a été bloqué".
+      Cliquez sur "Ouvrir quand même", entrez votre mot de passe, puis "Ouvrir".
+   d. Relancez "Lancer-Levad-Connect.command".
+
+4. Une fenêtre s'ouvre, vous demande le nom de votre société, puis cherche les copieurs
+   (environ une minute). Si le Mac demande l'accès au "réseau local", cliquez sur "Autoriser".
+5. À la fin, le message "résultat transmis à LEVAD" s'affiche. Vous pouvez fermer la fenêtre.
+
+Le programme ne fait que LIRE les copieurs. Il ne modifie aucun réglage.
