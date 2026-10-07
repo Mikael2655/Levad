@@ -1,0 +1,55 @@
+# Fabrique les programmes "double-clic" pour Windows et Mac à partir de releve-snmp/.
+# Se lance tout seul à chaque modification du dossier releve-snmp, ou à la main
+# (onglet Actions > "Levad Connect (programme de relevé)" > Run workflow).
+name: Levad Connect (programme de relevé)
+
+on:
+  push:
+    paths:
+      - "releve-snmp/**"
+      - ".github/workflows/build-releve-snmp.yml"
+  workflow_dispatch:
+
+jobs:
+  fabriquer:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            nom: Windows
+          - os: macos-latest
+            nom: Mac
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer l'outil d'emballage
+        run: python -m pip install pyinstaller certifi
+      - name: Fabriquer le programme
+        run: python -m PyInstaller --onefile --name Levad-Connect --paths releve-snmp --hidden-import config_envoi --collect-data certifi releve-snmp/releve_snmp.py
+      - name: Essai rapide (le programme démarre et gère une machine absente)
+        shell: bash
+        run: |
+          if [ "${{ matrix.nom }}" = "Windows" ]; then EXE=dist/Levad-Connect.exe; else EXE=dist/Levad-Connect; fi
+          "$EXE" 127.0.0.1 --delai 0.5 --dossier "$RUNNER_TEMP/essai" | tee essai.txt
+          grep -q "Pas de réponse" essai.txt
+      - name: Windows - le programme seul (pas de zip à ouvrir pour le client)
+        if: matrix.nom == 'Windows'
+        shell: bash
+        run: mkdir -p envoi && cp dist/Levad-Connect.exe envoi/
+      - name: Mac - dossier zippé (le zip conserve le droit de lancement)
+        if: matrix.nom == 'Mac'
+        shell: bash
+        run: |
+          mkdir -p envoi/Levad-Connect
+          cp dist/Levad-Connect releve-snmp/client/Lancer-Levad-Connect.command releve-snmp/client/LISEZ-MOI-Mac.txt envoi/Levad-Connect/
+          chmod +x envoi/Levad-Connect/Levad-Connect envoi/Levad-Connect/Lancer-Levad-Connect.command
+          (cd envoi && zip -qr -X Levad-Connect-Mac.zip Levad-Connect && rm -rf Levad-Connect)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Levad-Connect-${{ matrix.nom }}
+          path: envoi/*
+          retention-days: 90
