@@ -1,7 +1,7 @@
 # Fabrique les programmes "double-clic" pour Windows et Mac à partir de releve-snmp/.
 # Se lance tout seul à chaque modification du dossier releve-snmp, ou à la main
-# (onglet Actions > "Programme de relevé LEVAD" > Run workflow).
-name: Programme de relevé LEVAD
+# (onglet Actions > "Levad Connect (programme de relevé)" > Run workflow).
+name: Levad Connect (programme de relevé)
 
 on:
   push:
@@ -29,27 +29,27 @@ jobs:
       - name: Installer l'outil d'emballage
         run: python -m pip install pyinstaller certifi
       - name: Fabriquer le programme
-        run: python -m PyInstaller --onefile --name LEVAD-Releve --paths releve-snmp --hidden-import config_envoi --collect-data certifi releve-snmp/releve_snmp.py
+        run: python -m PyInstaller --onefile --name Levad-Connect --paths releve-snmp --hidden-import config_envoi --collect-data certifi releve-snmp/releve_snmp.py
       - name: Essai rapide (le programme démarre et gère une machine absente)
         shell: bash
         run: |
-          if [ "${{ matrix.nom }}" = "Windows" ]; then EXE=dist/LEVAD-Releve.exe; else EXE=dist/LEVAD-Releve; fi
+          if [ "${{ matrix.nom }}" = "Windows" ]; then EXE=dist/Levad-Connect.exe; else EXE=dist/Levad-Connect; fi
           "$EXE" 127.0.0.1 --delai 0.5 --dossier "$RUNNER_TEMP/essai" | tee essai.txt
           grep -q "Pas de réponse" essai.txt
       - name: Windows - le programme seul (pas de zip à ouvrir pour le client)
         if: matrix.nom == 'Windows'
         shell: bash
-        run: mkdir -p envoi && cp dist/LEVAD-Releve.exe envoi/
+        run: mkdir -p envoi && cp dist/Levad-Connect.exe envoi/
       - name: Mac - dossier zippé (le zip conserve le droit de lancement)
         if: matrix.nom == 'Mac'
         shell: bash
         run: |
-          mkdir -p envoi/LEVAD-Releve
-          cp dist/LEVAD-Releve releve-snmp/client/Lancer-LEVAD.command releve-snmp/client/LISEZ-MOI-Mac.txt envoi/LEVAD-Releve/
-          chmod +x envoi/LEVAD-Releve/LEVAD-Releve envoi/LEVAD-Releve/Lancer-LEVAD.command
-          (cd envoi && zip -qr -X LEVAD-Releve-Mac.zip LEVAD-Releve && rm -rf LEVAD-Releve)
+          mkdir -p envoi/Levad-Connect
+          cp dist/Levad-Connect releve-snmp/client/Lancer-Levad-Connect.command releve-snmp/client/LISEZ-MOI-Mac.txt envoi/Levad-Connect/
+          chmod +x envoi/Levad-Connect/Levad-Connect envoi/Levad-Connect/Lancer-Levad-Connect.command
+          (cd envoi && zip -qr -X Levad-Connect-Mac.zip Levad-Connect && rm -rf Levad-Connect)
       - uses: actions/upload-artifact@v4
         with:
-          name: LEVAD-Releve-${{ matrix.nom }}
+          name: Levad-Connect-${{ matrix.nom }}
           path: envoi/*
           retention-days: 90

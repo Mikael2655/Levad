@@ -1,7 +1,7 @@
-LEVAD - Relevé des copieurs (Mac)
+Levad Connect (Mac)
 
 1. Double-cliquez sur le fichier ZIP téléchargé : un dossier apparaît.
-2. Ouvrez ce dossier. Faites un clic droit (ou Ctrl + clic) sur "Lancer-LEVAD.command",
+2. Ouvrez ce dossier. Faites un clic droit (ou Ctrl + clic) sur "Lancer-Levad-Connect.command",
    puis choisissez "Ouvrir", puis confirmez avec "Ouvrir".
    (La première fois, le Mac demande confirmation parce que le programme est nouveau,
    pas parce qu'il est dangereux.)

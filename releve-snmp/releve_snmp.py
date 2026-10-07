@@ -855,7 +855,7 @@ def _point():
 def mode_client(communaute, delai, port, versions, dossier=None):
     """Cherche tous les copieurs du réseau, les lit et envoie le résultat à LEVAD."""
     print("=" * 70)
-    print(" LEVAD - Relevé des copieurs")
+    print(" Levad Connect - Relevé des copieurs")
     print("=" * 70)
     print("Ce programme lit (sans rien modifier) les copieurs de votre réseau,")
     print("puis transmet le résultat à LEVAD. Il ne change aucun réglage.")

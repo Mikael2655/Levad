@@ -1,4 +1,4 @@
-# LEVAD – Outil de test SNMP (étape 1)
+# Levad Connect – Outil de test SNMP (étape 1)
 
 Cet outil interroge vos copieurs sur le réseau et affiche ce qu'ils répondent
 (marque, modèle, n° de série, encre, compteurs). Il **lit seulement** : il ne
