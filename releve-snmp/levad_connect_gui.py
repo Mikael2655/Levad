@@ -17,9 +17,10 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
 import releve_snmp as R
+from logos_levad import LOGO_CARRE_B64, LOGO_COMPLET_B64
 
 TITRE = "Levad Connect"
-BLEU = "#1e3a5f"
+VERT = "#8c9e8b"      # le vert du logo LEVAD
 
 
 class EcrivainFile:
@@ -46,15 +47,23 @@ class Fenetre:
             R.plage_locale = lambda: plage
 
         racine.title(TITRE)
-        racine.geometry("560x560")
-        racine.minsize(520, 520)
+        racine.geometry("560x590")
+        racine.minsize(520, 560)
 
-        entete = tk.Frame(racine, bg=BLEU)
+        # Logos : le carré vert comme icône de la fenêtre, le logo complet en en-tête
+        self.logo_carre = tk.PhotoImage(data=LOGO_CARRE_B64).subsample(4, 4)
+        self.logo_complet = tk.PhotoImage(data=LOGO_COMPLET_B64)
+        try:
+            racine.iconphoto(True, self.logo_carre)
+        except tk.TclError:
+            pass
+
+        entete = tk.Frame(racine, bg="white")
         entete.pack(fill="x")
-        tk.Label(entete, text="Levad Connect", bg=BLEU, fg="white",
-                 font=("Helvetica", 20, "bold")).pack(anchor="w", padx=20, pady=(14, 2))
-        tk.Label(entete, text="Relevé des copieurs de votre entreprise", bg=BLEU, fg="#cbd5e1",
-                 font=("Helvetica", 11)).pack(anchor="w", padx=20, pady=(0, 14))
+        tk.Label(entete, image=self.logo_complet, bg="white").pack(anchor="w", padx=20, pady=(16, 4))
+        tk.Label(entete, text="Connect - Relevé des copieurs de votre entreprise", bg="white", fg="#475569",
+                 font=("Helvetica", 11)).pack(anchor="w", padx=22, pady=(0, 12))
+        tk.Frame(racine, bg=VERT, height=4).pack(fill="x")
 
         corps = tk.Frame(racine)
         corps.pack(fill="both", expand=True, padx=20, pady=14)
