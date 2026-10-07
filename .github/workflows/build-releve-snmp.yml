@@ -60,3 +60,31 @@ jobs:
           name: Levad-Connect-${{ matrix.nom }}
           path: envoi/*
           retention-days: 90
+
+  # Quand la fabrication réussit sur la branche principale, on dépose les programmes dans le site :
+  # ils sont alors téléchargeables sur /telecharger (page de téléchargement de l'application Vercel).
+  publier:
+    needs: fabriquer
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: programmes-fabriques
+      - name: Copier les programmes dans le site
+        run: |
+          mkdir -p public/telechargements
+          cp programmes-fabriques/Levad-Connect-Windows/Levad-Connect.exe public/telechargements/
+          cp programmes-fabriques/Levad-Connect-Mac/Levad-Connect-Mac.zip public/telechargements/
+      - name: Publier dans le dépôt
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/telechargements
+          if git diff --cached --quiet; then echo "Rien de nouveau à publier"; exit 0; fi
+          git commit -m "Publication des programmes Levad Connect (page /telecharger)"
+          git pull --rebase origin main
+          git push origin HEAD:main
