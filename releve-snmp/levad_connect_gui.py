@@ -174,6 +174,12 @@ class Fenetre:
             message = "Une erreur est survenue : %s\n\nMerci de prévenir LEVAD." % erreur
             self.etat.config(text=message, fg="#b91c1c")
             messagebox.showerror(TITRE, message)
+        elif res["envoye"] and res["copieurs"] == 0:
+            message = ("Aucun copieur n'a été trouvé sur votre réseau. LEVAD en a été informé.\n\n"
+                       "Sur Mac, vérifiez que « Levad Connect » est autorisé dans Réglages Système > "
+                       "Confidentialité et sécurité > Réseau local, puis relancez le relevé.")
+            self.etat.config(text=message, fg="#b45309")
+            messagebox.showwarning(TITRE, message)
         elif res["envoye"]:
             message = ("Terminé : %d copieur(s) lu(s). Le résultat a été transmis à LEVAD.\n\n"
                        "Merci ! Vous pouvez fermer cette fenêtre." % res["copieurs"])
