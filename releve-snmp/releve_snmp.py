@@ -807,6 +807,11 @@ def plage_locale():
     return str(ipaddress.IPv4Network(ip + "/24", strict=False))
 
 
+# Points d'accroche pour la version avec fenêtre (levad_connect_gui.py) : par défaut, ils ne font rien.
+ETAT = lambda message: None          # reçoit une phrase d'avancement lisible par un client
+DERNIER_RESULTAT = {"envoye": False, "fichier": None, "copieurs": 0}   # ce qui s'est passé à la fin
+
+
 def _question(texte):
     """Pose une question à l'écran ; réponse vide si personne ne peut répondre."""
     try:
@@ -861,7 +866,7 @@ def _point():
     print(".", end="", flush=True)
 
 
-def mode_client(communaute, delai, port, versions, dossier=None):
+def mode_client(communaute, delai, port, versions, dossier=None, societe=None):
     """Cherche tous les copieurs du réseau, les lit et envoie le résultat à LEVAD."""
     print("=" * 70)
     print(" Levad Connect - Relevé des copieurs")
@@ -869,7 +874,7 @@ def mode_client(communaute, delai, port, versions, dossier=None):
     print("Ce programme lit (sans rien modifier) les copieurs de votre réseau,")
     print("puis transmet le résultat à LEVAD. Il ne change aucun réglage.")
     print("")
-    societe = _question("Nom de votre société : ") or "(non indiqué)"
+    societe = societe or _question("Nom de votre société : ") or "(non indiqué)"
     plage = plage_locale()
     if plage is None:
         plage = _question("Réseau non détecté. Tapez la plage à analyser (ex. 192.168.1.0/24) : ")
@@ -877,12 +882,14 @@ def mode_client(communaute, delai, port, versions, dossier=None):
             print("Rien à faire. Contactez LEVAD.")
             return 1
     print("\nAnalyse du réseau %s ..." % plage)
+    ETAT("Recherche des copieurs sur votre réseau…")
     try:
         trouvees = decouvrir(plage, communaute, min(delai, 1.0), port, versions)
     except ValueError as e:
         print("Erreur : %s" % e)
         return 2
     print("%d équipement(s) répondent en SNMP." % len(trouvees))
+    ETAT("%d équipement(s) trouvé(s) sur le réseau." % len(trouvees))
     if not trouvees:
         saisie = _question("Aucun copieur trouvé. Si vous connaissez son adresse IP, tapez-la "
                            "(sinon Entrée) : ")
@@ -900,6 +907,7 @@ def mode_client(communaute, delai, port, versions, dossier=None):
     resultats = []
     for i, t in enumerate(trouvees, 1):
         print("\n[%d/%d] Lecture de %s " % (i, len(trouvees), t["ip"]), end="", flush=True)
+        ETAT("Lecture de l'équipement %d sur %d (%s)…" % (i, len(trouvees), t["ip"]))
         # on réutilise la version SNMP déjà trouvée à la découverte (plus rapide)
         v = versions if t.get("version") is None else (t["version"],)
         try:
@@ -920,12 +928,15 @@ def mode_client(communaute, delai, port, versions, dossier=None):
                "systeme": platform.platform(), "plage": plage,
                "version_programme": VERSION_PROGRAMME, "machines": resultats}
     nb = sum(1 for r in resultats if _est_une_imprimante(r))
+    DERNIER_RESULTAT.update({"envoye": False, "fichier": None, "copieurs": nb})
     print("")
     print("=" * 70)
     if URL_RECEPTION:
         print("Envoi du résultat à LEVAD ...")
+        ETAT("Envoi du résultat à LEVAD…")
         try:
             envoyer_resultat(donnees, URL_RECEPTION, JETON)
+            DERNIER_RESULTAT["envoye"] = True
             print("Terminé : %d copieur(s) lu(s), résultat transmis à LEVAD. Merci !" % nb)
             print("=" * 70)
             return 0
@@ -934,6 +945,7 @@ def mode_client(communaute, delai, port, versions, dossier=None):
     chemin = os.path.join(dossier or dossier_de_sortie(), "LEVAD_releve_%s.json" % horodatage)
     with open(chemin, "w", encoding="utf-8") as f:
         json.dump(donnees, f, ensure_ascii=False, indent=2)
+    DERNIER_RESULTAT["fichier"] = chemin
     print("Le résultat est enregistré dans ce fichier :")
     print("  " + chemin)
     print("Merci de l'envoyer par mail à LEVAD (en pièce jointe).")
