@@ -436,6 +436,10 @@ function SocialPageInner() {
             </div>
           </div>
           <div className="flex items-center gap-4 text-sm">
+            <button onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login' }}
+              className="text-blue-200 hover:text-white text-xs underline underline-offset-2">
+              Se déconnecter
+            </button>
             {drafts.length > 0 && (
               <span className="bg-amber-400 text-amber-900 font-bold px-2.5 py-0.5 rounded-full text-xs">
                 {drafts.length} à valider
