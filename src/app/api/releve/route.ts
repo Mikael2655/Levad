@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { timingSafeEqual } from 'crypto'
+import { enregistrerReleve } from '@/lib/connect/ingestion'
 
 // Réception des relevés envoyés par le programme de relevé LEVAD (dossier releve-snmp/).
 // Le programme poste un JSON ; on le transmet par mail (en pièce jointe, avec un résumé lisible).
@@ -62,6 +63,13 @@ async function traiter(req: Request) {
   }
   if (!data || !Array.isArray(data.machines)) {
     return NextResponse.json({ error: 'format inattendu' }, { status: 400 })
+  }
+
+  // Enregistrement dans le tableau de bord. Si la base n'est pas prête, le mail part quand même.
+  try {
+    await enregistrerReleve(data)
+  } catch (e) {
+    console.error('releve: enregistrement dans la base impossible', e)
   }
 
   const societe = propre(data.societe) || '(non indiqué)'

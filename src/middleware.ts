@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { SESSION_COOKIE, createToken, sessionCookieOptions, verifyToken } from '@/lib/session'
 
 // 1) Adresse destinée aux clients (connect.levad.fr) : on n'y expose QUE la page de téléchargement,
-// les fichiers à télécharger et l'adresse de réception des relevés. Tout le reste (en particulier
+// les fichiers à télécharger, l'adresse de réception des relevés et le suivi du parc (protégé par mot de passe). Tout le reste (en particulier
 // l'outil de publications) y répond « introuvable ». Les autres adresses ne changent pas.
 //
 // 2) Outil social (autres adresses) : accès par mot de passe, session de 1 h d'inactivité.
@@ -30,6 +30,8 @@ export async function middleware(req: NextRequest) {
     const autorise =
       pathname === '/telecharger' ||
       pathname.startsWith('/telechargements/') ||
+      pathname.startsWith('/parc') ||
+      pathname.startsWith('/api/parc/') ||
       pathname.startsWith('/_next/') ||
       FICHIERS_AUTORISES.includes(pathname)
     if (autorise) return NextResponse.next()

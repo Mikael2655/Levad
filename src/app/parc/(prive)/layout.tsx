@@ -1,0 +1,33 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { connecte } from '@/lib/connect/auth'
+import { VERT } from '@/components/connect/affichage'
+
+export const metadata: Metadata = {
+  title: 'Levad Connect — Parc',
+  robots: { index: false, follow: false },
+  icons: { icon: '/icon.png' },
+}
+
+export default function PriveLayout({ children }: { children: React.ReactNode }) {
+  if (!connecte()) redirect('/parc/connexion')
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      <header className="border-b bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
+          <Link href="/parc" className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/levad-logo.png" alt="LEVAD" className="h-9 w-auto" />
+            <span className="text-lg font-semibold text-gray-700">Connect</span>
+          </Link>
+          <form action="/api/parc/deconnexion" method="post">
+            <button className="text-sm text-gray-500 hover:text-gray-900">Se déconnecter</button>
+          </form>
+        </div>
+        <div className="h-1" style={{ backgroundColor: VERT }} />
+      </header>
+      <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
+    </div>
+  )
+}
