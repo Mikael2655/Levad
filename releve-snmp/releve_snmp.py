@@ -52,9 +52,14 @@ OID_PRT_CONSOMMABLES = "1.3.6.1.2.1.43.11.1.1"   # table des consommables (encre
 OID_PRT_COULEURS = "1.3.6.1.2.1.43.12.1.1"       # table des couleurs d'encre
 OID_HR_DEVICE_DESCR = "1.3.6.1.2.1.25.3.2.1.3"
 
-# Table des compteurs Canon : ...1602.1.11.1.3.1.<colonne>.<numéro de compteur>
-# (la colonne 4 contient la valeur ; c'est à vérifier avec les vraies machines)
-OID_CANON_COMPTEURS = "1.3.6.1.4.1.1602.1.11.1.3.1"
+# Compteurs Canon (constaté sur une iR-ADV C3520) : deux tables ...<colonne>.<numéro de compteur>
+#  - 1.11.1.4.1 : TOUS les compteurs de la machine (une quarantaine)
+#  - 1.11.1.3.1 : seulement ceux choisis pour l'affichage sur l'écran du copieur
+# La colonne 4 contient la valeur.
+OID_CANON_COMPTEURS_TOUS = "1.3.6.1.4.1.1602.1.11.1.4.1"
+OID_CANON_COMPTEURS_ECRAN = "1.3.6.1.4.1.1602.1.11.1.3.1"
+OID_CANON_NOMS_ECRAN = "1.3.6.1.4.1.1602.1.11.2.2.1"    # colonne 2 = numéro, 3 = nom, 4 = valeur
+OID_CANON_NOMS_TOUS = "1.3.6.1.4.1.1602.1.11.2.1.1"     # colonne 2 = nom, 3 = valeur (même ordre)
 OID_CANON_BRANCHE_COMPTEURS = "1.3.6.1.4.1.1602.1.11"
 CANON_COLONNE_VALEUR = "4"
 
@@ -389,7 +394,9 @@ def interpreter_consommables(brut):
             elem["note"] = "niveau non communiqué par la machine"
         texte_min = description.lower()
         classe = c.get("4")      # 3 = se consomme (encre), 4 = se remplit (récupérateur)
-        if classe == 4 or any(m in texte_min for m in ("waste", "récupér", "recuper", "usag", "collecteur")):
+        if c.get("5") == 9 or "drum" in texte_min or "tambour" in texte_min:
+            autres.append(elem)      # tambour (type 9) : ce n'est pas de l'encre
+        elif classe == 4 or any(m in texte_min for m in ("waste", "récupér", "recuper", "usag", "collecteur")):
             bacs.append(elem)
         elif elem["couleur"] and classe in (3, None):
             encres.append(elem)
@@ -398,33 +405,60 @@ def interpreter_consommables(brut):
     return encres, bacs, autres
 
 
-def interpreter_compteurs_canon(brut):
-    """
-    Extrait les compteurs Canon numérotés. Retourne {numéro: {"valeur", "oid", "colonnes"}}.
-    On lit la table connue ; si elle est absente, on cherche plus largement (voir plus bas).
-    """
-    compteurs = {}
-    prefixe = OID_CANON_COMPTEURS + "."
+def _table_canon(brut, racine):
+    """Lit une table Canon : retourne {numéro de ligne: {colonne: valeur}}."""
+    lignes = {}
+    prefixe = racine + "."
     for oid, v in brut.items():
         if oid.startswith(prefixe):
-            colonne, _, numero = oid[len(prefixe):].partition(".")
-            if not numero.isdigit():
-                continue
-            n = int(numero)
-            fiche = compteurs.setdefault(n, {"valeur": None, "oid": None, "colonnes": {}})
-            fiche["colonnes"][colonne] = v
-            if colonne == CANON_COLONNE_VALEUR and isinstance(v, int):
-                fiche["valeur"], fiche["oid"] = v, oid
-    compteurs = {n: f for n, f in compteurs.items() if f["valeur"] is not None}
+            colonne, _, ligne = oid[len(prefixe):].partition(".")
+            if ligne.isdigit():
+                lignes.setdefault(int(ligne), {})[colonne] = v
+    return lignes
+
+
+def interpreter_compteurs_canon(brut):
+    """
+    Extrait les compteurs Canon numérotés.
+    Retourne {numéro: {"valeur", "oid", "affiche_ecran", "nom"}}.
+    """
+    compteurs = {}
+    tous = _table_canon(brut, OID_CANON_COMPTEURS_TOUS)
+    ecran = _table_canon(brut, OID_CANON_COMPTEURS_ECRAN)
+    for table in (tous, ecran):
+        for n, col in table.items():
+            if isinstance(col.get(CANON_COLONNE_VALEUR), int):
+                fiche = compteurs.setdefault(n, {"valeur": col[CANON_COLONNE_VALEUR], "oid": None,
+                                                 "affiche_ecran": False, "nom": None})
+                fiche["oid"] = fiche["oid"] or "%s.%s.%d" % (
+                    OID_CANON_COMPTEURS_TOUS if table is tous else OID_CANON_COMPTEURS_ECRAN,
+                    CANON_COLONNE_VALEUR, n)
+    for n in ecran:
+        if n in compteurs:
+            compteurs[n]["affiche_ecran"] = True
+
+    # Noms des compteurs : la table de l'écran donne numéro + nom ; la table complète donne
+    # les noms dans le même ordre que les numéros (on ne s'en sert que si les valeurs concordent).
+    for col in _table_canon(brut, OID_CANON_NOMS_ECRAN).values():
+        if col.get("2") in compteurs and isinstance(col.get("3"), str):
+            compteurs[col["2"]]["nom"] = col["3"]
+    noms = _table_canon(brut, OID_CANON_NOMS_TOUS)
+    numeros = sorted(n for n in tous if n in compteurs)
+    if noms and len(noms) == len(numeros) and all(
+            noms[i + 1].get("3") == compteurs[n]["valeur"] for i, n in enumerate(numeros)):
+        for i, n in enumerate(numeros):
+            compteurs[n]["nom"] = compteurs[n]["nom"] or noms[i + 1].get("2")
     if compteurs:
         return compteurs
-    # Plan B : table inconnue -> on prend tout nombre entier de la branche ...1602.1.11
+
+    # Plan B : tables inconnues -> on prend tout nombre entier de la branche ...1602.1.11
     # dont le dernier chiffre est un numéro de compteur plausible (100 à 999).
     for oid, v in brut.items():
         if oid.startswith(OID_CANON_BRANCHE_COMPTEURS + ".") and isinstance(v, int):
             dernier = oid.rsplit(".", 1)[1]
             if dernier.isdigit() and 100 <= int(dernier) <= 999:
-                compteurs.setdefault(int(dernier), {"valeur": v, "oid": oid, "colonnes": {}})
+                compteurs.setdefault(int(dernier), {"valeur": v, "oid": oid,
+                                                    "affiche_ecran": False, "nom": None})
     return compteurs
 
 
@@ -443,11 +477,11 @@ def calculer_totaux(compteurs):
         return sum(coef * val(n) for coef, n in termes)
 
     definitions = [
-        ("A", "109 / 106 directement",
+        ("A", "Directe : 109 / 106",
          [(1, 109)], [(1, 106)]),
-        ("B", "108 + 112 / 125 + 122",
+        ("B", "Total + grands formats : 108 + 112 / 125 + 122",
          [(1, 108), (1, 112)], [(1, 125), (1, 122)]),
-        ("C", "112 x 2 + 113 / 122 x 2 + 123",
+        ("C", "Détaillée : 112 x 2 + 113 / 122 x 2 + 123",
          [(2, 112), (1, 113)], [(2, 122), (1, 123)]),
     ]
     applicables = []
@@ -618,12 +652,15 @@ def afficher_resume(r):
         compteurs = r["compteurs_canon"]
         p("")
         p("Compteurs Canon (%d lus) :" % len(compteurs))
+        p("  (* = aussi affiché sur l'écran du copieur)")
         numeros = sorted({int(n) for n in compteurs} | set(COMPTEURS_CANON_ATTENDUS))
         for n in numeros:
             if str(n) in compteurs:
-                p("  %4d : %s" % (n, compteurs[str(n)]["valeur"]))
+                c = compteurs[str(n)]
+                p("  %4d%s : %-8s %s" % (n, "*" if c.get("affiche_ecran") else " ",
+                                          c["valeur"], c.get("nom") or ""))
             else:
-                p("  %4d : non disponible" % n)
+                p("  %4d  : non disponible" % n)
         tot = r["totaux_calcules"]
         p("")
         p("Totaux calculés (à titre d'information, A3 compté double) :")
