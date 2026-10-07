@@ -178,15 +178,15 @@ def _decoder_valeur(tag, octets):
     return "0x" + octets.hex()                        # type inconnu : on garde en brut
 
 
-def construire_requete(communaute, type_pdu, id_requete, a, b, oids):
+def construire_requete(communaute, type_pdu, id_requete, a, b, oids, version=1):
     """
-    Fabrique un paquet SNMP v2c.
+    Fabrique un paquet SNMP. version : 1 = SNMP v2c, 0 = SNMP v1 (plus ancien).
     type_pdu : 0xA0 = GET, 0xA1 = GETNEXT, 0xA5 = GETBULK (tous en lecture seule).
     Pour GET/GETNEXT : a = 0, b = 0. Pour GETBULK : a = 0, b = nombre de réponses voulues.
     """
     liaisons = b"".join(_bloc(0x30, _oid(o) + b"\x05\x00") for o in oids)
     pdu = _bloc(type_pdu, _entier(id_requete) + _entier(a) + _entier(b) + _bloc(0x30, liaisons))
-    return _bloc(0x30, _entier(1) + _bloc(0x04, communaute.encode("utf-8")) + pdu)
+    return _bloc(0x30, _entier(version) + _bloc(0x04, communaute.encode("utf-8")) + pdu)
 
 
 def lire_reponse(data, id_attendu):
@@ -236,12 +236,13 @@ def _dans_branche(oid, racine):
 
 
 class ClientSnmp:
-    def __init__(self, ip, communaute="public", delai=2.0, essais=1, port=161):
+    def __init__(self, ip, communaute="public", delai=2.0, essais=1, port=161, version=1):
         self.ip, self.communaute, self.delai, self.essais, self.port = ip, communaute, delai, essais, port
+        self.version = version      # 1 = SNMP v2c, 0 = SNMP v1
 
     def _echange(self, type_pdu, a, b, oids):
         id_req = random.randint(1, 0x7FFFFFF)
-        paquet = construire_requete(self.communaute, type_pdu, id_req, a, b, oids)
+        paquet = construire_requete(self.communaute, type_pdu, id_req, a, b, oids, self.version)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             for _ in range(self.essais + 1):
@@ -282,7 +283,7 @@ class ClientSnmp:
         ne sait pas le faire.
         """
         resultats, courant, dernier = [], racine, None
-        bulk, repetitions = True, 20
+        bulk, repetitions = self.version == 1, 20     # le mode rapide n'existe pas en SNMP v1
         while len(resultats) < maximum:
             try:
                 if bulk:
@@ -465,18 +466,36 @@ def calculer_totaux(compteurs):
     return applicables, retenue, avertissement
 
 
-def lire_machine(ip, communaute, delai, port=161):
+NOMS_VERSION = {1: "v2c", 0: "v1"}
+
+
+def ouvrir_client(ip, communaute, delai, port, versions):
+    """
+    Essaie les versions SNMP demandées l'une après l'autre (v2c d'abord, puis v1).
+    Retourne (client, valeurs de base). Lève PasDeReponse si aucune ne répond.
+    """
+    derniere = None
+    for version in versions:
+        client = ClientSnmp(ip, communaute, delai, port=port, version=version)
+        try:
+            return client, client.lire([OID_SYS_DESCR, OID_SYS_OBJECT_ID, OID_SYS_NAME])
+        except ErreurSnmp as e:
+            derniere = e
+    raise derniere
+
+
+def lire_machine(ip, communaute, delai, port=161, versions=(1, 0)):
     """Interroge une machine et retourne un dictionnaire avec tout ce qui a été trouvé."""
     r = {"ip": ip, "repond": False, "erreur": None, "non_lu": [], "avertissements": []}
-    client = ClientSnmp(ip, communaute, delai, port=port)
 
-    # Étape 1 : la machine répond-elle ?
+    # Étape 1 : la machine répond-elle ? (on essaie SNMP v2c, puis v1)
     try:
-        base = client.lire([OID_SYS_DESCR, OID_SYS_OBJECT_ID, OID_SYS_NAME])
+        client, base = ouvrir_client(ip, communaute, delai, port, versions)
     except ErreurSnmp as e:
         r["erreur"] = str(e)
         return r
     r["repond"] = True
+    r["version_snmp"] = NOMS_VERSION[client.version]
     descr, objet, nom = base[OID_SYS_DESCR], base[OID_SYS_OBJECT_ID], base[OID_SYS_NAME]
 
     # Étape 2 : on parcourt les branches utiles et on garde tout en brut
@@ -558,6 +577,7 @@ def afficher_resume(r):
         p("   que l'adresse IP est la bonne, que la communauté SNMP est correcte")
         p("   (option -c) et que le copieur est allumé et branché au même réseau.")
         return
+    p("Version SNMP  : %s" % r.get("version_snmp", "?"))
     p("Marque        : %s" % _ou_nd(r["marque"]))
     p("Modèle        : %s" % _ou_nd(r["modele"]))
     p("N° de série   : %s" % _ou_nd(r["numero_serie"]))
@@ -652,7 +672,7 @@ def verifier_local(ip):
         raise ValueError("%s n'est pas une adresse de réseau local : refusé par sécurité." % ip)
 
 
-def decouvrir(plage, communaute, delai, port=161):
+def decouvrir(plage, communaute, delai, port=161, versions=(1, 0)):
     adresses = adresses_de_la_plage(plage)
     if len(adresses) > 4096:
         raise ValueError("plage trop grande (%d adresses, maximum 4096)." % len(adresses))
@@ -662,7 +682,7 @@ def decouvrir(plage, communaute, delai, port=161):
 
     def sonder(ip):
         try:
-            v = ClientSnmp(ip, communaute, delai, essais=1, port=port).lire([OID_SYS_DESCR])
+            _, v = ouvrir_client(ip, communaute, delai, port, versions)
             return ip, v[OID_SYS_DESCR] or "(répond, sans description)"
         except ErreurSnmp:
             return None
@@ -698,9 +718,12 @@ def main():
     parser.add_argument("--delai", type=float, default=2.0,
                         help="secondes d'attente d'une réponse (défaut : 2)")
     parser.add_argument("--dossier", help="dossier des fichiers JSON (défaut : resultats/ à côté du programme)")
+    parser.add_argument("--version", choices=["auto", "2c", "1"], default="auto",
+                        help="version SNMP (défaut : auto = essaie 2c puis 1)")
     parser.add_argument("--port", type=int, default=161, help=argparse.SUPPRESS)  # pour les essais
     args = parser.parse_args()
 
+    versions = {"auto": (1, 0), "2c": (1,), "1": (0,)}[args.version]
     dossier = args.dossier or os.path.join(os.path.dirname(os.path.abspath(__file__)), "resultats")
     horodatage = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
     ips = list(args.ips)
@@ -714,7 +737,7 @@ def main():
 
     try:
         if args.decouvrir:
-            trouvees = decouvrir(args.decouvrir, args.communaute, min(args.delai, 1.0), args.port)
+            trouvees = decouvrir(args.decouvrir, args.communaute, min(args.delai, 1.0), args.port, versions)
             print("")
             print("%d machine(s) répondent en SNMP :" % len(trouvees))
             for t in trouvees:
@@ -743,7 +766,7 @@ def main():
     for ip in dict.fromkeys(ips):           # supprime les doublons en gardant l'ordre
         print("\nLecture de %s ..." % ip)
         try:
-            r = lire_machine(ip, args.communaute, args.delai, args.port)
+            r = lire_machine(ip, args.communaute, args.delai, args.port, versions)
         except Exception as e:              # filet de sécurité : une machine ne doit jamais tout arrêter
             r = {"ip": ip, "repond": False, "erreur": "erreur inattendue : %s" % e,
                  "non_lu": [], "avertissements": []}
