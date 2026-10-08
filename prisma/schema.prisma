@@ -39,3 +39,56 @@ model SocialConfig {
   instagramEnabled Boolean  @default(false)
   updatedAt        DateTime @updatedAt
 }
+
+// ---------------------------------------------------------------------------
+// Levad Connect : suivi du parc de copieurs des clients (tables séparées de l'outil de publications)
+// Script SQL à coller dans la console de la base : prisma/migrations/manual_connect_parc.sql
+// ---------------------------------------------------------------------------
+
+model ConnectClient {
+  id       Int              @id @default(autoincrement())
+  nom      String
+  cle      String           @unique // nom simplifié (sans SARL/SAS, accents, majuscules) pour rapprocher les saisies
+  creeLe   DateTime         @default(now())
+  machines ConnectMachine[]
+
+  @@map("connect_client")
+}
+
+model ConnectMachine {
+  id          Int             @id @default(autoincrement())
+  clientId    Int
+  client      ConnectClient   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  cle         String          @unique // « sn:NUMERO_DE_SERIE » ou « ip:ID_CLIENT:ADRESSE_IP »
+  numeroSerie String?
+  marque      String?
+  modele      String?
+  ip          String?
+  nomAffiche  String?
+  categorie   String          @default("mine") // mine = Canon vendue par LEVAD, autre = autre marque
+  aVerifier   Boolean         @default(false)
+  recette     String? // A, B ou C ; vide = automatique
+  seuilEncre  Int             @default(25)
+  creeLe      DateTime        @default(now())
+  releves     ConnectReleve[]
+
+  @@index([clientId])
+  @@map("connect_machine")
+}
+
+model ConnectReleve {
+  id            Int            @id @default(autoincrement())
+  machineId     Int
+  machine       ConnectMachine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  date          DateTime       @default(now())
+  source        String         @default("connect")
+  compteurs     Json // { "112": { "v": 656, "nom": "Total (Black/Large)" }, ... }
+  encres        Json?
+  bacs          Json?
+  totalStandard Int?
+  versionSnmp   String?
+  pc            String?
+
+  @@index([machineId, date])
+  @@map("connect_releve")
+}
