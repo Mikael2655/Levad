@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { renommerClient } from '../../actions'
+import { appliquerSeuilsClient, renommerClient } from '../../actions'
+import { COULEURS, NOM_COULEUR } from '@/lib/connect/alertes'
 import { VERT } from '@/components/connect/affichage'
 
 export const dynamic = 'force-dynamic'
@@ -25,6 +26,22 @@ export default async function ClientPage({ params }: { params: { id: string } })
         <button className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>
           Enregistrer
         </button>
+      </form>
+      <form action={appliquerSeuilsClient} className="mt-6 max-w-2xl space-y-3 rounded-xl border bg-white p-6">
+        <input type="hidden" name="id" value={client.id} />
+        <h2 className="font-bold">Seuils d&apos;alerte de toutes les machines de ce client (%)</h2>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {COULEURS.map((c) => (
+            <label key={c} className="text-sm text-gray-600">
+              {NOM_COULEUR[c]}
+              <input type="number" name={`seuil${NOM_COULEUR[c]}`} min={0} max={100} defaultValue={25} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+            </label>
+          ))}
+        </div>
+        <button className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>
+          Appliquer à toutes ses machines
+        </button>
+        <p className="text-xs text-gray-500">Pour régler une seule machine, ouvrez sa fiche.</p>
       </form>
       <p className="mt-6 text-sm text-gray-500">
         Les relevés futurs de ce client continueront d&apos;être reconnus même si vous changez le nom affiché. Pour
