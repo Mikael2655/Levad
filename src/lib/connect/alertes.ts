@@ -57,11 +57,11 @@ export type ClientEtat = { id: number; nom: string; stock: Stock; machines: Mach
 export async function etatDuParc(): Promise<ClientEtat[]> {
   const [clients, stocks] = await Promise.all([
     prisma.connectClient.findMany({
-      where: { machines: { some: { categorie: 'mine' } } },
+      where: { machines: { some: { categorie: 'mine', horsContrat: false } } },
       orderBy: { nom: 'asc' },
       include: {
         machines: {
-          where: { categorie: 'mine' },
+          where: { categorie: 'mine', horsContrat: false },
           orderBy: { creeLe: 'asc' },
           include: { releves: { orderBy: { date: 'desc' }, take: 1, select: { date: true, encres: true } } },
         },

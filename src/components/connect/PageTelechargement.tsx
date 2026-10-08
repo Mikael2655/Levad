@@ -21,12 +21,10 @@ function Etape({ n, titre, texte }: { n: number; titre: string; texte: string })
 export function PageTelechargement({
   lienWindows = '/telechargements/Levad-Connect.exe',
   lienMac = '/telechargements/Levad-Connect-Mac.zip',
-  nomClient,
   resident = false,
 }: {
   lienWindows?: string
   lienMac?: string
-  nomClient?: string
   resident?: boolean
 }) {
   return (
@@ -36,12 +34,10 @@ export function PageTelechargement({
         <img src="/levad-logo.png" alt="LEVAD" className="h-20 w-auto" />
         <div className="mt-6 h-1 w-full rounded" style={{ backgroundColor: VERT }} />
 
-        <h1 className="mt-8 text-3xl font-bold">
-          {nomClient ? `Levad Connect — ${nomClient}` : 'Levad Connect'}
-        </h1>
+        <h1 className="mt-8 text-3xl font-bold">Levad Connect</h1>
         <p className="mt-2 text-lg text-gray-600">
           {resident
-            ? "Un petit programme à installer une seule fois : il relève ensuite tout seul, en arrière-plan, les compteurs et les niveaux d'encre de vos copieurs. Vous n'avez plus rien à faire."
+            ? "Outil de e-maintenance qui permet à Levad de recevoir les alertes sur vos besoins en encre et vos relevés compteurs."
             : "Un petit programme pour relever les compteurs et les niveaux d'encre de vos copieurs. Rien à installer : on le télécharge, on l'ouvre, c'est tout."}
         </p>
 
@@ -52,10 +48,8 @@ export function PageTelechargement({
             className="rounded-xl border-2 p-6 text-center transition hover:shadow-md"
             style={{ borderColor: VERT }}
           >
-            <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">Ordinateur</p>
-            <p className="mt-1 text-2xl font-bold">Windows</p>
             <span
-              className="mt-4 inline-block rounded-lg px-5 py-3 font-semibold text-white"
+              className="inline-block rounded-lg px-5 py-3 font-semibold text-white"
               style={{ backgroundColor: VERT }}
             >
               Télécharger pour Windows
@@ -67,10 +61,8 @@ export function PageTelechargement({
             className="rounded-xl border-2 p-6 text-center transition hover:shadow-md"
             style={{ borderColor: VERT }}
           >
-            <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">Ordinateur</p>
-            <p className="mt-1 text-2xl font-bold">Mac</p>
             <span
-              className="mt-4 inline-block rounded-lg px-5 py-3 font-semibold text-white"
+              className="inline-block rounded-lg px-5 py-3 font-semibold text-white"
               style={{ backgroundColor: VERT }}
             >
               Télécharger pour Mac

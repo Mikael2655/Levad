@@ -1,8 +1,8 @@
 import { Resend } from 'resend'
 
 // Envoi de mail (Resend) : expéditeur et destinataire réglables par variables Vercel.
-export const MAIL_LEVAD = () => process.env.RELEVE_EMAIL_TO || 'mobadia@levad.fr'
-export const EXPEDITEUR = () => process.env.RELEVE_EMAIL_FROM || 'Levad Relevés <social@levad.fr>'
+export const MAIL_LEVAD = () => process.env.RELEVE_EMAIL_TO || 'contact@levad.fr'
+export const EXPEDITEUR = () => process.env.RELEVE_EMAIL_FROM || 'Levad Connect <contact@levad.fr>'
 
 export async function envoyerMail(params: { to: string; sujet: string; html: string }) {
   // Mode essai (MAIL_SIMULE=1, jamais activé en production) : le mail est affiché dans les journaux au lieu d'être envoyé.

@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
@@ -63,20 +64,20 @@ export async function appliquerSeuilsClient(formData: FormData) {
   revalidatePath('/parc', 'layout')
 }
 
-// Saisie d'un envoi de cartouches à un client (que le client soit en alerte ou non).
+// Saisie d'un envoi de cartouches à un client : plusieurs couleurs d'un coup (une quantité par couleur, 0 = rien).
 export async function ajouterEnvoi(formData: FormData) {
   if (!connecte()) throw new Error('Non connecté')
   const clientId = Number(formData.get('clientId'))
-  const couleur = String(formData.get('couleur') ?? '')
-  const quantite = Math.floor(Number(formData.get('quantite')))
   const note = String(formData.get('note') ?? '').trim().slice(0, 200) || null
   const dateSaisie = String(formData.get('date') ?? '')
-  if (!clientId || !(COULEURS as readonly string[]).includes(couleur) || !(quantite >= 1)) return
+  if (!clientId) return
   const date = dateSaisie && !Number.isNaN(Date.parse(dateSaisie)) ? new Date(dateSaisie) : new Date()
-  await prisma.connectStockMouvement.create({
-    data: { clientId, couleur, delta: quantite, motif: 'envoi', note, date },
-  })
+  const data = COULEURS.map((couleur) => ({ couleur, quantite: Math.floor(Number(formData.get(`qte_${couleur}`)) || 0) }))
+    .filter((l) => l.quantite >= 1)
+    .map((l) => ({ clientId, couleur: l.couleur, delta: Math.min(l.quantite, 999), motif: 'envoi', note, date }))
+  if (data.length) await prisma.connectStockMouvement.createMany({ data })
   revalidatePath('/parc', 'layout')
+  redirect(`/parc/stocks/${clientId}${data.length ? '?ok=1' : ''}`)
 }
 
 // Correction manuelle du stock : on indique la quantité réelle, le programme enregistre la différence.
@@ -164,4 +165,24 @@ export async function demanderLecture(formData: FormData) {
   const deja = await prisma.connectCommande.findFirst({ where: { clientId: machine.clientId, faiteLe: null } })
   if (!deja) await prisma.connectCommande.create({ data: { clientId: machine.clientId, machineId } })
   revalidatePath(`/parc/machine/${machineId}`)
+}
+
+// ---- Machine hors contrat : plus d'alerte d'encre, et exclue des exports -------------------------
+
+export async function basculerHorsContrat(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const m = await prisma.connectMachine.findUnique({ where: { id }, select: { horsContrat: true } })
+  if (!m) return
+  await prisma.connectMachine.update({ where: { id }, data: { horsContrat: !m.horsContrat } })
+  revalidatePath('/parc', 'layout')
+}
+
+// Depuis la synthèse : crée le lien du client s'il n'existe pas, puis ouvre sa fiche sur le lien à envoyer.
+export async function preparerLien(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await assurerCode(id)
+  revalidatePath(`/parc/client/${id}`)
+  redirect(`/parc/client/${id}#lien`)
 }

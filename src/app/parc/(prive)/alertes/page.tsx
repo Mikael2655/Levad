@@ -40,7 +40,7 @@ export default async function AlertesPage() {
   const nbMachines = clients.reduce((n, c) => n + c.nbAlertes, 0)
   return (
     <>
-      <h1 className="text-2xl font-bold">Alertes d&apos;encre</h1>
+      <h1 className="text-2xl font-bold">Alerte encre</h1>
       <p className="mt-1 text-gray-600">
         Un client est en alerte pour une couleur quand son niveau est sous le seuil <strong>et</strong> qu&apos;il n&apos;a
         plus de cartouche de cette couleur en stock. Seules les machines Canon suivies par LEVAD sont concernées.
@@ -65,7 +65,7 @@ export default async function AlertesPage() {
                     <span className="text-gray-500">
                       Stock : {COULEURS.map((k) => `${NOM_COULEUR[k]} ${c.stock[k]}`).join(' · ')}
                     </span>
-                    <Link href={`/parc/stocks?client=${c.id}`} className="rounded-lg bg-gray-900 px-3 py-1.5 font-semibold text-white">
+                    <Link href={`/parc/stocks/${c.id}`} className="rounded-lg bg-gray-900 px-3 py-1.5 font-semibold text-white">
                       Saisir un envoi
                     </Link>
                   </div>
