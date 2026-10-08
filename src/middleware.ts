@@ -29,6 +29,8 @@ export async function middleware(req: NextRequest) {
 
     const autorise =
       pathname === '/telecharger' ||
+      pathname.startsWith('/telecharger/') ||
+      pathname.startsWith('/api/agent/') ||
       pathname.startsWith('/telechargements/') ||
       pathname.startsWith('/parc') ||
       pathname.startsWith('/api/parc/') ||

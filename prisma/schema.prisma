@@ -52,6 +52,14 @@ model ConnectClient {
   creeLe   DateTime         @default(now())
   machines ConnectMachine[]
   mouvements ConnectStockMouvement[]
+  postes   ConnectPoste[]
+  commandes ConnectCommande[]
+  // Lien personnel d'installation (permanent, lié au client et non à un PC ; régénérable)
+  codeLien              String?   @unique
+  email                 String? // pour envoyer le lien au client
+  modeReleve            String    @default("agent") // agent = programme résident ; manuel = relevés reçus par mail
+  seuilDeconnexionJours Int       @default(10)
+  deconnexionSignaleLe  DateTime? // mail de déconnexion déjà envoyé (remis à zéro quand le client se reconnecte)
 
   @@map("connect_client")
 }
@@ -122,4 +130,35 @@ model ConnectAlerteEnvoi {
   nbAlertes  Int
 
   @@map("connect_alerte_envoi")
+}
+
+// Un PC chez un client sur lequel le programme résident est installé (historique conservé).
+model ConnectPoste {
+  id                Int           @id @default(autoincrement())
+  clientId          Int
+  client            ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  nom               String
+  systeme           String?
+  versionAgent      String?
+  premiereConnexion DateTime      @default(now())
+  derniereConnexion DateTime      @default(now())
+
+  @@unique([clientId, nom])
+  @@map("connect_poste")
+}
+
+// Demande de lecture immédiate (bouton « Actualiser ») : le programme la prend à son prochain signal (≤ 1 min).
+model ConnectCommande {
+  id        Int           @id @default(autoincrement())
+  clientId  Int
+  client    ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  machineId Int?
+  type      String        @default("lecture")
+  creeLe    DateTime      @default(now())
+  priseLe   DateTime?
+  faiteLe   DateTime?
+  posteNom  String?
+
+  @@index([clientId, faiteLe])
+  @@map("connect_commande")
 }

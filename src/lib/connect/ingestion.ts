@@ -12,11 +12,12 @@ function texte(v: unknown, max = 200): string | null {
   return s ? s.slice(0, max) : null
 }
 
-export async function enregistrerReleve(data: Json) {
+// `clientImpose` : relevé envoyé par le programme résident, dont le client est connu par son lien personnel.
+export async function enregistrerReleve(data: Json, clientImpose?: { id: number }) {
   const nomSaisi = texte(data.societe, 120) || '(non indiqué)'
   // La société n'est créée que si une machine nouvelle doit lui être rattachée
   // (une machine déjà connue reste chez le client auquel elle a été rattachée).
-  let client: { id: number } | null = null
+  let client: { id: number } | null = clientImpose ?? null
   const clientPourMachineNouvelle = async () =>
     (client ??= await prisma.connectClient.upsert({
       where: { cle: cleClient(nomSaisi) },
@@ -27,7 +28,7 @@ export async function enregistrerReleve(data: Json) {
   let nb = 0
   for (const m of Array.isArray(data.machines) ? data.machines : []) {
     // seules les imprimantes lues nous intéressent (le programme retire déjà les autres équipements)
-    if (!m || !m.repond || m.brut === undefined) continue
+    if (!m || !m.repond || (m.brut === undefined && !m.est_imprimante)) continue
 
     const serie = texte(m.numero_serie, 80)
     const ip = texte(m.ip, 45)
@@ -113,6 +114,7 @@ export async function enregistrerReleve(data: Json) {
         encres,
         bacs: simplifier(m.bacs_recuperateurs),
         totalStandard: typeof m.compteur_total_standard === 'number' ? m.compteur_total_standard : null,
+        source: texte(data.source, 20) ?? 'connect',
         versionSnmp: texte(m.version_snmp, 10),
         pc: texte(data.pc, 80),
       },

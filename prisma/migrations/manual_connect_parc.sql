@@ -77,3 +77,34 @@ CREATE TABLE IF NOT EXISTS "connect_alerte_envoi" (
   "envoyeLe"  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "nbAlertes" INTEGER NOT NULL
 );
+
+-- Version 3 : programme résident (lien personnel par client, PC des clients, lectures à la demande, déconnexions).
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "codeLien" TEXT;
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "email" TEXT;
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "modeReleve" TEXT NOT NULL DEFAULT 'agent';
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "seuilDeconnexionJours" INTEGER NOT NULL DEFAULT 10;
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "deconnexionSignaleLe" TIMESTAMP(3);
+CREATE UNIQUE INDEX IF NOT EXISTS "connect_client_codeLien_key" ON "connect_client"("codeLien");
+
+CREATE TABLE IF NOT EXISTS "connect_poste" (
+  "id"                SERIAL PRIMARY KEY,
+  "clientId"          INTEGER NOT NULL REFERENCES "connect_client"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  "nom"               TEXT NOT NULL,
+  "systeme"           TEXT,
+  "versionAgent"      TEXT,
+  "premiereConnexion" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "derniereConnexion" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "connect_poste_clientId_nom_key" ON "connect_poste"("clientId", "nom");
+
+CREATE TABLE IF NOT EXISTS "connect_commande" (
+  "id"        SERIAL PRIMARY KEY,
+  "clientId"  INTEGER NOT NULL REFERENCES "connect_client"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  "machineId" INTEGER,
+  "type"      TEXT NOT NULL DEFAULT 'lecture',
+  "creeLe"    TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "priseLe"   TIMESTAMP(3),
+  "faiteLe"   TIMESTAMP(3),
+  "posteNom"  TEXT
+);
+CREATE INDEX IF NOT EXISTS "connect_commande_clientId_faiteLe_idx" ON "connect_commande"("clientId", "faiteLe");

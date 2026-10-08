@@ -39,6 +39,7 @@ export default async function PriveLayout({ children }: { children: React.ReactN
               )}
             </Link>
             <Link href="/parc/stocks" className="hover:text-gray-900">Stocks</Link>
+            <Link href="/parc/connexions" className="hover:text-gray-900">Connexions</Link>
           </nav>
           <form action="/api/parc/deconnexion" method="post">
             <button className="text-sm text-gray-500 hover:text-gray-900">Se déconnecter</button>

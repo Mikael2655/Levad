@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { RECETTES, calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
-import { enregistrerReglages } from '../../actions'
+import { demanderLecture, enregistrerReglages } from '../../actions'
 import { COULEURS, NOM_COULEUR, seuilDe, stocksParClient, stockVide } from '@/lib/connect/alertes'
 
 export const dynamic = 'force-dynamic'
@@ -15,6 +15,8 @@ export default async function MachinePage({ params }: { params: { id: string } }
   })
   if (!machine) notFound()
   const clients = await prisma.connectClient.findMany({ orderBy: { nom: 'asc' } })
+  const commandeEnCours = await prisma.connectCommande.findFirst({ where: { clientId: machine.clientId, faiteLe: null } })
+  const aUnPoste = (await prisma.connectPoste.count({ where: { clientId: machine.clientId } })) > 0
   const stock = (await stocksParClient()).get(machine.clientId) ?? stockVide()
   const seuils = Object.fromEntries(COULEURS.map((c) => [c, seuilDe(machine, c)]))
 
@@ -40,7 +42,23 @@ export default async function MachinePage({ params }: { params: { id: string } }
         <Link href={`/parc/client/${machine.client.id}`} className="underline">{machine.client.nom}</Link> ·{' '}
         {machine.marque ?? '?'} {machine.modele ?? ''} · n° {machine.numeroSerie ?? '—'} · IP {machine.ip ?? '—'}
       </p>
-      <p className="text-sm text-gray-500">
+      {aUnPoste && (
+        <form action={demanderLecture} className="mt-3 flex flex-wrap items-center gap-3">
+          <input type="hidden" name="machineId" value={machine.id} />
+          <button
+            disabled={Boolean(commandeEnCours)}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          >
+            Actualiser maintenant
+          </button>
+          <span className="text-sm text-gray-500">
+            {commandeEnCours
+              ? `Demande envoyée ${depuis(commandeEnCours.creeLe)} : la lecture arrive en quelques minutes (rechargez la page).`
+              : 'Demande une lecture immédiate au programme installé chez le client.'}
+          </span>
+        </form>
+      )}
+      <p className="mt-2 text-sm text-gray-500">
         {dernier ? `Dernier relevé : ${formaterDate(dernier.date)} (${depuis(dernier.date)})` : 'Aucun relevé'}
       </p>
 

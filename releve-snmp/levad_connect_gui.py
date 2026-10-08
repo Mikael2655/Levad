@@ -10,12 +10,15 @@ en ligne de commande) ; ce fichier ne fait que l'habiller d'une fenêtre.
 
 import argparse
 import contextlib
+import os
 import queue
 import sys
 import threading
+import time
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
+import levad_agent as A
 import releve_snmp as R
 from logos_levad import LOGO_CARRE_B64, LOGO_COMPLET_B64
 
@@ -198,12 +201,106 @@ class Fenetre:
             messagebox.showwarning(TITRE, message)
 
 
+class FenetreResident:
+    """
+    Fenêtre du programme résident : installation au premier lancement (si le nom du fichier contient le code du
+    client), puis, une fois installé, état du programme et possibilité de le désinstaller.
+    """
+
+    def __init__(self, racine, code=None):
+        self.racine, self.code = racine, code
+        racine.title(TITRE)
+        racine.geometry("560x460")
+        racine.minsize(520, 420)
+        self.logo_carre = tk.PhotoImage(data=LOGO_CARRE_B64).subsample(4, 4)
+        self.logo_complet = tk.PhotoImage(data=LOGO_COMPLET_B64)
+        try:
+            racine.iconphoto(True, self.logo_carre)
+        except tk.TclError:
+            pass
+        entete = tk.Frame(racine, bg="white")
+        entete.pack(fill="x")
+        tk.Label(entete, image=self.logo_complet, bg="white").pack(anchor="w", padx=20, pady=(16, 4))
+        tk.Label(entete, text="Connect - Relevé automatique de vos copieurs", bg="white", fg="#475569",
+                 font=("Helvetica", 11)).pack(anchor="w", padx=22, pady=(0, 12))
+        tk.Frame(racine, bg=VERT, height=4).pack(fill="x")
+        self.corps = tk.Frame(racine)
+        self.corps.pack(fill="both", expand=True, padx=20, pady=16)
+        self.afficher()
+
+    def vider(self):
+        for w in self.corps.winfo_children():
+            w.destroy()
+
+    def texte(self, contenu, couleur="black"):
+        tk.Label(self.corps, text=contenu, justify="left", wraplength=500, anchor="w", fg=couleur).pack(anchor="w", pady=(0, 12))
+
+    def afficher(self):
+        self.vider()
+        if A.est_installe():
+            config = A.lire_config()
+            derniere = config.get("derniere_lecture")
+            quand = (time.strftime("%d/%m/%Y à %H:%M", time.localtime(derniere)) if derniere else "pas encore de lecture")
+            self.texte("Levad Connect est installé sur cet ordinateur et fonctionne en arrière-plan : il relève vos copieurs "
+                       "automatiquement. Vous n'avez rien à faire.", "#15803d")
+            self.texte("Dernière lecture : %s" % quand)
+            ttk.Button(self.corps, text="Désinstaller", command=self.desinstaller).pack(anchor="w")
+        else:
+            self.texte("Levad Connect va s'installer sur cet ordinateur. Il relèvera ensuite vos copieurs "
+                       "automatiquement, en arrière-plan, à chaque démarrage de l'ordinateur. Il ne modifie aucun réglage "
+                       "et peut être désinstallé à tout moment.")
+            self.bouton = ttk.Button(self.corps, text="Installer", command=self.installer)
+            self.bouton.pack(anchor="w")
+        self.etat = tk.Label(self.corps, text="", justify="left", wraplength=500, anchor="w")
+        self.etat.pack(anchor="w", pady=(14, 0))
+
+    def installer(self):
+        self.bouton.config(state="disabled")
+        self.etat.config(text="Installation en cours…", fg="black")
+        self.racine.update_idletasks()
+        config = {"code": self.code, "serveur": os.environ.get("LEVAD_SERVEUR") or A.SERVEUR_PAR_DEFAUT}
+        try:
+            A.signal_de_vie(config)                    # vérifie que le lien est valable avant d'installer
+        except A.CodeInconnu:
+            self.etat.config(text="Ce lien d'installation n'est plus valable. Merci de contacter LEVAD.", fg="#b91c1c")
+            self.bouton.config(state="normal")
+            return
+        except Exception as e:
+            self.etat.config(text="Impossible de joindre LEVAD (%s). Vérifiez la connexion Internet puis réessayez." % e, fg="#b91c1c")
+            self.bouton.config(state="normal")
+            return
+        try:
+            A.installer(self.code, os.environ.get("LEVAD_SERVEUR") or None,
+                        avec_demarrage_auto=not os.environ.get("LEVAD_SANS_AUTODEMARRAGE"))
+        except Exception as e:
+            self.etat.config(text="L'installation a échoué : %s. Merci de contacter LEVAD." % e, fg="#b91c1c")
+            self.bouton.config(state="normal")
+            return
+        self.afficher()
+        self.etat.config(text="Installation terminée. La première lecture se fait en arrière-plan : vous pouvez fermer cette fenêtre.",
+                         fg="#15803d")
+
+    def desinstaller(self):
+        if messagebox.askyesno(TITRE, "Désinstaller Levad Connect de cet ordinateur ?\nLes copieurs ne seront plus relevés automatiquement."):
+            A.desinstaller(avec_demarrage_auto=not os.environ.get("LEVAD_SANS_AUTODEMARRAGE"))
+            self.vider()
+            self.texte("Levad Connect a été désinstallé. Vous pouvez fermer cette fenêtre.", "#15803d")
+
+
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--agent", action="store_true", help=argparse.SUPPRESS)      # programme résident (sans fenêtre)
+    parser.add_argument("--desinstaller", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--autotest", action="store_true", help=argparse.SUPPRESS)   # essai de fabrication
     parser.add_argument("--plage", help=argparse.SUPPRESS)                          # essais
     parser.add_argument("--port", type=int, default=161, help=argparse.SUPPRESS)    # essais
     args, _ = parser.parse_known_args()
+
+    if args.agent:                                # arrière-plan : aucune fenêtre
+        return A.boucle()
+    if args.desinstaller:
+        A.desinstaller(avec_demarrage_auto=not os.environ.get("LEVAD_SANS_AUTODEMARRAGE"))
+        return 0
 
     try:                                          # écran net sous Windows (haute résolution)
         import ctypes
@@ -212,7 +309,11 @@ def main():
         pass
 
     racine = tk.Tk()
-    Fenetre(racine, plage=args.plage, port=args.port)
+    code = A.code_depuis_nom_de_fichier()
+    if A.est_installe() or code:
+        FenetreResident(racine, code or A.lire_config().get("code"))
+    else:
+        Fenetre(racine, plage=args.plage, port=args.port)
     if args.autotest:                             # ouvre la fenêtre, la referme, et quitte avec le code 0
         racine.after(500, racine.destroy)
     racine.mainloop()
