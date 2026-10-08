@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db'
 import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
+import { assurerCode, regenererCode, urlLien } from '@/lib/connect/agent'
+import { envoyerMail } from '@/lib/connect/mail'
 
 const seuil = (v: FormDataEntryValue | null) => Math.min(100, Math.max(0, Number(v ?? 25) || 0))
 
@@ -90,4 +92,76 @@ export async function corrigerStock(formData: FormData) {
     data: { clientId, couleur, delta: voulu - actuel, motif: 'correction', note: `Corrigé de ${actuel} à ${voulu}` },
   })
   revalidatePath('/parc', 'layout')
+}
+
+// ---- Programme résident : lien personnel du client ------------------------------------------
+
+export async function genererLien(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await assurerCode(id)
+  revalidatePath(`/parc/client/${id}`)
+}
+
+// Invalide l'ancien lien (et donc les programmes déjà téléchargés avec l'ancien code cessent de pouvoir s'identifier).
+export async function regenererLien(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await regenererCode(id)
+  revalidatePath(`/parc/client/${id}`)
+}
+
+export async function majClient(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const email = String(formData.get('email') ?? '').trim().slice(0, 200) || null
+  const modeReleve = String(formData.get('modeReleve') ?? 'agent') === 'manuel' ? 'manuel' : 'agent'
+  const jours = Math.min(90, Math.max(1, Math.floor(Number(formData.get('seuilDeconnexionJours')) || 10)))
+  await prisma.connectClient.update({ where: { id }, data: { email, modeReleve, seuilDeconnexionJours: jours } })
+  revalidatePath(`/parc/client/${id}`)
+  revalidatePath('/parc/connexions')
+}
+
+// Envoie le lien d'installation au client par mail, en un clic.
+export async function envoyerLien(formData: FormData): Promise<void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const email = String(formData.get('email') ?? '').trim()
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return
+  const client = await prisma.connectClient.findUnique({ where: { id } })
+  if (!client) return
+  const lien = urlLien(await assurerCode(id))
+  await envoyerMail({
+    to: email,
+    sujet: 'Levad Connect : installer le relevé de vos copieurs',
+    html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
+  <p>Bonjour,</p>
+  <p>Pour suivre automatiquement les compteurs et les niveaux de toner de vos copieurs, nous vous proposons d'installer
+  <strong>Levad Connect</strong>, un petit programme à installer une seule fois. Il fonctionne ensuite tout seul, en arrière-plan.</p>
+  <p style="margin:24px 0"><a href="${lien}" style="background:#8c9e8b;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">Installer Levad Connect</a></p>
+  <ol>
+    <li>Cliquez sur le bouton ci-dessus, puis téléchargez le programme.</li>
+    <li>Ouvrez-le (si Windows affiche un message de protection : « Informations complémentaires », puis « Exécuter quand même »).</li>
+    <li>Cliquez sur « Installer ». C'est terminé.</li>
+  </ol>
+  <p>Le programme ne fait que lire vos copieurs, ne modifie aucun réglage, et peut être désinstallé à tout moment.
+  Ce lien est personnel : en cas de changement d'ordinateur, il suffit de le réutiliser.</p>
+  <p>Cordialement,<br>LEVAD</p>
+</body></html>`,
+  })
+  await prisma.connectClient.update({ where: { id }, data: { email } })
+  revalidatePath(`/parc/client/${id}`)
+}
+
+// ---- Lecture à la demande (bouton « Actualiser ») -----------------------------------------------
+
+export async function demanderLecture(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const machineId = Number(formData.get('machineId'))
+  const machine = await prisma.connectMachine.findUnique({ where: { id: machineId } })
+  if (!machine) return
+  const deja = await prisma.connectCommande.findFirst({ where: { clientId: machine.clientId, faiteLe: null } })
+  if (!deja) await prisma.connectCommande.create({ data: { clientId: machine.clientId, machineId } })
+  revalidatePath(`/parc/machine/${machineId}`)
 }
