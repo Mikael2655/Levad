@@ -110,8 +110,8 @@ async function traiter(req: Request) {
   const resend = new Resend(process.env.RESEND_API_KEY)
   const fichier = `releve_${propre(societe, 40).replace(/[^A-Za-z0-9_-]+/g, '_')}_${propre(data.date, 20).replace(/[^0-9_-]/g, '')}.json`
   const { error } = await resend.emails.send({
-    from: process.env.RELEVE_EMAIL_FROM || 'Levad Relevés <social@levad.fr>',
-    to: process.env.RELEVE_EMAIL_TO || 'mobadia@levad.fr',
+    from: process.env.RELEVE_EMAIL_FROM || 'Levad Connect <contact@levad.fr>',
+    to: process.env.RELEVE_EMAIL_TO || 'contact@levad.fr',
     subject: `Relevé SNMP — ${societe} — ${imprimantes.length} copieur(s)`,
     html,
     attachments: [{ filename: fichier, content: Buffer.from(brut, 'utf-8') }],

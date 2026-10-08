@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { RECETTES, calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
-import { demanderLecture, enregistrerReglages } from '../../actions'
+import { basculerHorsContrat, demanderLecture, enregistrerReglages } from '../../actions'
 import { COULEURS, NOM_COULEUR, seuilDe, stocksParClient, stockVide } from '@/lib/connect/alertes'
 
 export const dynamic = 'force-dynamic'
@@ -25,17 +25,20 @@ export default async function MachinePage({ params }: { params: { id: string } }
   const calc = calculer(compteurs, machine.recette)
   const suivie = machine.categorie === 'mine'
   const utilises = new Set(calc.retenue?.utilises ?? [])
-  const lignes = Object.entries(compteurs).sort((a, b) => Number(a[0]) - Number(b[0]))
+  // Seuls les compteurs de la règle de calcul + le 501 sont montrés ; si aucune règle ne s'applique, on les montre tous pour aider à configurer.
+  const toutes = Object.entries(compteurs).sort((a, b) => Number(a[0]) - Number(b[0]))
+  const lignes = utilises.size ? toutes.filter(([n]) => utilises.has(Number(n)) || n === '501') : toutes
   const scans = compteurs['501']
   const encres = (dernier?.encres ?? []) as unknown as Encre[]
   const bacs = (dernier?.bacs ?? []) as unknown as Encre[]
 
   return (
     <>
-      <Link href="/parc" className="text-sm text-gray-500 hover:text-gray-900">← Retour au parc</Link>
+      <Link href="/parc" className="text-sm text-gray-500 hover:text-gray-900">← Retour à la synthèse</Link>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">{machine.nomAffiche || machine.modele || 'Machine inconnue'}</h1>
         {!suivie && <Badge>Autre marque</Badge>}
+        {machine.horsContrat && <Badge ton="gris">Hors contrat</Badge>}
         {machine.aVerifier && <Badge ton="orange">À vérifier</Badge>}
       </div>
       <p className="mt-1 text-gray-600">
@@ -66,7 +69,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
         {/* Niveaux d'encre */}
         <section className="rounded-xl border bg-white p-6">
           <h2 className="text-lg font-bold">Niveaux d&apos;encre</h2>
-          {suivie ? (
+          {suivie && !machine.horsContrat ? (
             <>
               <div className="mt-4">
                 <Encres encres={encres} seuils={seuils} stock={stock} grand />
@@ -74,7 +77,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
               <p className="mt-3 text-xs text-gray-500">
                 Stock de cartouches chez ce client :{' '}
                 {COULEURS.map((c) => `${NOM_COULEUR[c]} ${stock[c]}`).join(' · ')}.{' '}
-                <Link href="/parc/stocks" className="underline">Gérer les stocks</Link>
+                <Link href={`/parc/stocks/${machine.clientId}`} className="underline">Gérer le stock</Link>
               </p>
               <h3 className="mt-5 text-sm font-semibold text-gray-700">Bacs récupérateurs</h3>
               {bacs.length ? (
@@ -90,7 +93,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
               )}
             </>
           ) : (
-            <p className="mt-3 text-gray-600">Pas de suivi d&apos;encre pour les autres marques.</p>
+            <p className="mt-3 text-gray-600">{machine.horsContrat ? 'Machine hors contrat : pas d’alerte d’encre.' : 'Pas de suivi d’encre pour les autres marques.'}</p>
           )}
         </section>
 
@@ -209,9 +212,23 @@ export default async function MachinePage({ params }: { params: { id: string } }
         </form>
       </section>
 
+      {/* Hors contrat */}
+      <section className="mt-6 rounded-xl border bg-white p-6">
+        <h2 className="text-lg font-bold">Machine hors contrat</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Une machine hors contrat ne déclenche plus aucune alerte d&apos;encre (Canon ou autre marque) et ne figurera pas dans les exports.
+        </p>
+        <form action={basculerHorsContrat} className="mt-3">
+          <input type="hidden" name="id" value={machine.id} />
+          <button className={`rounded-lg px-4 py-2 font-semibold ${machine.horsContrat ? 'text-white' : 'border border-gray-300 bg-white'}`} style={machine.horsContrat ? { backgroundColor: VERT } : undefined}>
+            {machine.horsContrat ? 'Remettre sous contrat' : 'Machine hors contrat'}
+          </button>
+        </form>
+      </section>
+
       {/* Compteurs bruts */}
       <section className="mt-6 rounded-xl border bg-white p-6">
-        <h2 className="text-lg font-bold">Tous les compteurs lus ({lignes.length})</h2>
+        <h2 className="text-lg font-bold">{utilises.size ? 'Compteurs de la règle de calcul' : `Compteurs lus (${lignes.length})`}</h2>
         {lignes.length === 0 ? (
           <p className="mt-2 text-gray-600">Aucun compteur numéroté (machine d&apos;une autre marque).</p>
         ) : (
@@ -234,7 +251,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-xs text-gray-500">Les lignes en vert sont celles utilisées par la règle de calcul retenue.</p>
+            <p className="mt-2 text-xs text-gray-500">Compteurs utilisés par la règle de calcul retenue, et le 501 (scans).</p>
           </div>
         )}
       </section>

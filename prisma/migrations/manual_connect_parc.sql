@@ -108,3 +108,6 @@ CREATE TABLE IF NOT EXISTS "connect_commande" (
   "posteNom"  TEXT
 );
 CREATE INDEX IF NOT EXISTS "connect_commande_clientId_faiteLe_idx" ON "connect_commande"("clientId", "faiteLe");
+
+-- v4 : machine « hors contrat » (pas d'alerte d'encre, exclue des exports)
+ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "horsContrat" BOOLEAN NOT NULL DEFAULT false;

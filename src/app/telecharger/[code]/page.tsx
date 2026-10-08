@@ -25,7 +25,6 @@ export default async function LienPersonnel({ params }: { params: { code: string
   return (
     <PageTelechargement
       resident
-      nomClient={client.nom}
       lienWindows={`/telecharger/${params.code}/windows`}
     />
   )

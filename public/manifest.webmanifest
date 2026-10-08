@@ -1,0 +1,13 @@
+{
+  "name": "Levad Connect",
+  "short_name": "Levad Connect",
+  "start_url": "/parc",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8c9e8b",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

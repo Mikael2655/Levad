@@ -17,7 +17,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
   if (!client) notFound()
   return (
     <>
-      <Link href="/parc" className="text-sm text-gray-500 hover:text-gray-900">← Retour au parc</Link>
+      <Link href="/parc" className="text-sm text-gray-500 hover:text-gray-900">← Retour à la synthèse</Link>
       <h1 className="mt-3 text-2xl font-bold">{client.nom}</h1>
       <form action={renommerClient} className="mt-6 max-w-md space-y-3 rounded-xl border bg-white p-6">
         <input type="hidden" name="id" value={client.id} />
@@ -29,7 +29,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
           Enregistrer
         </button>
       </form>
-      <section className="mt-6 max-w-3xl rounded-xl border bg-white p-6">
+      <section id="lien" className="mt-6 max-w-3xl scroll-mt-4 rounded-xl border bg-white p-6">
         <h2 className="text-lg font-bold">Programme résident (relevé automatique)</h2>
         {client.codeLien ? (
           <>

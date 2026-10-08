@@ -8,7 +8,7 @@ import { SESSION_COOKIE, createToken, sessionCookieOptions, verifyToken } from '
 // 2) Outil social (autres adresses) : accès par mot de passe, session de 1 h d'inactivité.
 // Restent publics : /login, /telecharger, /api/releve, /api/cron/* (protégés par CRON_SECRET).
 
-const FICHIERS_AUTORISES = ['/levad-logo.png', '/icon.png', '/favicon.ico', '/api/releve']
+const FICHIERS_AUTORISES = ['/levad-logo.png', '/icon.png', '/apple-touch-icon.png', '/icon-192.png', '/icon-512.png', '/manifest.webmanifest', '/favicon.ico', '/api/releve']
 
 function estProtege(pathname: string): boolean {
   return (
