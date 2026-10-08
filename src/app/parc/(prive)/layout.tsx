@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { connecte } from '@/lib/connect/auth'
 import { VERT } from '@/components/connect/affichage'
 import { clientsEnAlerte } from '@/lib/connect/alertes'
+import { RafraichissementAuto } from '@/components/connect/RafraichissementAuto'
 
 export const metadata: Metadata = {
   title: 'Levad Connect — Parc',
@@ -41,9 +42,12 @@ export default async function PriveLayout({ children }: { children: React.ReactN
             <Link href="/parc/stocks" className="hover:text-gray-900">Stocks</Link>
             <Link href="/parc/connexions" className="hover:text-gray-900">Connexions</Link>
           </nav>
-          <form action="/api/parc/deconnexion" method="post">
-            <button className="text-sm text-gray-500 hover:text-gray-900">Se déconnecter</button>
-          </form>
+          <div className="flex items-center gap-4">
+            <RafraichissementAuto />
+            <form action="/api/parc/deconnexion" method="post">
+              <button className="text-sm text-gray-500 hover:text-gray-900">Se déconnecter</button>
+            </form>
+          </div>
         </div>
         <div className="h-1" style={{ backgroundColor: VERT }} />
       </header>
