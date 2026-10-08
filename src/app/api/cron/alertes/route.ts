@@ -5,10 +5,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { prisma } from '@/lib/db'
 import { COULEURS, NOM_COULEUR, clientsEnAlerte, type ClientEtat } from '@/lib/connect/alertes'
+import { dansLaPlageDEnvoi } from '@/lib/connect/horaire'
 
-// Mail récapitulatif quotidien des alertes d'encre (17 h, heure de Paris), un seul par jour, aucun les jours sans alerte.
+// Mail récapitulatif quotidien des alertes d'encre (vers 16 h 30, heure de Paris), un seul par jour, aucun les jours sans alerte.
 // Appelé plusieurs fois par jour par .github/workflows/alertes-quotidiennes.yml (qui gère l'heure d'été / d'hiver) :
-// ce code n'envoie que si on est entre 17 h et 19 h à Paris et que le mail du jour n'est pas déjà parti.
+// ce code n'envoie que si on est entre 16 h 30 et 19 h à Paris et que le mail du jour n'est pas déjà parti.
 // Protection : en-tête « Authorization: Bearer <secret> », où le secret est la variable ALERTES_SECRET
 // (secret propre à ce mail) ou, à défaut, CRON_SECRET comme les autres tâches planifiées.
 // Paramètres de test : ?force=1 (envoie sans tenir compte de l'heure ni du mail déjà envoyé),
@@ -23,10 +24,11 @@ function parisMaintenant() {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
+    minute: '2-digit',
     hourCycle: 'h23',
   }).formatToParts(new Date())
   const v = (t: string) => parties.find((p) => p.type === t)?.value ?? ''
-  return { jour: `${v('year')}-${v('month')}-${v('day')}`, heure: Number(v('hour')) }
+  return { jour: `${v('year')}-${v('month')}-${v('day')}`, heure: Number(v('hour')), minute: Number(v('minute')) }
 }
 
 function construireMail(clients: ClientEtat[], urlParc: string) {
@@ -76,10 +78,12 @@ export async function GET(req: NextRequest) {
 
   const force = req.nextUrl.searchParams.get('force') === '1'
   const apercu = req.nextUrl.searchParams.get('apercu') === '1'
-  const { jour, heure } = parisMaintenant()
+  const { jour, heure, minute } = parisMaintenant()
 
   if (!force && !apercu) {
-    if (heure < 17 || heure > 18) return NextResponse.json({ envoye: false, raison: `hors de la plage 17 h - 19 h (il est ${heure} h à Paris)` })
+    if (!dansLaPlageDEnvoi(heure, minute)) {
+      return NextResponse.json({ envoye: false, raison: `hors de la plage 16 h 30 - 19 h (il est ${heure} h ${String(minute).padStart(2, '0')} à Paris)` })
+    }
     const deja = await prisma.connectAlerteEnvoi.findUnique({ where: { jour } })
     if (deja) return NextResponse.json({ envoye: false, raison: 'mail du jour déjà envoyé' })
   }

@@ -1,18 +1,19 @@
 # Déclenche le mail récapitulatif des alertes d'encre (voir src/app/api/cron/alertes/route.ts).
-# GitHub lance cette tâche à 15 h, 16 h et 17 h (UTC) : selon l'heure d'été ou d'hiver, l'une d'elles tombe
-# à 17 h, heure de Paris ; le serveur n'envoie que dans la plage 17 h - 19 h et au plus une fois par jour.
+# GitHub lance cette tâche à 14 h 30, 15 h 30 et 16 h 30 (UTC) : selon l'heure d'été ou d'hiver, l'une d'elles
+# tombe à 16 h 30, heure de Paris ; le serveur n'envoie que dans la plage 16 h 30 - 19 h et au plus une fois par jour
+# (GitHub peut retarder ces passages de quelques dizaines de minutes).
 # Nécessite le secret GitHub ALERTES_SECRET (la même valeur que la variable ALERTES_SECRET de Vercel).
 name: Alertes d'encre (mail quotidien)
 
 on:
   schedule:
-    - cron: "0 15 * * *"
-    - cron: "0 16 * * *"
-    - cron: "0 17 * * *"
+    - cron: "30 14 * * *"
+    - cron: "30 15 * * *"
+    - cron: "30 16 * * *"
   workflow_dispatch:
     inputs:
       force:
-        description: "Envoyer maintenant, sans attendre 17 h (essai)"
+        description: "Envoyer maintenant, sans attendre 16 h 30 (essai)"
         type: boolean
         default: false
 
