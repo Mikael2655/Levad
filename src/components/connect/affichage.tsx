@@ -2,11 +2,11 @@
 
 export const VERT = '#8c9e8b'
 
-const COULEURS: { cle: string; lettre: string; teinte: string }[] = [
-  { cle: 'noir', lettre: 'N', teinte: '#374151' },
-  { cle: 'cyan', lettre: 'C', teinte: '#06b6d4' },
-  { cle: 'magenta', lettre: 'M', teinte: '#d946ef' },
-  { cle: 'jaune', lettre: 'J', teinte: '#eab308' },
+const COULEURS: { cle: string; nom: string; teinte: string }[] = [
+  { cle: 'noir', nom: 'Noir', teinte: '#374151' },
+  { cle: 'cyan', nom: 'Cyan', teinte: '#06b6d4' },
+  { cle: 'magenta', nom: 'Magenta', teinte: '#d946ef' },
+  { cle: 'jaune', nom: 'Jaune', teinte: '#eab308' },
 ]
 
 export type Encre = { couleur: string | null; pourcent: number | null; description?: string | null; note?: string | null }
@@ -36,16 +36,22 @@ export function nombre(n: number | null | undefined) {
   return n === null || n === undefined ? '—' : n.toLocaleString('fr-FR')
 }
 
-/** Les quatre niveaux d'encre en barres. `alerte` = vrai pour les machines suivies (Canon LEVAD). */
+/**
+ * Les quatre niveaux d'encre en barres, avec le nom de chaque couleur.
+ *  - normal : barre de la couleur ;
+ *  - niveau bas mais cartouche en stock chez le client : orange ;
+ *  - niveau bas ET plus de stock : rouge (c'est l'alerte).
+ * `seuils` et `stock` ne servent que pour « mes machines » ; sans eux, aucune alerte n'est affichée.
+ */
 export function Encres({
   encres,
-  seuil,
-  alerte,
+  seuils,
+  stock,
   grand,
 }: {
   encres: Encre[] | null | undefined
-  seuil: number
-  alerte: boolean
+  seuils?: Record<string, number>
+  stock?: Record<string, number>
   grand?: boolean
 }) {
   const liste = encres ?? []
@@ -54,19 +60,26 @@ export function Encres({
       {COULEURS.map((c) => {
         const e = liste.find((x) => x.couleur === c.cle && x.pourcent !== null)
         const p = e?.pourcent ?? null
-        const bas = alerte && p !== null && p <= seuil
+        const bas = Boolean(seuils) && p !== null && p <= (seuils?.[c.cle] ?? 25)
+        const enStock = (stock?.[c.cle] ?? 0) > 0
+        const alerte = bas && !enStock
+        const orange = bas && enStock
+        const couleurBarre = alerte ? '#dc2626' : orange ? '#f59e0b' : c.teinte
         return (
-          <div key={c.cle} title={e?.description ?? c.cle}>
-            <div className="flex items-baseline justify-between text-xs">
-              <span className="font-semibold text-gray-500">{c.lettre}</span>
-              <span className={bas ? 'font-bold text-red-600' : 'text-gray-700'}>{p === null ? '—' : `${p} %`}</span>
-            </div>
+          <div key={c.cle} title={e?.description ?? c.nom}>
+            <p className="text-xs font-semibold text-gray-600">{c.nom}</p>
             <div className={`mt-1 overflow-hidden rounded bg-gray-200 ${grand ? 'h-3' : 'h-2'}`}>
-              <div
-                className="h-full rounded"
-                style={{ width: `${p ?? 0}%`, backgroundColor: bas ? '#dc2626' : c.teinte }}
-              />
+              <div className="h-full rounded" style={{ width: `${p ?? 0}%`, backgroundColor: couleurBarre }} />
             </div>
+            <p
+              className={`mt-0.5 text-xs ${
+                alerte ? 'font-bold text-red-600' : orange ? 'font-semibold text-amber-600' : 'text-gray-700'
+              }`}
+            >
+              {p === null ? '—' : `${p} %`}
+              {alerte && ' · plus de stock'}
+              {orange && ' · en stock'}
+            </p>
           </div>
         )
       })}

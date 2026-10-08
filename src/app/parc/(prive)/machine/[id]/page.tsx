@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { RECETTES, calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
 import { enregistrerReglages } from '../../actions'
+import { COULEURS, NOM_COULEUR, seuilDe, stocksParClient, stockVide } from '@/lib/connect/alertes'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,8 @@ export default async function MachinePage({ params }: { params: { id: string } }
   })
   if (!machine) notFound()
   const clients = await prisma.connectClient.findMany({ orderBy: { nom: 'asc' } })
+  const stock = (await stocksParClient()).get(machine.clientId) ?? stockVide()
+  const seuils = Object.fromEntries(COULEURS.map((c) => [c, seuilDe(machine, c)]))
 
   const dernier = machine.releves[0]
   const compteurs = (dernier?.compteurs ?? {}) as unknown as Compteurs
@@ -48,9 +51,13 @@ export default async function MachinePage({ params }: { params: { id: string } }
           {suivie ? (
             <>
               <div className="mt-4">
-                <Encres encres={encres} seuil={machine.seuilEncre} alerte grand />
+                <Encres encres={encres} seuils={seuils} stock={stock} grand />
               </div>
-              <p className="mt-3 text-xs text-gray-500">Seuil d&apos;alerte : {machine.seuilEncre} %. N, C, M, J = noir, cyan, magenta, jaune.</p>
+              <p className="mt-3 text-xs text-gray-500">
+                Stock de cartouches chez ce client :{' '}
+                {COULEURS.map((c) => `${NOM_COULEUR[c]} ${stock[c]}`).join(' · ')}.{' '}
+                <Link href="/parc/stocks" className="underline">Gérer les stocks</Link>
+              </p>
               <h3 className="mt-5 text-sm font-semibold text-gray-700">Bacs récupérateurs</h3>
               {bacs.length ? (
                 <ul className="mt-1 text-sm text-gray-600">
@@ -158,10 +165,24 @@ export default async function MachinePage({ params }: { params: { id: string } }
               ))}
             </select>
           </label>
-          <label className="text-sm font-medium text-gray-700">
-            Seuil d&apos;alerte d&apos;encre (%)
-            <input type="number" name="seuilEncre" min={0} max={100} defaultValue={machine.seuilEncre} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
-          </label>
+          <fieldset className="md:col-span-3">
+            <legend className="text-sm font-medium text-gray-700">Seuil d&apos;alerte par couleur (%)</legend>
+            <div className="mt-1 grid grid-cols-2 gap-4 md:grid-cols-4">
+              {COULEURS.map((c) => (
+                <label key={c} className="text-sm text-gray-600">
+                  {NOM_COULEUR[c]}
+                  <input
+                    type="number"
+                    name={`seuil${NOM_COULEUR[c]}`}
+                    min={0}
+                    max={100}
+                    defaultValue={seuilDe(machine, c)}
+                    className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                  />
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <div className="flex items-end">
             <button className="rounded-lg px-5 py-2.5 font-semibold text-white" style={{ backgroundColor: VERT }}>
               Enregistrer

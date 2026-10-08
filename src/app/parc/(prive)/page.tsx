@@ -1,13 +1,16 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
-import { Badge, Encres, depuis, nombre, type Encre } from '@/components/connect/affichage'
+import { Badge, Encres, depuis, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
+import { clientsEnAlerte, stocksParClient, stockVide, seuilDe, COULEURS } from '@/lib/connect/alertes'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ParcPage() {
   let clients
+  let stocks, enAlerte
   try {
+    ;[stocks, enAlerte] = await Promise.all([stocksParClient(), clientsEnAlerte()])
     clients = await prisma.connectClient.findMany({
       where: { machines: { some: {} } },
       orderBy: { nom: 'asc' },
@@ -28,11 +31,6 @@ export default async function ParcPage() {
   }
 
   const machines = clients.flatMap((c) => c.machines.map((m) => ({ ...m, client: c })))
-  const enAlerte = machines.filter((m) => {
-    if (m.categorie !== 'mine') return false
-    const encres = (m.releves[0]?.encres ?? []) as unknown as Encre[]
-    return encres.some((e) => e.pourcent !== null && e.pourcent <= m.seuilEncre)
-  })
   const aConfigurer = machines.filter(
     (m) => m.categorie === 'mine' && m.releves[0] && calculer((m.releves[0].compteurs ?? {}) as unknown as Compteurs).aConfigurer
   )
@@ -44,14 +42,21 @@ export default async function ParcPage() {
         {[
           ['Clients', clients.length],
           ['Machines', machines.length],
-          ['Niveaux d’encre bas', enAlerte.length],
+          ['Clients en alerte', enAlerte.length],
           ['Compteurs à configurer', aConfigurer.length],
-        ].map(([titre, valeur]) => (
-          <div key={String(titre)} className="rounded-xl border bg-white p-5">
-            <p className="text-sm text-gray-500">{titre}</p>
-            <p className="mt-1 text-3xl font-bold">{valeur}</p>
-          </div>
-        ))}
+        ].map(([titre, valeur]) => {
+          const carte = (
+            <div className={`rounded-xl border bg-white p-5 ${titre === 'Clients en alerte' && Number(valeur) > 0 ? 'border-red-300' : ''}`}>
+              <p className="text-sm text-gray-500">{titre}</p>
+              <p className={`mt-1 text-3xl font-bold ${titre === 'Clients en alerte' && Number(valeur) > 0 ? 'text-red-600' : ''}`}>{valeur}</p>
+            </div>
+          )
+          return titre === 'Clients en alerte' ? (
+            <Link key={String(titre)} href="/parc/alertes" className="block hover:shadow-md">{carte}</Link>
+          ) : (
+            <div key={String(titre)}>{carte}</div>
+          )
+        })}
       </div>
 
       {machines.length === 0 && (
@@ -79,7 +84,7 @@ export default async function ParcPage() {
                   <Link
                     key={m.id}
                     href={`/parc/machine/${m.id}`}
-                    className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.4fr_1.6fr_1fr_0.7fr]"
+                    className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.3fr_1.7fr_0.8fr_1fr]"
                   >
                     <div>
                       <p className="font-semibold">{m.nomAffiche || m.modele || 'Machine inconnue'}</p>
@@ -94,7 +99,11 @@ export default async function ParcPage() {
                     </div>
                     <div>
                       {suivie ? (
-                        <Encres encres={(r?.encres ?? []) as unknown as Encre[]} seuil={m.seuilEncre} alerte />
+                        <Encres
+                          encres={(r?.encres ?? []) as unknown as Encre[]}
+                          seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
+                          stock={stocks?.get(c.id) ?? stockVide()}
+                        />
                       ) : (
                         <p className="text-sm text-gray-400">Pas de suivi d’encre</p>
                       )}
@@ -109,7 +118,9 @@ export default async function ParcPage() {
                         <p>Total <strong>{nombre(r?.totalStandard)}</strong></p>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500 md:text-right">{r ? depuis(r.date) : 'jamais lu'}</p>
+                    <p className="text-sm text-gray-500 md:text-right" title={r ? formaterDate(r.date) : undefined}>
+                      {r ? `Relevé ${depuis(r.date)}` : 'Jamais lu'}
+                    </p>
                   </Link>
                 )
               })}

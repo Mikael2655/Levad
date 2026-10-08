@@ -51,6 +51,7 @@ model ConnectClient {
   cle      String           @unique // nom simplifié (sans SARL/SAS, accents, majuscules) pour rapprocher les saisies
   creeLe   DateTime         @default(now())
   machines ConnectMachine[]
+  mouvements ConnectStockMouvement[]
 
   @@map("connect_client")
 }
@@ -68,7 +69,11 @@ model ConnectMachine {
   categorie   String          @default("mine") // mine = Canon vendue par LEVAD, autre = autre marque
   aVerifier   Boolean         @default(false)
   recette     String? // A, B ou C ; vide = automatique
-  seuilEncre  Int             @default(25)
+  seuilEncre  Int             @default(25) // ancien réglage unique (remplacé par un seuil par couleur)
+  seuilNoir    Int            @default(25)
+  seuilCyan    Int            @default(25)
+  seuilMagenta Int            @default(25)
+  seuilJaune   Int            @default(25)
   creeLe      DateTime        @default(now())
   releves     ConnectReleve[]
 
@@ -91,4 +96,30 @@ model ConnectReleve {
 
   @@index([machineId, date])
   @@map("connect_releve")
+}
+
+// Stock d'encre d'un client = somme des mouvements (envois +, changements de cartouche détectés -, corrections).
+model ConnectStockMouvement {
+  id        Int           @id @default(autoincrement())
+  clientId  Int
+  client    ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  couleur   String // noir | cyan | magenta | jaune
+  delta     Int
+  motif     String // envoi | correction | changement
+  note      String? // référence de la cartouche, remarque...
+  machineId Int?
+  date      DateTime      @default(now())
+
+  @@index([clientId, couleur])
+  @@map("connect_stock_mouvement")
+}
+
+// Un enregistrement par jour où le mail récapitulatif des alertes a été envoyé (évite les doublons).
+model ConnectAlerteEnvoi {
+  id         Int      @id @default(autoincrement())
+  jour       String   @unique // AAAA-MM-JJ, heure de Paris
+  envoyeLe   DateTime @default(now())
+  nbAlertes  Int
+
+  @@map("connect_alerte_envoi")
 }

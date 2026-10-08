@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { cleClient } from './normaliser'
+import { COULEURS, stockCourant } from './alertes'
 
 // Enregistre dans la base les relevés envoyés par le programme Levad Connect.
 // Une société est reconnue par son nom simplifié ; une machine par son numéro de série.
@@ -75,11 +76,41 @@ export async function enregistrerReleve(data: Json) {
         note: texte(e.note, 120),
       }))
 
+    const encres = simplifier(m.encres)
+
+    // Changement de cartouche : le niveau d'une couleur remonte à 100 % alors qu'il était plus bas
+    // au relevé précédent -> on retire une cartouche du stock du client (jamais en dessous de zéro).
+    if (machine.categorie === 'mine') {
+      const precedent = await prisma.connectReleve.findFirst({
+        where: { machineId: machine.id },
+        orderBy: { date: 'desc' },
+        select: { encres: true },
+      })
+      const avant = (precedent?.encres ?? []) as Json[]
+      for (const e of encres) {
+        if (e.pourcent !== 100 || !e.couleur || !(COULEURS as readonly string[]).includes(e.couleur)) continue
+        const p = avant.find((x: Json) => x.couleur === e.couleur)?.pourcent
+        if (typeof p !== 'number' || p >= 100) continue
+        if ((await stockCourant(machine.clientId, e.couleur)) > 0) {
+          await prisma.connectStockMouvement.create({
+            data: {
+              clientId: machine.clientId,
+              couleur: e.couleur,
+              delta: -1,
+              motif: 'changement',
+              note: `Cartouche changée détectée (niveau passé de ${p} % à 100 %)`,
+              machineId: machine.id,
+            },
+          })
+        }
+      }
+    }
+
     await prisma.connectReleve.create({
       data: {
         machineId: machine.id,
         compteurs,
-        encres: simplifier(m.encres),
+        encres,
         bacs: simplifier(m.bacs_recuperateurs),
         totalStandard: typeof m.compteur_total_standard === 'number' ? m.compteur_total_standard : null,
         versionSnmp: texte(m.version_snmp, 10),
