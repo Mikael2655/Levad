@@ -9,7 +9,8 @@ import { COULEURS, NOM_COULEUR, clientsEnAlerte, type ClientEtat } from '@/lib/c
 // Mail récapitulatif quotidien des alertes d'encre (17 h, heure de Paris), un seul par jour, aucun les jours sans alerte.
 // Appelé plusieurs fois par jour par .github/workflows/alertes-quotidiennes.yml (qui gère l'heure d'été / d'hiver) :
 // ce code n'envoie que si on est entre 17 h et 19 h à Paris et que le mail du jour n'est pas déjà parti.
-// Même protection que les autres tâches planifiées : en-tête « Authorization: Bearer CRON_SECRET ».
+// Protection : en-tête « Authorization: Bearer <secret> », où le secret est la variable ALERTES_SECRET
+// (secret propre à ce mail) ou, à défaut, CRON_SECRET comme les autres tâches planifiées.
 // Paramètres de test : ?force=1 (envoie sans tenir compte de l'heure ni du mail déjà envoyé),
 // ?apercu=1 (affiche le mail au lieu de l'envoyer).
 
@@ -67,8 +68,8 @@ function construireMail(clients: ClientEtat[], urlParc: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return NextResponse.json({ error: 'CRON_SECRET non configuré' }, { status: 503 })
+  const secret = process.env.ALERTES_SECRET || process.env.CRON_SECRET
+  if (!secret) return NextResponse.json({ error: 'ALERTES_SECRET non configuré' }, { status: 503 })
   if (req.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
