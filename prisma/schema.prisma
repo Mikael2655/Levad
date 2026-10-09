@@ -151,6 +151,12 @@ model ConnectPoste {
   derniereConnexion DateTime      @default(now())
   site              String        @default("Site principal") // les machines découvertes par cet ordinateur prennent ce site
   deconnexionSignaleLe DateTime? // mail de déconnexion déjà envoyé pour cet ordinateur
+  // santé du programme, envoyée avec chaque signal de vie (version 1.1 et suivantes)
+  demarreLe         DateTime?
+  derniereLectureOk DateTime?
+  derniereErreur    String?
+  derniereErreurLe  DateTime?
+  nbErreurs         Int           @default(0)
 
   @@unique([clientId, nom])
   @@map("connect_poste")

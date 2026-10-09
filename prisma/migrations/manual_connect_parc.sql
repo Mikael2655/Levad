@@ -143,3 +143,10 @@ INSERT INTO "connect_lien_evenement" ("clientId", "type", "detail", "date")
   SELECT c."id", 'note', NULL, c."lienEnvoyeLe" FROM "connect_client" c
   WHERE c."lienEnvoyeLe" IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM "connect_lien_evenement" e WHERE e."clientId" = c."id");
+
+-- v11 : santé du programme résident (diagnostic à distance)
+ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "demarreLe" TIMESTAMP(3);
+ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "derniereLectureOk" TIMESTAMP(3);
+ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "derniereErreur" TEXT;
+ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "derniereErreurLe" TIMESTAMP(3);
+ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "nbErreurs" INTEGER NOT NULL DEFAULT 0;

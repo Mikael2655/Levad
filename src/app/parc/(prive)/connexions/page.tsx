@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 const ORDRE = { deconnecte: 0, jamais: 1, inactif: 2, connecte: 3, manuel: 4 } as const
 
-type Ligne = { cle: string; clientId: number; client: string; poste: string | null; site: string | null; derniere: Date | null; statut: keyof typeof ORDRE }
+type Ligne = { erreur?: string | null; version?: string | null; cle: string; clientId: number; client: string; poste: string | null; site: string | null; derniere: Date | null; statut: keyof typeof ORDRE }
 
 export default async function ConnexionsPage() {
   let clients
@@ -27,6 +27,8 @@ export default async function ConnexionsPage() {
       site: p.site,
       derniere: p.derniereConnexion,
       statut: statutConnexion(p.derniereConnexion, c.seuilDeconnexionJours),
+      version: p.versionAgent,
+      erreur: p.derniereErreur && p.derniereErreurLe && Date.now() - p.derniereErreurLe.getTime() < 24 * 3600 * 1000 ? `${p.derniereErreur} (${formaterDate(p.derniereErreurLe)})` : null,
     }))
   })
   lignes.sort((a, b) => ORDRE[a.statut] - ORDRE[b.statut] || a.client.localeCompare(b.client) || (a.site ?? '').localeCompare(b.site ?? ''))
@@ -57,6 +59,8 @@ export default async function ConnexionsPage() {
             <div>{badge(l.statut)}</div>
             <div className="text-sm text-gray-600">
               {l.derniere ? <>Dernier signal : {formaterDate(l.derniere)} ({depuis(l.derniere)})</> : l.statut === 'manuel' ? '—' : 'Aucun signal reçu'}
+              {l.version && <span className="text-gray-400"> · v{l.version}</span>}
+              {l.erreur && <span className="mt-0.5 block text-xs text-red-600">Erreur du programme : {l.erreur}</span>}
             </div>
           </div>
         ))}
