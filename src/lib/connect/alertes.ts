@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db'
+import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
 
 // Alertes d'encre : un client est en alerte pour une couleur tant que le niveau est SOUS LE SEUIL
 // et qu'il n'a PAS de cartouche de cette couleur en stock. Ne concerne que « mes machines ».
@@ -17,20 +18,30 @@ export function stockVide(): Stock {
   return { noir: 0, cyan: 0, magenta: 0, jaune: 0 }
 }
 
-/** Stock de chaque client = somme de ses mouvements (jamais en dessous de zéro). */
-export async function stocksParClient(): Promise<Map<number, Stock>> {
-  const lignes = await prisma.connectStockMouvement.groupBy({ by: ['clientId', 'couleur'], _sum: { delta: true } })
-  const res = new Map<number, Stock>()
+const cleStock = (clientId: number, groupe: string) => `${clientId}#${groupe}`
+
+/**
+ * Stock par groupe (client + site + gamme compatible) = somme des mouvements (jamais en dessous de zéro).
+ * Les anciens mouvements sans groupe (stock « global » d'avant les gammes) ne sont plus comptés.
+ */
+export async function stocksParGroupe(): Promise<Map<string, Stock>> {
+  const lignes = await prisma.connectStockMouvement.groupBy({ by: ['clientId', 'groupe', 'couleur'], _sum: { delta: true }, where: { groupe: { not: '' } } })
+  const res = new Map<string, Stock>()
   for (const l of lignes) {
-    const s = res.get(l.clientId) ?? stockVide()
+    const k = cleStock(l.clientId, l.groupe)
+    const s = res.get(k) ?? stockVide()
     if ((COULEURS as readonly string[]).includes(l.couleur)) s[l.couleur as Couleur] = Math.max(0, l._sum.delta ?? 0)
-    res.set(l.clientId, s)
+    res.set(k, s)
   }
   return res
 }
 
-export async function stockCourant(clientId: number, couleur: string): Promise<number> {
-  const r = await prisma.connectStockMouvement.aggregate({ where: { clientId, couleur }, _sum: { delta: true } })
+export function stockDuGroupe(stocks: Map<string, Stock>, clientId: number, groupe: string): Stock {
+  return stocks.get(cleStock(clientId, groupe)) ?? stockVide()
+}
+
+export async function stockCourant(clientId: number, groupe: string, couleur: string): Promise<number> {
+  const r = await prisma.connectStockMouvement.aggregate({ where: { clientId, groupe, couleur }, _sum: { delta: true } })
   return r._sum.delta ?? 0
 }
 
@@ -48,11 +59,14 @@ export type MachineEtat = {
   id: number
   nom: string
   site: string
+  groupe: string // clé du stock partagé (site + gamme)
+  gamme: string | null // code de la gamme (ex. « C-EXV 49 »), null si non reconnue
+  stock: Stock // stock de son groupe
   dernierReleve: Date | null
   couleurs: EtatCouleur[]
   enAlerte: boolean
 }
-export type ClientEtat = { id: number; nom: string; stock: Stock; machines: MachineEtat[]; nbAlertes: number }
+export type ClientEtat = { id: number; nom: string; machines: MachineEtat[]; nbAlertes: number }
 
 /** L'état d'encre de toutes les machines suivies (Canon LEVAD), client par client. */
 export async function etatDuParc(): Promise<ClientEtat[]> {
@@ -68,11 +82,12 @@ export async function etatDuParc(): Promise<ClientEtat[]> {
         },
       },
     }),
-    stocksParClient(),
+    stocksParGroupe(),
   ])
   return clients.map((c) => {
-    const stock = stocks.get(c.id) ?? stockVide()
     const machines = c.machines.map((m) => {
+      const groupe = cleGroupe(m)
+      const stock = stockDuGroupe(stocks, c.id, groupe)
       const r = m.releves[0]
       const encres = ((r?.encres ?? []) as unknown as EncreJson[]) ?? []
       const couleurs = COULEURS.map((couleur): EtatCouleur => {
@@ -85,12 +100,15 @@ export async function etatDuParc(): Promise<ClientEtat[]> {
         id: m.id,
         nom: m.nomAffiche || m.modele || 'Machine inconnue',
         site: m.site,
+        groupe,
+        gamme: gammeDe(m)?.code ?? null,
+        stock,
         dernierReleve: r?.date ?? null,
         couleurs,
         enAlerte: couleurs.some((x) => x.alerte),
       }
     })
-    return { id: c.id, nom: c.nom, stock, machines, nbAlertes: machines.filter((m) => m.enAlerte).length }
+    return { id: c.id, nom: c.nom, machines, nbAlertes: machines.filter((m) => m.enAlerte).length }
   })
 }
 

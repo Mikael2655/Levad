@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
+import { cleGroupe, gammeParCode } from '@/lib/connect/gammes'
 import { assurerCode, regenererCode, urlLien } from '@/lib/connect/agent'
 import { envoyerMail } from '@/lib/connect/mail'
 
@@ -21,9 +22,13 @@ export async function enregistrerReglages(formData: FormData) {
   const nomAffiche = String(formData.get('nomAffiche') ?? '').trim().slice(0, 120) || null
   const site = String(formData.get('site') ?? '').trim().slice(0, 120) || 'Site principal'
 
+  const gammeChoisie = String(formData.get('gamme') ?? '')
+  const avant = await prisma.connectMachine.findUnique({ where: { id } })
+  if (!avant) return
   await prisma.connectMachine.update({
     where: { id },
     data: {
+      gamme: gammeParCode(gammeChoisie) ? gammeChoisie : null,
       recette: ['A', 'B', 'C'].includes(recette) ? recette : null,
       categorie,
       nomAffiche,
@@ -36,8 +41,22 @@ export async function enregistrerReglages(formData: FormData) {
       ...(clientId ? { clientId } : {}),
     },
   })
-  revalidatePath('/parc')
-  revalidatePath(`/parc/machine/${id}`)
+  // Si la machine change de site ou de gamme, son stock la suit (sauf si d'autres machines utilisent encore l'ancien groupe).
+  const apres = await prisma.connectMachine.findUnique({ where: { id } })
+  if (apres) {
+    const ancienne = cleGroupe(avant)
+    const nouvelle = cleGroupe(apres)
+    if (ancienne !== nouvelle || avant.clientId !== apres.clientId) {
+      const restantes = await prisma.connectMachine.findMany({ where: { clientId: avant.clientId, id: { not: id } } })
+      if (!restantes.some((m) => cleGroupe(m) === ancienne)) {
+        await prisma.connectStockMouvement.updateMany({
+          where: { clientId: avant.clientId, groupe: ancienne },
+          data: { groupe: nouvelle, clientId: apres.clientId },
+        })
+      }
+    }
+  }
+  revalidatePath('/parc', 'layout')
 }
 
 export async function renommerClient(formData: FormData) {
@@ -66,7 +85,13 @@ export async function appliquerSeuilsClient(formData: FormData) {
   revalidatePath('/parc', 'layout')
 }
 
-// Saisie d'un envoi de cartouches à un client : plusieurs couleurs d'un coup (une quantité par couleur, 0 = rien).
+// Les groupes de stock d'un client = un par (site + gamme compatible) ; une machine à la gamme inconnue a le sien.
+async function groupesValides(clientId: number): Promise<Set<string>> {
+  const machines = await prisma.connectMachine.findMany({ where: { clientId } })
+  return new Set(machines.map((m) => cleGroupe(m)))
+}
+
+// Saisie d'un envoi de cartouches : plusieurs groupes et plusieurs couleurs d'un coup (une quantité par case, 0 = rien).
 export async function ajouterEnvoi(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
   const clientId = Number(formData.get('clientId'))
@@ -74,25 +99,35 @@ export async function ajouterEnvoi(formData: FormData): Promise<string | void> {
   const dateSaisie = String(formData.get('date') ?? '')
   if (!clientId) return '!Client inconnu'
   const date = dateSaisie && !Number.isNaN(Date.parse(dateSaisie)) ? new Date(dateSaisie) : new Date()
-  const data = COULEURS.map((couleur) => ({ couleur, quantite: Math.floor(Number(formData.get(`qte_${couleur}`)) || 0) }))
-    .filter((l) => l.quantite >= 1)
-    .map((l) => ({ clientId, couleur: l.couleur, delta: Math.min(l.quantite, 999), motif: 'envoi', note, date }))
-  if (data.length) await prisma.connectStockMouvement.createMany({ data })
+  const valides = await groupesValides(clientId)
+  const data: { clientId: number; groupe: string; couleur: string; delta: number; motif: string; note: string | null; date: Date }[] = []
+  for (let i = 0; i < 100; i++) {
+    const groupe = formData.get(`groupe_${i}`)
+    if (groupe === null) break
+    if (!valides.has(String(groupe))) continue
+    for (const couleur of COULEURS) {
+      const q = Math.floor(Number(formData.get(`qte_${i}_${couleur}`)) || 0)
+      if (q >= 1) data.push({ clientId, groupe: String(groupe), couleur, delta: Math.min(q, 999), motif: 'envoi', note, date })
+    }
+  }
+  if (!data.length) return '!Aucune quantité saisie'
+  await prisma.connectStockMouvement.createMany({ data })
   revalidatePath('/parc', 'layout')
-  return data.length ? `Envoi enregistré (${data.map((l) => `${l.delta} ${l.couleur}`).join(', ')})` : '!Aucune quantité saisie'
+  return `Envoi enregistré (${data.reduce((n, l) => n + l.delta, 0)} cartouche${data.reduce((n, l) => n + l.delta, 0) > 1 ? 's' : ''})`
 }
 
-// Correction manuelle du stock : on indique la quantité réelle, le programme enregistre la différence.
+// Correction manuelle du stock d'un groupe : on indique la quantité réelle, le programme enregistre la différence.
 export async function corrigerStock(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
   const clientId = Number(formData.get('clientId'))
+  const groupe = String(formData.get('groupe') ?? '')
   const couleur = String(formData.get('couleur') ?? '')
   const voulu = Math.max(0, Math.floor(Number(formData.get('quantite'))))
-  if (!clientId || !(COULEURS as readonly string[]).includes(couleur) || Number.isNaN(voulu)) return '!Valeur invalide'
-  const actuel = Math.max(0, await stockCourant(clientId, couleur))
+  if (!clientId || !(COULEURS as readonly string[]).includes(couleur) || Number.isNaN(voulu) || !(await groupesValides(clientId)).has(groupe)) return '!Valeur invalide'
+  const actuel = Math.max(0, await stockCourant(clientId, groupe, couleur))
   if (voulu === actuel) return 'Déjà à cette quantité : rien à changer'
   await prisma.connectStockMouvement.create({
-    data: { clientId, couleur, delta: voulu - actuel, motif: 'correction', note: `Corrigé de ${actuel} à ${voulu}` },
+    data: { clientId, groupe, couleur, delta: voulu - actuel, motif: 'correction', note: `Corrigé de ${actuel} à ${voulu}` },
   })
   revalidatePath('/parc', 'layout')
   return `Stock corrigé : ${voulu}`

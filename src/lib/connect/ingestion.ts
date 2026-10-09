@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db'
 import { cleClient } from './normaliser'
 import { COULEURS, stockCourant } from './alertes'
+import { cleGroupe } from './gammes'
 
 // Enregistre dans la base les relevés envoyés par le programme Levad Connect.
 // Une société est reconnue par son nom simplifié ; une machine par son numéro de série.
@@ -81,7 +82,8 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
 
     // Changement de cartouche : le niveau d'une couleur remonte à 100 % alors qu'il était plus bas
     // au relevé précédent -> on retire une cartouche du stock du client (jamais en dessous de zéro).
-    if (machine.categorie === 'mine') {
+    if (machine.categorie === 'mine' && !machine.horsContrat) {
+      const groupe = cleGroupe(machine)
       const precedent = await prisma.connectReleve.findFirst({
         where: { machineId: machine.id },
         orderBy: { date: 'desc' },
@@ -92,10 +94,11 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
         if (e.pourcent !== 100 || !e.couleur || !(COULEURS as readonly string[]).includes(e.couleur)) continue
         const p = avant.find((x: Json) => x.couleur === e.couleur)?.pourcent
         if (typeof p !== 'number' || p >= 100) continue
-        if ((await stockCourant(machine.clientId, e.couleur)) > 0) {
+        if ((await stockCourant(machine.clientId, groupe, e.couleur)) > 0) {
           await prisma.connectStockMouvement.create({
             data: {
               clientId: machine.clientId,
+              groupe,
               couleur: e.couleur,
               delta: -1,
               motif: 'changement',

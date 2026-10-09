@@ -77,6 +77,7 @@ model ConnectMachine {
   categorie   String          @default("mine") // mine = Canon vendue par LEVAD, autre = autre marque
   horsContrat Boolean         @default(false)
   site        String          @default("Site principal")
+  gamme       String?
   aVerifier   Boolean         @default(false)
   recette     String? // A, B ou C ; vide = automatique
   seuilEncre  Int             @default(25) // ancien réglage unique (remplacé par un seuil par couleur)
@@ -118,6 +119,7 @@ model ConnectStockMouvement {
   motif     String // envoi | correction | changement
   note      String? // référence de la cartouche, remarque...
   machineId Int?
+  groupe    String        @default("") // « site|gamme » : stock partagé par les machines compatibles d'un même site
   date      DateTime      @default(now())
 
   @@index([clientId, couleur])
