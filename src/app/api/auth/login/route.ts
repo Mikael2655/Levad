@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { SESSION_COOKIE, checkPassword, createToken, sessionCookieOptions } from '@/lib/session'
+import { SESSION_COOKIE, checkCredentials, createToken, sessionCookieOptions } from '@/lib/session'
 
 // Limite les essais par adresse IP (par instance serverless : frein simple contre l'essai en boucle).
 const failures = new Map<string, { count: number; first: number }>()
@@ -22,15 +22,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Trop d\'essais, réessayez dans 15 minutes' }, { status: 429 })
   }
 
+  let username = ''
   let password = ''
   try {
-    password = String((await req.json()).password ?? '')
+    const body = await req.json()
+    username = String(body.username ?? '')
+    password = String(body.password ?? '')
   } catch { /* corps invalide */ }
 
-  if (!(await checkPassword(password))) {
+  if (!(await checkCredentials(username, password))) {
     failures.set(ip, { count: (current?.count ?? 0) + 1, first: current?.first ?? now })
     await new Promise(r => setTimeout(r, 800))
-    return NextResponse.json({ error: 'Mot de passe incorrect' }, { status: 401 })
+    return NextResponse.json({ error: 'Identifiant ou mot de passe incorrect' }, { status: 401 })
   }
 
   failures.delete(ip)

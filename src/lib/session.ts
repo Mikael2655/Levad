@@ -20,11 +20,21 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0
 }
 
-export async function checkPassword(input: string): Promise<boolean> {
-  const expected = process.env.APP_PASSWORD
-  if (!expected) return false
-  const [a, b] = await Promise.all([hmac(`pw.${input}`), hmac(`pw.${expected}`)])
-  return safeEqual(a, b)
+// Identifiant : variable APP_USERNAME, "levad" par défaut. Les deux comparaisons sont toujours faites
+// (pas de sortie anticipée) pour ne pas révéler lequel des deux champs est faux.
+export async function checkCredentials(username: string, password: string): Promise<boolean> {
+  const expectedPassword = process.env.APP_PASSWORD
+  if (!expectedPassword) return false
+  const expectedUser = (process.env.APP_USERNAME || 'levad').trim().toLowerCase()
+  const [u1, u2, p1, p2] = await Promise.all([
+    hmac(`user.${username.trim().toLowerCase()}`),
+    hmac(`user.${expectedUser}`),
+    hmac(`pw.${password}`),
+    hmac(`pw.${expectedPassword}`),
+  ])
+  const userOk = safeEqual(u1, u2)
+  const passOk = safeEqual(p1, p2)
+  return userOk && passOk
 }
 
 // Jeton : "<début>.<dernière activité>.<signature>"
