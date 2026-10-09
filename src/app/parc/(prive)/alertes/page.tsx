@@ -22,7 +22,10 @@ function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
           <p className="mt-1 text-sm text-gray-500">Pas d&apos;alerte sur cette machine</p>
         )}
       </div>
-      <Encres encres={encres} seuils={seuils} stock={client.stock} />
+      <div>
+        <Encres encres={encres} seuils={seuils} stock={m.stock} />
+        <p className="mt-1 text-xs text-gray-500">Stock : {COULEURS.map((k) => `${NOM_COULEUR[k]} ${m.stock[k]}`).join(' · ')}</p>
+      </div>
       <p className="text-sm text-gray-500 md:text-right" title={m.dernierReleve ? formaterDate(m.dernierReleve) : undefined}>
         {m.dernierReleve ? `Relevé ${depuis(m.dernierReleve)}` : 'Jamais lu'}
       </p>
@@ -62,9 +65,6 @@ export default async function AlertesPage() {
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-lg font-bold">{c.nom}</h2>
                   <div className="flex flex-wrap items-center gap-3 text-sm">
-                    <span className="text-gray-500">
-                      Stock : {COULEURS.map((k) => `${NOM_COULEUR[k]} ${c.stock[k]}`).join(' · ')}
-                    </span>
                     <Link href={`/parc/stocks/${c.id}`} className="rounded-lg bg-gray-900 px-3 py-1.5 font-semibold text-white">
                       Saisir un envoi
                     </Link>

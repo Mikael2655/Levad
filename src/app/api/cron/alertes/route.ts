@@ -53,13 +53,11 @@ function construireMail(clients: ClientEtat[], urlParc: string) {
             })
             .join(' · ')
           return `<tr>
-            <td style="padding:6px 10px;border-top:1px solid #e5e7eb;${m.enAlerte ? 'font-weight:bold' : 'color:#6b7280'}">${esc(m.nom)}</td>
-            <td style="padding:6px 10px;border-top:1px solid #e5e7eb">${niveaux}</td></tr>`
+            <td style="padding:6px 10px;border-top:1px solid #e5e7eb;${m.enAlerte ? 'font-weight:bold' : 'color:#6b7280'}">${esc(m.nom)} <span style="font-weight:normal;color:#6b7280">· ${esc(m.site)}</span></td>
+            <td style="padding:6px 10px;border-top:1px solid #e5e7eb">${niveaux}<br><span style="font-size:11px;color:#6b7280">Stock : ${COULEURS.map((k) => `${NOM_COULEUR[k]} ${m.stock[k]}`).join(' · ')}</span></td></tr>`
         })
         .join('')
-      const stock = COULEURS.map((k) => `${NOM_COULEUR[k]} ${c.stock[k]}`).join(' · ')
       return `<h3 style="margin:22px 0 4px">${esc(c.nom)}</h3>
-        <p style="margin:0 0 6px;font-size:12px;color:#6b7280">Stock de cartouches chez le client : ${stock}</p>
         <table style="border-collapse:collapse;width:100%;font-size:13px">${lignes}</table>`
     })
     .join('')

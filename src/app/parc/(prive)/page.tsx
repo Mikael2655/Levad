@@ -5,7 +5,8 @@ import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, depuis, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
 import { statutConnexion } from '@/lib/connect/agent'
 import { preparerLien } from './actions'
-import { clientsEnAlerte, NOM_COULEUR, stocksParClient, stockVide, seuilDe, COULEURS } from '@/lib/connect/alertes'
+import { clientsEnAlerte, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
+import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,7 @@ export default async function ParcPage() {
   let clients
   let stocks, enAlerte
   try {
-    ;[stocks, enAlerte] = await Promise.all([stocksParClient(), clientsEnAlerte()])
+    ;[stocks, enAlerte] = await Promise.all([stocksParGroupe(), clientsEnAlerte()])
     clients = await prisma.connectClient.findMany({
       where: { machines: { some: {} } },
       orderBy: { nom: 'asc' },
@@ -45,19 +46,15 @@ export default async function ParcPage() {
     c.modeReleve === 'agent' && c.postes[0] && statutConnexion(c.postes[0].derniereConnexion, c.seuilDeconnexionJours) === 'deconnecte'
 
   const machines = clients.flatMap((c) => c.machines.map((m) => ({ ...m, client: c })))
-  const aConfigurer = machines.filter(
-    (m) => m.categorie === 'mine' && m.releves[0] && calculer((m.releves[0].compteurs ?? {}) as unknown as Compteurs).aConfigurer
-  )
 
   return (
     <>
       <h1 className="text-2xl font-bold">Synthèse</h1>
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      <div className="mt-5 grid grid-cols-3 gap-3 sm:gap-4">
         {[
           ['Clients', clients.length],
           ['Machines', machines.length],
           ['Clients en alerte', enAlerte.length],
-          ['Compteurs à configurer', aConfigurer.length],
         ].map(([titre, valeur]) => {
           const carte = (
             <div className={`rounded-xl border bg-white p-5 ${titre === 'Clients en alerte' && Number(valeur) > 0 ? 'border-red-300' : ''}`}>
@@ -96,8 +93,7 @@ export default async function ParcPage() {
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <Link href={`/parc/stocks/${c.id}`} className="text-gray-600 hover:text-gray-900" title="Voir et modifier le stock de ce client">
-                  Stock : {COULEURS.map((k) => `${NOM_COULEUR[k]} ${(stocks?.get(c.id) ?? stockVide())[k]}`).join(' · ')}{' '}
-                  <span className="underline">Gérer</span>
+                  <span className="underline">Stock</span>
                 </Link>
                 <form action={preparerLien}>
                   <input type="hidden" name="id" value={c.id} />
@@ -133,17 +129,22 @@ export default async function ParcPage() {
                       </p>
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {!suivie && <Badge>Autre marque</Badge>}
-                        {m.horsContrat && <Badge ton="gris">Hors contrat</Badge>}
+                        {encreSuivie && !gammeDe(m) && <Badge ton="orange">Gamme d’encre à choisir</Badge>}
                         {m.aVerifier && <Badge ton="orange">À vérifier</Badge>}
                       </div>
                     </div>
                     <div>
                       {encreSuivie ? (
+                        <>
                         <Encres
                           encres={(r?.encres ?? []) as unknown as Encre[]}
                           seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
-                          stock={stocks?.get(c.id) ?? stockVide()}
+                          stock={stockDuGroupe(stocks!, c.id, cleGroupe(m))}
                         />
+                        <p className="mt-1 text-xs text-gray-500">
+                          Stock : {COULEURS.map((k) => `${NOM_COULEUR[k]} ${stockDuGroupe(stocks!, c.id, cleGroupe(m))[k]}`).join(' · ')}
+                        </p>
+                        </>
                       ) : (
                         <p className="text-sm text-gray-400">{m.horsContrat ? 'Hors contrat : pas d’alerte d’encre' : 'Pas de suivi d’encre'}</p>
                       )}

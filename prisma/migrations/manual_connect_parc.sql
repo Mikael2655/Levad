@@ -114,3 +114,7 @@ ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "horsContrat" BOOLEAN NOT
 
 -- v5 : site d'installation de la machine
 ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "site" TEXT NOT NULL DEFAULT 'Site principal';
+
+-- v6 : gammes d'encre (cartouches compatibles) et stock par groupe (site + gamme)
+ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "gamme" TEXT;
+ALTER TABLE "connect_stock_mouvement" ADD COLUMN IF NOT EXISTS "groupe" TEXT NOT NULL DEFAULT '';

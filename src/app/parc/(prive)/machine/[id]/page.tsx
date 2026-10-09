@@ -5,7 +5,8 @@ import { prisma } from '@/lib/db'
 import { RECETTES, calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
 import { basculerHorsContrat, demanderLecture, enregistrerReglages } from '../../actions'
-import { COULEURS, NOM_COULEUR, seuilDe, stocksParClient, stockVide } from '@/lib/connect/alertes'
+import { COULEURS, NOM_COULEUR, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
+import { GAMMES, cleGroupe, gammeAuto, gammeDe } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +19,9 @@ export default async function MachinePage({ params }: { params: { id: string } }
   const clients = await prisma.connectClient.findMany({ orderBy: { nom: 'asc' } })
   const commandeEnCours = await prisma.connectCommande.findFirst({ where: { clientId: machine.clientId, faiteLe: null } })
   const aUnPoste = (await prisma.connectPoste.count({ where: { clientId: machine.clientId } })) > 0
-  const stock = (await stocksParClient()).get(machine.clientId) ?? stockVide()
+  const stock = stockDuGroupe(await stocksParGroupe(), machine.clientId, cleGroupe(machine))
+  const gamme = gammeDe(machine)
+  const auto = gammeAuto(machine.modele)
   const seuils = Object.fromEntries(COULEURS.map((c) => [c, seuilDe(machine, c)]))
 
   const dernier = machine.releves[0]
@@ -164,6 +167,18 @@ export default async function MachinePage({ params }: { params: { id: string } }
           <label className="text-sm font-medium text-gray-700">
             Site d&apos;installation
             <input name="site" defaultValue={machine.site} placeholder="Site principal" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+          </label>
+          <label className="text-sm font-medium text-gray-700">
+            Gamme d&apos;encre (cartouches compatibles)
+            <select name="gamme" defaultValue={machine.gamme ?? ''} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+              <option value="">{auto ? `Automatique : ${auto.code} (${auto.modeles})` : 'Automatique : modèle non reconnu'}</option>
+              {GAMMES.map((g) => (
+                <option key={g.code} value={g.code}>{g.code} — {g.modeles}</option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs font-normal text-gray-500">
+              {gamme ? `Partage son stock avec les machines de même gamme du site « ${machine.site} ».` : 'Gamme non reconnue : cette machine a son propre stock tant que vous ne choisissez pas sa gamme.'}
+            </span>
           </label>
           <label className="text-sm font-medium text-gray-700">
             Client
