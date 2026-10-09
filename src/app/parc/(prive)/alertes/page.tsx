@@ -10,7 +10,7 @@ function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
   return (
     <Link href={`/parc/machine/${m.id}`} className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.2fr_2fr_1fr]">
       <div>
-        <p className="font-semibold">{m.nom}</p>
+        <p className="font-semibold">{m.nom}<span className="font-normal text-gray-500"> · {m.site}</span></p>
         {m.enAlerte ? (
           <p className="mt-1 text-sm font-semibold text-red-600">
             {m.couleurs

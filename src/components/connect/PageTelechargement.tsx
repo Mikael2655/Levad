@@ -45,11 +45,10 @@ export function PageTelechargement({
           <a
             href={lienWindows}
             download
-            className="rounded-xl border-2 p-6 text-center transition hover:shadow-md"
-            style={{ borderColor: VERT }}
+            className="block text-center"
           >
             <span
-              className="inline-block rounded-lg px-5 py-3 font-semibold text-white"
+              className="block rounded-lg px-5 py-4 text-lg font-semibold text-white transition hover:opacity-90"
               style={{ backgroundColor: VERT }}
             >
               Télécharger pour Windows
@@ -58,11 +57,10 @@ export function PageTelechargement({
           <a
             href={lienMac}
             download
-            className="rounded-xl border-2 p-6 text-center transition hover:shadow-md"
-            style={{ borderColor: VERT }}
+            className="block text-center"
           >
             <span
-              className="inline-block rounded-lg px-5 py-3 font-semibold text-white"
+              className="block rounded-lg px-5 py-4 text-lg font-semibold text-white transition hover:opacity-90"
               style={{ backgroundColor: VERT }}
             >
               Télécharger pour Mac

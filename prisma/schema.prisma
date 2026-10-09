@@ -76,6 +76,7 @@ model ConnectMachine {
   nomAffiche  String?
   categorie   String          @default("mine") // mine = Canon vendue par LEVAD, autre = autre marque
   horsContrat Boolean         @default(false)
+  site        String          @default("Site principal")
   aVerifier   Boolean         @default(false)
   recette     String? // A, B ou C ; vide = automatique
   seuilEncre  Int             @default(25) // ancien réglage unique (remplacé par un seuil par couleur)

@@ -19,6 +19,7 @@ export async function enregistrerReglages(formData: FormData) {
   const categorie = String(formData.get('categorie') ?? 'mine') === 'autre' ? 'autre' : 'mine'
   const clientId = Number(formData.get('clientId'))
   const nomAffiche = String(formData.get('nomAffiche') ?? '').trim().slice(0, 120) || null
+  const site = String(formData.get('site') ?? '').trim().slice(0, 120) || 'Site principal'
 
   await prisma.connectMachine.update({
     where: { id },
@@ -26,6 +27,7 @@ export async function enregistrerReglages(formData: FormData) {
       recette: ['A', 'B', 'C'].includes(recette) ? recette : null,
       categorie,
       nomAffiche,
+      site,
       seuilNoir: seuil(formData.get('seuilNoir')),
       seuilCyan: seuil(formData.get('seuilCyan')),
       seuilMagenta: seuil(formData.get('seuilMagenta')),
@@ -65,34 +67,35 @@ export async function appliquerSeuilsClient(formData: FormData) {
 }
 
 // Saisie d'un envoi de cartouches à un client : plusieurs couleurs d'un coup (une quantité par couleur, 0 = rien).
-export async function ajouterEnvoi(formData: FormData) {
+export async function ajouterEnvoi(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
   const clientId = Number(formData.get('clientId'))
   const note = String(formData.get('note') ?? '').trim().slice(0, 200) || null
   const dateSaisie = String(formData.get('date') ?? '')
-  if (!clientId) return
+  if (!clientId) return '!Client inconnu'
   const date = dateSaisie && !Number.isNaN(Date.parse(dateSaisie)) ? new Date(dateSaisie) : new Date()
   const data = COULEURS.map((couleur) => ({ couleur, quantite: Math.floor(Number(formData.get(`qte_${couleur}`)) || 0) }))
     .filter((l) => l.quantite >= 1)
     .map((l) => ({ clientId, couleur: l.couleur, delta: Math.min(l.quantite, 999), motif: 'envoi', note, date }))
   if (data.length) await prisma.connectStockMouvement.createMany({ data })
   revalidatePath('/parc', 'layout')
-  redirect(`/parc/stocks/${clientId}${data.length ? '?ok=1' : ''}`)
+  return data.length ? `Envoi enregistré (${data.map((l) => `${l.delta} ${l.couleur}`).join(', ')})` : '!Aucune quantité saisie'
 }
 
 // Correction manuelle du stock : on indique la quantité réelle, le programme enregistre la différence.
-export async function corrigerStock(formData: FormData) {
+export async function corrigerStock(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
   const clientId = Number(formData.get('clientId'))
   const couleur = String(formData.get('couleur') ?? '')
   const voulu = Math.max(0, Math.floor(Number(formData.get('quantite'))))
-  if (!clientId || !(COULEURS as readonly string[]).includes(couleur) || Number.isNaN(voulu)) return
+  if (!clientId || !(COULEURS as readonly string[]).includes(couleur) || Number.isNaN(voulu)) return '!Valeur invalide'
   const actuel = Math.max(0, await stockCourant(clientId, couleur))
-  if (voulu === actuel) return
+  if (voulu === actuel) return 'Déjà à cette quantité : rien à changer'
   await prisma.connectStockMouvement.create({
     data: { clientId, couleur, delta: voulu - actuel, motif: 'correction', note: `Corrigé de ${actuel} à ${voulu}` },
   })
   revalidatePath('/parc', 'layout')
+  return `Stock corrigé : ${voulu}`
 }
 
 // ---- Programme résident : lien personnel du client ------------------------------------------
@@ -124,13 +127,13 @@ export async function majClient(formData: FormData) {
 }
 
 // Envoie le lien d'installation au client par mail, en un clic.
-export async function envoyerLien(formData: FormData): Promise<void> {
+export async function envoyerLien(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
   const id = Number(formData.get('id'))
   const email = String(formData.get('email') ?? '').trim()
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return '!Adresse mail invalide'
   const client = await prisma.connectClient.findUnique({ where: { id } })
-  if (!client) return
+  if (!client) return '!Client introuvable'
   const lien = urlLien(await assurerCode(id))
   await envoyerMail({
     to: email,
@@ -141,18 +144,15 @@ export async function envoyerLien(formData: FormData): Promise<void> {
   <p>Pour suivre automatiquement les compteurs et les niveaux de toner de vos copieurs, nous vous proposons d'installer
   <strong>Levad Connect</strong>, un petit programme à installer une seule fois. Il fonctionne ensuite tout seul, en arrière-plan.</p>
   <p style="margin:24px 0"><a href="${lien}" style="background:#8c9e8b;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">Installer Levad Connect</a></p>
-  <ol>
-    <li>Cliquez sur le bouton ci-dessus, puis téléchargez le programme.</li>
-    <li>Ouvrez-le (si Windows affiche un message de protection : « Informations complémentaires », puis « Exécuter quand même »).</li>
-    <li>Cliquez sur « Installer ». C'est terminé.</li>
-  </ol>
   <p>Le programme ne fait que lire vos copieurs, ne modifie aucun réglage, et peut être désinstallé à tout moment.
   Ce lien est personnel : en cas de changement d'ordinateur, il suffit de le réutiliser.</p>
-  <p>Cordialement,<br>LEVAD</p>
+  <p style="margin-bottom:6px">Cordialement,</p>
+  <img src="${process.env.PARC_URL || 'https://connect.levad.fr'}/signature-levad.png" width="260" alt="LEVAD - www.levad.fr - 01 70 72 19 40" style="display:block;border:0">
 </body></html>`,
   })
   await prisma.connectClient.update({ where: { id }, data: { email } })
   revalidatePath(`/parc/client/${id}`)
+  return `Lien envoyé à ${email}`
 }
 
 // ---- Lecture à la demande (bouton « Actualiser ») -----------------------------------------------
