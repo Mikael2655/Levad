@@ -223,8 +223,8 @@ export async function envoyerLien(formData: FormData): Promise<string | void> {
   <img src="${process.env.PARC_URL || 'https://connect.levad.fr'}/signature-levad.png" width="260" alt="LEVAD - www.levad.fr - 01 70 72 19 40" style="display:block;border:0">
 </body></html>`,
   })
-  await prisma.connectClient.update({ where: { id }, data: { email } })
-  revalidatePath(`/parc/client/${id}`)
+  await prisma.connectClient.update({ where: { id }, data: { email, lienEnvoyeLe: new Date() } })
+  revalidatePath('/parc', 'layout')
   return `Lien envoyé à ${email}`
 }
 
@@ -276,4 +276,55 @@ export async function creerClient(formData: FormData): Promise<string | void> {
   await assurerCode(client.id)
   revalidatePath('/parc', 'layout')
   redirect(`/parc/client/${client.id}#lien`)
+}
+
+// ---- Ordinateurs (un par site chez le client) ---------------------------------------------------
+
+// Définit le site d'un ordinateur : toutes les machines qu'il a lues passent à ce site (leur stock les suit),
+// et les machines qu'il découvrira plus tard le prendront aussi.
+export async function definirSitePoste(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const site = String(formData.get('site') ?? '').trim().slice(0, 120) || 'Site principal'
+  const poste = await prisma.connectPoste.findUnique({ where: { id } })
+  if (!poste) return '!Ordinateur introuvable'
+  await prisma.connectPoste.update({ where: { id }, data: { site } })
+  const lues = await prisma.connectReleve.findMany({
+    where: { pc: poste.nom, machine: { clientId: poste.clientId } },
+    distinct: ['machineId'],
+    select: { machineId: true },
+  })
+  for (const { machineId } of lues) {
+    const avant = await prisma.connectMachine.findUnique({ where: { id: machineId } })
+    if (!avant || avant.site === site) continue
+    const apres = await prisma.connectMachine.update({ where: { id: machineId }, data: { site } })
+    const ancienne = cleGroupe(avant)
+    if (ancienne !== cleGroupe(apres)) {
+      const restantes = await prisma.connectMachine.findMany({ where: { clientId: avant.clientId, id: { not: machineId } } })
+      if (!restantes.some((m) => cleGroupe(m) === ancienne)) {
+        await prisma.connectStockMouvement.updateMany({ where: { clientId: avant.clientId, groupe: ancienne }, data: { groupe: cleGroupe(apres) } })
+      }
+    }
+  }
+  revalidatePath('/parc', 'layout')
+  return `Site enregistré : ${site} (${lues.length} machine${lues.length > 1 ? 's' : ''} mise${lues.length > 1 ? 's' : ''} à jour)`
+}
+
+// Retire un ordinateur de la liste (ancien PC, désinstallé) : il n'est plus surveillé.
+export async function retirerPoste(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const p = await prisma.connectPoste.findUnique({ where: { id } })
+  await prisma.connectPoste.deleteMany({ where: { id } })
+  revalidatePath('/parc', 'layout')
+  return p ? `${p.nom} retiré de la liste` : 'Retiré'
+}
+
+// Quand le lien a été transmis autrement que par le bouton (copié dans un mail, un SMS...).
+export async function marquerLienEnvoye(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await prisma.connectClient.update({ where: { id }, data: { lienEnvoyeLe: new Date() } })
+  revalidatePath('/parc', 'layout')
+  return 'Noté : lien envoyé aujourd’hui'
 }

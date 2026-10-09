@@ -6,7 +6,7 @@ import { connecte } from '@/lib/connect/auth'
 import { VERT } from '@/components/connect/affichage'
 import { clientsEnAlerte } from '@/lib/connect/alertes'
 import { Menu } from '@/components/connect/Menu'
-import { clientsDeconnectes } from '@/lib/connect/connexion'
+import { postesDeconnectes } from '@/lib/connect/connexion'
 import { RafraichissementAuto } from '@/components/connect/RafraichissementAuto'
 
 export const metadata: Metadata = connectMetadata
@@ -20,7 +20,7 @@ export default async function PriveLayout({ children }: { children: React.ReactN
   let nbDeconnectes = 0
   try {
     nbAlertes = (await clientsEnAlerte()).length
-    nbDeconnectes = (await clientsDeconnectes()).length
+    nbDeconnectes = (await postesDeconnectes()).length
   } catch {
     // base pas encore prête : la page concernée l'expliquera
   }

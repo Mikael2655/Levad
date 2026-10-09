@@ -60,6 +60,7 @@ model ConnectClient {
   modeReleve            String    @default("agent") // agent = programme résident ; manuel = relevés reçus par mail
   seuilDeconnexionJours Int       @default(10)
   deconnexionSignaleLe  DateTime? // mail de déconnexion déjà envoyé (remis à zéro quand le client se reconnecte)
+  lienEnvoyeLe          DateTime? // dernier envoi du lien d'installation au client (mail ou marqué à la main)
 
   @@map("connect_client")
 }
@@ -147,6 +148,8 @@ model ConnectPoste {
   versionAgent      String?
   premiereConnexion DateTime      @default(now())
   derniereConnexion DateTime      @default(now())
+  site              String        @default("Site principal") // les machines découvertes par cet ordinateur prennent ce site
+  deconnexionSignaleLe DateTime? // mail de déconnexion déjà envoyé pour cet ordinateur
 
   @@unique([clientId, nom])
   @@map("connect_poste")

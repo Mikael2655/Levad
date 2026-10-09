@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
   await prisma.connectPoste.upsert({
     where: { clientId_nom: { clientId: client.id, nom } },
-    update: { derniereConnexion: new Date(), systeme, versionAgent: version },
+    update: { derniereConnexion: new Date(), systeme, versionAgent: version, deconnexionSignaleLe: null },
     create: { clientId: client.id, nom, systeme, versionAgent: version },
   })
   if (client.deconnexionSignaleLe) {

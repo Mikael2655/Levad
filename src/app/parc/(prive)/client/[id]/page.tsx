@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { appliquerSeuilsClient, envoyerLien, genererLien, majClient, regenererLien, renommerClient } from '../../actions'
+import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, genererLien, majClient, regenererLien, renommerClient, retirerPoste } from '../../actions'
 import { statutConnexion, urlLien } from '@/lib/connect/agent'
-import { Badge, formaterDate, depuis } from '@/components/connect/affichage'
+import { Badge, formaterDate, depuis, jour } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR } from '@/lib/connect/alertes'
 import { VERT } from '@/components/connect/affichage'
 
@@ -48,6 +48,15 @@ export default async function ClientPage({ params }: { params: { id: string } })
                 Envoyer le lien
               </Bouton>
             </Formulaire>
+            <p className="mt-3 text-sm text-gray-700">
+              <strong>Suivi du lien :</strong>{' '}
+              {client.lienEnvoyeLe ? `envoyé le ${jour(client.lienEnvoyeLe)}` : 'pas encore envoyé'}
+              {client.postes.length > 0 ? ` · installé le ${jour(client.postes.reduce((a, p) => (p.premiereConnexion < a ? p.premiereConnexion : a), client.postes[0].premiereConnexion))}` : ' · pas encore installé'}
+            </p>
+            <Formulaire action={marquerLienEnvoye} message="Noté" className="mt-1">
+              <input type="hidden" name="id" value={client.id} />
+              <Bouton className="text-sm text-gray-600 underline">J&apos;ai transmis le lien autrement (mail, SMS…) : le noter comme envoyé</Bouton>
+            </Formulaire>
             <Formulaire action={regenererLien} message="Nouveau lien créé" className="mt-3">
               <input type="hidden" name="id" value={client.id} />
               <Bouton className="text-sm text-red-600 underline">Régénérer le lien (l&apos;ancien cesse de fonctionner)</Bouton>
@@ -81,16 +90,35 @@ export default async function ClientPage({ params }: { params: { id: string } })
           </div>
         </Formulaire>
 
-        <h3 className="mt-6 font-semibold">Ordinateurs où le programme est installé</h3>
+        <h3 className="mt-6 font-semibold">Ordinateurs où le programme est installé (un par site)</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          Indiquez le site de chaque ordinateur : ses machines (déjà lues et à venir) prennent ce site, et la connexion est surveillée
+          ordinateur par ordinateur.
+        </p>
         {client.postes.length === 0 ? (
           <p className="mt-1 text-sm text-gray-500">Aucun pour l&apos;instant.</p>
         ) : (
-          <ul className="mt-2 space-y-1 text-sm">
+          <ul className="mt-3 space-y-4">
             {client.postes.map((p) => (
-              <li key={p.id}>
-                <strong>{p.nom}</strong> <span className="text-gray-500">({p.systeme ?? 'système inconnu'})</span> — installé le{' '}
-                {formaterDate(p.premiereConnexion)}, dernier signal {depuis(p.derniereConnexion)}{' '}
-                {statutConnexion(p.derniereConnexion, client.seuilDeconnexionJours) === 'connecte' && <Badge ton="vert">connecté</Badge>}
+              <li key={p.id} className="rounded-lg border p-3 text-sm">
+                <p>
+                  <strong>{p.nom}</strong> <span className="text-gray-500">({p.systeme ?? 'système inconnu'})</span> — installé le{' '}
+                  {formaterDate(p.premiereConnexion)}, dernier signal {depuis(p.derniereConnexion)}{' '}
+                  {statutConnexion(p.derniereConnexion, client.seuilDeconnexionJours) === 'connecte' && <Badge ton="vert">connecté</Badge>}
+                  {statutConnexion(p.derniereConnexion, client.seuilDeconnexionJours) === 'deconnecte' && <Badge ton="rouge">déconnecté</Badge>}
+                </p>
+                <Formulaire action={definirSitePoste} message="Site enregistré" className="mt-2 flex flex-wrap items-end gap-3">
+                  <input type="hidden" name="id" value={p.id} />
+                  <label className="grow text-sm font-medium text-gray-700">
+                    Site de cet ordinateur
+                    <input name="site" defaultValue={p.site} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                  </label>
+                  <Bouton className="rounded-lg border border-gray-300 px-4 py-2 font-semibold">Enregistrer</Bouton>
+                </Formulaire>
+                <Formulaire action={retirerPoste} message="Retiré" confirmation={`Retirer ${p.nom} de la liste ? (à faire seulement si le programme n'y est plus installé)`} className="mt-2">
+                  <input type="hidden" name="id" value={p.id} />
+                  <Bouton className="text-xs text-red-600 underline">Retirer cet ordinateur de la liste</Bouton>
+                </Formulaire>
               </li>
             ))}
           </ul>

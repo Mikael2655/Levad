@@ -121,3 +121,10 @@ ALTER TABLE "connect_stock_mouvement" ADD COLUMN IF NOT EXISTS "groupe" TEXT NOT
 
 -- v7 : versions L / H des cartouches (stock suivi par version)
 ALTER TABLE "connect_stock_mouvement" ADD COLUMN IF NOT EXISTS "variante" TEXT NOT NULL DEFAULT '';
+
+-- v8 : site par ordinateur et surveillance de la connexion ordinateur par ordinateur
+ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "site" TEXT NOT NULL DEFAULT 'Site principal';
+ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "deconnexionSignaleLe" TIMESTAMP(3);
+
+-- v9 : suivi de l'envoi du lien d'installation
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "lienEnvoyeLe" TIMESTAMP(3);
