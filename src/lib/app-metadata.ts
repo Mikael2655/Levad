@@ -10,6 +10,7 @@ export const appMetadata: Metadata = {
     icon: [
       { url: '/icons/social-favicon.ico', sizes: 'any' },
       { url: '/icons/social-favicon-32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/icons/social-favicon-64.png', type: 'image/png', sizes: '64x64' },
     ],
     apple: [{ url: '/icons/social-apple-touch-icon.png', sizes: '180x180' }],
   },
