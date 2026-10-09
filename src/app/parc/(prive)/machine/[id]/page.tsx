@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { RECETTES, calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
-import { basculerHorsContrat, demanderLecture, enregistrerReglages } from '../../actions'
+import { basculerHorsContrat, choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
 import { COULEURS, NOM_COULEUR, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
 import { GAMMES, cleGroupe, gammeAuto, gammeDe } from '@/lib/connect/gammes'
 
@@ -49,6 +49,21 @@ export default async function MachinePage({ params }: { params: { id: string } }
         <Link href={`/parc/client/${machine.client.id}`} className="underline">{machine.client.nom}</Link> ·{' '}
         {machine.site} · {machine.marque ?? '?'} {machine.modele ?? ''} · n° {machine.numeroSerie ?? '—'} · IP {machine.ip ?? '—'}
       </p>
+      {suivie && !machine.horsContrat && !gamme && (
+        <Formulaire action={choisirGamme} message="Gamme enregistrée" className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <input type="hidden" name="id" value={machine.id} />
+          <label className="grow text-sm font-medium text-gray-800">
+            Gamme d&apos;encre non reconnue : choisissez-la (ex. C-EXV 49)
+            <select name="gamme" defaultValue="" required className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
+              <option value="" disabled>Choisir la gamme…</option>
+              {GAMMES.map((g) => (
+                <option key={g.code} value={g.code}>{g.code} — {g.modeles}</option>
+              ))}
+            </select>
+          </label>
+          <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Valider</Bouton>
+        </Formulaire>
+      )}
       {aUnPoste && (
         <Formulaire action={demanderLecture} message="Demande envoyée" className="mt-3 flex flex-wrap items-center gap-3">
           <input type="hidden" name="machineId" value={machine.id} />

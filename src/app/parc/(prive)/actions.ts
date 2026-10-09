@@ -85,6 +85,37 @@ export async function appliquerSeuilsClient(formData: FormData) {
   revalidatePath('/parc', 'layout')
 }
 
+// Choix de la gamme d'encre d'une machine non reconnue (ou correction de la gamme reconnue) ; son stock la suit.
+export async function choisirGamme(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const code = String(formData.get('gamme') ?? '')
+  const avant = await prisma.connectMachine.findUnique({ where: { id } })
+  if (!avant) return '!Machine introuvable'
+  if (code && !gammeParCode(code)) return '!Gamme inconnue'
+  await prisma.connectMachine.update({ where: { id }, data: { gamme: code || null } })
+  const apres = { ...avant, gamme: code || null }
+  const ancienne = cleGroupe(avant)
+  const nouvelle = cleGroupe(apres)
+  if (ancienne !== nouvelle) {
+    const restantes = await prisma.connectMachine.findMany({ where: { clientId: avant.clientId, id: { not: id } } })
+    if (!restantes.some((m) => cleGroupe(m) === ancienne)) {
+      await prisma.connectStockMouvement.updateMany({ where: { clientId: avant.clientId, groupe: ancienne }, data: { groupe: nouvelle } })
+    }
+  }
+  revalidatePath('/parc', 'layout')
+  return code ? `Gamme enregistrée : ${code}` : 'Gamme remise en automatique'
+}
+
+// Suppression d'une ligne de l'historique du stock (le stock est recalculé aussitôt).
+export async function supprimerMouvement(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await prisma.connectStockMouvement.deleteMany({ where: { id } })
+  revalidatePath('/parc', 'layout')
+  return 'Ligne supprimée'
+}
+
 // Les groupes de stock d'un client = un par (site + gamme compatible) ; une machine à la gamme inconnue a le sien.
 async function groupesValides(clientId: number): Promise<Set<string>> {
   const machines = await prisma.connectMachine.findMany({ where: { clientId } })

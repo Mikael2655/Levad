@@ -20,12 +20,14 @@ export function Formulaire({
   action,
   message = 'Enregistré',
   reinitialiser = false,
+  confirmation,
   className,
   children,
 }: {
   action: Action
   message?: string
   reinitialiser?: boolean
+  confirmation?: string // question posée avant d'agir (pour une suppression)
   className?: string
   children: React.ReactNode
 }) {
@@ -35,6 +37,9 @@ export function Formulaire({
     <form
       ref={ref}
       className={className}
+      onSubmit={(e) => {
+        if (confirmation && !window.confirm(confirmation)) e.preventDefault()
+      }}
       action={async (fd) => {
         setRetour(null)
         try {
