@@ -8,11 +8,11 @@ export const appMetadata: Metadata = {
   manifest: '/social-manifest.webmanifest',
   icons: {
     icon: [
-      { url: '/icons/social-favicon.ico?v=3', sizes: 'any' },
-      { url: '/icons/social-favicon-32.png?v=3', type: 'image/png', sizes: '32x32' },
-      { url: '/icons/social-favicon-64.png?v=3', type: 'image/png', sizes: '64x64' },
+      { url: '/icons/social-favicon.ico?v=4', sizes: 'any' },
+      { url: '/icons/social-favicon-32.png?v=4', type: 'image/png', sizes: '32x32' },
+      { url: '/icons/social-favicon-64.png?v=4', type: 'image/png', sizes: '64x64' },
     ],
-    apple: [{ url: '/icons/social-apple-touch-icon.png', sizes: '180x180' }],
+    apple: [{ url: '/icons/social-apple-touch-icon.png?v=4', sizes: '180x180' }],
   },
   appleWebApp: { capable: true, title: 'Levad Social', statusBarStyle: 'default' },
 }
