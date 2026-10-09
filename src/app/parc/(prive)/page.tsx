@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { prisma } from '@/lib/db'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
-import { Badge, Encres, depuis, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
+import { VERT, Badge, Encres, depuis, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
 import { statutConnexion } from '@/lib/connect/agent'
-import { preparerLien } from './actions'
+import { creerClient, preparerLien } from './actions'
 import { clientsEnAlerte, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
 import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
 
@@ -23,7 +23,6 @@ export default async function ParcPage() {
   try {
     ;[stocks, enAlerte] = await Promise.all([stocksParGroupe(), clientsEnAlerte()])
     clients = await prisma.connectClient.findMany({
-      where: { machines: { some: {} } },
       orderBy: { nom: 'asc' },
       include: {
         machines: { orderBy: { creeLe: 'asc' }, include: { releves: { orderBy: { date: 'desc' }, take: 1 } } },
@@ -70,6 +69,21 @@ export default async function ParcPage() {
         })}
       </div>
 
+      <details className="mt-6 rounded-xl border bg-white p-4">
+        <summary className="cursor-pointer font-semibold">+ Ajouter un client (pour lui envoyer le lien)</summary>
+        <Formulaire action={creerClient} className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="grow text-sm font-medium text-gray-700">
+            Nom du client
+            <input name="nom" required className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+          </label>
+          <label className="grow text-sm font-medium text-gray-700">
+            Adresse mail (facultatif)
+            <input type="email" name="email" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+          </label>
+          <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Créer et obtenir le lien</Bouton>
+        </Formulaire>
+      </details>
+
       {machines.length === 0 && (
         <p className="mt-10 rounded-xl border bg-white p-8 text-center text-gray-600">
           Aucune machine pour l&apos;instant. Elles apparaîtront ici dès qu&apos;un client aura lancé Levad Connect.
@@ -103,6 +117,11 @@ export default async function ParcPage() {
                 </form>
               </div>
             </div>
+            {c.machines.length === 0 && (
+              <p className="rounded-xl border bg-white p-4 text-sm text-gray-500">
+                Aucune machine pour l&apos;instant : elles apparaîtront dès que le client aura installé Levad Connect avec son lien.
+              </p>
+            )}
             {groupesParSite(c.machines).map(([site, lesMachines], gi, tous) => (
             <div key={site} className={gi > 0 ? 'mt-4' : ''}>
             {tous.length > 1 && <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>}
