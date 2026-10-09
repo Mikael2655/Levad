@@ -54,12 +54,14 @@ model ConnectClient {
   mouvements ConnectStockMouvement[]
   postes   ConnectPoste[]
   commandes ConnectCommande[]
+  evenementsLien ConnectLienEvenement[]
   // Lien personnel d'installation (permanent, lié au client et non à un PC ; régénérable)
   codeLien              String?   @unique
   email                 String? // pour envoyer le lien au client
   modeReleve            String    @default("agent") // agent = programme résident ; manuel = relevés reçus par mail
   seuilDeconnexionJours Int       @default(10)
   deconnexionSignaleLe  DateTime? // mail de déconnexion déjà envoyé (remis à zéro quand le client se reconnecte)
+  lienEnvoyeLe          DateTime? // dernier envoi du lien d'installation au client (mail ou marqué à la main)
 
   @@map("connect_client")
 }
@@ -147,6 +149,8 @@ model ConnectPoste {
   versionAgent      String?
   premiereConnexion DateTime      @default(now())
   derniereConnexion DateTime      @default(now())
+  site              String        @default("Site principal") // les machines découvertes par cet ordinateur prennent ce site
+  deconnexionSignaleLe DateTime? // mail de déconnexion déjà envoyé pour cet ordinateur
 
   @@unique([clientId, nom])
   @@map("connect_poste")
@@ -166,4 +170,17 @@ model ConnectCommande {
 
   @@index([clientId, faiteLe])
   @@map("connect_commande")
+}
+
+// Historique du lien d'installation d'un client : chaque envoi (mail ou noté à la main) et chaque régénération.
+model ConnectLienEvenement {
+  id       Int           @id @default(autoincrement())
+  clientId Int
+  client   ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type     String // envoye | note | regenere
+  detail   String? // adresse mail du destinataire...
+  date     DateTime      @default(now())
+
+  @@index([clientId, date])
+  @@map("connect_lien_evenement")
 }

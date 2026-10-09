@@ -1,16 +1,26 @@
 import { prisma } from '@/lib/db'
 import { statutConnexion } from '@/lib/connect/agent'
 
-export type ClientDeconnecte = { id: number; nom: string; seuilJours: number; derniere: Date; nbPostes: number }
+export type PosteDeconnecte = {
+  id: number
+  clientId: number
+  clientNom: string
+  nom: string
+  site: string
+  seuilJours: number
+  derniere: Date
+}
 
-/** Clients dont le programme résident ne donne plus signe de vie depuis le délai réglé (10 jours par défaut). */
-export async function clientsDeconnectes(): Promise<ClientDeconnecte[]> {
+/** Ordinateurs dont le programme ne donne plus signe de vie depuis le délai réglé pour leur client (10 jours par défaut). */
+export async function postesDeconnectes(): Promise<PosteDeconnecte[]> {
   const clients = await prisma.connectClient.findMany({
     where: { modeReleve: 'agent', postes: { some: {} } },
-    include: { postes: { orderBy: { derniereConnexion: 'desc' } } },
+    include: { postes: { orderBy: { derniereConnexion: 'asc' } } },
     orderBy: { nom: 'asc' },
   })
-  return clients
-    .map((c) => ({ id: c.id, nom: c.nom, seuilJours: c.seuilDeconnexionJours, derniere: c.postes[0].derniereConnexion, nbPostes: c.postes.length }))
-    .filter((c) => statutConnexion(c.derniere, c.seuilJours) === 'deconnecte')
+  return clients.flatMap((c) =>
+    c.postes
+      .filter((p) => statutConnexion(p.derniereConnexion, c.seuilDeconnexionJours) === 'deconnecte')
+      .map((p) => ({ id: p.id, clientId: c.id, clientNom: c.nom, nom: p.nom, site: p.site, seuilJours: c.seuilDeconnexionJours, derniere: p.derniereConnexion }))
+  )
 }

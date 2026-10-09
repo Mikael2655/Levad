@@ -22,6 +22,10 @@ export function formaterDate(d: Date) {
   })
 }
 
+export function jour(d: Date) {
+  return d.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
 export function depuis(d: Date) {
   const min = Math.round((Date.now() - d.getTime()) / 60000)
   if (min < 1) return "à l'instant"

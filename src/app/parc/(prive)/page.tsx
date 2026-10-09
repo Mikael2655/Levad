@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { prisma } from '@/lib/db'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
-import { VERT, Badge, Encres, depuis, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
+import { VERT, Badge, Encres, depuis, jour, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
 import { statutConnexion } from '@/lib/connect/agent'
 import { creerClient, preparerLien } from './actions'
 import { clientsEnAlerte, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
@@ -26,7 +26,7 @@ export default async function ParcPage() {
       orderBy: { nom: 'asc' },
       include: {
         machines: { orderBy: { creeLe: 'asc' }, include: { releves: { orderBy: { date: 'desc' }, take: 1 } } },
-        postes: { orderBy: { derniereConnexion: 'desc' }, take: 1 },
+        postes: true,
       },
     })
   } catch {
@@ -41,8 +41,11 @@ export default async function ParcPage() {
     )
   }
 
-  const deconnecte = (c: (typeof clients)[number]) =>
-    c.modeReleve === 'agent' && c.postes[0] && statutConnexion(c.postes[0].derniereConnexion, c.seuilDeconnexionJours) === 'deconnecte'
+  // sites dont l'ordinateur ne donne plus signe de vie
+  const sitesDeconnectes = (c: (typeof clients)[number]) =>
+    c.modeReleve === 'agent'
+      ? Array.from(new Set(c.postes.filter((p) => statutConnexion(p.derniereConnexion, c.seuilDeconnexionJours) === 'deconnecte').map((p) => p.site)))
+      : []
 
   const machines = clients.flatMap((c) => c.machines.map((m) => ({ ...m, client: c })))
 
@@ -101,14 +104,18 @@ export default async function ParcPage() {
                     <path d="M13.6 2.6a2 2 0 0 1 2.8 2.8l-9.2 9.2-3.7.9.9-3.7 9.2-9.2zM12.5 5.4l2.1 2.1" />
                   </svg>
                 </Link>
-                {deconnecte(c) && (
-                  <Link href="/parc/deconnexions"><Badge ton="rouge">Connexion perdue</Badge></Link>
+                {sitesDeconnectes(c).length > 0 && (
+                  <Link href="/parc/deconnexions"><Badge ton="rouge">Connexion perdue · {sitesDeconnectes(c).join(', ')}</Badge></Link>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 <Link href={`/parc/stocks/${c.id}`} className="text-gray-600 hover:text-gray-900" title="Voir et modifier le stock de ce client">
                   <span className="underline">Stock</span>
                 </Link>
+                <span className="text-xs text-gray-500">
+                  {c.lienEnvoyeLe ? `Lien envoyé le ${jour(c.lienEnvoyeLe)}` : 'Lien non envoyé'}
+                  {c.postes.length > 0 && ` · installé le ${jour(c.postes.reduce((a, p) => (p.premiereConnexion < a ? p.premiereConnexion : a), c.postes[0].premiereConnexion))}`}
+                </span>
                 <form action={preparerLien}>
                   <input type="hidden" name="id" value={c.id} />
                   <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold hover:bg-gray-50">

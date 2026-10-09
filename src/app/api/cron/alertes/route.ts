@@ -71,45 +71,40 @@ function construireMail(clients: ClientEtat[], urlParc: string) {
   return { html, sujet: `Alertes d'encre — ${clients.length} client${clients.length > 1 ? 's' : ''}, ${nbMachines} machine${nbMachines > 1 ? 's' : ''}` }
 }
 
-/** Clients dont le programme n'a plus donné signe de vie depuis leur délai réglé : un seul mail par déconnexion. */
+/** Ordinateurs dont le programme n'a plus donné signe de vie depuis le délai réglé pour leur client : un seul mail par déconnexion. */
 async function signalerDeconnexions(apercu: boolean) {
-  const clients = await prisma.connectClient.findMany({
-    where: { modeReleve: 'agent', deconnexionSignaleLe: null, postes: { some: {} } },
-    include: { postes: { orderBy: { derniereConnexion: 'desc' } } },
+  const postes = await prisma.connectPoste.findMany({
+    where: { deconnexionSignaleLe: null, client: { modeReleve: 'agent' } },
+    include: { client: true },
+    orderBy: [{ clientId: 'asc' }, { derniereConnexion: 'asc' }],
   })
-  const deconnectes = clients.filter((c) => {
-    const derniere = c.postes[0].derniereConnexion.getTime() // tous les PC du client : le plus récent signal compte
-    return Date.now() - derniere > c.seuilDeconnexionJours * 24 * 3600 * 1000
-  })
+  const deconnectes = postes.filter((p) => Date.now() - p.derniereConnexion.getTime() > p.client.seuilDeconnexionJours * 24 * 3600 * 1000)
   if (apercu || deconnectes.length === 0) return { envoye: false, clients: deconnectes.length }
 
   const lignes = deconnectes
-    .map((c) => {
-      const p = c.postes[0]
-      return `<tr>
-        <td style="padding:6px 10px;border-top:1px solid #e5e7eb;font-weight:bold">${esc(c.nom)}</td>
+    .map(
+      (p) => `<tr>
+        <td style="padding:6px 10px;border-top:1px solid #e5e7eb;font-weight:bold">${esc(p.client.nom)}</td>
+        <td style="padding:6px 10px;border-top:1px solid #e5e7eb">${esc(p.site)}</td>
+        <td style="padding:6px 10px;border-top:1px solid #e5e7eb">${esc(p.nom)}</td>
         <td style="padding:6px 10px;border-top:1px solid #e5e7eb">${esc(formaterDate(p.derniereConnexion))}</td>
-        <td style="padding:6px 10px;border-top:1px solid #e5e7eb">${esc(p.nom)}${c.postes.length > 1 ? ` (+${c.postes.length - 1} autre${c.postes.length > 2 ? 's' : ''})` : ''}</td>
-        <td style="padding:6px 10px;border-top:1px solid #e5e7eb">${c.seuilDeconnexionJours} j</td></tr>`
-    })
+        <td style="padding:6px 10px;border-top:1px solid #e5e7eb">${p.client.seuilDeconnexionJours} j</td></tr>`
+    )
     .join('')
+  const n = deconnectes.length
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;padding:24px;color:#1a1a1a">
-  <h2 style="margin-top:0">Levad Connect : ${deconnectes.length} client${deconnectes.length > 1 ? 's' : ''} déconnecté${deconnectes.length > 1 ? 's' : ''}</h2>
-  <p style="color:#4b5563">Ces clients n'ont plus donné signe de vie depuis le délai réglé. La date de dernière connexion est la date de déconnexion.</p>
+  <h2 style="margin-top:0">Levad Connect : ${n} ordinateur${n > 1 ? 's' : ''} déconnecté${n > 1 ? 's' : ''}</h2>
+  <p style="color:#4b5563">Ces ordinateurs n'ont plus donné signe de vie depuis le délai réglé. La date de dernière connexion est la date de déconnexion.</p>
   <table style="border-collapse:collapse;width:100%;font-size:13px">
-    <tr style="text-align:left;color:#6b7280"><th style="padding:6px 10px">Client</th><th style="padding:6px 10px">Dernière connexion</th><th style="padding:6px 10px">Ordinateur</th><th style="padding:6px 10px">Délai</th></tr>
+    <tr style="text-align:left;color:#6b7280"><th style="padding:6px 10px">Client</th><th style="padding:6px 10px">Site</th><th style="padding:6px 10px">Ordinateur</th><th style="padding:6px 10px">Dernière connexion</th><th style="padding:6px 10px">Délai</th></tr>
     ${lignes}
   </table>
-  <p style="margin-top:24px"><a href="${esc(process.env.PARC_URL || 'https://connect.levad.fr')}/parc/connexions" style="color:#4b6b4b">Ouvrir les connexions</a></p>
+  <p style="margin-top:24px"><a href="${esc(process.env.PARC_URL || 'https://connect.levad.fr')}/parc/deconnexions" style="color:#4b6b4b">Ouvrir l'alerte déconnexion</a></p>
 </body></html>`
-  await envoyerMail({
-    to: MAIL_LEVAD(),
-    sujet: `Levad Connect — ${deconnectes.length} client${deconnectes.length > 1 ? 's' : ''} déconnecté${deconnectes.length > 1 ? 's' : ''}`,
-    html,
-  })
-  await prisma.connectClient.updateMany({ where: { id: { in: deconnectes.map((c) => c.id) } }, data: { deconnexionSignaleLe: new Date() } })
-  return { envoye: true, clients: deconnectes.length }
+  await envoyerMail({ to: MAIL_LEVAD(), sujet: `Levad Connect — ${n} ordinateur${n > 1 ? 's' : ''} déconnecté${n > 1 ? 's' : ''}`, html })
+  await prisma.connectPoste.updateMany({ where: { id: { in: deconnectes.map((p) => p.id) } }, data: { deconnexionSignaleLe: new Date() } })
+  return { envoye: true, clients: n }
 }
 
 export async function GET(req: NextRequest) {

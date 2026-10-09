@@ -52,9 +52,13 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
       })
     } else {
       const c = await clientPourMachineNouvelle()
+      // une machine nouvelle prend le site de l'ordinateur qui l'a découverte (réglé dans la fiche du client)
+      const nomPc = texte(data.pc, 80)
+      const poste = nomPc ? await prisma.connectPoste.findUnique({ where: { clientId_nom: { clientId: c.id, nom: nomPc } } }) : null
       machine = await prisma.connectMachine.create({
         data: {
           clientId: c.id,
+          site: poste?.site ?? 'Site principal',
           cle,
           numeroSerie: serie,
           marque,
