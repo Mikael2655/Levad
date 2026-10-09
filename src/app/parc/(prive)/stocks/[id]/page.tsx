@@ -4,8 +4,8 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { Encres, VERT, formaterDate, depuis, type Encre } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
-import { grouper } from '@/lib/connect/gammes'
-import { ajouterEnvoi, corrigerStock } from '../../actions'
+import { GAMMES, grouper } from '@/lib/connect/gammes'
+import { ajouterEnvoi, choisirGamme, corrigerStock, supprimerMouvement } from '../../actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,9 +42,26 @@ export default async function StockClientPage({ params }: { params: { id: string
               {g.site} · {g.gamme ? `${g.gamme.code} (${g.gamme.modeles})` : 'gamme non reconnue'}
             </h2>
             {!g.gamme && (
-              <p className="mt-1 text-sm text-amber-700">
-                Gamme d&apos;encre non reconnue : ce stock est propre à cette machine. Choisissez sa gamme dans la fiche machine pour le partager avec les machines compatibles.
-              </p>
+              <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+                <p className="text-sm text-amber-900">
+                  Gamme d&apos;encre non reconnue : ce stock est propre à cette machine. Choisissez sa gamme pour le partager avec les machines compatibles du site.
+                </p>
+                {g.machines.map((m) => (
+                  <Formulaire key={m.id} action={choisirGamme} message="Gamme enregistrée" className="mt-2 flex flex-wrap items-end gap-3">
+                    <input type="hidden" name="id" value={m.id} />
+                    <label className="grow text-sm font-medium text-gray-700">
+                      Gamme de {m.nomAffiche || m.modele || 'la machine'}
+                      <select name="gamme" defaultValue="" required className={champ}>
+                        <option value="" disabled>Choisir la gamme (ex. C-EXV 49)…</option>
+                        {GAMMES.map((x) => (
+                          <option key={x.code} value={x.code}>{x.code} — {x.modeles}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Valider</Bouton>
+                  </Formulaire>
+                ))}
+              </div>
             )}
             <div className="mt-3 divide-y">
               {g.machines.map((m) => {
@@ -162,7 +179,8 @@ export default async function StockClientPage({ params }: { params: { id: string
                   <th className="py-2 pr-4">Site · gamme</th>
                   <th className="py-2 pr-4">Couleur</th>
                   <th className="py-2 pr-4 text-right">Quantité</th>
-                  <th className="py-2">Détail</th>
+                  <th className="py-2 pr-4">Détail</th>
+                  <th className="py-2"></th>
                 </tr>
               </thead>
               <tbody>
@@ -174,9 +192,15 @@ export default async function StockClientPage({ params }: { params: { id: string
                     <td className={`py-1.5 pr-4 text-right tabular-nums ${m.delta > 0 ? 'text-green-700' : 'text-red-600'}`}>
                       {m.delta > 0 ? `+${m.delta}` : m.delta}
                     </td>
-                    <td className="py-1.5 text-gray-600">
+                    <td className="py-1.5 pr-4 text-gray-600">
                       {{ envoi: 'Envoi', correction: 'Correction', changement: 'Cartouche changée' }[m.motif] ?? m.motif}
                       {m.note ? ` — ${m.note}` : ''}
+                    </td>
+                    <td className="py-1.5 text-right">
+                      <Formulaire action={supprimerMouvement} message="Ligne supprimée" confirmation="Supprimer cette ligne ? Le stock sera recalculé.">
+                        <input type="hidden" name="id" value={m.id} />
+                        <Bouton className="text-sm text-red-600 underline">Supprimer</Bouton>
+                      </Formulaire>
                     </td>
                   </tr>
                 ))}
