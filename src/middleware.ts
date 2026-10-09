@@ -8,7 +8,7 @@ import { SESSION_COOKIE, createToken, sessionCookieOptions, verifyToken } from '
 // 2) Outil social (autres adresses) : accès par mot de passe, session de 1 h d'inactivité.
 // Restent publics : /login, /telecharger, /api/releve, /api/cron/* (protégés par CRON_SECRET).
 
-const FICHIERS_AUTORISES = ['/levad-logo.png', '/icon.png', '/apple-touch-icon.png', '/signature-levad.png', '/icon-192.png', '/icon-512.png', '/manifest.webmanifest', '/favicon.ico', '/api/releve']
+const FICHIERS_AUTORISES = ['/levad-logo.png', '/icon.png', '/signature-levad.png', '/connect-manifest.webmanifest', '/favicon.ico', '/api/releve']
 
 function estProtege(pathname: string): boolean {
   return (
@@ -32,6 +32,7 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith('/telecharger/') ||
       pathname.startsWith('/api/agent/') ||
       pathname.startsWith('/telechargements/') ||
+      pathname.startsWith('/icons/connect-') ||
       pathname.startsWith('/parc') ||
       pathname.startsWith('/api/parc/') ||
       pathname.startsWith('/_next/') ||

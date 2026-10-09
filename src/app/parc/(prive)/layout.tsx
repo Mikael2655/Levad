@@ -1,4 +1,5 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
+import { connectMetadata, connectViewport } from '@/lib/connect/metadata'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { connecte } from '@/lib/connect/auth'
@@ -8,14 +9,8 @@ import { Menu } from '@/components/connect/Menu'
 import { clientsDeconnectes } from '@/lib/connect/connexion'
 import { RafraichissementAuto } from '@/components/connect/RafraichissementAuto'
 
-export const metadata: Metadata = {
-  title: 'Levad Connect',
-  applicationName: 'Levad Connect',
-  manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, title: 'Levad Connect', statusBarStyle: 'default' },
-  robots: { index: false, follow: false },
-  icons: { icon: '/icon.png', apple: '/apple-touch-icon.png' },
-}
+export const metadata: Metadata = connectMetadata
+export const viewport: Viewport = connectViewport
 
 export const dynamic = 'force-dynamic'
 

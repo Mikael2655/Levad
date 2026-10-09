@@ -1,12 +1,10 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
+import { connectMetadata, connectViewport } from '@/lib/connect/metadata'
 import { motDePasseConfigure } from '@/lib/connect/auth'
 import { VERT } from '@/components/connect/affichage'
 
-export const metadata: Metadata = {
-  title: 'Levad Connect — Connexion',
-  robots: { index: false, follow: false },
-  icons: { icon: '/icon.png' },
-}
+export const metadata: Metadata = { ...connectMetadata, title: 'Levad Connect — Connexion' }
+export const viewport: Viewport = connectViewport
 
 export const dynamic = 'force-dynamic'
 

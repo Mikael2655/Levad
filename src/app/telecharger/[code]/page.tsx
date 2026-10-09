@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { iconesConnect } from '@/lib/connect/metadata'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { MOTIF_CODE } from '@/lib/connect/agent'
@@ -9,7 +10,7 @@ import { PageTelechargement } from '@/components/connect/PageTelechargement'
 export const metadata: Metadata = {
   title: 'Levad Connect — Installer',
   robots: { index: false, follow: false },
-  icons: { icon: '/icon.png' },
+  icons: iconesConnect,
 }
 export const dynamic = 'force-dynamic'
 
