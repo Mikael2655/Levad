@@ -8,6 +8,7 @@ import { COULEURS, stockCourant } from '@/lib/connect/alertes'
 import { cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
 import { assurerCode, regenererCode, urlLien } from '@/lib/connect/agent'
 import { envoyerMail } from '@/lib/connect/mail'
+import { cleClient } from '@/lib/connect/normaliser'
 
 const seuil = (v: FormDataEntryValue | null) => Math.min(100, Math.max(0, Number(v ?? 25) || 0))
 
@@ -257,4 +258,22 @@ export async function preparerLien(formData: FormData) {
   await assurerCode(id)
   revalidatePath(`/parc/client/${id}`)
   redirect(`/parc/client/${id}#lien`)
+}
+
+// Ajout d'un client qui n'a encore rien envoyé : on crée sa fiche et son lien, puis on ouvre la fiche pour envoyer le lien.
+export async function creerClient(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const nom = String(formData.get('nom') ?? '').trim().slice(0, 120)
+  const email = String(formData.get('email') ?? '').trim().slice(0, 200)
+  if (!nom) return '!Indiquez le nom du client'
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return '!Adresse mail invalide'
+  const cle = cleClient(nom)
+  const client = await prisma.connectClient.upsert({
+    where: { cle },
+    update: email ? { email } : {},
+    create: { cle, nom, email: email || null },
+  })
+  await assurerCode(client.id)
+  revalidatePath('/parc', 'layout')
+  redirect(`/parc/client/${client.id}#lien`)
 }
