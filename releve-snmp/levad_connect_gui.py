@@ -243,7 +243,8 @@ class FenetreResident:
             quand = (time.strftime("%d/%m/%Y à %H:%M", time.localtime(derniere)) if derniere else "pas encore de lecture")
             self.texte("Levad Connect est installé sur cet ordinateur et fonctionne en arrière-plan : il relève vos copieurs "
                        "automatiquement. Vous n'avez rien à faire.", "#15803d")
-            self.texte("Dernière lecture : %s" % quand)
+            self.texte("Dernière lecture : %s (une lecture toutes les 30 minutes)\nVersion installée : %s"
+                       % (quand, config.get("version_installee") or "inconnue"))
             ttk.Button(self.corps, text="Désinstaller", command=self.desinstaller).pack(anchor="w")
         else:
             self.texte("Levad Connect va s'installer sur cet ordinateur. Il relèvera ensuite vos copieurs "

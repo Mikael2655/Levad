@@ -29,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.2"
+VERSION_AGENT = "1.3"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -345,6 +345,9 @@ def boucle(max_tours=None):
     if not config.get("code"):
         journal("pas de code client : arrêt")
         return 1
+    if config.get("version_installee") != VERSION_AGENT:      # après une mise à jour : la fenêtre d'état affichera la bonne version
+        config["version_installee"] = VERSION_AGENT
+        ecrire_config(config)
     if max_tours is None:
         _assurer_surveillance()       # les installations de la version 1.0 reçoivent aussi la tâche de relance
     for reste in ("Levad-Connect.old.exe", "Levad-Connect.new.exe"):      # restes d'une mise à jour précédente
@@ -435,7 +438,7 @@ def installer(code, serveur=None, avec_demarrage_auto=True):
     """Copie le programme, enregistre le code du client, le fait démarrer avec l'ordinateur et le lance."""
     os.makedirs(dossier_donnees(), exist_ok=True)
     config = lire_config()
-    config.update({"code": code, "serveur": serveur or config.get("serveur") or SERVEUR_PAR_DEFAUT})
+    config.update({"code": code, "serveur": serveur or config.get("serveur") or SERVEUR_PAR_DEFAUT, "version_installee": VERSION_AGENT})
     ecrire_config(config)
     try:
         os.remove(_chemin("arret"))
