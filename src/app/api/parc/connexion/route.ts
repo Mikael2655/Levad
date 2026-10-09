@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
-import { NOM_COOKIE, fabriquerCookie, motDePasseValide } from '@/lib/connect/auth'
+import { NOM_COOKIE, fabriquerCookie, identifiantValide, motDePasseValide } from '@/lib/connect/auth'
 
 export async function POST(req: Request) {
   const form = await req.formData()
   const saisi = String(form.get('motdepasse') ?? '')
+  const identifiant = String(form.get('identifiant') ?? '')
   const base = new URL(req.url)
-  if (!motDePasseValide(saisi)) {
+  if (!(motDePasseValide(saisi) && identifiantValide(identifiant))) {
     await new Promise((r) => setTimeout(r, 800)) // ralentit les essais au hasard
     return NextResponse.redirect(new URL('/parc/connexion?erreur=1', base), 303)
   }

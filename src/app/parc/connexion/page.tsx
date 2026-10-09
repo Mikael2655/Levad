@@ -19,16 +19,30 @@ export default function Connexion({ searchParams }: { searchParams: { erreur?: s
         {configure ? (
           <form action="/api/parc/connexion" method="post" className="mt-4 space-y-4">
             <label className="block text-sm font-medium text-gray-700">
-              Mot de passe
+              Identifiant
               <input
-                type="password"
-                name="motdepasse"
+                type="text"
+                name="identifiant"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 autoFocus
                 required
                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
               />
             </label>
-            {searchParams.erreur && <p className="text-sm text-red-600">Mot de passe incorrect.</p>}
+            <label className="block text-sm font-medium text-gray-700">
+              Mot de passe
+              <input
+                type="password"
+                name="motdepasse"
+                autoComplete="current-password"
+                required
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
+            </label>
+            {searchParams.erreur && <p className="text-sm text-red-600">Identifiant ou mot de passe incorrect.</p>}
             <button className="w-full rounded-lg px-4 py-2.5 font-semibold text-white" style={{ backgroundColor: VERT }}>
               Se connecter
             </button>
