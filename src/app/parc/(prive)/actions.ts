@@ -185,6 +185,7 @@ export async function regenererLien(formData: FormData) {
   if (!connecte()) throw new Error('Non connecté')
   const id = Number(formData.get('id'))
   await regenererCode(id)
+  await prisma.connectLienEvenement.create({ data: { clientId: id, type: 'regenere', detail: 'ancien lien désactivé' } })
   revalidatePath(`/parc/client/${id}`)
 }
 
@@ -224,6 +225,7 @@ export async function envoyerLien(formData: FormData): Promise<string | void> {
 </body></html>`,
   })
   await prisma.connectClient.update({ where: { id }, data: { email, lienEnvoyeLe: new Date() } })
+  await prisma.connectLienEvenement.create({ data: { clientId: id, type: 'envoye', detail: email } })
   revalidatePath('/parc', 'layout')
   return `Lien envoyé à ${email}`
 }
@@ -325,6 +327,7 @@ export async function marquerLienEnvoye(formData: FormData): Promise<string | vo
   if (!connecte()) throw new Error('Non connecté')
   const id = Number(formData.get('id'))
   await prisma.connectClient.update({ where: { id }, data: { lienEnvoyeLe: new Date() } })
+  await prisma.connectLienEvenement.create({ data: { clientId: id, type: 'note' } })
   revalidatePath('/parc', 'layout')
   return 'Noté : lien envoyé aujourd’hui'
 }

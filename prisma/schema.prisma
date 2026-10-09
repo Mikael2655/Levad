@@ -54,6 +54,7 @@ model ConnectClient {
   mouvements ConnectStockMouvement[]
   postes   ConnectPoste[]
   commandes ConnectCommande[]
+  evenementsLien ConnectLienEvenement[]
   // Lien personnel d'installation (permanent, lié au client et non à un PC ; régénérable)
   codeLien              String?   @unique
   email                 String? // pour envoyer le lien au client
@@ -169,4 +170,17 @@ model ConnectCommande {
 
   @@index([clientId, faiteLe])
   @@map("connect_commande")
+}
+
+// Historique du lien d'installation d'un client : chaque envoi (mail ou noté à la main) et chaque régénération.
+model ConnectLienEvenement {
+  id       Int           @id @default(autoincrement())
+  clientId Int
+  client   ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type     String // envoye | note | regenere
+  detail   String? // adresse mail du destinataire...
+  date     DateTime      @default(now())
+
+  @@index([clientId, date])
+  @@map("connect_lien_evenement")
 }

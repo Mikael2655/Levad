@@ -13,9 +13,16 @@ export const dynamic = 'force-dynamic'
 export default async function ClientPage({ params }: { params: { id: string } }) {
   const client = await prisma.connectClient.findUnique({
     where: { id: Number(params.id) },
-    include: { machines: true, postes: { orderBy: { derniereConnexion: 'desc' } } },
+    include: { machines: true, postes: { orderBy: { derniereConnexion: 'desc' } }, evenementsLien: true },
   })
   if (!client) notFound()
+  const historique = [
+    ...client.evenementsLien.map((e) => ({
+      date: e.date,
+      texte: e.type === 'envoye' ? `Lien envoyé à ${e.detail ?? 'le client'}` : e.type === 'note' ? 'Lien envoyé (noté à la main)' : `Nouveau lien créé (${e.detail ?? 'l’ancien ne fonctionne plus'})`,
+    })),
+    ...client.postes.map((p) => ({ date: p.premiereConnexion, texte: `Installé sur ${p.nom} (${p.site})` })),
+  ].sort((a, b) => b.date.getTime() - a.date.getTime())
   return (
     <>
       <Link href="/parc" className="text-sm text-gray-500 hover:text-gray-900">← Retour à la synthèse</Link>
@@ -48,11 +55,15 @@ export default async function ClientPage({ params }: { params: { id: string } })
                 Envoyer le lien
               </Bouton>
             </Formulaire>
-            <p className="mt-3 text-sm text-gray-700">
-              <strong>Suivi du lien :</strong>{' '}
-              {client.lienEnvoyeLe ? `envoyé le ${jour(client.lienEnvoyeLe)}` : 'pas encore envoyé'}
-              {client.postes.length > 0 ? ` · installé le ${jour(client.postes.reduce((a, p) => (p.premiereConnexion < a ? p.premiereConnexion : a), client.postes[0].premiereConnexion))}` : ' · pas encore installé'}
-            </p>
+            <h3 className="mt-4 text-sm font-semibold">Historique du lien</h3>
+            <ul className="mt-1 space-y-1 text-sm text-gray-700">
+              {historique.length === 0 && <li className="text-gray-500">Lien créé, pas encore envoyé.</li>}
+              {historique.map((e, i) => (
+                <li key={i}>
+                  <span className="text-gray-500">{formaterDate(e.date)}</span> — {e.texte}
+                </li>
+              ))}
+            </ul>
             <Formulaire action={marquerLienEnvoye} message="Noté" className="mt-1">
               <input type="hidden" name="id" value={client.id} />
               <Bouton className="text-sm text-gray-600 underline">J&apos;ai transmis le lien autrement (mail, SMS…) : le noter comme envoyé</Bouton>

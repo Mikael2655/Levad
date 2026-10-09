@@ -128,3 +128,18 @@ ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "deconnexionSignaleLe" TIME
 
 -- v9 : suivi de l'envoi du lien d'installation
 ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "lienEnvoyeLe" TIMESTAMP(3);
+
+-- v10 : historique du lien d'installation (envois, régénérations)
+CREATE TABLE IF NOT EXISTS "connect_lien_evenement" (
+  "id"       SERIAL PRIMARY KEY,
+  "clientId" INTEGER NOT NULL REFERENCES "connect_client"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  "type"     TEXT NOT NULL,
+  "detail"   TEXT,
+  "date"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS "connect_lien_evenement_clientId_date_idx" ON "connect_lien_evenement"("clientId", "date");
+-- reprend le dernier envoi déjà noté (v9), s'il y en a un
+INSERT INTO "connect_lien_evenement" ("clientId", "type", "detail", "date")
+  SELECT c."id", 'note', NULL, c."lienEnvoyeLe" FROM "connect_client" c
+  WHERE c."lienEnvoyeLe" IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM "connect_lien_evenement" e WHERE e."clientId" = c."id");
