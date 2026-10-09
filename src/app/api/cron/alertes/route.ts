@@ -14,6 +14,7 @@ import { formaterDate } from '@/components/connect/affichage'
 // ce code n'envoie que si on est entre 16 h 30 et 19 h à Paris et que le mail du jour n'est pas déjà parti.
 // Protection : en-tête « Authorization: Bearer <secret> », où le secret est la variable ALERTES_SECRET
 // (secret propre à ce mail) ou, à défaut, CRON_SECRET comme les autres tâches planifiées.
+// Aucun envoi le samedi et le dimanche (heure de Paris).
 // Paramètres de test : ?force=1 (envoie sans tenir compte de l'heure ni du mail déjà envoyé),
 // ?apercu=1 (affiche le mail au lieu de l'envoyer).
 
@@ -27,10 +28,11 @@ function parisMaintenant() {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    weekday: 'short',
     hourCycle: 'h23',
   }).formatToParts(new Date())
   const v = (t: string) => parties.find((p) => p.type === t)?.value ?? ''
-  return { jour: `${v('year')}-${v('month')}-${v('day')}`, heure: Number(v('hour')), minute: Number(v('minute')) }
+  return { weekend: /^(sam|dim)/i.test(v('weekday')), jour: `${v('year')}-${v('month')}-${v('day')}`, heure: Number(v('hour')), minute: Number(v('minute')) }
 }
 
 function construireMail(clients: ClientEtat[], urlParc: string) {
@@ -121,7 +123,12 @@ export async function GET(req: NextRequest) {
 
   const force = req.nextUrl.searchParams.get('force') === '1'
   const apercu = req.nextUrl.searchParams.get('apercu') === '1'
-  const { jour, heure, minute } = parisMaintenant()
+  const { jour, heure, minute, weekend } = parisMaintenant()
+
+  // Aucun mail d'alerte (encre ou déconnexion) le samedi et le dimanche : ils partent le lundi, l'état étant recalculé à chaque passage.
+  if (!force && !apercu && weekend) {
+    return NextResponse.json({ envoye: false, raison: 'week-end : aucun mail d’alerte le samedi et le dimanche' })
+  }
 
   if (!force && !apercu && !dansLaPlageDEnvoi(heure, minute)) {
     return NextResponse.json({

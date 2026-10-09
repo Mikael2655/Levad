@@ -47,6 +47,7 @@ export type EtatCouleur = {
 export type MachineEtat = {
   id: number
   nom: string
+  site: string
   dernierReleve: Date | null
   couleurs: EtatCouleur[]
   enAlerte: boolean
@@ -62,7 +63,7 @@ export async function etatDuParc(): Promise<ClientEtat[]> {
       include: {
         machines: {
           where: { categorie: 'mine', horsContrat: false },
-          orderBy: { creeLe: 'asc' },
+          orderBy: [{ site: 'asc' }, { creeLe: 'asc' }],
           include: { releves: { orderBy: { date: 'desc' }, take: 1, select: { date: true, encres: true } } },
         },
       },
@@ -83,6 +84,7 @@ export async function etatDuParc(): Promise<ClientEtat[]> {
       return {
         id: m.id,
         nom: m.nomAffiche || m.modele || 'Machine inconnue',
+        site: m.site,
         dernierReleve: r?.date ?? null,
         couleurs,
         enAlerte: couleurs.some((x) => x.alerte),

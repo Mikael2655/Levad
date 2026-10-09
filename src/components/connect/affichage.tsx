@@ -77,7 +77,6 @@ export function Encres({
               }`}
             >
               {p === null ? '—' : `${p} %`}
-              {alerte && ' · plus de stock'}
               {orange && ' · en stock'}
             </p>
           </div>

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { prisma } from '@/lib/db'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, depuis, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
@@ -7,6 +8,13 @@ import { preparerLien } from './actions'
 import { clientsEnAlerte, NOM_COULEUR, stocksParClient, stockVide, seuilDe, COULEURS } from '@/lib/connect/alertes'
 
 export const dynamic = 'force-dynamic'
+
+// Machines d'un client regroupées par site d'installation, sites par ordre alphabétique.
+function groupesParSite<T extends { site: string }>(machines: T[]): [string, T[]][] {
+  const m = new Map<string, T[]>()
+  for (const x of machines) m.set(x.site, [...(m.get(x.site) ?? []), x])
+  return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], 'fr', { sensitivity: 'base' }))
+}
 
 export default async function ParcPage() {
   let clients
@@ -93,14 +101,17 @@ export default async function ParcPage() {
                 </Link>
                 <form action={preparerLien}>
                   <input type="hidden" name="id" value={c.id} />
-                  <button className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold hover:bg-gray-50">
+                  <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold hover:bg-gray-50">
                     {c.codeLien ? 'Lien à envoyer' : 'Générer le lien'}
-                  </button>
+                  </Bouton>
                 </form>
               </div>
             </div>
+            {groupesParSite(c.machines).map(([site, lesMachines], gi, tous) => (
+            <div key={site} className={gi > 0 ? 'mt-4' : ''}>
+            {tous.length > 1 && <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>}
             <div className="divide-y rounded-xl border bg-white">
-              {c.machines.map((m) => {
+              {lesMachines.map((m) => {
                 const r = m.releves[0]
                 const compteurs = (r?.compteurs ?? {}) as unknown as Compteurs
                 const calc = calculer(compteurs, m.recette)
@@ -113,15 +124,17 @@ export default async function ParcPage() {
                     className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.3fr_1.7fr_0.8fr_1fr]"
                   >
                     <div>
-                      <p className="font-semibold">{m.nomAffiche || m.modele || 'Machine inconnue'}</p>
+                      <p className="font-semibold">
+                        {m.nomAffiche || m.modele || 'Machine inconnue'}
+                        <span className="font-normal text-gray-500"> · {m.site}</span>
+                      </p>
                       <p className="text-sm text-gray-500">
-                        {m.marque ?? '?'} · n° {m.numeroSerie ?? '—'} · {m.ip ?? '—'}
+                        {m.marque ?? '?'} · {m.numeroSerie ?? '—'} · {m.ip ?? '—'}
                       </p>
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {!suivie && <Badge>Autre marque</Badge>}
                         {m.horsContrat && <Badge ton="gris">Hors contrat</Badge>}
                         {m.aVerifier && <Badge ton="orange">À vérifier</Badge>}
-                        {suivie && r && calc.aConfigurer && <Badge ton="orange">Compteurs à configurer</Badge>}
                       </div>
                     </div>
                     <div>
@@ -137,13 +150,14 @@ export default async function ParcPage() {
                     </div>
                     <div className="text-sm">
                       {suivie && calc.retenue ? (
-                        <>
-                          <p>N&amp;B <strong>{nombre(calc.retenue.nb)}</strong></p>
-                          <p>Couleur <strong>{nombre(calc.retenue.couleur)}</strong></p>
-                        </>
+                        <p className="flex flex-wrap gap-x-4">
+                          <span>N&amp;B <strong>{nombre(calc.retenue.nb)}</strong></span>
+                          <span>Couleur <strong>{nombre(calc.retenue.couleur)}</strong></span>
+                        </p>
                       ) : (
                         <p>Total <strong>{nombre(r?.totalStandard)}</strong></p>
                       )}
+                      {suivie && r && calc.aConfigurer && <p className="mt-0.5 text-xs text-gray-400">Compteurs non configurés</p>}
                     </div>
                     <p className="text-sm text-gray-500 md:text-right" title={r ? formaterDate(r.date) : undefined}>
                       {r ? `Relevé ${depuis(r.date)}` : 'Jamais lu'}
@@ -152,6 +166,8 @@ export default async function ParcPage() {
                 )
               })}
             </div>
+            </div>
+            ))}
           </section>
         ))}
       </div>

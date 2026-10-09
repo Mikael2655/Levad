@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { RECETTES, calculer, type Compteurs } from '@/lib/connect/calcul'
@@ -43,23 +44,23 @@ export default async function MachinePage({ params }: { params: { id: string } }
       </div>
       <p className="mt-1 text-gray-600">
         <Link href={`/parc/client/${machine.client.id}`} className="underline">{machine.client.nom}</Link> ·{' '}
-        {machine.marque ?? '?'} {machine.modele ?? ''} · n° {machine.numeroSerie ?? '—'} · IP {machine.ip ?? '—'}
+        {machine.site} · {machine.marque ?? '?'} {machine.modele ?? ''} · n° {machine.numeroSerie ?? '—'} · IP {machine.ip ?? '—'}
       </p>
       {aUnPoste && (
-        <form action={demanderLecture} className="mt-3 flex flex-wrap items-center gap-3">
+        <Formulaire action={demanderLecture} message="Demande envoyée" className="mt-3 flex flex-wrap items-center gap-3">
           <input type="hidden" name="machineId" value={machine.id} />
-          <button
+          <Bouton
             disabled={Boolean(commandeEnCours)}
             className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
           >
             Actualiser maintenant
-          </button>
+          </Bouton>
           <span className="text-sm text-gray-500">
             {commandeEnCours
               ? `Demande envoyée ${depuis(commandeEnCours.creeLe)} : la lecture arrive en quelques minutes (rechargez la page).`
               : 'Demande une lecture immédiate au programme installé chez le client.'}
           </span>
-        </form>
+        </Formulaire>
       )}
       <p className="mt-2 text-sm text-gray-500">
         {dernier ? `Dernier relevé : ${formaterDate(dernier.date)} (${depuis(dernier.date)})` : 'Aucun relevé'}
@@ -154,11 +155,15 @@ export default async function MachinePage({ params }: { params: { id: string } }
       {/* Réglages */}
       <section className="mt-6 rounded-xl border bg-white p-6">
         <h2 className="text-lg font-bold">Réglages de cette machine</h2>
-        <form action={enregistrerReglages} className="mt-4 grid gap-4 md:grid-cols-3">
+        <Formulaire action={enregistrerReglages} message="Réglages enregistrés" className="mt-4 grid gap-4 md:grid-cols-3">
           <input type="hidden" name="id" value={machine.id} />
           <label className="text-sm font-medium text-gray-700">
             Nom affiché
             <input name="nomAffiche" defaultValue={machine.nomAffiche ?? ''} placeholder={machine.modele ?? ''} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+          </label>
+          <label className="text-sm font-medium text-gray-700">
+            Site d&apos;installation
+            <input name="site" defaultValue={machine.site} placeholder="Site principal" className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
           </label>
           <label className="text-sm font-medium text-gray-700">
             Client
@@ -205,11 +210,11 @@ export default async function MachinePage({ params }: { params: { id: string } }
             </div>
           </fieldset>
           <div className="flex items-end">
-            <button className="rounded-lg px-5 py-2.5 font-semibold text-white" style={{ backgroundColor: VERT }}>
+            <Bouton className="rounded-lg px-5 py-2.5 font-semibold text-white" style={{ backgroundColor: VERT }}>
               Enregistrer
-            </button>
+            </Bouton>
           </div>
-        </form>
+        </Formulaire>
       </section>
 
       {/* Hors contrat */}
@@ -218,12 +223,12 @@ export default async function MachinePage({ params }: { params: { id: string } }
         <p className="mt-1 text-sm text-gray-600">
           Une machine hors contrat ne déclenche plus aucune alerte d&apos;encre (Canon ou autre marque) et ne figurera pas dans les exports.
         </p>
-        <form action={basculerHorsContrat} className="mt-3">
+        <Formulaire action={basculerHorsContrat} message="Enregistré" className="mt-3">
           <input type="hidden" name="id" value={machine.id} />
-          <button className={`rounded-lg px-4 py-2 font-semibold ${machine.horsContrat ? 'text-white' : 'border border-gray-300 bg-white'}`} style={machine.horsContrat ? { backgroundColor: VERT } : undefined}>
+          <Bouton className={`rounded-lg px-4 py-2 font-semibold ${machine.horsContrat ? 'text-white' : 'border border-gray-300 bg-white'}`} style={machine.horsContrat ? { backgroundColor: VERT } : undefined}>
             {machine.horsContrat ? 'Remettre sous contrat' : 'Machine hors contrat'}
-          </button>
-        </form>
+          </Bouton>
+        </Formulaire>
       </section>
 
       {/* Compteurs bruts */}

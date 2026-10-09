@@ -111,3 +111,6 @@ CREATE INDEX IF NOT EXISTS "connect_commande_clientId_faiteLe_idx" ON "connect_c
 
 -- v4 : machine « hors contrat » (pas d'alerte d'encre, exclue des exports)
 ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "horsContrat" BOOLEAN NOT NULL DEFAULT false;
+
+-- v5 : site d'installation de la machine
+ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "site" TEXT NOT NULL DEFAULT 'Site principal';
