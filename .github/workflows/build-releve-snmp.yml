@@ -45,14 +45,15 @@ jobs:
         if: matrix.nom == 'Mac'
         run: python -m PyInstaller --windowed --icon icone.icns --name "Levad Connect" --osx-bundle-identifier fr.levad.connect --paths releve-snmp --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi releve-snmp/levad_connect_gui.py
       - name: Windows - connexion à Azure (signature)
-        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui'
+        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui' && github.ref == 'refs/heads/main'
         uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
       - name: Windows - signer le programme (Azure Artifact Signing)
-        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui'
+        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui' && github.ref == 'refs/heads/main'
         uses: azure/artifact-signing-action@v2
         with:
           endpoint: ${{ vars.SIGNATURE_ENDPOINT }}
@@ -64,7 +65,7 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
       - name: Windows - vérifier la signature
-        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui'
+        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui' && github.ref == 'refs/heads/main'
         shell: pwsh
         run: |
           $sig = Get-AuthenticodeSignature dist/Levad-Connect.exe
