@@ -21,8 +21,29 @@ export function gammeAuto(modele: string | null | undefined): Gamme | null {
   )
 }
 
+/** Une famille = un même modèle de copieur et ses cartouches : la version standard et, s'il y en a, ses versions L / H. */
+export type Famille = { cle: string; modeles: string; variantes: Gamme[] } // variantes[0] = standard
+
+export const FAMILLES: Famille[] = (() => {
+  const res = new Map<string, Famille>()
+  for (const g of GAMMES) {
+    const f = res.get(g.modeles) ?? { cle: '', modeles: g.modeles, variantes: [] }
+    if (g.defaut) f.variantes.unshift(g)
+    else f.variantes.push(g)
+    f.cle = f.variantes[0].code
+    res.set(g.modeles, f)
+  }
+  return Array.from(res.values())
+})()
+
+export function familleDe(g: Gamme): Famille {
+  return FAMILLES.find((f) => f.modeles === g.modeles)!
+}
+
+/** La gamme (version standard de la famille) correspondant à un code ; une version L / H renvoie sa famille. */
 export function gammeParCode(code: string | null | undefined): Gamme | null {
-  return code ? GAMMES.find((g) => g.code === code) ?? null : null
+  const g = code ? GAMMES.find((x) => x.code === code) : null
+  return g ? familleDe(g).variantes[0] : null
 }
 
 type MachineGamme = { id: number; site: string; modele: string | null; gamme: string | null }

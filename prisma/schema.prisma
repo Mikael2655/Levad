@@ -119,6 +119,7 @@ model ConnectStockMouvement {
   motif     String // envoi | correction | changement
   note      String? // référence de la cartouche, remarque...
   machineId Int?
+  variante  String        @default("") // « » = cartouche standard ; sinon le code de la version L / H (ex. « C-EXV 58 L »)
   groupe    String        @default("") // « site|gamme » : stock partagé par les machines compatibles d'un même site
   date      DateTime      @default(now())
 

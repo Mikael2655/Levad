@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db'
 import { cleClient } from './normaliser'
-import { COULEURS, stockCourant } from './alertes'
+import { COULEURS, varianteADecompter } from './alertes'
 import { cleGroupe } from './gammes'
 
 // Enregistre dans la base les relevés envoyés par le programme Levad Connect.
@@ -94,11 +94,13 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
         if (e.pourcent !== 100 || !e.couleur || !(COULEURS as readonly string[]).includes(e.couleur)) continue
         const p = avant.find((x: Json) => x.couleur === e.couleur)?.pourcent
         if (typeof p !== 'number' || p >= 100) continue
-        if ((await stockCourant(machine.clientId, groupe, e.couleur)) > 0) {
+        const variante = await varianteADecompter(machine.clientId, groupe, e.couleur)
+        if (variante !== null) {
           await prisma.connectStockMouvement.create({
             data: {
               clientId: machine.clientId,
               groupe,
+              variante,
               couleur: e.couleur,
               delta: -1,
               motif: 'changement',
