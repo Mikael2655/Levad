@@ -113,6 +113,15 @@ jobs:
           mkdir -p public/telechargements
           cp programmes-fabriques/Levad-Connect-Windows/Levad-Connect.exe public/telechargements/
           cp programmes-fabriques/Levad-Connect-Mac/Levad-Connect-Mac.zip public/telechargements/
+      - name: Informations de mise à jour automatique (version, empreinte)
+        run: |
+          VERSION=$(grep -oP 'VERSION_AGENT = "\K[^"]+' releve-snmp/levad_agent.py)
+          SHA=$(sha256sum public/telechargements/Levad-Connect.exe | cut -d' ' -f1)
+          TAILLE=$(stat -c%s public/telechargements/Levad-Connect.exe)
+          SIGNE=false
+          if [ "${{ vars.SIGNATURE_WINDOWS }}" = "oui" ]; then SIGNE=true; fi
+          printf '{\n  "version": "%s",\n  "sha256": "%s",\n  "taille": %s,\n  "signe": %s,\n  "signataire": "%s"\n}\n' "$VERSION" "$SHA" "$TAILLE" "$SIGNE" "${{ vars.SIGNATURE_SIGNATAIRE }}" > public/telechargements/version.json
+          cat public/telechargements/version.json
       - name: Publier dans le dépôt
         run: |
           git config user.name "github-actions[bot]"
