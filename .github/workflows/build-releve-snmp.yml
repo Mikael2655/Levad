@@ -10,8 +10,16 @@ on:
       - ".github/workflows/build-releve-snmp.yml"
   workflow_dispatch:
 
+# Signature Windows (Azure Artifact Signing) : s'active toute seule quand la variable de dépôt SIGNATURE_WINDOWS vaut « oui »
+# (Settings > Secrets and variables > Actions > Variables). Tant qu'elle n'existe pas, le programme est fabriqué sans signature, comme avant.
+permissions:
+  contents: read
+
 jobs:
   fabriquer:
+    permissions:
+      contents: read
+      id-token: write # connexion à Azure sans mot de passe stocké (OIDC)
     strategy:
       fail-fast: false
       matrix:
@@ -36,6 +44,32 @@ jobs:
       - name: "Fabriquer le programme (Mac : une application)"
         if: matrix.nom == 'Mac'
         run: python -m PyInstaller --windowed --icon icone.icns --name "Levad Connect" --osx-bundle-identifier fr.levad.connect --paths releve-snmp --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi releve-snmp/levad_connect_gui.py
+      - name: Windows - connexion à Azure (signature)
+        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui'
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Windows - signer le programme (Azure Artifact Signing)
+        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.SIGNATURE_ENDPOINT }}
+          signing-account-name: ${{ vars.SIGNATURE_COMPTE }}
+          certificate-profile-name: ${{ vars.SIGNATURE_PROFIL }}
+          files-folder: ${{ github.workspace }}\dist
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+      - name: Windows - vérifier la signature
+        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui'
+        shell: pwsh
+        run: |
+          $sig = Get-AuthenticodeSignature dist/Levad-Connect.exe
+          Write-Host "Statut : $($sig.Status) - Signataire : $($sig.SignerCertificate.Subject)"
+          if ($sig.Status -ne 'Valid') { throw "Le programme n'est pas correctement signé ($($sig.Status))" }
       - name: Essai Windows (la fenêtre s'ouvre et se ferme sans erreur)
         if: matrix.nom == 'Windows'
         shell: pwsh
