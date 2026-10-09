@@ -6,7 +6,7 @@ import { RECETTES, calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
 import { basculerHorsContrat, choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
 import { COULEURS, NOM_COULEUR, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
-import { GAMMES, cleGroupe, gammeAuto, gammeDe } from '@/lib/connect/gammes'
+import { FAMILLES, cleGroupe, gammeAuto, gammeDe } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,8 +56,8 @@ export default async function MachinePage({ params }: { params: { id: string } }
             Gamme d&apos;encre non reconnue : choisissez-la (ex. C-EXV 49)
             <select name="gamme" defaultValue="" required className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2">
               <option value="" disabled>Choisir la gamme…</option>
-              {GAMMES.map((g) => (
-                <option key={g.code} value={g.code}>{g.code} — {g.modeles}</option>
+              {FAMILLES.map((g) => (
+                <option key={g.cle} value={g.cle}>{g.cle} — {g.modeles}</option>
               ))}
             </select>
           </label>
@@ -187,8 +187,8 @@ export default async function MachinePage({ params }: { params: { id: string } }
             Gamme d&apos;encre (cartouches compatibles)
             <select name="gamme" defaultValue={machine.gamme ?? ''} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
               <option value="">{auto ? `Automatique : ${auto.code} (${auto.modeles})` : 'Automatique : modèle non reconnu'}</option>
-              {GAMMES.map((g) => (
-                <option key={g.code} value={g.code}>{g.code} — {g.modeles}</option>
+              {FAMILLES.map((g) => (
+                <option key={g.cle} value={g.cle}>{g.cle} — {g.modeles}</option>
               ))}
             </select>
             <span className="mt-1 block text-xs font-normal text-gray-500">

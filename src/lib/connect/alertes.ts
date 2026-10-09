@@ -25,13 +25,36 @@ const cleStock = (clientId: number, groupe: string) => `${clientId}#${groupe}`
  * Les anciens mouvements sans groupe (stock « global » d'avant les gammes) ne sont plus comptés.
  */
 export async function stocksParGroupe(): Promise<Map<string, Stock>> {
-  const lignes = await prisma.connectStockMouvement.groupBy({ by: ['clientId', 'groupe', 'couleur'], _sum: { delta: true }, where: { groupe: { not: '' } } })
+  const lignes = await prisma.connectStockMouvement.groupBy({
+    by: ['clientId', 'groupe', 'couleur', 'variante'],
+    _sum: { delta: true },
+    where: { groupe: { not: '' } },
+  })
   const res = new Map<string, Stock>()
   for (const l of lignes) {
     const k = cleStock(l.clientId, l.groupe)
     const s = res.get(k) ?? stockVide()
-    if ((COULEURS as readonly string[]).includes(l.couleur)) s[l.couleur as Couleur] = Math.max(0, l._sum.delta ?? 0)
+    // chaque version (standard, L, H) est comptée à part, jamais en dessous de zéro, puis additionnée
+    if ((COULEURS as readonly string[]).includes(l.couleur)) s[l.couleur as Couleur] += Math.max(0, l._sum.delta ?? 0)
     res.set(k, s)
+  }
+  return res
+}
+
+/** Détail par couleur puis par version (« » = standard) du stock de chaque groupe. */
+export type StockDetail = Record<string, Record<string, number>>
+export async function detailsParGroupe(): Promise<Map<string, StockDetail>> {
+  const lignes = await prisma.connectStockMouvement.groupBy({
+    by: ['clientId', 'groupe', 'couleur', 'variante'],
+    _sum: { delta: true },
+    where: { groupe: { not: '' } },
+  })
+  const res = new Map<string, StockDetail>()
+  for (const l of lignes) {
+    const k = cleStock(l.clientId, l.groupe)
+    const d = res.get(k) ?? {}
+    ;(d[l.couleur] ??= {})[l.variante] = Math.max(0, l._sum.delta ?? 0)
+    res.set(k, d)
   }
   return res
 }
@@ -40,9 +63,21 @@ export function stockDuGroupe(stocks: Map<string, Stock>, clientId: number, grou
   return stocks.get(cleStock(clientId, groupe)) ?? stockVide()
 }
 
-export async function stockCourant(clientId: number, groupe: string, couleur: string): Promise<number> {
-  const r = await prisma.connectStockMouvement.aggregate({ where: { clientId, groupe, couleur }, _sum: { delta: true } })
+export async function stockCourant(clientId: number, groupe: string, couleur: string, variante: string): Promise<number> {
+  const r = await prisma.connectStockMouvement.aggregate({ where: { clientId, groupe, couleur, variante }, _sum: { delta: true } })
   return r._sum.delta ?? 0
+}
+
+/** La version de cartouche à décompter quand une cartouche est changée : celle dont le stock est le plus grand (standard en cas d'égalité). */
+export async function varianteADecompter(clientId: number, groupe: string, couleur: string): Promise<string | null> {
+  const lignes = await prisma.connectStockMouvement.groupBy({ by: ['variante'], _sum: { delta: true }, where: { clientId, groupe, couleur } })
+  let meilleure: string | null = null
+  let max = 0
+  for (const l of lignes.sort((a, b) => a.variante.localeCompare(b.variante))) {
+    const q = l._sum.delta ?? 0
+    if (q > max) { max = q; meilleure = l.variante }
+  }
+  return meilleure
 }
 
 type EncreJson = { couleur: string | null; pourcent: number | null }

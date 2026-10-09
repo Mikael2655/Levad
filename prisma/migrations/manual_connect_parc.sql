@@ -118,3 +118,6 @@ ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "site" TEXT NOT NULL DEFA
 -- v6 : gammes d'encre (cartouches compatibles) et stock par groupe (site + gamme)
 ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "gamme" TEXT;
 ALTER TABLE "connect_stock_mouvement" ADD COLUMN IF NOT EXISTS "groupe" TEXT NOT NULL DEFAULT '';
+
+-- v7 : versions L / H des cartouches (stock suivi par version)
+ALTER TABLE "connect_stock_mouvement" ADD COLUMN IF NOT EXISTS "variante" TEXT NOT NULL DEFAULT '';

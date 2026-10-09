@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
-import { cleGroupe, gammeParCode } from '@/lib/connect/gammes'
+import { cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
 import { assurerCode, regenererCode, urlLien } from '@/lib/connect/agent'
 import { envoyerMail } from '@/lib/connect/mail'
 
@@ -131,14 +131,19 @@ export async function ajouterEnvoi(formData: FormData): Promise<string | void> {
   if (!clientId) return '!Client inconnu'
   const date = dateSaisie && !Number.isNaN(Date.parse(dateSaisie)) ? new Date(dateSaisie) : new Date()
   const valides = await groupesValides(clientId)
-  const data: { clientId: number; groupe: string; couleur: string; delta: number; motif: string; note: string | null; date: Date }[] = []
+  const data: { clientId: number; groupe: string; variante: string; couleur: string; delta: number; motif: string; note: string | null; date: Date }[] = []
   for (let i = 0; i < 100; i++) {
     const groupe = formData.get(`groupe_${i}`)
     if (groupe === null) break
     if (!valides.has(String(groupe))) continue
+    const g = gammeParCode(String(groupe).slice(String(groupe).lastIndexOf('|') + 1))
+    const variantes = g ? familleDe(g).variantes : [null]
     for (const couleur of COULEURS) {
-      const q = Math.floor(Number(formData.get(`qte_${i}_${couleur}`)) || 0)
-      if (q >= 1) data.push({ clientId, groupe: String(groupe), couleur, delta: Math.min(q, 999), motif: 'envoi', note, date })
+      variantes.forEach((v, vi) => {
+        const q = Math.floor(Number(formData.get(`qte_${i}_${couleur}_${vi}`)) || 0)
+        // la version standard est enregistrée « vide », les versions L / H par leur code
+        if (q >= 1) data.push({ clientId, groupe: String(groupe), variante: vi === 0 ? '' : v!.code, couleur, delta: Math.min(q, 999), motif: 'envoi', note, date })
+      })
     }
   }
   if (!data.length) return '!Aucune quantité saisie'
@@ -153,12 +158,13 @@ export async function corrigerStock(formData: FormData): Promise<string | void> 
   const clientId = Number(formData.get('clientId'))
   const groupe = String(formData.get('groupe') ?? '')
   const couleur = String(formData.get('couleur') ?? '')
+  const variante = String(formData.get('variante') ?? '')
   const voulu = Math.max(0, Math.floor(Number(formData.get('quantite'))))
   if (!clientId || !(COULEURS as readonly string[]).includes(couleur) || Number.isNaN(voulu) || !(await groupesValides(clientId)).has(groupe)) return '!Valeur invalide'
-  const actuel = Math.max(0, await stockCourant(clientId, groupe, couleur))
+  const actuel = Math.max(0, await stockCourant(clientId, groupe, couleur, variante))
   if (voulu === actuel) return 'Déjà à cette quantité : rien à changer'
   await prisma.connectStockMouvement.create({
-    data: { clientId, groupe, couleur, delta: voulu - actuel, motif: 'correction', note: `Corrigé de ${actuel} à ${voulu}` },
+    data: { clientId, groupe, variante, couleur, delta: voulu - actuel, motif: 'correction', note: `Corrigé de ${actuel} à ${voulu}` },
   })
   revalidatePath('/parc', 'layout')
   return `Stock corrigé : ${voulu}`

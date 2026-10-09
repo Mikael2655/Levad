@@ -3,8 +3,8 @@ import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { Encres, VERT, formaterDate, depuis, type Encre } from '@/components/connect/affichage'
-import { COULEURS, NOM_COULEUR, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
-import { GAMMES, grouper } from '@/lib/connect/gammes'
+import { COULEURS, NOM_COULEUR, detailsParGroupe, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
+import { FAMILLES, familleDe, grouper } from '@/lib/connect/gammes'
 import { ajouterEnvoi, choisirGamme, corrigerStock, supprimerMouvement } from '../../actions'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +24,7 @@ export default async function StockClientPage({ params }: { params: { id: string
   })
   if (!client) notFound()
   const stocks = await stocksParGroupe()
+  const details = await detailsParGroupe()
   const groupes = grouper(client.machines)
   const mouvements = await prisma.connectStockMouvement.findMany({ where: { clientId: client.id }, orderBy: { date: 'desc' }, take: 30 })
 
@@ -35,11 +36,13 @@ export default async function StockClientPage({ params }: { params: { id: string
       {groupes.length === 0 && <p className="mt-6 rounded-xl border bg-white p-6 text-gray-600">Aucune machine suivie pour ce client.</p>}
       {groupes.map((g) => {
         const stock = stockDuGroupe(stocks, client.id, g.cle)
-        const couleursDuGroupe = g.gamme ? COULEURS.filter((c) => g.gamme!.refs[c]) : COULEURS
+        const variantes = g.gamme ? familleDe(g.gamme).variantes : []
+        const detail = details.get(`${client.id}#${g.cle}`) ?? {}
+        const couleursDuGroupe = variantes.length ? COULEURS.filter((c) => variantes.some((v) => v.refs[c])) : COULEURS
         return (
           <section key={g.cle} className="mt-6 rounded-xl border bg-white p-6">
             <h2 className="text-lg font-bold">
-              {g.site} · {g.gamme ? `${g.gamme.code} (${g.gamme.modeles})` : 'gamme non reconnue'}
+              {g.site} · {g.gamme ? `${variantes.map((v) => v.code).join(' / ')} (${g.gamme.modeles})` : 'gamme non reconnue'}
             </h2>
             {!g.gamme && (
               <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
@@ -53,8 +56,8 @@ export default async function StockClientPage({ params }: { params: { id: string
                       Gamme de {m.nomAffiche || m.modele || 'la machine'}
                       <select name="gamme" defaultValue="" required className={champ}>
                         <option value="" disabled>Choisir la gamme (ex. C-EXV 49)…</option>
-                        {GAMMES.map((x) => (
-                          <option key={x.code} value={x.code}>{x.code} — {x.modeles}</option>
+                        {FAMILLES.map((x) => (
+                          <option key={x.cle} value={x.cle}>{x.cle} — {x.modeles}</option>
                         ))}
                       </select>
                     </label>
@@ -85,7 +88,20 @@ export default async function StockClientPage({ params }: { params: { id: string
                 <div key={c} className="rounded-lg bg-gray-50 p-3 text-center">
                   <p className="text-sm text-gray-500">{NOM_COULEUR[c]}</p>
                   <p className={`text-2xl font-bold ${stock[c] === 0 ? 'text-gray-400' : ''}`}>{stock[c]}</p>
-                  {g.gamme?.refs[c] && <p className="text-xs text-gray-500">{g.gamme.refs[c]}</p>}
+                  {variantes.length === 1 && g.gamme?.refs[c] && <p className="text-xs text-gray-500">{g.gamme.refs[c]}</p>}
+                  {variantes.length > 1 && (
+                    <ul className="mt-1 space-y-0.5 text-left text-xs text-gray-500">
+                      {variantes.filter((v) => v.refs[c]).map((v) => {
+                        const n = detail[c]?.[variantes.indexOf(v) === 0 ? '' : v.code] ?? 0
+                        return (
+                        <li key={v.code} className="flex justify-between gap-2">
+                          <span title={v.refs[c] ?? ''}>{v.code}</span>
+                          <strong className={n > 0 ? 'text-gray-900' : 'text-gray-400'}>{n}</strong>
+                        </li>
+                        )
+                      })}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>
@@ -103,15 +119,21 @@ export default async function StockClientPage({ params }: { params: { id: string
               <div key={g.cle}>
                 <input type="hidden" name={`groupe_${i}`} value={g.cle} />
                 <p className="text-sm font-semibold text-gray-700">
-                  {g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => m.nomAffiche || m.modele).join(', ')}
+                  {g.site} · {g.gamme ? familleDe(g.gamme).variantes.map((v) => v.code).join(' / ') : g.machines.map((m) => m.nomAffiche || m.modele).join(', ')}
                 </p>
                 <div className="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  {(g.gamme ? COULEURS.filter((c) => g.gamme!.refs[c]) : COULEURS).map((c) => (
-                    <label key={c} className="text-sm font-medium text-gray-700">
+                  {(g.gamme ? COULEURS.filter((c) => familleDe(g.gamme!).variantes.some((v) => v.refs[c])) : COULEURS).map((c) => (
+                    <div key={c} className="text-sm font-medium text-gray-700">
                       {NOM_COULEUR[c]}
-                      {g.gamme?.refs[c] && <span className="ml-1 text-xs font-normal text-gray-400">{g.gamme.refs[c]}</span>}
-                      <input type="number" inputMode="numeric" name={`qte_${i}_${c}`} min={0} defaultValue={0} className={champ} />
-                    </label>
+                      {(g.gamme ? familleDe(g.gamme).variantes : [null]).map((v, vi) =>
+                        v && !v.refs[c] ? null : (
+                          <label key={vi} className="mt-1 block text-xs font-normal text-gray-500">
+                            {v ? `${v.code} · ${v.refs[c]}` : 'quantité'}
+                            <input type="number" inputMode="numeric" name={`qte_${i}_${c}_${vi}`} min={0} defaultValue={0} className={champ} />
+                          </label>
+                        )
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -137,7 +159,7 @@ export default async function StockClientPage({ params }: { params: { id: string
         <section className="mt-6 rounded-xl border bg-white p-6">
           <h2 className="text-lg font-bold">Corriger le stock</h2>
           <p className="text-sm text-gray-500">Indiquez la quantité réelle : la différence est enregistrée comme correction.</p>
-          <Formulaire action={corrigerStock} message="Stock corrigé" className="mt-4 grid gap-4 sm:grid-cols-4">
+          <Formulaire action={corrigerStock} message="Stock corrigé" className="mt-4 grid gap-4 sm:grid-cols-5">
             <input type="hidden" name="clientId" value={client.id} />
             <label className="text-sm font-medium text-gray-700">
               Site · gamme
@@ -152,6 +174,15 @@ export default async function StockClientPage({ params }: { params: { id: string
               <select name="couleur" className={champ}>
                 {COULEURS.map((c) => (
                   <option key={c} value={c}>{NOM_COULEUR[c]}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-medium text-gray-700">
+              Version
+              <select name="variante" className={champ}>
+                <option value="">Standard</option>
+                {Array.from(new Set(groupes.flatMap((g) => (g.gamme ? familleDe(g.gamme).variantes.slice(1).map((v) => v.code) : [])))).map((code) => (
+                  <option key={code} value={code}>{code}</option>
                 ))}
               </select>
             </label>
@@ -188,7 +219,7 @@ export default async function StockClientPage({ params }: { params: { id: string
                   <tr key={m.id} className="border-b last:border-0">
                     <td className="py-1.5 pr-4">{formaterDate(m.date)}</td>
                     <td className="py-1.5 pr-4 text-gray-600">{m.groupe ? m.groupe.replace('|', ' · ').replace(/machine-\d+/, 'machine seule') : 'Ancien stock'}</td>
-                    <td className="py-1.5 pr-4">{NOM_COULEUR[m.couleur as keyof typeof NOM_COULEUR] ?? m.couleur}</td>
+                    <td className="py-1.5 pr-4">{NOM_COULEUR[m.couleur as keyof typeof NOM_COULEUR] ?? m.couleur}{m.variante ? ` (${m.variante})` : ''}</td>
                     <td className={`py-1.5 pr-4 text-right tabular-nums ${m.delta > 0 ? 'text-green-700' : 'text-red-600'}`}>
                       {m.delta > 0 ? `+${m.delta}` : m.delta}
                     </td>
