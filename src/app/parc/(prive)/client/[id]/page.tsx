@@ -118,6 +118,16 @@ export default async function ClientPage({ params }: { params: { id: string } })
                   {statutConnexion(p.derniereConnexion, client.seuilDeconnexionJours) === 'connecte' && <Badge ton="vert">connecté</Badge>}
                   {statutConnexion(p.derniereConnexion, client.seuilDeconnexionJours) === 'deconnecte' && <Badge ton="rouge">déconnecté</Badge>}
                 </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Programme version {p.versionAgent ?? '?'}
+                  {p.demarreLe && ` · démarré le ${formaterDate(p.demarreLe)}`}
+                  {p.derniereLectureOk && ` · dernière lecture réussie ${depuis(p.derniereLectureOk)}`}
+                </p>
+                {p.derniereErreur && p.derniereErreurLe && (
+                  <p className="mt-1 text-xs text-red-600">
+                    Dernière erreur du programme ({formaterDate(p.derniereErreurLe)}, {p.nbErreurs} depuis son démarrage) : {p.derniereErreur}
+                  </p>
+                )}
                 <Formulaire action={definirSitePoste} message="Site enregistré" className="mt-2 flex flex-wrap items-end gap-3">
                   <input type="hidden" name="id" value={p.id} />
                   <label className="grow text-sm font-medium text-gray-700">

@@ -21,13 +21,14 @@ import socket
 import ssl
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.0"
+VERSION_AGENT = "1.1"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -52,17 +53,26 @@ def _chemin(nom):
 
 
 def lire_config():
-    try:
-        with open(_chemin("config.json"), encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
-        return {}
+    # config.json, sinon sa copie de secours (un fichier abîmé par une coupure de courant ne doit pas arrêter le programme)
+    for nom in ("config.json", "config.bak"):
+        try:
+            with open(_chemin(nom), encoding="utf-8") as f:
+                c = json.load(f)
+            if isinstance(c, dict) and c.get("code"):
+                return c
+        except (OSError, ValueError):
+            continue
+    return {}
 
 
 def ecrire_config(config):
+    """Écriture sûre : fichier temporaire puis remplacement, et copie de secours."""
     os.makedirs(dossier_donnees(), exist_ok=True)
-    with open(_chemin("config.json"), "w", encoding="utf-8") as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
+    for nom in ("config.bak", "config.json"):
+        tmp = _chemin(nom + ".tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, _chemin(nom))
 
 
 def journal(message):
@@ -122,9 +132,22 @@ def appel(config, chemin, donnees):
         raise
 
 
+# Ce que le programme sait de sa propre santé : envoyé avec chaque signal de vie, pour que LEVAD voie
+# ce qui s'est passé sans rien demander au client (dernière erreur, dernière lecture réussie...).
+DIAG = {"demarreLe": datetime.datetime.now(datetime.timezone.utc).isoformat(), "derniereErreur": None,
+        "derniereErreurLe": None, "derniereLectureOk": None, "nbErreurs": 0}
+
+
+def noter_erreur(message):
+    journal("erreur : %s" % message)
+    DIAG["derniereErreur"] = str(message)[:300]
+    DIAG["derniereErreurLe"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    DIAG["nbErreurs"] += 1
+
+
 def signal_de_vie(config):
     return appel(config, "/api/agent/ping", {
-        "pc": socket.gethostname(), "systeme": R.platform.platform(), "version": VERSION_AGENT})
+        "pc": socket.gethostname(), "systeme": R.platform.platform(), "version": VERSION_AGENT, "diag": dict(DIAG)})
 
 
 # ----------------------------------------------------------------------------
@@ -177,6 +200,7 @@ def lire_et_envoyer(config, commande_ids=()):
         "machines": machines, "commandeIds": list(commande_ids)})
     config["derniere_lecture"] = time.time()
     ecrire_config(config)
+    DIAG["derniereLectureOk"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
     journal("relevé envoyé : %d copieur(s)" % len(machines))
     return len(machines), reponse
 
@@ -195,6 +219,9 @@ def _verrou():
         return None
 
 
+TROIS_JOURS = 3 * 24 * 3600
+
+
 def boucle(max_tours=None):
     """Le programme résident. `max_tours` (essais uniquement) limite le nombre de passages."""
     verrou = _verrou()
@@ -205,27 +232,54 @@ def boucle(max_tours=None):
     if not config.get("code"):
         journal("pas de code client : arrêt")
         return 1
+    if max_tours is None:
+        _assurer_surveillance()       # les installations de la version 1.0 reçoivent aussi la tâche de relance
     tours = 0
+    lecteur = {"fil": None}           # la lecture des copieurs se fait à part : elle ne retarde jamais le signal de vie
+    premier_refus = None
+
+    def lancer_lecture(commandes):
+        def travail():
+            try:
+                lire_et_envoyer(config, commandes)
+            except CodeInconnu:
+                pass                  # le prochain signal de vie le constatera
+            except Exception as e:
+                noter_erreur("lecture : %s" % e)
+        fil = threading.Thread(target=travail, daemon=True)
+        lecteur["fil"] = fil
+        fil.start()
+
     while True:
         if os.path.exists(_chemin("arret")):
             journal("arrêt demandé (désinstallation)")
             _nettoyer_apres_arret()
             return 0
+        pause = float(os.environ.get("LEVAD_PAUSE", PAUSE_SECONDES))
         try:
             reponse = signal_de_vie(config)
+            premier_refus = None
+            occupe = lecteur["fil"] is not None and lecteur["fil"].is_alive()
             echeance = time.time() - config.get("derniere_lecture", 0) >= reponse.get("intervalleMinutes", 30) * 60
             commandes = [c["id"] for c in reponse.get("commandes", [])]
-            if echeance or commandes:
-                lire_et_envoyer(config, commandes)
+            if (echeance or commandes) and not occupe:
+                lancer_lecture(commandes)
         except CodeInconnu as e:
-            journal("arrêt : %s" % e)
-            return 2
+            # lien refusé : on réessaie pendant 3 jours avant d'abandonner (un refus passager ne doit pas arrêter le programme pour toujours)
+            premier_refus = premier_refus or time.time()
+            noter_erreur(str(e))
+            if time.time() - premier_refus > TROIS_JOURS:
+                journal("arrêt : %s depuis plus de 3 jours" % e)
+                return 2
+            pause = max(pause, 900.0) if max_tours is None else pause
         except Exception as e:       # réseau coupé, serveur indisponible... on réessaie au prochain passage
-            journal("erreur : %s" % e)
+            noter_erreur(e)
         tours += 1
         if max_tours is not None and tours >= max_tours:
+            if lecteur["fil"] is not None:
+                lecteur["fil"].join(timeout=120)   # essais : on attend la fin de la lecture en cours
             return 0
-        time.sleep(float(os.environ.get("LEVAD_PAUSE", PAUSE_SECONDES)))
+        time.sleep(pause)
 
 
 # ----------------------------------------------------------------------------
@@ -262,7 +316,35 @@ def installer(code, serveur=None, avec_demarrage_auto=True):
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, CLE_DEMARRAGE) as cle:
             winreg.SetValueEx(cle, NOM_DEMARRAGE, 0, winreg.REG_SZ, subprocess.list2cmdline(commande))
     journal("installé (code %s…)" % code[:4])
+    if avec_demarrage_auto:
+        _assurer_surveillance()
     lancer_en_fond(commande)
+
+
+NOM_TACHE = "Levad Connect"
+
+
+def _assurer_surveillance():
+    """Windows : une tâche planifiée relance le programme toutes les 15 minutes s'il n'est plus en marche
+    (arrêt imprévu, session rouverte...). Si le programme tourne déjà, la relance est ignorée aussitôt (verrou)."""
+    if sys.platform != "win32" or not getattr(sys, "frozen", False) or os.environ.get("LEVAD_SANS_AUTODEMARRAGE"):
+        return
+    try:
+        sortie = subprocess.run(["schtasks", "/Create", "/TN", NOM_TACHE, "/TR", subprocess.list2cmdline(_commande_agent()),
+                                 "/SC", "MINUTE", "/MO", "15", "/F"], capture_output=True, timeout=30, creationflags=0x08000000)
+        if sortie.returncode != 0:
+            journal("surveillance non installée (code %s)" % sortie.returncode)
+    except Exception as e:
+        journal("surveillance non installée : %s" % e)
+
+
+def _retirer_surveillance():
+    if sys.platform != "win32":
+        return
+    try:
+        subprocess.run(["schtasks", "/Delete", "/TN", NOM_TACHE, "/F"], capture_output=True, timeout=30, creationflags=0x08000000)
+    except Exception:
+        pass
 
 
 def lancer_en_fond(commande):
@@ -284,6 +366,8 @@ def desinstaller(avec_demarrage_auto=True):
                 winreg.DeleteValue(cle, NOM_DEMARRAGE)
         except OSError:
             pass
+    if avec_demarrage_auto:
+        _retirer_surveillance()
     os.makedirs(dossier_donnees(), exist_ok=True)
     with open(_chemin("arret"), "w") as f:
         f.write("arrêt")

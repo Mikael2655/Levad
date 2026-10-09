@@ -23,10 +23,25 @@ export async function POST(req: Request) {
   const systeme = String(corps.systeme ?? '').trim().slice(0, 120) || null
   const version = String(corps.version ?? '').trim().slice(0, 20) || null
 
+  // santé du programme (version 1.1+) : dernière erreur, dernière lecture réussie, heure de démarrage
+  const d = corps.diag && typeof corps.diag === 'object' ? corps.diag : {}
+  const date = (v: unknown) => {
+    const t = typeof v === 'string' ? new Date(v) : null
+    return t && !Number.isNaN(t.getTime()) ? t : null
+  }
+  const sante = corps.diag
+    ? {
+        demarreLe: date(d.demarreLe),
+        derniereLectureOk: date(d.derniereLectureOk),
+        derniereErreur: typeof d.derniereErreur === 'string' ? d.derniereErreur.slice(0, 300) : null,
+        derniereErreurLe: date(d.derniereErreurLe),
+        nbErreurs: Math.max(0, Math.min(1_000_000, Math.floor(Number(d.nbErreurs)) || 0)),
+      }
+    : {}
   await prisma.connectPoste.upsert({
     where: { clientId_nom: { clientId: client.id, nom } },
-    update: { derniereConnexion: new Date(), systeme, versionAgent: version, deconnexionSignaleLe: null },
-    create: { clientId: client.id, nom, systeme, versionAgent: version },
+    update: { derniereConnexion: new Date(), systeme, versionAgent: version, deconnexionSignaleLe: null, ...sante },
+    create: { clientId: client.id, nom, systeme, versionAgent: version, ...sante },
   })
   if (client.deconnexionSignaleLe) {
     await prisma.connectClient.update({ where: { id: client.id }, data: { deconnexionSignaleLe: null } })
