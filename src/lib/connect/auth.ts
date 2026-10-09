@@ -15,6 +15,11 @@ export function motDePasseConfigure(): string | null {
   return process.env.PARC_PASSWORD || null
 }
 
+/** Identifiant attendu (variable Vercel PARC_USER, « levad » par défaut) : il sert surtout au trousseau / gestionnaire de mots de passe. */
+export function identifiantValide(saisi: string): boolean {
+  return saisi.trim().toLowerCase() === (process.env.PARC_USER || 'levad').trim().toLowerCase()
+}
+
 export function motDePasseValide(saisi: string): boolean {
   const attendu = motDePasseConfigure()
   if (!attendu) return false
