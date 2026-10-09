@@ -292,10 +292,13 @@ def main():
     parser.add_argument("--agent", action="store_true", help=argparse.SUPPRESS)      # programme résident (sans fenêtre)
     parser.add_argument("--desinstaller", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--autotest", action="store_true", help=argparse.SUPPRESS)   # essai de fabrication
+    parser.add_argument("--verifier", action="store_true", help=argparse.SUPPRESS)   # essai de démarrage avant une mise à jour
     parser.add_argument("--plage", help=argparse.SUPPRESS)                          # essais
     parser.add_argument("--port", type=int, default=161, help=argparse.SUPPRESS)    # essais
     args, _ = parser.parse_known_args()
 
+    if args.verifier:                             # le programme démarre correctement : rien d'autre à faire
+        return 0
     if args.agent:                                # arrière-plan : aucune fenêtre
         return A.boucle()
     if args.desinstaller:

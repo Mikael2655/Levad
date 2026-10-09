@@ -13,6 +13,7 @@ Le client est reconnu grâce au code de son lien personnel, contenu dans le nom 
 """
 
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -28,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.1"
+VERSION_AGENT = "1.2"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -206,6 +207,118 @@ def lire_et_envoyer(config, commande_ids=()):
 
 
 # ----------------------------------------------------------------------------
+# Mise à jour automatique : le lien du client ne change jamais, seul le programme est remplacé
+# ----------------------------------------------------------------------------
+VERIFIER_MAJ_TOUTES_LES = 6 * 3600
+TAILLE_MAX_PROGRAMME = 120 * 1024 * 1024
+
+
+def _contexte_ssl():
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl.create_default_context()
+
+
+def _numeros(version):
+    return tuple(int(x) for x in re.findall(r"\d+", str(version)))[:4]
+
+
+def chercher_mise_a_jour(config):
+    """Les informations de la dernière version publiée si elle est plus récente que celle-ci, sinon None."""
+    base = os.environ.get("LEVAD_BASE_MAJ") or (config.get("serveur") or SERVEUR_PAR_DEFAUT).rstrip("/") + "/telechargements"
+    with urllib.request.urlopen(base + "/version.json", timeout=60, context=_contexte_ssl()) as r:
+        info = json.loads(r.read().decode("utf-8"))
+    if _numeros(info.get("version", "0")) <= _numeros(VERSION_AGENT):
+        return None
+    info["url"] = base + "/Levad-Connect.exe"
+    return info
+
+
+def _signature_valide(chemin, signataire=""):
+    """Windows : la signature numérique du programme est-elle valide (et au nom attendu, s'il est précisé) ?"""
+    if sys.platform != "win32":
+        return False
+    commande = ("$s = Get-AuthenticodeSignature -LiteralPath '%s'; "
+                "Write-Output $s.Status; Write-Output $s.SignerCertificate.Subject" % chemin.replace("'", "''"))
+    r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", commande],
+                       capture_output=True, text=True, timeout=120, creationflags=0x08000000)
+    lignes = (r.stdout or "").strip().splitlines()
+    if not lignes or lignes[0].strip() != "Valid":
+        return False
+    return not signataire or signataire.lower() in " ".join(lignes[1:]).lower()
+
+
+def telecharger_et_verifier(info, destination):
+    """Télécharge la nouvelle version et vérifie sa taille, son empreinte (et sa signature si LEVAD en impose une)."""
+    attendu = str(info.get("sha256", "")).lower()
+    taille = int(info.get("taille", 0))
+    if len(attendu) != 64 or not 0 < taille <= TAILLE_MAX_PROGRAMME:
+        raise ValueError("informations de mise à jour incomplètes")
+    empreinte, recu = hashlib.sha256(), 0
+    with urllib.request.urlopen(info["url"], timeout=120, context=_contexte_ssl()) as r, open(destination, "wb") as f:
+        while True:
+            bloc = r.read(1024 * 256)
+            if not bloc:
+                break
+            recu += len(bloc)
+            if recu > taille:
+                raise ValueError("fichier plus gros que prévu")
+            empreinte.update(bloc)
+            f.write(bloc)
+    if recu != taille or empreinte.hexdigest() != attendu:
+        os.remove(destination)
+        raise ValueError("fichier téléchargé incorrect (empreinte différente)")
+    if info.get("signe") and not _signature_valide(destination, info.get("signataire", "")):
+        os.remove(destination)
+        raise ValueError("signature numérique absente ou invalide")
+    return destination
+
+
+def appliquer_mise_a_jour(nouveau, actuel, ancien):
+    """Remplace le programme en cours par le nouveau (le programme en cours est renommé, ce que Windows autorise).
+    Le nouveau programme doit d'abord réussir son essai de démarrage ; en cas de souci on revient en arrière."""
+    options = {"creationflags": 0x08000000} if sys.platform == "win32" else {}
+    if sys.platform != "win32":
+        os.chmod(nouveau, 0o755)
+    essai = subprocess.run([nouveau, "--verifier"], timeout=120, stdin=subprocess.DEVNULL,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **options)
+    if essai.returncode != 0:
+        os.remove(nouveau)
+        raise RuntimeError("la nouvelle version ne démarre pas (code %s)" % essai.returncode)
+    try:
+        os.remove(ancien)
+    except OSError:
+        pass
+    os.replace(actuel, ancien)
+    try:
+        os.replace(nouveau, actuel)
+    except OSError:
+        os.replace(ancien, actuel)
+        raise
+
+
+def _mise_a_jour(config, etat):
+    """Vérifie s'il existe une nouvelle version et l'installe. Ne s'applique qu'au programme installé sous Windows."""
+    info = chercher_mise_a_jour(config)
+    if info is None:
+        return
+    journal("nouvelle version %s disponible (actuelle : %s)" % (info.get("version"), VERSION_AGENT))
+    if getattr(sys, "frozen", False) and sys.platform == "win32":
+        actuel = _commande_agent()[0]
+    elif os.environ.get("LEVAD_MAJ_ACTUEL"):      # essais seulement : un faux programme à remplacer
+        actuel = os.environ["LEVAD_MAJ_ACTUEL"]
+    else:
+        return                                    # Mac / usage en développement : pas de remplacement automatique
+    nouveau = _chemin("Levad-Connect.new.exe")
+    telecharger_et_verifier(info, nouveau)
+    appliquer_mise_a_jour(nouveau, actuel, _chemin("Levad-Connect.old.exe"))
+    journal("mise à jour vers la version %s installée : redémarrage" % info.get("version"))
+    etat["redemarrer"] = True
+
+
+# ----------------------------------------------------------------------------
 # Boucle de fond
 # ----------------------------------------------------------------------------
 def _verrou():
@@ -234,6 +347,12 @@ def boucle(max_tours=None):
         return 1
     if max_tours is None:
         _assurer_surveillance()       # les installations de la version 1.0 reçoivent aussi la tâche de relance
+    for reste in ("Levad-Connect.old.exe", "Levad-Connect.new.exe"):      # restes d'une mise à jour précédente
+        try:
+            os.remove(_chemin(reste))
+        except OSError:
+            pass
+    maj = {"fil": None, "prochaine": time.time() + float(os.environ.get("LEVAD_MAJ_DELAI", 120)), "redemarrer": False}
     tours = 0
     lecteur = {"fil": None}           # la lecture des copieurs se fait à part : elle ne retarde jamais le signal de vie
     premier_refus = None
@@ -256,6 +375,21 @@ def boucle(max_tours=None):
             _nettoyer_apres_arret()
             return 0
         pause = float(os.environ.get("LEVAD_PAUSE", PAUSE_SECONDES))
+        if maj["redemarrer"]:
+            journal("redémarrage sur la nouvelle version")
+            verrou.close()                         # libère le verrou pour que la nouvelle version puisse démarrer
+            lancer_en_fond(_commande_agent())
+            return 0
+        if time.time() >= maj["prochaine"] and not (maj["fil"] is not None and maj["fil"].is_alive()):
+            maj["prochaine"] = time.time() + VERIFIER_MAJ_TOUTES_LES
+
+            def travail_maj():
+                try:
+                    _mise_a_jour(config, maj)
+                except Exception as e:
+                    noter_erreur("mise à jour : %s" % e)
+            maj["fil"] = threading.Thread(target=travail_maj, daemon=True)
+            maj["fil"].start()
         try:
             reponse = signal_de_vie(config)
             premier_refus = None
@@ -276,8 +410,9 @@ def boucle(max_tours=None):
             noter_erreur(e)
         tours += 1
         if max_tours is not None and tours >= max_tours:
-            if lecteur["fil"] is not None:
-                lecteur["fil"].join(timeout=120)   # essais : on attend la fin de la lecture en cours
+            for fil in (lecteur["fil"], maj["fil"]):
+                if fil is not None:
+                    fil.join(timeout=120)          # essais : on attend la fin des tâches en cours
             return 0
         time.sleep(pause)
 
