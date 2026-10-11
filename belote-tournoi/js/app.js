@@ -48,6 +48,20 @@
     return '<span class="muted">Équipe ' + slotNum(t) + ' (vide)</span>';
   }
   function teamTag(id) { var t = teamById(id); return (t && t.pool != null) ? (t.pool + t.slot) : ''; }
+  // Liste des équipes saisies (avant/après tirage).
+  function rosterList() {
+    var c = store.config;
+    if (c && Array.isArray(c.roster)) return c.roster;
+    return store.teams.filter(function (t) { return t.assigned; })
+      .slice().sort(function (a, b) { return (a.assignedAt || 0) - (b.assignedAt || 0); })
+      .map(function (t) { return { id: t.rid || t.id, name: t.name }; });
+  }
+  // Le tournoi a-t-il démarré ? (un score validé ou un tableau généré)
+  function hasStarted() {
+    if (store.matches.some(function (m) { return m.validated; })) return true;
+    if (store.config && (store.config.bracket || store.config.phase === 'bracket')) return true;
+    return false;
+  }
   function matchById(id) {
     for (var i = 0; i < store.matches.length; i++) if (store.matches[i].id === id) return store.matches[i];
     return null;
@@ -544,8 +558,9 @@
     }
     var nav = navRow(row1) + '<div style="height:6px"></div>' + navRow(row2);
 
-    var meta = fmt() === 'ko' ? (formatLabel('ko') + ' · ' + assigned + '/' + store.teams.length + ' équipes')
-      : (c.numPools + ' poule(s) de ' + poolSize() + ' · ' + assigned + '/' + store.teams.length + ' équipes');
+    var nbRoster = rosterList().length;
+    var meta = (fmt() === 'ko' ? formatLabel('ko') : (c.numPools + ' poule(s) de ' + poolSize())) +
+      ' · ' + nbRoster + ' équipe(s) · ' + store.teams.length + ' place(s)';
     var head = '<div class="card"><h2>' + esc(c.name) + '</h2><p class="sub">' + formatLabel(fmt()) + ' · ' + meta + '</p>' + nav + '</div>';
 
     var body;
@@ -562,43 +577,83 @@
   }
 
   function adminEquipes(c, assigned) {
-    var full = assigned >= store.teams.length;
     var isKo = fmt() === 'ko';
-    var draw = ui.lastDraw
-      ? '<div class="notice info">🎲 <b>' + esc(ui.lastDraw.name) + '</b>' +
-        (isKo ? ' est entrée dans le tableau' : ' → Poule <b>' + ui.lastDraw.pool + '</b>, Équipe <b>' + ui.lastDraw.slot + '</b>') + '</div>'
-      : '';
-    var form = full
-      ? '<div class="notice">Toutes les places sont attribuées (' + store.teams.length + '). ' +
-        (isKo ? 'Allez à l\'onglet <b>Tableau</b>.' : 'Passez à l\'onglet <b>Poules</b>.') + '</div>'
-      : draw + '<label>Nom de l\'équipe</label>' +
-        '<div class="field-2"><div style="flex:2"><input id="new-team" placeholder="Ex. Les Atouts" autocomplete="off" value="' + esc(ui.draftTeam) + '"></div>' +
-        '<button class="btn primary" data-act="add-team" style="flex:1">🎲 Tirer</button></div>' +
-        '<p class="sub">' + (isKo ? 'Tirage au sort de la place dans le tableau. ' : 'La poule et le numéro sont tirés au sort. ') +
-        (store.teams.length - assigned) + ' place(s) restante(s).</p>';
+    var total = store.teams.length;
+    var roster = rosterList();
+    var started = hasStarted();
+    var drawn = assigned > 0;
+    var tooMany = roster.length > total;
 
-    var grid = '';
-    if (isKo) {
-      var cells = store.teams.slice().sort(function (a, b) { return a.pos - b.pos; }).map(teamCell).join('');
-      grid = '<div class="grid-teams">' + cells + '</div>';
+    /* Carte 1 — liste des équipes saisies */
+    var list = roster.length
+      ? '<div class="grid-teams">' + roster.map(rosterCell).join('') + '</div>'
+      : '<p class="sub">Aucune équipe saisie pour l\'instant.</p>';
+    var card1 = '<div class="card"><h2>Équipes (' + roster.length + ')</h2>';
+    if (started) {
+      card1 += '<div class="notice info">Le tournoi a démarré : la liste est figée.</div>';
     } else {
-      for (var p = 0; p < c.numPools; p++) {
-        var P = L.poolLabel(p);
-        var cc = store.teams.filter(function (t) { return t.pool === P; })
-          .sort(function (a, b) { return a.slot - b.slot; }).map(teamCell).join('');
-        grid += '<h3>Poule ' + P + '</h3><div class="grid-teams">' + cc + '</div>';
+      card1 += '<label>Nom de l\'équipe</label>' +
+        '<div class="field-2"><div style="flex:2"><input id="new-team" placeholder="Ex. Les Atouts" autocomplete="off" value="' + esc(ui.draftTeam) + '"></div>' +
+        '<button class="btn primary" data-act="add-roster" style="flex:1">+ Ajouter</button></div>' +
+        '<p class="sub">Saisissez toutes vos équipes, puis lancez le tirage ci-dessous. ' +
+        total + ' place(s) disponible(s).</p>';
+    }
+    card1 += list + '</div>';
+
+    /* Carte 2 — tirage et placements */
+    var card2 = '<div class="card"><h2>' + (isKo ? 'Tirage du tableau' : 'Tirage des poules') + '</h2>';
+    if (tooMany) {
+      card2 += '<div class="notice">Trop d\'équipes (' + roster.length + ') pour ' + total +
+        ' place(s). Retirez-en, ou agrandissez le tournoi dans l\'onglet <b>Réglages</b>.</div>';
+    }
+    if (!drawn) {
+      card2 += '<p class="sub">' + (roster.length ? 'Prêt à placer ' + roster.length + ' équipe(s) au hasard.' : 'Ajoutez d\'abord des équipes.') + '</p>' +
+        '<button class="btn primary block" data-act="draw-teams"' + (roster.length && !tooMany ? '' : ' disabled') +
+        '>🎲 Tirer au sort les placements</button>';
+    } else {
+      var unplaced = roster.length - assigned;
+      if (unplaced > 0 && !started)
+        card2 += '<div class="notice">' + unplaced + ' équipe(s) pas encore placée(s). Relancez le tirage pour les intégrer.</div>';
+      card2 += placementGrid(c, isKo);
+      if (!started) {
+        card2 += '<div style="height:12px"></div>' +
+          '<button class="btn block" data-act="draw-teams"' + (tooMany ? ' disabled' : '') + '>🔁 Relancer le tirage</button>' +
+          '<p class="sub">Vous pouvez relancer tant que le tournoi n\'a pas démarré. ' +
+          (isKo ? 'Passez à l\'onglet <b>Tableau</b> quand c\'est bon.' : 'Passez à l\'onglet <b>Poules</b> quand c\'est bon.') + '</p>';
       }
     }
-    return '<div class="card"><h2>Saisie des équipes</h2>' + form + '</div>' +
-      '<div class="card"><h2>' + (isKo ? 'Équipes' : 'Composition des poules') + ' (' + assigned + '/' + store.teams.length + ')</h2>' + grid + '</div>';
+    card2 += '</div>';
+    return card1 + card2;
   }
-  function teamCell(t) {
+  // Un élément de la liste des équipes saisies (renommable / supprimable).
+  function rosterCell(r) {
+    var started = hasStarted();
+    return '<div class="match" style="padding:8px;margin:0"><div class="match-meta">' +
+      '<b style="overflow-wrap:anywhere">' + esc(r.name) + '</b>' +
+      (started ? '' : '<span class="btn-row" style="gap:6px">' +
+        '<button class="pill" data-act="rename-roster" data-rid="' + esc(r.id) + '">✎</button>' +
+        '<button class="pill" data-act="remove-roster" data-rid="' + esc(r.id) + '">🗑</button></span>') +
+      '</div></div>';
+  }
+  // Affichage (lecture seule) des placements après tirage.
+  function placementGrid(c, isKo) {
+    if (isKo) {
+      return '<div class="grid-teams">' +
+        store.teams.slice().sort(function (a, b) { return a.pos - b.pos; }).map(placeCell).join('') + '</div>';
+    }
+    var g = '';
+    for (var p = 0; p < c.numPools; p++) {
+      var P = L.poolLabel(p);
+      var cc = store.teams.filter(function (t) { return t.pool === P; })
+        .sort(function (a, b) { return a.slot - b.slot; }).map(placeCell).join('');
+      g += '<h3>Poule ' + P + '</h3><div class="grid-teams">' + cc + '</div>';
+    }
+    return g;
+  }
+  function placeCell(t) {
     var label = t.pool != null ? (t.pool + t.slot) : ('Place ' + (t.pos + 1));
-    return '<div class="match" style="padding:8px;margin:0"><div class="match-meta"><span class="rk">' + label + '</span>' +
-      (t.assigned ? '<span class="btn-row" style="gap:6px">' +
-        '<button class="pill" data-act="rename-team" data-team="' + t.id + '">✎</button>' +
-        '<button class="pill" data-act="remove-team" data-team="' + t.id + '">🗑</button></span>' : '') +
-      '</div><b>' + (t.assigned ? teamName(t) : '<span class="sub">libre</span>') + '</b></div>';
+    return '<div class="match" style="padding:8px;margin:0"><div class="match-meta"><span class="rk">' + label + '</span></div><b>' +
+      (t.assigned ? esc(t.name) : '<span class="sub">libre</span>') + '</b></div>';
   }
 
   function adminPoules(c) {
@@ -744,7 +799,7 @@
   });
   screen.addEventListener('input', function (ev) { if (ev.target.id === 'new-team') ui.draftTeam = ev.target.value; });
   screen.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Enter' && ev.target.id === 'new-team') { ev.preventDefault(); handleAction('add-team'); }
+    if (ev.key === 'Enter' && ev.target.id === 'new-team') { ev.preventDefault(); handleAction('add-roster'); }
   });
   screen.addEventListener('focusout', function () { setTimeout(function () { if (pendingRender) render(); }, 50); });
 
@@ -774,33 +829,40 @@
     if (act === 'new-format') { stashCreate(); ui.newFormat = a.getAttribute('data-f'); render(); return; }
     if (act === 'do-create') return doCreate();
 
-    if (act === 'add-team') {
+    if (act === 'add-roster') {
       var inp = document.getElementById('new-team');
       var name = ((inp && inp.value) || ui.draftTeam || '').trim();
       if (!name) { toast('Saisissez un nom d\'équipe.'); return; }
       ui.draftTeam = '';
-      DB.addTeam(tid, name).then(function (t) {
-        ui.lastDraw = { name: t.name, pool: t.pool, slot: t.slot };
-        toast(name + (t.pool != null ? ' → Poule ' + t.pool + ', Équipe ' + t.slot : ' entre dans le tableau'));
+      DB.addRosterName(tid, name).then(function () {
         render(true);
-        var i = document.getElementById('new-team'); if (i) i.focus();
-      }).catch(function (e) {
-        var msg = (e && e.message) || '';
-        toast(/COMPLET/.test(msg) ? 'Toutes les places sont prises.' : ('Erreur : ' + msg));
+        var i = document.getElementById('new-team'); if (i) { i.value = ''; i.focus(); }
+      }).catch(function (e) { toast('Erreur : ' + ((e && e.message) || 'ajout impossible')); });
+      return;
+    }
+    if (act === 'rename-roster') {
+      var rid = a.getAttribute('data-rid');
+      var cur = rosterList().filter(function (r) { return r.id === rid; })[0];
+      modalPrompt('Nouveau nom de l\'équipe :', (cur && cur.name) || '').then(function (nn) {
+        if (nn != null && nn.trim()) DB.renameRosterName(tid, rid, nn.trim()).then(function () { toast('Équipe renommée.'); });
       });
       return;
     }
-    if (act === 'rename-team') {
-      var t2 = teamById(a.getAttribute('data-team')); if (!t2) return;
-      modalPrompt('Nouveau nom de l\'équipe :', t2.name || '').then(function (nn) {
-        if (nn != null && nn.trim()) DB.renameTeam(tid, t2.id, nn.trim()).then(function () { toast('Équipe renommée.'); });
+    if (act === 'remove-roster') {
+      var rid2 = a.getAttribute('data-rid');
+      var cur2 = rosterList().filter(function (r) { return r.id === rid2; })[0];
+      modalConfirm('Retirer l\'équipe « ' + ((cur2 && cur2.name) || '') + ' » de la liste ?', 'Retirer').then(function (ok) {
+        if (ok) DB.removeRosterName(tid, rid2).then(function () { toast('Équipe retirée.'); });
       });
       return;
     }
-    if (act === 'remove-team') {
-      var t3 = teamById(a.getAttribute('data-team')); if (!t3) return;
-      modalConfirm('Retirer l\'équipe « ' + (t3.name || slotNum(t3)) + ' » ? Sa place redeviendra libre.', 'Retirer').then(function (ok) {
-        if (ok) DB.removeTeam(tid, t3.id).then(function () { toast('Équipe retirée.'); });
+    if (act === 'draw-teams') {
+      modalConfirm('Tirer au sort le placement de toutes les équipes ? Les placements actuels seront remplacés.', 'Tirer').then(function (ok) {
+        if (!ok) return;
+        DB.drawTeams(tid).then(function () { toast('Tirage effectué !'); }, function (e) {
+          var m = (e && e.message) || '';
+          toast(/TROP_D_EQUIPES/.test(m) ? 'Trop d\'équipes pour le nombre de places.' : ('Erreur : ' + m));
+        });
       });
       return;
     }

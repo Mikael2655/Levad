@@ -33,6 +33,15 @@
     return a;
   }
   function now() { return Date.now(); }
+  function rosterId() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  // Liste des équipes à placer. Dérivée des équipes déjà placées pour les
+  // anciens tournois (avant le mode « préparer puis tirer »).
+  function deriveRoster(cfg, teams) {
+    if (cfg && Array.isArray(cfg.roster)) return cfg.roster.map(function (r) { return { id: r.id, name: r.name }; });
+    return teams.filter(function (t) { return t.assigned; })
+      .slice().sort(function (a, b) { return (a.assignedAt || 0) - (b.assignedAt || 0); })
+      .map(function (t) { return { id: t.rid || t.id, name: t.name }; });
+  }
 
   /* ================================================================= *
    *  Implémentation FIREBASE                                          *
@@ -146,6 +155,62 @@
         }).then(function (res) { return res || tryNext(i + 1); });
       }
       return tryNext(0);
+    });
+  };
+  // --- Mode « préparer puis tirer » : liste d'équipes + tirage groupé ---
+  FirebaseDB.prototype._loadRoster = function (tid) {
+    var doc = this._doc(tid);
+    return Promise.all([doc.get(), doc.collection('teams').get()]).then(function (r) {
+      var cfg = r[0].data() || {}, teams = [];
+      r[1].forEach(function (d) { teams.push(d.data()); });
+      return { doc: doc, cfg: cfg, teams: teams, roster: deriveRoster(cfg, teams) };
+    });
+  };
+  FirebaseDB.prototype.addRosterName = function (tid, name) {
+    return this._loadRoster(tid).then(function (s) {
+      s.roster.push({ id: rosterId(), name: name });
+      return s.doc.set({ roster: s.roster }, { merge: true });
+    });
+  };
+  FirebaseDB.prototype.renameRosterName = function (tid, rid, name) {
+    var self = this;
+    return this._loadRoster(tid).then(function (s) {
+      s.roster.forEach(function (r) { if (r.id === rid) r.name = name; });
+      var batch = self.fb.batch();
+      batch.set(s.doc, { roster: s.roster }, { merge: true });
+      s.teams.forEach(function (t) {
+        if (t.rid === rid) batch.update(s.doc.collection('teams').doc(t.id), { name: name, updatedAt: now() });
+      });
+      return batch.commit();
+    });
+  };
+  FirebaseDB.prototype.removeRosterName = function (tid, rid) {
+    var self = this;
+    return this._loadRoster(tid).then(function (s) {
+      var roster = s.roster.filter(function (r) { return r.id !== rid; });
+      var batch = self.fb.batch();
+      batch.set(s.doc, { roster: roster }, { merge: true });
+      s.teams.forEach(function (t) {
+        if (t.rid === rid) batch.update(s.doc.collection('teams').doc(t.id),
+          { assigned: false, name: '', rid: null, assignedAt: null, updatedAt: now() });
+      });
+      return batch.commit();
+    });
+  };
+  // Place (ou replace) toutes les équipes de la liste dans des places tirées au sort.
+  FirebaseDB.prototype.drawTeams = function (tid) {
+    var self = this;
+    return this._loadRoster(tid).then(function (s) {
+      if (s.roster.length > s.teams.length) return Promise.reject(new Error('TROP_D_EQUIPES'));
+      var names = shuffle(s.roster), slots = shuffle(s.teams.slice());
+      var batch = self.fb.batch();
+      slots.forEach(function (t, i) {
+        var r = names[i], ref = s.doc.collection('teams').doc(t.id);
+        if (r) batch.update(ref, { assigned: true, name: r.name, rid: r.id, assignedAt: now() });
+        else batch.update(ref, { assigned: false, name: '', rid: null, assignedAt: null });
+      });
+      batch.set(s.doc, { roster: s.roster, drawnAt: now() }, { merge: true });
+      return batch.commit();
     });
   };
   FirebaseDB.prototype.renameTeam = function (tid, teamId, name) {
@@ -293,6 +358,48 @@
     chosen.assigned = true; chosen.name = name; chosen.assignedAt = now();
     this._write(tid, 'teams', teams);
     return Promise.resolve(chosen);
+  };
+  LocalDB.prototype.addRosterName = function (tid, name) {
+    var cfg = this._read(tid, 'config', {}) || {};
+    var teams = this._read(tid, 'teams', []);
+    var roster = deriveRoster(cfg, teams);
+    roster.push({ id: rosterId(), name: name });
+    cfg.roster = roster;
+    return this._write(tid, 'config', cfg);
+  };
+  LocalDB.prototype.renameRosterName = function (tid, rid, name) {
+    var cfg = this._read(tid, 'config', {}) || {};
+    var teams = this._read(tid, 'teams', []);
+    var roster = deriveRoster(cfg, teams);
+    roster.forEach(function (r) { if (r.id === rid) r.name = name; });
+    teams.forEach(function (t) { if (t.rid === rid) { t.name = name; t.updatedAt = now(); } });
+    cfg.roster = roster;
+    localStorage.setItem(this._key(tid, 'teams'), JSON.stringify(teams));
+    return this._write(tid, 'config', cfg);
+  };
+  LocalDB.prototype.removeRosterName = function (tid, rid) {
+    var cfg = this._read(tid, 'config', {}) || {};
+    var teams = this._read(tid, 'teams', []);
+    var roster = deriveRoster(cfg, teams).filter(function (r) { return r.id !== rid; });
+    teams.forEach(function (t) { if (t.rid === rid) { t.assigned = false; t.name = ''; t.rid = null; t.assignedAt = null; } });
+    cfg.roster = roster;
+    localStorage.setItem(this._key(tid, 'teams'), JSON.stringify(teams));
+    return this._write(tid, 'config', cfg);
+  };
+  LocalDB.prototype.drawTeams = function (tid) {
+    var cfg = this._read(tid, 'config', {}) || {};
+    var teams = this._read(tid, 'teams', []);
+    var roster = deriveRoster(cfg, teams);
+    if (roster.length > teams.length) return Promise.reject(new Error('TROP_D_EQUIPES'));
+    var names = shuffle(roster), slots = shuffle(teams.slice());
+    slots.forEach(function (t, i) {
+      var r = names[i];
+      if (r) { t.assigned = true; t.name = r.name; t.rid = r.id; t.assignedAt = now(); }
+      else { t.assigned = false; t.name = ''; t.rid = null; t.assignedAt = null; }
+    });
+    cfg.roster = roster; cfg.drawnAt = now();
+    localStorage.setItem(this._key(tid, 'teams'), JSON.stringify(teams));
+    return this._write(tid, 'config', cfg);
   };
   LocalDB.prototype.renameTeam = function (tid, teamId, name) {
     var teams = this._read(tid, 'teams', []);

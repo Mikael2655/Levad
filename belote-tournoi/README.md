@@ -24,8 +24,12 @@ plusieurs appareils).
   d'équipes par poule** (petits tournois de 4 ou 8 équipes possibles :
   ex. 1 poule de 4, ou 8 équipes en élimination directe).
 - **Administration** (protégée par un code) :
-  1. **Saisir les équipes** : on tape le nom d'une équipe ; l'appli **tire au
-     sort** sa place (poule + numéro, ou position dans le tableau).
+  1. **Saisir les équipes** : on prépare d'abord la **liste** de toutes les
+     équipes (ajout, renommage, suppression). Puis, d'un seul bouton
+     **« Tirer au sort les placements »**, l'appli place chaque équipe au
+     hasard (poule + numéro, ou position dans le tableau). On peut
+     **relancer le tirage** tant que le tournoi n'a pas démarré ; une fois
+     un score saisi, la liste et les placements sont figés.
   2. **Saisir les scores** des matchs (poules et/ou tableau).
   3. En format « poules + tableau », **clôturer les poules** génère le tableau
      final (têtes de série tirées du classement).
