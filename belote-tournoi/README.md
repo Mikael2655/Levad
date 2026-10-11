@@ -44,7 +44,10 @@ Chaque équipe peut saisir ses propres scores depuis son téléphone, sans jamai
 retaper de nom :
 
 - Dans l'administration, l'onglet **Accès** affiche **un QR (et un lien) par
-  équipe**. L'organisateur les fait scanner (ou les envoie).
+  équipe**. L'organisateur les fait scanner (ou les envoie). Un **moteur de
+  recherche** (insensible aux accents et à la casse, multi-mots) retrouve
+  instantanément une équipe par son nom, son étiquette (ex. `A1`) ou sa
+  poule (ex. `poule B`).
 - En scannant son QR, l'équipe arrive **directement sur ses matchs**, son nom
   et celui de l'adversaire déjà affichés. Son téléphone retient l'accès.
 - Une équipe **propose** le score, l'équipe adverse **valide**. Tant que ce
