@@ -28,6 +28,8 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  // Minuscule + sans accents, pour une recherche tolérante.
+  function norm(s) { return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   function fmt() { return (store.config && store.config.format) || 'pools'; }
   function poolSize() { return (store.config && store.config.poolSize) || 4; }
   function formatLabel(f) {
@@ -581,7 +583,7 @@
     else body = adminReglages(c);
 
     screen.innerHTML = backList() + head + body;
-    if (ui.adminTab === 'acces') drawQRs();
+    if (ui.adminTab === 'acces') { drawQRs(); applyAccesFilter(); }
     var input = document.getElementById('new-team');
     if (input) input.focus();
   }
@@ -745,10 +747,15 @@
     var toggle = '<div class="pool-tabs">' +
       '<span class="pill ' + (sort === 'poule' ? 'active' : '') + '" data-act="acces-sort" data-s="poule">Par poule</span>' +
       '<span class="pill ' + (sort === 'saisie' ? 'active' : '') + '" data-act="acces-sort" data-s="saisie">Dernière saisie en 1er</span></div>';
+    var search = '<div style="position:relative;margin-bottom:12px">' +
+      '<input id="acces-q" placeholder="🔎 Rechercher une équipe (nom, poule, A1…)" autocomplete="off" value="' + esc(ui.accesQ || '') + '">' +
+      '<span id="acces-count" class="sub" style="display:block;margin-top:6px"></span></div>';
     var cards = teams.map(function (t) {
       var link = teamLink(state.tid, t.id);
       var tag = t.pool != null ? (t.pool + t.slot) : ('Place ' + (t.pos + 1));
-      return '<div class="card" style="text-align:center"><span class="tag">' + tag + '</span>' +
+      var hay = norm((t.name || '') + ' ' + tag);
+      var poolKey = t.pool != null ? norm(t.pool) : '';
+      return '<div class="card acces-card" data-search="' + esc(hay) + '" data-pool="' + esc(poolKey) + '" style="text-align:center"><span class="tag">' + tag + '</span>' +
         '<h3 style="margin:8px 0">' + teamName(t) + '</h3>' +
         '<div class="qr-box" data-qr="' + esc(link) + '"></div>' +
         '<button class="btn small block" data-act="copy-link" data-link="' + esc(link) + '" style="margin-top:8px">Copier le lien</button></div>';
@@ -756,7 +763,39 @@
     return '<div class="card"><h2>Accès équipes (QR)</h2>' +
       '<p class="sub">Chaque équipe scanne son QR (ou reçoit son lien) : elle saisit ses scores depuis son téléphone, l\'adversaire valide, et tout remonte ici automatiquement.</p>' +
       (CFG.firebaseReady ? '' : '<div class="notice">⚠️ Mode local : la saisie multi-téléphone ne fonctionnera qu\'une fois Firebase configuré (voir README).</div>') +
-      toggle + '</div>' + cards;
+      toggle + search + '</div>' +
+      '<div id="acces-list">' + cards + '</div>' +
+      '<p id="acces-none" class="sub center hidden">Aucune équipe ne correspond à « <span id="acces-none-q"></span> ».</p>';
+  }
+  // Filtre les cartes d'accès selon la recherche (sans re-rendu, QR conservés).
+  function applyAccesFilter() {
+    var raw = (ui.accesQ || '').trim();
+    var nraw = norm(raw);
+    // Intention « poule X » : on filtre sur la poule, pas sur le texte.
+    var poolOnly = nraw.match(/^poule\s+([a-z])$/);
+    var tokens = nraw.split(/\s+/).filter(Boolean);
+    var cards = document.querySelectorAll('#acces-list [data-search]');
+    var shown = 0;
+    Array.prototype.forEach.call(cards, function (el) {
+      var ok;
+      if (poolOnly) {
+        ok = el.getAttribute('data-pool') === poolOnly[1];
+      } else {
+        var hay = el.getAttribute('data-search');
+        ok = tokens.every(function (tk) { return hay.indexOf(tk) >= 0; });
+      }
+      el.classList.toggle('hidden', !ok);
+      if (ok) shown++;
+    });
+    var none = document.getElementById('acces-none');
+    if (none) {
+      none.classList.toggle('hidden', !(tokens.length && shown === 0));
+      var nq = document.getElementById('acces-none-q'); if (nq) nq.textContent = raw;
+    }
+    var cnt = document.getElementById('acces-count');
+    if (cnt) cnt.textContent = tokens.length
+      ? (shown + ' équipe(s) sur ' + cards.length)
+      : (cards.length + ' équipe(s)');
   }
   function drawQRs() {
     if (typeof qrcode === 'undefined') return;
@@ -808,7 +847,10 @@
     if (!a) return;
     handleAction(a.getAttribute('data-act'), a, a.getAttribute('data-match'));
   });
-  screen.addEventListener('input', function (ev) { if (ev.target.id === 'new-team') ui.draftTeam = ev.target.value; });
+  screen.addEventListener('input', function (ev) {
+    if (ev.target.id === 'new-team') ui.draftTeam = ev.target.value;
+    if (ev.target.id === 'acces-q') { ui.accesQ = ev.target.value; applyAccesFilter(); }
+  });
   screen.addEventListener('keydown', function (ev) {
     if (ev.key === 'Enter' && ev.target.id === 'new-team') { ev.preventDefault(); handleAction('add-roster'); }
   });
