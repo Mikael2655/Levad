@@ -222,43 +222,61 @@
 
   // Place les qualifiés dans les positions du tableau.
   // Ordre des têtes : 1ers de poule (classés), puis 2es, puis meilleurs 3es.
-  // Contrainte : au 1er tour, deux équipes d'une même poule ne se rencontrent
-  // jamais (réparation par échanges de positions après le placement standard).
+  // Le placement standard fait que, au 1er tour :
+  //   • deux 1ers de poule ne se rencontrent jamais ;
+  //   • les 1ers tombent en priorité sur les meilleurs 3es, et les 1ers
+  //     restants (quand il n'y a plus de 3e) tombent sur des 2es.
+  // Contrainte supplémentaire : deux équipes d'une même poule ne se
+  // rencontrent jamais au 1er tour (réparée par échanges de positions, sans
+  // jamais créer d'affrontement entre deux 1ers).
   // Renvoie { size, slots:[teamId|null …] } (par position de tableau).
   function seedBracket(numPools, standings) {
     var q = qualifiers(numPools, standings);
     var seeds = q.winners.concat(q.runners).concat(q.thirds); // rangs -> lignes
     var order = seeds.map(function (r) { return r.teamId; });
     var pools = seeds.map(function (r) { return r.pool; });
-    while (order.length < q.size) { order.push(null); pools.push(null); } // byes
+    // Rang de poule : 1 = 1er, 2 = 2e, 3 = 3e (0 = place vide / bye).
+    var ranks = q.winners.map(function () { return 1; })
+      .concat(q.runners.map(function () { return 2; }))
+      .concat(q.thirds.map(function () { return 3; }));
+    while (order.length < q.size) { order.push(null); pools.push(null); ranks.push(0); } // byes
 
     var pos = standardSeedPositions(q.size);
     var slots = new Array(q.size);
     var slotPool = new Array(q.size);
-    for (var i = 0; i < q.size; i++) { slots[i] = order[pos[i]]; slotPool[i] = pools[pos[i]]; }
+    var slotRank = new Array(q.size);
+    for (var i = 0; i < q.size; i++) {
+      slots[i] = order[pos[i]]; slotPool[i] = pools[pos[i]]; slotRank[i] = ranks[pos[i]];
+    }
 
-    avoidSamePoolFirstRound(slots, slotPool);
+    avoidSamePoolFirstRound(slots, slotPool, slotRank);
     return { size: q.size, slots: slots, seededAt: Date.now() };
   }
 
   // Échange des positions du 1er tour pour qu'aucun match n'oppose deux
-  // équipes de la même poule. Faisable tant qu'aucune poule ne fournit plus
-  // de la moitié des qualifiés (toujours vrai ici : 3 max par poule).
-  function avoidSamePoolFirstRound(slots, slotPool) {
+  // équipes de la même poule — ni deux 1ers de poule. Le placement standard
+  // n'oppose jamais deux 1ers ; on veille à ne pas en créer en réparant les
+  // conflits de poule. Faisable tant qu'aucune poule ne fournit plus de la
+  // moitié des qualifiés (toujours vrai ici : 3 max par poule).
+  function avoidSamePoolFirstRound(slots, slotPool, slotRank) {
     var matches = slots.length / 2;
-    function samePool(k) {
-      var a = slotPool[2 * k], b = slotPool[2 * k + 1];
-      return a != null && b != null && a === b;
+    function conflict(k) {
+      var pa = slotPool[2 * k], pb = slotPool[2 * k + 1];
+      var ra = slotRank[2 * k], rb = slotRank[2 * k + 1];
+      var samePool = pa != null && pb != null && pa === pb;
+      var twoFirsts = ra === 1 && rb === 1;
+      return samePool || twoFirsts;
     }
     function swap(x, y) {
       var t = slots[x]; slots[x] = slots[y]; slots[y] = t;
       var u = slotPool[x]; slotPool[x] = slotPool[y]; slotPool[y] = u;
+      var v = slotRank[x]; slotRank[x] = slotRank[y]; slotRank[y] = v;
     }
     // Plusieurs passes pour absorber d'éventuelles cascades.
     for (var pass = 0; pass < slots.length; pass++) {
       var conflicts = 0;
       for (var k = 0; k < matches; k++) {
-        if (!samePool(k)) continue;
+        if (!conflict(k)) continue;
         conflicts++;
         var fixed = false;
         // On tente d'échanger l'une des deux positions du match k avec une
@@ -270,7 +288,7 @@
             for (var off = 0; off < 2 && !fixed; off++) {
               var there = 2 * j + off;
               swap(here[hi], there);
-              if (!samePool(k) && !samePool(j)) fixed = true;
+              if (!conflict(k) && !conflict(j)) fixed = true;
               else swap(here[hi], there); // annule
             }
           }

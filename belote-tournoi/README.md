@@ -69,6 +69,12 @@ mode local (un seul appareil), seul l'organisateur peut saisir.
 - Les **2 premiers** de chaque poule + les **meilleurs 3es** (autant que
   nécessaire) sont qualifiés. Le tableau a une taille en puissance de 2 :
   **6 poules → 1/8 de finale à 16 équipes**.
+- **Tirage du 1er tour (1/8)** : deux équipes d'une **même poule** ne se
+  rencontrent jamais, et **deux 1ers de poule** ne se rencontrent jamais.
+  Les **1ers** tombent **en priorité sur les meilleurs 3es** ; quand il n'y
+  a plus de 3e, les 1ers restants tombent sur des **2es** (ex. à 6 poules :
+  4 meilleurs 3es → 4 « 1er contre 3e », les 2 autres 1ers → « 1er contre
+  2e », et les 2es restants s'affrontent entre eux).
 - **Tous les matchs se jouent en 1500 points** (1/8, 1/4, 1/2), **sauf la
   finale et la petite finale** (3e place) en **2000 points**.
 - Tous les matchs du tableau sont des **matchs secs** (pas d'aller-retour) :
