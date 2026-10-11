@@ -204,3 +204,13 @@ input[type="number"] { -moz-appearance: textfield; }
 .modal input { margin-bottom: 14px; }
 .modal .btn-row { margin-top: 4px; }
 .big-num { font-size: 2rem; font-weight: 800; text-align: center; }
+
+/* Indicateur « action en cours » */
+.modal.busy { text-align: center; max-width: 260px; }
+.modal.busy p { margin: 0; color: var(--muted); }
+.spinner {
+  width: 36px; height: 36px; margin: 2px auto 14px;
+  border: 3px solid var(--line); border-top-color: var(--green);
+  border-radius: 50%; animation: bt-spin .8s linear infinite;
+}
+@keyframes bt-spin { to { transform: rotate(360deg); } }

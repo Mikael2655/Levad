@@ -213,6 +213,15 @@
       return batch.commit();
     });
   };
+  // Efface les placements (les équipes restent dans la liste).
+  FirebaseDB.prototype.clearDraw = function (tid) {
+    var self = this, doc = this._doc(tid);
+    return doc.collection('teams').get().then(function (qs) {
+      var batch = self.fb.batch();
+      qs.forEach(function (d) { batch.update(d.ref, { assigned: false, name: '', rid: null, assignedAt: null }); });
+      return batch.commit();
+    });
+  };
   FirebaseDB.prototype.renameTeam = function (tid, teamId, name) {
     return this._doc(tid).collection('teams').doc(teamId).update({ name: name, updatedAt: now() });
   };
@@ -400,6 +409,11 @@
     cfg.roster = roster; cfg.drawnAt = now();
     localStorage.setItem(this._key(tid, 'teams'), JSON.stringify(teams));
     return this._write(tid, 'config', cfg);
+  };
+  LocalDB.prototype.clearDraw = function (tid) {
+    var teams = this._read(tid, 'teams', []);
+    teams.forEach(function (t) { t.assigned = false; t.name = ''; t.rid = null; t.assignedAt = null; });
+    return this._write(tid, 'teams', teams);
   };
   LocalDB.prototype.renameTeam = function (tid, teamId, name) {
     var teams = this._read(tid, 'teams', []);
