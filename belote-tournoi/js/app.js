@@ -90,6 +90,16 @@
     var m = (me.mode === 'local' && !CFG.firebaseReady) ? 'Données locales (cet appareil)' : 'Synchro temps réel';
     return (store.config ? esc(store.config.name) + ' · ' : '') + m;
   }
+  // Affiche un indicateur « en cours » le temps d'une opération, puis confirme.
+  function runBusy(label, promise, doneMsg) {
+    var o = openModal('<div class="spinner"></div><p>' + esc(label) + '</p>');
+    var box = o.querySelector('.modal'); if (box) box.classList.add('busy');
+    function close() { if (o.parentNode) document.body.removeChild(o); }
+    var minWait = new Promise(function (r) { setTimeout(r, 350); });
+    return Promise.all([Promise.resolve(promise), minWait]).then(function (res) {
+      close(); render(true); if (doneMsg) toast('✓ ' + doneMsg); return res[0];
+    }, function (e) { close(); throw e; });
+  }
 
   /* ---- Accès équipe (QR / lien par équipe) ------------------------- */
   function bindTeam(tid, teamId) {
@@ -616,9 +626,10 @@
         card2 += '<div class="notice">' + unplaced + ' équipe(s) pas encore placée(s). Relancez le tirage pour les intégrer.</div>';
       card2 += placementGrid(c, isKo);
       if (!started) {
-        card2 += '<div style="height:12px"></div>' +
-          '<button class="btn block" data-act="draw-teams"' + (tooMany ? ' disabled' : '') + '>🔁 Relancer le tirage</button>' +
-          '<p class="sub">Vous pouvez relancer tant que le tournoi n\'a pas démarré. ' +
+        card2 += '<div class="btn-row" style="margin-top:12px">' +
+          '<button class="btn" data-act="draw-teams"' + (tooMany ? ' disabled' : '') + '>🔁 Relancer</button>' +
+          '<button class="btn danger" data-act="clear-draw">🧹 Effacer le tirage</button></div>' +
+          '<p class="sub">Vous pouvez relancer ou effacer le tirage tant que le tournoi n\'a pas démarré. ' +
           (isKo ? 'Passez à l\'onglet <b>Tableau</b> quand c\'est bon.' : 'Passez à l\'onglet <b>Poules</b> quand c\'est bon.') + '</p>';
       }
     }
@@ -837,6 +848,7 @@
       DB.addRosterName(tid, name).then(function () {
         render(true);
         var i = document.getElementById('new-team'); if (i) { i.value = ''; i.focus(); }
+        toast('✓ ' + name + ' ajoutée');
       }).catch(function (e) { toast('Erreur : ' + ((e && e.message) || 'ajout impossible')); });
       return;
     }
@@ -844,7 +856,8 @@
       var rid = a.getAttribute('data-rid');
       var cur = rosterList().filter(function (r) { return r.id === rid; })[0];
       modalPrompt('Nouveau nom de l\'équipe :', (cur && cur.name) || '').then(function (nn) {
-        if (nn != null && nn.trim()) DB.renameRosterName(tid, rid, nn.trim()).then(function () { toast('Équipe renommée.'); });
+        if (nn != null && nn.trim()) runBusy('Modification…', DB.renameRosterName(tid, rid, nn.trim()), 'Équipe renommée')
+          .catch(function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
       });
       return;
     }
@@ -852,17 +865,26 @@
       var rid2 = a.getAttribute('data-rid');
       var cur2 = rosterList().filter(function (r) { return r.id === rid2; })[0];
       modalConfirm('Retirer l\'équipe « ' + ((cur2 && cur2.name) || '') + ' » de la liste ?', 'Retirer').then(function (ok) {
-        if (ok) DB.removeRosterName(tid, rid2).then(function () { toast('Équipe retirée.'); });
+        if (ok) runBusy('Suppression…', DB.removeRosterName(tid, rid2), 'Équipe retirée')
+          .catch(function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
       });
       return;
     }
     if (act === 'draw-teams') {
       modalConfirm('Tirer au sort le placement de toutes les équipes ? Les placements actuels seront remplacés.', 'Tirer').then(function (ok) {
         if (!ok) return;
-        DB.drawTeams(tid).then(function () { toast('Tirage effectué !'); }, function (e) {
+        runBusy('Tirage en cours…', DB.drawTeams(tid), 'Tirage effectué !').catch(function (e) {
           var m = (e && e.message) || '';
           toast(/TROP_D_EQUIPES/.test(m) ? 'Trop d\'équipes pour le nombre de places.' : ('Erreur : ' + m));
         });
+      });
+      return;
+    }
+    if (act === 'clear-draw') {
+      modalConfirm('Effacer le tirage ? Les équipes restent dans la liste mais ne seront plus placées dans les poules.', 'Effacer').then(function (ok) {
+        if (!ok) return;
+        runBusy('Effacement…', DB.clearDraw(tid), 'Tirage effacé')
+          .catch(function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
       });
       return;
     }
@@ -870,21 +892,28 @@
       var s = readScores(mid);
       if (isNaN(s.sa) || isNaN(s.sb)) { toast('Saisissez les deux scores.'); return; }
       if (s.sa === s.sb) { toast('Un match ne peut pas être nul.'); return; }
-      DB.adminSet(tid, mid, matchBase(mid), s.sa, s.sb).then(function () { toast('Score enregistré.'); },
-        function (e) { toast('Erreur : ' + ((e && e.message) || 'écriture refusée')); });
+      runBusy('Enregistrement…', DB.adminSet(tid, mid, matchBase(mid), s.sa, s.sb), 'Score enregistré')
+        .catch(function (e) { toast('Erreur : ' + ((e && e.message) || 'écriture refusée')); });
       return;
     }
-    if (act === 'admin-clear') { DB.adminClear(tid, mid).then(function () { toast('Score effacé.'); }); return; }
+    if (act === 'admin-clear') {
+      runBusy('Effacement…', DB.adminClear(tid, mid), 'Score effacé')
+        .catch(function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
+      return;
+    }
     if (act === 'team-propose') {
       var ts = readScores(mid);
       if (isNaN(ts.sa) || isNaN(ts.sb)) { toast('Saisissez les deux scores.'); return; }
       if (ts.sa === ts.sb) { toast('Un match ne peut pas être nul.'); return; }
-      DB.propose(tid, mid, matchBase(mid), ts.sa, ts.sb, boundTeam(tid))
-        .then(function () { toast('Score proposé. En attente de validation adverse.'); },
-          function (e) { toast('Erreur : ' + ((e && e.message) || 'écriture refusée')); });
+      runBusy('Envoi…', DB.propose(tid, mid, matchBase(mid), ts.sa, ts.sb, boundTeam(tid)), 'Score proposé. En attente de validation adverse.')
+        .catch(function (e) { toast('Erreur : ' + ((e && e.message) || 'écriture refusée')); });
       return;
     }
-    if (act === 'team-validate') { DB.validate(tid, mid).then(function () { toast('Score validé ✓'); }, function (e) { toast('Erreur : ' + ((e && e.message) || 'écriture refusée')); }); return; }
+    if (act === 'team-validate') {
+      runBusy('Validation…', DB.validate(tid, mid), 'Score validé ✓')
+        .catch(function (e) { toast('Erreur : ' + ((e && e.message) || 'écriture refusée')); });
+      return;
+    }
     if (act === 'exit-team') { try { localStorage.removeItem('bt:teamBind:' + tid); } catch (e) {} go('#/'); return; }
     if (act === 'copy-link') {
       var link = a.getAttribute('data-link');
@@ -902,8 +931,8 @@
     if (act === 'resize') {
       var np = Math.max(1, Math.min(26, parseInt(document.getElementById('rz-pools').value, 10) || 1));
       var ps = Math.max(2, Math.min(10, parseInt(document.getElementById('rz-size').value, 10) || 4));
-      DB.resizeTournament(tid, np, ps).then(function () {
-        ui.poolTab = 'A'; toast('Taille mise à jour : ' + np + ' poule(s) de ' + ps + '.'); render();
+      runBusy('Mise à jour…', DB.resizeTournament(tid, np, ps), 'Taille mise à jour : ' + np + ' poule(s) de ' + ps).then(function () {
+        ui.poolTab = 'A'; render();
       }, function (e) {
         var m = (e && e.message) || '';
         toast(/ASSIGNED_IN_REMOVED/.test(m) ? 'Retirez d\'abord les équipes des places à supprimer.' : ('Erreur : ' + m));
@@ -929,12 +958,11 @@
     var tid = newTid(name);
     sha256(pin).then(function (hash) {
       config.adminHash = hash;
-      return DB.createTournament(tid, config);
+      return runBusy('Création…', DB.createTournament(tid, config), 'Tournoi créé !');
     }).then(function () {
       openTournament(tid);
       sessionStorage.setItem('bt:admin:' + tid, '1');
       ui.adminTab = 'equipes'; ui.tourList = null;
-      toast('Tournoi créé !');
       go('#/admin');
     }).catch(function (e) { toast('Création impossible : ' + ((e && e.message) || 'erreur')); });
   }
@@ -961,11 +989,10 @@
         : Promise.resolve(true);
       check.then(function (go2) {
         if (!go2) return;
-        DB.resetTournament(tid).then(function () {
+        runBusy('Suppression…', DB.resetTournament(tid), 'Tournoi supprimé').then(function () {
           sessionStorage.removeItem('bt:admin:' + tid);
           if (state.tid === tid) openTournament(null);
           ui.tourList = null;
-          toast('Tournoi supprimé.');
           go('#/');
         }, function (e) {
           toast('Suppression impossible : ' + ((e && e.message) || 'erreur'));
@@ -983,7 +1010,9 @@
     ask.then(function (ok) {
       if (!ok) return;
       var bracket = L.seedBracket(c.numPools, standings);
-      DB.startBracket(tid, bracket).then(function () { ui.adminTab = 'tableau'; toast('Tableau généré !'); render(); });
+      runBusy('Génération du tableau…', DB.startBracket(tid, bracket), 'Tableau généré !')
+        .then(function () { ui.adminTab = 'tableau'; render(); },
+          function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
     });
   }
 

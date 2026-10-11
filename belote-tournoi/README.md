@@ -28,8 +28,10 @@ plusieurs appareils).
      équipes (ajout, renommage, suppression). Puis, d'un seul bouton
      **« Tirer au sort les placements »**, l'appli place chaque équipe au
      hasard (poule + numéro, ou position dans le tableau). On peut
-     **relancer le tirage** tant que le tournoi n'a pas démarré ; une fois
-     un score saisi, la liste et les placements sont figés.
+     **relancer** ou **effacer** le tirage tant que le tournoi n'a pas
+     démarré (effacer garde la liste mais libère les places) ; une fois
+     un score saisi, la liste et les placements sont figés. Chaque action
+     affiche un indicateur **« en cours »** puis une confirmation.
   2. **Saisir les scores** des matchs (poules et/ou tableau).
   3. En format « poules + tableau », **clôturer les poules** génère le tableau
      final (têtes de série tirées du classement).
