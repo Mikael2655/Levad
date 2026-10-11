@@ -1,0 +1,17 @@
+{
+  "name": "Levad Connect",
+  "short_name": "Levad Connect",
+  "description": "Suivi des copieurs, compteurs et niveaux d'encre",
+  "lang": "fr",
+  "id": "/parc",
+  "start_url": "/parc",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8c9e8b",
+  "icons": [
+    { "src": "/icons/connect-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/connect-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/connect-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

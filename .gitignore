@@ -6,3 +6,4 @@ node_modules/
 .env.local
 tsconfig.tsbuildinfo
 __pycache__/
+next-env.d.ts

@@ -1,0 +1,134 @@
+# Fabrique les programmes "double-clic" pour Windows et Mac à partir de releve-snmp/.
+# Se lance tout seul à chaque modification du dossier releve-snmp, ou à la main
+# (onglet Actions > "Levad Connect (programme de relevé)" > Run workflow).
+name: Levad Connect (programme de relevé)
+
+on:
+  push:
+    paths:
+      - "releve-snmp/**"
+      - ".github/workflows/build-releve-snmp.yml"
+  workflow_dispatch:
+
+# Signature Windows (Azure Artifact Signing) : s'active toute seule quand la variable de dépôt SIGNATURE_WINDOWS vaut « oui »
+# (Settings > Secrets and variables > Actions > Variables). Tant qu'elle n'existe pas, le programme est fabriqué sans signature, comme avant.
+permissions:
+  contents: read
+
+jobs:
+  fabriquer:
+    permissions:
+      contents: read
+      id-token: write # connexion à Azure sans mot de passe stocké (OIDC)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            nom: Windows
+          - os: macos-latest
+            nom: Mac
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer l'outil d'emballage
+        run: python -m pip install pyinstaller certifi pillow
+      - name: Fabriquer les icônes (logo LEVAD)
+        run: python releve-snmp/fabriquer_icones.py
+      - name: "Fabriquer le programme (Windows : un seul .exe sans fenêtre noire)"
+        if: matrix.nom == 'Windows'
+        run: python -m PyInstaller --onefile --windowed --icon icone.ico --name Levad-Connect --paths releve-snmp --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi releve-snmp/levad_connect_gui.py
+      - name: "Fabriquer le programme (Mac : une application)"
+        if: matrix.nom == 'Mac'
+        run: python -m PyInstaller --windowed --icon icone.icns --name "Levad Connect" --osx-bundle-identifier fr.levad.connect --paths releve-snmp --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi releve-snmp/levad_connect_gui.py
+      - name: Windows - connexion à Azure (signature)
+        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui' && github.ref == 'refs/heads/main'
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
+      - name: Windows - signer le programme (Azure Artifact Signing)
+        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui' && github.ref == 'refs/heads/main'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.SIGNATURE_ENDPOINT }}
+          signing-account-name: ${{ vars.SIGNATURE_COMPTE }}
+          certificate-profile-name: ${{ vars.SIGNATURE_PROFIL }}
+          files-folder: ${{ github.workspace }}\dist
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+      - name: Windows - vérifier la signature
+        if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: |
+          $sig = Get-AuthenticodeSignature dist/Levad-Connect.exe
+          Write-Host "Statut : $($sig.Status) - Signataire : $($sig.SignerCertificate.Subject)"
+          if ($sig.Status -ne 'Valid') { throw "Le programme n'est pas correctement signé ($($sig.Status))" }
+      - name: Essai Windows (la fenêtre s'ouvre et se ferme sans erreur)
+        if: matrix.nom == 'Windows'
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist/Levad-Connect.exe -ArgumentList "--autotest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "La fenêtre ne s'ouvre pas (code $($p.ExitCode))" }
+      - name: Mac - texte d'autorisation réseau local, signature locale, essai, zip
+        if: matrix.nom == 'Mac'
+        run: |
+          APP="dist/Levad Connect.app"
+          plutil -insert NSLocalNetworkUsageDescription -string "Levad Connect cherche les copieurs de votre réseau pour lire leurs compteurs." "$APP/Contents/Info.plist"
+          codesign --force --deep --sign - "$APP"
+          "$APP/Contents/MacOS/Levad Connect" --autotest
+          mkdir -p envoi
+          ditto -c -k --sequesterRsrc --keepParent "$APP" envoi/Levad-Connect-Mac.zip
+      - name: Windows - le programme seul (pas de zip à ouvrir pour le client)
+        if: matrix.nom == 'Windows'
+        shell: bash
+        run: mkdir -p envoi && cp dist/Levad-Connect.exe envoi/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Levad-Connect-${{ matrix.nom }}
+          path: envoi/*
+          retention-days: 90
+
+  # Quand la fabrication réussit sur la branche principale, on dépose les programmes dans le site :
+  # ils sont alors téléchargeables sur /telecharger (page de téléchargement de l'application Vercel).
+  publier:
+    needs: fabriquer
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: programmes-fabriques
+      - name: Copier les programmes dans le site
+        run: |
+          mkdir -p public/telechargements
+          cp programmes-fabriques/Levad-Connect-Windows/Levad-Connect.exe public/telechargements/
+          cp programmes-fabriques/Levad-Connect-Mac/Levad-Connect-Mac.zip public/telechargements/
+      - name: Informations de mise à jour automatique (version, empreinte)
+        run: |
+          VERSION=$(grep -oP 'VERSION_AGENT = "\K[^"]+' releve-snmp/levad_agent.py)
+          SHA=$(sha256sum public/telechargements/Levad-Connect.exe | cut -d' ' -f1)
+          TAILLE=$(stat -c%s public/telechargements/Levad-Connect.exe)
+          SIGNE=false
+          if [ "${{ vars.SIGNATURE_WINDOWS }}" = "oui" ]; then SIGNE=true; fi
+          printf '{\n  "version": "%s",\n  "sha256": "%s",\n  "taille": %s,\n  "signe": %s,\n  "signataire": "%s"\n}\n' "$VERSION" "$SHA" "$TAILLE" "$SIGNE" "${{ vars.SIGNATURE_SIGNATAIRE }}" > public/telechargements/version.json
+          cat public/telechargements/version.json
+      - name: Publier dans le dépôt
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/telechargements
+          if git diff --cached --quiet; then echo "Rien de nouveau à publier"; exit 0; fi
+          git commit -m "Publication des programmes Levad Connect (page /telecharger)"
+          git pull --rebase origin main
+          git push origin HEAD:main

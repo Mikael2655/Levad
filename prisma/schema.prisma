@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SocialPost {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topic       String
+  contentLI   String?
+  contentIG   String?
+  imagePrompt String?
+  imageUrl    String?
+
+  status      String   @default("draft") // draft | scheduled | published | failed
+  scheduledAt DateTime?
+  publishedAt DateTime?
+
+  linkedinPostId  String?
+  instagramPostId String?
+  errorMessage    String?
+}
+
+model SocialConfig {
+  id               Int      @id @default(1)
+  companyName      String   @default("Levad")
+  companyDesc      String   @default("Levad est spécialisé dans les solutions d'impression, téléphonie, informatique et GED pour les entreprises.")
+  tone             String   @default("professionnel")
+  targetAudience   String   @default("dirigeants et responsables IT de PME")
+  topics           String   @default("impression,téléphonie,informatique,GED,productivité")
+  notifyEmail      String   @default("mobadia@levad.fr")
+  linkedinEnabled  Boolean  @default(false)
+  instagramEnabled Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Levad Connect : suivi du parc de copieurs des clients (tables séparées de l'outil de publications)
+// Script SQL à coller dans la console de la base : prisma/migrations/manual_connect_parc.sql
+// ---------------------------------------------------------------------------
+
+model ConnectClient {
+  id       Int              @id @default(autoincrement())
+  nom      String
+  cle      String           @unique // nom simplifié (sans SARL/SAS, accents, majuscules) pour rapprocher les saisies
+  creeLe   DateTime         @default(now())
+  machines ConnectMachine[]
+  mouvements ConnectStockMouvement[]
+  postes   ConnectPoste[]
+  commandes ConnectCommande[]
+  evenementsLien ConnectLienEvenement[]
+  // Lien personnel d'installation (permanent, lié au client et non à un PC ; régénérable)
+  codeLien              String?   @unique
+  email                 String? // pour envoyer le lien au client
+  modeReleve            String    @default("agent") // agent = programme résident ; manuel = relevés reçus par mail
+  seuilDeconnexionJours Int       @default(10)
+  deconnexionSignaleLe  DateTime? // mail de déconnexion déjà envoyé (remis à zéro quand le client se reconnecte)
+  lienEnvoyeLe          DateTime? // dernier envoi du lien d'installation au client (mail ou marqué à la main)
+
+  @@map("connect_client")
+}
+
+model ConnectMachine {
+  id          Int             @id @default(autoincrement())
+  clientId    Int
+  client      ConnectClient   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  cle         String          @unique // « sn:NUMERO_DE_SERIE » ou « ip:ID_CLIENT:ADRESSE_IP »
+  numeroSerie String?
+  marque      String?
+  modele      String?
+  ip          String?
+  nomAffiche  String?
+  categorie   String          @default("mine") // mine = Canon vendue par LEVAD, autre = autre marque
+  horsContrat Boolean         @default(false)
+  site        String          @default("Site principal")
+  gamme       String?
+  aVerifier   Boolean         @default(false)
+  recette     String? // A, B ou C ; vide = automatique
+  seuilEncre  Int             @default(25) // ancien réglage unique (remplacé par un seuil par couleur)
+  seuilNoir    Int            @default(25)
+  seuilCyan    Int            @default(25)
+  seuilMagenta Int            @default(25)
+  seuilJaune   Int            @default(25)
+  creeLe      DateTime        @default(now())
+  releves     ConnectReleve[]
+
+  @@index([clientId])
+  @@map("connect_machine")
+}
+
+model ConnectReleve {
+  id            Int            @id @default(autoincrement())
+  machineId     Int
+  machine       ConnectMachine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  date          DateTime       @default(now())
+  source        String         @default("connect")
+  compteurs     Json // { "112": { "v": 656, "nom": "Total (Black/Large)" }, ... }
+  encres        Json?
+  bacs          Json?
+  totalStandard Int?
+  versionSnmp   String?
+  pc            String?
+
+  @@index([machineId, date])
+  @@map("connect_releve")
+}
+
+// Stock d'encre d'un client = somme des mouvements (envois +, changements de cartouche détectés -, corrections).
+model ConnectStockMouvement {
+  id        Int           @id @default(autoincrement())
+  clientId  Int
+  client    ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  couleur   String // noir | cyan | magenta | jaune
+  delta     Int
+  motif     String // envoi | correction | changement
+  note      String? // référence de la cartouche, remarque...
+  machineId Int?
+  variante  String        @default("") // « » = cartouche standard ; sinon le code de la version L / H (ex. « C-EXV 58 L »)
+  groupe    String        @default("") // « site|gamme » : stock partagé par les machines compatibles d'un même site
+  date      DateTime      @default(now())
+
+  @@index([clientId, couleur])
+  @@map("connect_stock_mouvement")
+}
+
+// Un enregistrement par jour où le mail récapitulatif des alertes a été envoyé (évite les doublons).
+model ConnectAlerteEnvoi {
+  id         Int      @id @default(autoincrement())
+  jour       String   @unique // AAAA-MM-JJ, heure de Paris
+  envoyeLe   DateTime @default(now())
+  nbAlertes  Int
+
+  @@map("connect_alerte_envoi")
+}
+
+// Un PC chez un client sur lequel le programme résident est installé (historique conservé).
+model ConnectPoste {
+  id                Int           @id @default(autoincrement())
+  clientId          Int
+  client            ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  nom               String
+  systeme           String?
+  versionAgent      String?
+  premiereConnexion DateTime      @default(now())
+  derniereConnexion DateTime      @default(now())
+  site              String        @default("Site principal") // les machines découvertes par cet ordinateur prennent ce site
+  deconnexionSignaleLe DateTime? // mail de déconnexion déjà envoyé pour cet ordinateur
+  // santé du programme, envoyée avec chaque signal de vie (version 1.1 et suivantes)
+  demarreLe         DateTime?
+  derniereLectureOk DateTime?
+  derniereErreur    String?
+  derniereErreurLe  DateTime?
+  nbErreurs         Int           @default(0)
+
+  @@unique([clientId, nom])
+  @@map("connect_poste")
+}
+
+// Demande de lecture immédiate (bouton « Actualiser ») : le programme la prend à son prochain signal (≤ 1 min).
+model ConnectCommande {
+  id        Int           @id @default(autoincrement())
+  clientId  Int
+  client    ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  machineId Int?
+  type      String        @default("lecture")
+  creeLe    DateTime      @default(now())
+  priseLe   DateTime?
+  faiteLe   DateTime?
+  posteNom  String?
+
+  @@index([clientId, faiteLe])
+  @@map("connect_commande")
+}
+
+// Historique du lien d'installation d'un client : chaque envoi (mail ou noté à la main) et chaque régénération.
+model ConnectLienEvenement {
+  id       Int           @id @default(autoincrement())
+  clientId Int
+  client   ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type     String // envoye | note | regenere
+  detail   String? // adresse mail du destinataire...
+  date     DateTime      @default(now())
+
+  @@index([clientId, date])
+  @@map("connect_lien_evenement")
+}
