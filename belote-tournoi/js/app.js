@@ -110,9 +110,9 @@
       });
     });
   }
-  function modalPrompt(msg, initial) {
+  function modalPrompt(msg, initial, isPassword) {
     return new Promise(function (res) {
-      var o = openModal('<p>' + esc(msg) + '</p><input id="modal-input" value="' + esc(initial || '') + '">' +
+      var o = openModal('<p>' + esc(msg) + '</p><input id="modal-input" type="' + (isPassword ? 'password' : 'text') + '" value="' + esc(initial || '') + '">' +
         '<div class="btn-row"><button class="btn small" data-m="0">Annuler</button>' +
         '<button class="btn primary small" data-m="1">Valider</button></div>');
       var inp = o.querySelector('#modal-input'); inp.focus(); inp.select();
@@ -767,11 +767,8 @@
     if (act === 'admin-tour') { ui.adminTab = 'equipes'; ui.poolTab = 'A'; openTournament(a.getAttribute('data-id')); go('#/admin'); return; }
     if (act === 'del-tour') {
       var id = a.getAttribute('data-id');
-      modalConfirm('Supprimer ce tournoi ? Action irréversible.', 'Supprimer').then(function (ok) {
-        if (!ok) return;
-        sessionStorage.removeItem('bt:admin:' + id);
-        DB.resetTournament(id).then(function () { if (state.tid === id) openTournament(null); ui.tourList = null; toast('Tournoi supprimé.'); renderList(); });
-      });
+      var cfg = (ui.tourList || []).filter(function (x) { return x.id === id; })[0];
+      deleteTournament(id, cfg && cfg.adminHash);
       return;
     }
     if (act === 'new-format') { stashCreate(); ui.newFormat = a.getAttribute('data-f'); render(); return; }
@@ -853,11 +850,7 @@
     }
     if (act === 'lock-admin') { sessionStorage.removeItem('bt:admin:' + tid); go('#/classement'); return; }
     if (act === 'reset') {
-      modalConfirm('Supprimer définitivement ce tournoi ?', 'Supprimer').then(function (ok) {
-        if (!ok) return;
-        sessionStorage.removeItem('bt:admin:' + tid);
-        DB.resetTournament(tid).then(function () { openTournament(null); ui.tourList = null; toast('Tournoi supprimé.'); go('#/'); });
-      });
+      deleteTournament(tid, store.config && store.config.adminHash);
       return;
     }
   }
@@ -888,6 +881,34 @@
     sha256(pin).then(function (hash) {
       if (store.config && hash === store.config.adminHash) { sessionStorage.setItem('bt:admin:' + state.tid, '1'); render(); }
       else toast('Code incorrect.');
+    });
+  }
+  function deleteTournament(tid, adminHash) {
+    if (!tid) return;
+    modalConfirm('Supprimer définitivement ce tournoi ? Toutes les équipes et tous les scores seront perdus.', 'Supprimer').then(function (ok) {
+      if (!ok) return;
+      var check = adminHash
+        ? modalPrompt('Code administrateur pour confirmer la suppression :', '', true).then(function (code) {
+            if (code === null) return false; // annulé
+            return sha256(code).then(function (hash) {
+              if (hash === adminHash) return true;
+              toast('Code incorrect — suppression annulée.');
+              return false;
+            });
+          })
+        : Promise.resolve(true);
+      check.then(function (go2) {
+        if (!go2) return;
+        DB.resetTournament(tid).then(function () {
+          sessionStorage.removeItem('bt:admin:' + tid);
+          if (state.tid === tid) openTournament(null);
+          ui.tourList = null;
+          toast('Tournoi supprimé.');
+          go('#/');
+        }, function (e) {
+          toast('Suppression impossible : ' + ((e && e.message) || 'erreur'));
+        });
+      });
     });
   }
   function startBracket() {
