@@ -186,6 +186,7 @@
       return '<div class="menu-tile" style="justify-content:space-between">' +
         '<span data-act="open-tour" data-id="' + esc(c.id) + '" style="flex:1;cursor:pointer">' +
         '<b>' + esc(c.name) + '</b><span>' + meta + '</span></span>' +
+        '<button class="pill" data-act="admin-tour" data-id="' + esc(c.id) + '" title="Administration">🔧</button>' +
         '<button class="pill" data-act="del-tour" data-id="' + esc(c.id) + '" title="Supprimer">🗑</button></div>';
     }).join('') : (ui.tourList === null
       ? '<p class="sub">Chargement…</p>'
@@ -532,14 +533,16 @@
   }
   function renderAdminDash(c) {
     var assigned = store.teams.filter(function (t) { return t.assigned; }).length;
-    var tabs = fmt() === 'poolsonly' ? ['equipes', 'poules', 'acces', 'reglages']
-      : fmt() === 'ko' ? ['equipes', 'tableau', 'acces', 'reglages']
-      : ['equipes', 'poules', 'tableau', 'acces', 'reglages'];
+    var row1 = ['reglages', 'equipes', 'acces'];
+    var row2 = fmt() === 'poolsonly' ? ['poules'] : fmt() === 'ko' ? ['tableau'] : ['poules', 'tableau'];
     var labels = { equipes: 'Équipes', poules: 'Poules', tableau: 'Tableau', acces: 'Accès', reglages: 'Réglages' };
-    if (tabs.indexOf(ui.adminTab) < 0) ui.adminTab = 'equipes';
-    var nav = '<div class="pool-tabs">' + tabs.map(function (tb) {
-      return '<span class="pill ' + (ui.adminTab === tb ? 'active' : '') + '" data-act="admin-tab" data-tab="' + tb + '">' + labels[tb] + '</span>';
-    }).join('') + '</div>';
+    if (row1.concat(row2).indexOf(ui.adminTab) < 0) ui.adminTab = 'equipes';
+    function navRow(list) {
+      return '<div class="pool-tabs">' + list.map(function (tb) {
+        return '<span class="pill ' + (ui.adminTab === tb ? 'active' : '') + '" data-act="admin-tab" data-tab="' + tb + '">' + labels[tb] + '</span>';
+      }).join('') + '</div>';
+    }
+    var nav = navRow(row1) + '<div style="height:6px"></div>' + navRow(row2);
 
     var meta = fmt() === 'ko' ? (formatLabel('ko') + ' · ' + assigned + '/' + store.teams.length + ' équipes')
       : (c.numPools + ' poule(s) de ' + poolSize() + ' · ' + assigned + '/' + store.teams.length + ' équipes');
@@ -761,6 +764,7 @@
     var tid = state.tid;
     if (act === 'new-tour') { ui.newFormat = 'pools'; ui.newName = ''; ui.newPin = ''; ui.lastDraw = null; go('#/new'); return; }
     if (act === 'open-tour') { ui.adminTab = 'equipes'; ui.poolTab = 'A'; openTournament(a.getAttribute('data-id')); go('#/classement'); return; }
+    if (act === 'admin-tour') { ui.adminTab = 'equipes'; ui.poolTab = 'A'; openTournament(a.getAttribute('data-id')); go('#/admin'); return; }
     if (act === 'del-tour') {
       var id = a.getAttribute('data-id');
       modalConfirm('Supprimer ce tournoi ? Action irréversible.', 'Supprimer').then(function (ok) {
