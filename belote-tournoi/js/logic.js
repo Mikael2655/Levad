@@ -7,8 +7,8 @@
 (function (global) {
   'use strict';
 
-  var POOL_TARGET = 1500;   // objectif des poules et des 1/8, 1/4
-  var KO_BIG_TARGET = 2000; // 1/2, petite finale et finale
+  var POOL_TARGET = 1500;   // tous les matchs… (poules, 1/8, 1/4, 1/2)
+  var KO_BIG_TARGET = 2000; // …sauf la finale et la petite finale
 
   /* ---- Poules ------------------------------------------------------ */
 
@@ -105,13 +105,14 @@
 
   /* ---- Points d'un match de poule ---------------------------------- */
 
-  // Victoire = 1 pt, défaite = 0. (Une égalité parfaite ne rapporte rien :
-  // impossible à 1500.) L'écart (rubicon ou non) ne change pas les points ;
-  // il n'intervient que via le goal-average au départage.
+  // Victoire = 1 pt, défaite = 0. Victoire par rubicon (le gagnant a au moins
+  // le double des points de l'adversaire) = 2 pts. Une égalité parfaite ne
+  // rapporte rien (impossible à 1500).
   function matchPoints(scoreA, scoreB) {
     if (scoreA == null || scoreB == null) return { a: 0, b: 0 };
     if (scoreA === scoreB) return { a: 0, b: 0 };
-    return scoreA > scoreB ? { a: 1, b: 0 } : { a: 0, b: 1 };
+    if (scoreA > scoreB) return { a: scoreA >= 2 * scoreB ? 2 : 1, b: 0 };
+    return { a: 0, b: scoreB >= 2 * scoreA ? 2 : 1 };
   }
 
   function scoreOf(match) {
@@ -300,22 +301,12 @@
     return w === a ? b : a;
   }
 
-  // Finale au meilleur des 3 (2 manches gagnantes) : aller, retour, puis belle
-  // si 1-1. On joue toujours l'aller ET le retour ; la belle départage à 1-1.
-  function finalWinner(legs, a, b) {
-    if (!a || !b) return { winner: null, winsA: 0, winsB: 0, needBelle: false };
-    var winsA = 0, winsB = 0;
-    legs.forEach(function (leg) {
-      var w = winnerOf(leg, a, b);
-      if (w === a) winsA++; else if (w === b) winsB++;
-    });
-    var winner = winsA >= 2 ? a : (winsB >= 2 ? b : null);
-    var needBelle = !winner && winsA === 1 && winsB === 1;
-    return { winner: winner, winsA: winsA, winsB: winsB, needBelle: needBelle };
-  }
+  // Cible d'un tour : 2000 pts pour la finale, 1500 pour tous les autres.
+  function roundTarget(key) { return key === 'final' ? KO_BIG_TARGET : POOL_TARGET; }
 
   // Construit l'état complet du tableau à partir des scores enregistrés.
   // results : map matchId -> matchDoc ({ proposal, validated, target, ... }).
+  // Tous les matchs sont des matchs secs (pas d'aller-retour).
   function resolveBracket(bracket, teams, results) {
     results = results || {};
     var size = bracket.size;
@@ -328,23 +319,7 @@
 
     while (teamsIn >= 2) {
       var key = ROUND_BY_TEAMS[teamsIn] || ('t' + teamsIn);
-      if (teamsIn === 2) {
-        // Finale : au meilleur des 3.
-        var a = current[0], b = current[1];
-        var legs = ['final-0', 'final-1', 'final-2'].map(function (id) {
-          return results[id] || null;
-        });
-        var fw = finalWinner(legs, a, b);
-        finalInfo = {
-          key: 'final', teamsIn: 2, target: POOL_TARGET, bestOf: 3,
-          teamA: a, teamB: b, legs: legs, winsA: fw.winsA, winsB: fw.winsB,
-          needBelle: fw.needBelle, winner: fw.winner
-        };
-        rounds.push(finalInfo);
-        champion = fw.winner;
-        break;
-      }
-      var target = POOL_TARGET; // tous les matchs se jouent en 1500
+      var target = roundTarget(key);
       var matches = [];
       var nextParticipants = [];
       for (var k = 0; k < teamsIn / 2; k++) {
@@ -363,21 +338,21 @@
       }
       rounds.push({ key: key, teamsIn: teamsIn, target: target, bestOf: 1, matches: matches });
       if (teamsIn === 4) sfLosers = matches.map(function (mm) { return mm.loser; });
+      if (teamsIn === 2) { finalInfo = matches[0]; champion = matches[0].winner; }
       current = nextParticipants;
       teamsIn = teamsIn / 2;
       rIdx++;
     }
 
-    // Petite finale (3e place) entre les 2 perdants de 1/2, au meilleur des 3.
+    // Petite finale (3e place) entre les 2 perdants de 1/2 : match sec en 2000.
     var thirdPlace = null;
     if (sfLosers) {
       var la = sfLosers[0], lb = sfLosers[1];
-      var legs3 = ['p3-0', 'p3-1', 'p3-2'].map(function (id) { return results[id] || null; });
-      var fw3 = finalWinner(legs3, la, lb);
+      var res3 = results['p3'] || null;
       thirdPlace = {
-        id: 'p3', key: 'p3', target: POOL_TARGET, bestOf: 3,
-        teamA: la, teamB: lb, legs: legs3, winsA: fw3.winsA, winsB: fw3.winsB,
-        needBelle: fw3.needBelle, winner: fw3.winner
+        id: 'p3', key: 'p3', target: KO_BIG_TARGET, bestOf: 1,
+        teamA: la, teamB: lb, result: res3,
+        winner: winnerOf(res3, la, lb), loser: loserOf(res3, la, lb)
       };
     }
     return { rounds: rounds, thirdPlace: thirdPlace, size: size,
@@ -389,22 +364,13 @@
   function bracketMatchList(resolved) {
     var list = [];
     resolved.rounds.forEach(function (rd) {
-      if (rd.key === 'final') {
-        for (var i = 0; i < 3; i++) {
-          list.push({ id: 'final-' + i, key: 'final', leg: i,
-            teamA: rd.teamA, teamB: rd.teamB, target: rd.target });
-        }
-      } else {
-        rd.matches.forEach(function (m) {
-          list.push({ id: m.id, key: m.key, teamA: m.teamA, teamB: m.teamB, target: m.target });
-        });
-      }
+      rd.matches.forEach(function (m) {
+        list.push({ id: m.id, key: m.key, teamA: m.teamA, teamB: m.teamB, target: m.target });
+      });
     });
     if (resolved.thirdPlace) {
-      for (var j = 0; j < 3; j++) {
-        list.push({ id: 'p3-' + j, key: 'p3', leg: j,
-          teamA: resolved.thirdPlace.teamA, teamB: resolved.thirdPlace.teamB, target: resolved.thirdPlace.target });
-      }
+      var tp = resolved.thirdPlace;
+      list.push({ id: 'p3', key: 'p3', teamA: tp.teamA, teamB: tp.teamB, target: tp.target });
     }
     return list;
   }
@@ -421,6 +387,6 @@
     bracketSizeFor: bracketSizeFor, qualifiers: qualifiers,
     standardSeedPositions: standardSeedPositions, seedBracket: seedBracket,
     resolveBracket: resolveBracket, bracketMatchList: bracketMatchList,
-    winnerOf: winnerOf, finalWinner: finalWinner, roundLabel: roundLabel
+    winnerOf: winnerOf, roundLabel: roundLabel
   };
 })(typeof window !== 'undefined' ? window : this);

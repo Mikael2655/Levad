@@ -386,16 +386,15 @@
     if (!bracket) return '<p class="sub">Tableau indisponible.</p>';
     var resolved = L.resolveBracket(bracket, store.teams, koResults());
     var cols = resolved.rounds.map(function (rd) {
-      var title = rd.key === 'final' ? 'Finale' : L.roundLabel(rd.key);
-      var inner = rd.key === 'final' ? seriesColumn(resolved.final)
-        : rd.matches.map(function (m) { return bmatch(m.teamA, m.teamB, m.result, m.winner, m.bye); }).join('');
+      var title = (rd.key === 'final' ? 'Finale' : L.roundLabel(rd.key)) + ' · ' + rd.target + ' pts';
+      var inner = rd.matches.map(function (m) { return bmatch(m.teamA, m.teamB, m.result, m.winner, m.bye); }).join('');
       return '<div class="bround"><h4>' + title + '</h4>' + inner + '</div>';
     }).join('');
     var extra = '';
     if (resolved.thirdPlace) {
       var tp = resolved.thirdPlace;
       extra += '<h3>Petite finale (3e place) — ' + tp.target + ' pts</h3>' +
-        '<div class="bracket"><div class="bround">' + seriesColumn(tp) + '</div></div>';
+        '<div class="bracket"><div class="bround">' + bmatch(tp.teamA, tp.teamB, tp.result, tp.winner) + '</div></div>';
     }
     var champ = resolved.champion ? '<div class="champion">🏆 Vainqueur : ' + teamName(teamById(resolved.champion)) + '</div>' : '';
     return '<div class="bracket-scroll"><div class="bracket">' + cols + '</div></div>' + extra + champ;
@@ -414,23 +413,6 @@
     return '<div class="bteam ' + (isWin ? 'w' : '') + (id ? '' : ' tbd') + '">' +
       '<span class="nm">' + nm + '</span><span class="sc">' + (score == null ? '' : score) + '</span></div>';
   }
-  function seriesColumn(f) {
-    if (!f) return '';
-    var rows = '';
-    for (var i = 0; i < 3; i++) {
-      if (i === 2 && !(f.needBelle || legHasScore(f.legs[2]))) continue;
-      var res = f.legs[i];
-      var w = res ? L.winnerOf(res, f.teamA, f.teamB) : null;
-      var lbl = i === 0 ? 'Aller' : (i === 1 ? 'Retour' : 'Belle');
-      rows += '<div style="font-size:.72rem;color:var(--muted);margin:2px 0">' + lbl + '</div>' + bmatch(f.teamA, f.teamB, res, w);
-    }
-    rows += '<div style="text-align:center;font-size:.8rem;margin-top:4px">' +
-      (teamTag(f.teamA) || 'A') + ' <b>' + f.winsA + '</b> – <b>' + f.winsB + '</b> ' + (teamTag(f.teamB) || 'B') +
-      ' <span class="muted">manche(s)</span>' +
-      (f.needBelle ? '<br><span class="muted" style="font-size:.72rem">1-1 → belle décisive</span>' : '') + '</div>';
-    return rows;
-  }
-  function legHasScore(res) { return !!L.scoreOf(res); }
 
   /* ---- Écran ÉQUIPE (saisie depuis le téléphone de l'équipe) -------- */
   function renderTeam() {
@@ -455,10 +437,8 @@
       var resolved = L.resolveBracket(br, store.teams, koResults());
       L.bracketMatchList(resolved).forEach(function (e) {
         if (!(e.teamA === myId || e.teamB === myId) || !e.teamA || !e.teamB) return;
-        if (e.id === 'final-2' && !(resolved.final && (resolved.final.needBelle || L.scoreOf(resolved.final.legs[2])))) return;
-        if (e.id === 'p3-2' && !(resolved.thirdPlace && (resolved.thirdPlace.needBelle || L.scoreOf(resolved.thirdPlace.legs[2])))) return;
         var m = Object.assign({}, matchById(e.id) || {}, { id: e.id, teamA: e.teamA, teamB: e.teamB, target: e.target, phase: 'ko', roundKey: e.key });
-        mine.push({ m: m, title: koTitle(e) });
+        mine.push({ m: m, title: koTitle(e) + ' · ' + e.target + ' pts' });
       });
     }
     if (!mine.length) {
@@ -539,8 +519,8 @@
   }
   function labelName(t, id) { return (t && t.name) ? esc(t.name) : (id ? (esc(teamTag(id)) || 'Éq.') : '?'); }
   function koTitle(e) {
-    if (e.key === 'final') return 'Finale — ' + (e.leg === 0 ? 'Aller' : (e.leg === 1 ? 'Retour' : 'Belle'));
-    if (e.key === 'p3') return 'Petite finale — ' + (e.leg === 0 ? 'Aller' : (e.leg === 1 ? 'Retour' : 'Belle'));
+    if (e.key === 'final') return 'Finale';
+    if (e.key === 'p3') return 'Petite finale (3e place)';
     return L.roundLabel(e.key);
   }
 
@@ -715,17 +695,13 @@
   function koScoreCard(br) {
     var resolved = L.resolveBracket(br, store.teams, koResults());
     var html = '<div class="card"><h2>Saisie des scores — phase finale</h2>';
-    var list = L.bracketMatchList(resolved).filter(function (e) {
-      if (e.id === 'final-2') return resolved.final && (resolved.final.needBelle || L.scoreOf(resolved.final.legs[2]));
-      if (e.id === 'p3-2') return resolved.thirdPlace && (resolved.thirdPlace.needBelle || L.scoreOf(resolved.thirdPlace.legs[2]));
-      return true;
-    });
+    var list = L.bracketMatchList(resolved);
     var any = false;
     list.forEach(function (e) {
       if (!e.teamA || !e.teamB) return;
       any = true;
       var m = Object.assign({}, matchById(e.id) || {}, { id: e.id, teamA: e.teamA, teamB: e.teamB, target: e.target, phase: 'ko', roundKey: e.key });
-      html += matchCard(m, koTitle(e));
+      html += matchCard(m, koTitle(e) + ' · ' + e.target + ' pts');
     });
     if (!any) html += '<p class="sub">Aucun match jouable pour l\'instant.</p>';
     return html + '</div>';

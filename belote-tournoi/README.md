@@ -61,17 +61,18 @@ mode local (un seul appareil), seul l'organisateur peut saisir.
 
 - **Poules de 4 équipes** (au moins 6 poules recommandées). Chaque équipe
   rencontre les 3 autres.
-- Matchs de poule en **1500 points**. **Victoire = 1 pt**, **défaite = 0**
-  (l'écart de score ne change pas les points).
+- Matchs de poule en **1500 points**. **Victoire = 1 pt**, **défaite = 0**.
+  **Victoire par rubicon** (le gagnant atteint au moins le **double** des
+  points de l'adversaire) = **2 pts**.
 - Départage : **points**, puis **goal-average** (différence de points), puis
   **total de points marqués**.
 - Les **2 premiers** de chaque poule + les **meilleurs 3es** (autant que
   nécessaire) sont qualifiés. Le tableau a une taille en puissance de 2 :
   **6 poules → 1/8 de finale à 16 équipes**.
-- **Tous les matchs se jouent en 1500 points** (1/8, 1/4, 1/2 : seule la
-  victoire compte, pas de différence).
-- **Finale** et **petite finale** (3e place) : au **meilleur des 3**
-  (2 manches gagnantes) — aller, retour, et **belle** si 1-1.
+- **Tous les matchs se jouent en 1500 points** (1/8, 1/4, 1/2), **sauf la
+  finale et la petite finale** (3e place) en **2000 points**.
+- Tous les matchs du tableau sont des **matchs secs** (pas d'aller-retour) :
+  une seule rencontre, la victoire qualifie.
 
 ## Sauvegarde en ligne (optionnel : Firebase)
 
