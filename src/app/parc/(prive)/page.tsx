@@ -131,9 +131,9 @@ export default async function ParcPage() {
                 Aucune machine pour l&apos;instant : elles apparaîtront dès que le client aura installé Levad Connect avec son lien.
               </p>
             )}
-            {groupesParSite(c.machines).map(([site, lesMachines], gi, tous) => (
+            {groupesParSite(c.machines).map(([site, lesMachines], gi) => (
             <div key={site} className={gi > 0 ? 'mt-4' : ''}>
-            {tous.length > 1 && <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>}
+            <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>
             <div className="divide-y rounded-xl border bg-white">
               {lesMachines.map((m) => {
                 const r = m.releves[0]
@@ -150,7 +150,6 @@ export default async function ParcPage() {
                     <div>
                       <p className="font-semibold">
                         {libelleMachine(m, 'Machine inconnue')}
-                        <span className="font-normal text-gray-500"> · {m.site}</span>
                       </p>
                       <p className="text-sm text-gray-500">
                         {m.marque ?? '?'} · {m.numeroSerie ?? '—'} · {m.ip ?? '—'}
