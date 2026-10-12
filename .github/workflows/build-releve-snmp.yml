@@ -84,8 +84,13 @@ jobs:
           plutil -insert NSLocalNetworkUsageDescription -string "Levad Connect cherche les copieurs de votre réseau pour lire leurs compteurs." "$APP/Contents/Info.plist"
           codesign --force --deep --sign - "$APP"
           "$APP/Contents/MacOS/Levad Connect" --autotest
-          mkdir -p envoi
-          ditto -c -k --sequesterRsrc --keepParent "$APP" envoi/Levad-Connect-Mac.zip
+          "$APP/Contents/MacOS/Levad Connect" --verifier
+          # Le zip contient l'application ET un petit texte : en l'ouvrant, macOS crée alors un dossier du nom du zip
+          # (Levad-Connect-<code>) qui contient l'application, ce qui permet au programme de retrouver le code du client.
+          mkdir -p envoi mac-zip
+          cp -R "$APP" mac-zip/
+          printf "Levad Connect : double-cliquez sur l'application « Levad Connect » de ce dossier, puis cliquez sur Installer.\n" > mac-zip/LISEZMOI.txt
+          ditto -c -k --sequesterRsrc mac-zip envoi/Levad-Connect-Mac.zip
       - name: Windows - le programme seul (pas de zip à ouvrir pour le client)
         if: matrix.nom == 'Windows'
         shell: bash
@@ -119,9 +124,11 @@ jobs:
           VERSION=$(grep -oP 'VERSION_AGENT = "\K[^"]+' releve-snmp/levad_agent.py)
           SHA=$(sha256sum public/telechargements/Levad-Connect.exe | cut -d' ' -f1)
           TAILLE=$(stat -c%s public/telechargements/Levad-Connect.exe)
+          SHA_MAC=$(sha256sum public/telechargements/Levad-Connect-Mac.zip | cut -d' ' -f1)
+          TAILLE_MAC=$(stat -c%s public/telechargements/Levad-Connect-Mac.zip)
           SIGNE=false
           if [ "${{ vars.SIGNATURE_WINDOWS }}" = "oui" ]; then SIGNE=true; fi
-          printf '{\n  "version": "%s",\n  "sha256": "%s",\n  "taille": %s,\n  "signe": %s,\n  "signataire": "%s"\n}\n' "$VERSION" "$SHA" "$TAILLE" "$SIGNE" "${{ vars.SIGNATURE_SIGNATAIRE }}" > public/telechargements/version.json
+          printf '{\n  "version": "%s",\n  "sha256": "%s",\n  "taille": %s,\n  "signe": %s,\n  "signataire": "%s",\n  "mac": {"sha256": "%s", "taille": %s}\n}\n' "$VERSION" "$SHA" "$TAILLE" "$SIGNE" "${{ vars.SIGNATURE_SIGNATAIRE }}" "$SHA_MAC" "$TAILLE_MAC" > public/telechargements/version.json
           cat public/telechargements/version.json
       - name: Publier dans le dépôt
         run: |
