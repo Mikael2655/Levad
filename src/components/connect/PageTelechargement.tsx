@@ -1,6 +1,13 @@
 // Contenu de la page de téléchargement de Levad Connect (générique ou lien personnel d'un client).
 const VERT = '#8c9e8b'
 
+function Capture({ src, alt }: { src: string; alt: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} loading="lazy" className="mt-2 h-auto max-w-full rounded-lg border border-gray-200 shadow-sm" style={{ maxWidth: 'min(380px, 100%)' }} />
+  )
+}
+
 function Etape({ n, titre, texte }: { n: number; titre: string; texte: string }) {
   return (
     <li className="flex gap-4">
@@ -97,29 +104,48 @@ export function PageTelechargement({
         </p>
 
         <h3 className="mt-6 font-semibold">1. Dans votre navigateur (au téléchargement)</h3>
-        <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl bg-gray-50 p-5">
+        <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="min-w-0 rounded-xl bg-gray-50 p-5">
             <p className="font-semibold">Microsoft Edge</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-600">
-              <li>Une fenêtre « Téléchargements » s&apos;ouvre en haut à droite.</li>
-              <li>Cliquez sur le message du fichier (« n&apos;est pas fréquemment téléchargé »).</li>
-              <li>Cliquez sur la <strong>flèche à droite du bouton « Supprimer »</strong>, puis sur <strong>Conserver</strong>.</li>
-              <li>Au message suivant, cliquez sur <strong>Afficher plus</strong>, puis <strong>Conserver quand même</strong>.</li>
+            <ol className="mt-2 space-y-5 text-gray-600">
+              <li>
+                <p><strong>1.</strong> Le fichier est signalé comme « pas fréquemment téléchargé ».</p>
+                <Capture src="/aide/aide-edge-1-avertissement.png" alt="Edge : message « n'est pas fréquemment téléchargé »" />
+              </li>
+              <li>
+                <p><strong>2.</strong> Cliquez sur les <strong>trois points « … »</strong> à droite du fichier, puis sur <strong>Conserver</strong>.</p>
+                <Capture src="/aide/aide-edge-2-conserver.png" alt="Edge : menu avec l'option Conserver" />
+              </li>
+              <li>
+                <p><strong>3.</strong> Vérifiez que l&apos;<strong>éditeur</strong> indiqué est <strong>Levad</strong>.</p>
+                <Capture src="/aide/aide-edge-3-verifier.png" alt="Edge : fenêtre « Vérifiez que vous faites confiance », éditeur Levad" />
+              </li>
+              <li>
+                <p><strong>4.</strong> Cliquez sur la <strong>flèche à droite du bouton « Supprimer »</strong>, puis sur <strong>Conserver quand même</strong>.</p>
+                <Capture src="/aide/aide-edge-4-conserver-quand-meme.png" alt="Edge : option Conserver quand même" />
+              </li>
             </ol>
           </div>
-          <div className="rounded-xl bg-gray-50 p-5">
+          <div className="min-w-0 rounded-xl bg-gray-50 p-5">
             <p className="font-semibold">Google Chrome</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-600">
-              <li>Cliquez sur la flèche de téléchargement en haut à droite.</li>
-              <li>Cliquez sur les <strong>trois points « … »</strong> à côté du fichier, puis sur <strong>Conserver</strong>.</li>
-              <li>Au message suivant, cliquez sur <strong>Conserver quand même</strong>.</li>
+            <ol className="mt-2 space-y-5 text-gray-600">
+              <li>
+                <p><strong>1.</strong> Chrome affiche « Téléchargement suspect bloqué » : cliquez sur ce message.</p>
+                <Capture src="/aide/aide-chrome-1-bloque.png" alt="Chrome : Téléchargement suspect bloqué" />
+              </li>
+              <li>
+                <p>
+                  <strong>2.</strong> Au message « Ce fichier n&apos;est pas souvent téléchargé », cliquez sur{' '}
+                  <strong>Télécharger le fichier suspect</strong> (et non sur « Supprimer de l&apos;historique »).
+                </p>
+              </li>
             </ol>
           </div>
         </div>
 
         <h3 className="mt-8 font-semibold">2. À l&apos;ouverture du fichier</h3>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl bg-gray-50 p-5">
+          <div className="min-w-0 rounded-xl bg-gray-50 p-5">
             <p className="font-semibold">Sur Windows</p>
             <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-600">
               <li>Si « Windows a protégé votre ordinateur » apparaît, cliquez sur <strong>Informations complémentaires</strong>.</li>
@@ -127,7 +153,7 @@ export function PageTelechargement({
               <li>Cliquez sur <strong>Exécuter quand même</strong>.</li>
             </ol>
           </div>
-          <div className="rounded-xl bg-gray-50 p-5">
+          <div className="min-w-0 rounded-xl bg-gray-50 p-5">
             <p className="font-semibold">Sur Mac</p>
             <p className="mt-2 text-gray-600">
               Si Apple n&apos;a pas pu vérifier l&apos;application : cliquez sur <strong>Terminé</strong>, puis ouvrez le
