@@ -29,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.5"
+VERSION_AGENT = "1.6"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -99,15 +99,44 @@ def est_installe():
 # ----------------------------------------------------------------------------
 # Code du client (dans le nom du fichier téléchargé)
 # ----------------------------------------------------------------------------
+def _chemin_reel_mac(chemin):
+    """Mac : macOS lance parfois une application téléchargée depuis un chemin aléatoire (« AppTranslocation »), qui ne
+    contient plus le nom du dossier d'origine. La liste des volumes (commande mount) indique le vrai emplacement."""
+    if not chemin or "AppTranslocation" not in chemin:
+        return chemin
+    try:
+        sortie = subprocess.run(["mount"], capture_output=True, text=True, timeout=15).stdout
+    except Exception:
+        return chemin
+    for ligne in sortie.splitlines():
+        m = re.match(r"^(?P<origine>.+) on (?P<point>/\S*AppTranslocation\S*) \(", ligne)
+        if m and chemin.startswith(m.group("point")):
+            return m.group("origine") + chemin[len(m.group("point")):]
+    return chemin
+
+
 def code_depuis_nom_de_fichier():
     """Le code du lien personnel, lu dans le nom de ce programme ; None s'il n'y en a pas."""
     chemin = sys.executable if getattr(sys, "frozen", False) else sys.argv[0]
+    if sys.platform == "darwin":
+        chemin = _chemin_reel_mac(chemin)
     m = MOTIF_CODE.search(os.path.basename(chemin or ""))
     if m is None and sys.platform == "darwin":
         # Mac : le fichier téléchargé est un zip « Levad-Connect-<code>.zip » ; en l'ouvrant, macOS crée un dossier du même nom
         # qui contient l'application : on cherche donc le code dans les dossiers parents.
         for dossier in os.path.abspath(chemin or "").split(os.sep):
             m = MOTIF_CODE.search(dossier)
+            if m:
+                break
+    if m is None and sys.platform == "darwin":
+        # dernier recours : le zip ou le dossier « Levad-Connect-<code> » le plus récent du dossier Téléchargements
+        dl = os.path.join(os.path.expanduser("~"), "Downloads")
+        try:
+            candidats = sorted(os.listdir(dl), key=lambda n: os.path.getmtime(os.path.join(dl, n)), reverse=True)
+        except OSError:
+            candidats = []
+        for nom in candidats:
+            m = MOTIF_CODE.search(nom)
             if m:
                 break
     return m.group(1).lower() if m else None
