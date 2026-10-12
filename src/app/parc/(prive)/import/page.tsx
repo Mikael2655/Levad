@@ -1,3 +1,4 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import { prisma } from '@/lib/db'
 import { ImportReleves } from '@/components/connect/ImportReleves'
 
@@ -19,7 +20,7 @@ export default async function ImportPage() {
           clients={clients.map((c) => ({
             id: c.id,
             nom: c.nom,
-            machines: c.machines.map((m) => ({ id: m.id, libelle: `${m.nomAffiche || m.modele || 'Machine'} · n° ${m.numeroSerie ?? '—'}${m.horsContrat ? ' (hors contrat)' : ''}` })),
+            machines: c.machines.map((m) => ({ id: m.id, libelle: `${libelleMachine(m, 'Machine')} · n° ${m.numeroSerie ?? '—'}${m.horsContrat ? ' (hors contrat)' : ''}` })),
           }))}
         />
       </div>

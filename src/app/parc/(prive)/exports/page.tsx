@@ -1,3 +1,4 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import { prisma } from '@/lib/db'
 import { Bouton } from '@/components/connect/Formulaire'
 import { SelectionExport } from '@/components/connect/SelectionExport'
@@ -19,7 +20,7 @@ export default async function ExportsPage({ searchParams }: { searchParams: Reco
       id: c.id,
       nom: c.nom,
       mois: c.moisFacturation,
-      machines: c.machines.map((m) => ({ id: m.id, libelle: `${m.nomAffiche || m.modele || 'Machine'} · n° ${m.numeroSerie ?? '—'}` })),
+      machines: c.machines.map((m) => ({ id: m.id, libelle: `${libelleMachine(m, 'Machine')} · n° ${m.numeroSerie ?? '—'}` })),
     }))
 
   const lu = lireParams(searchParams)

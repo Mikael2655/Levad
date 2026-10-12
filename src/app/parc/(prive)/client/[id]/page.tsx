@@ -1,3 +1,4 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
@@ -180,7 +181,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
         {client.machines.map((m) => (
           <li key={m.id}>
             <Link href={`/parc/machine/${m.id}`} className="underline">
-              {m.nomAffiche || m.modele || 'Machine inconnue'}
+              {libelleMachine(m, 'Machine inconnue')}
             </Link>{' '}
             — n° {m.numeroSerie ?? '—'}
           </li>

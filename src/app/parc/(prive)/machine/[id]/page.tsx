@@ -1,3 +1,4 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import Link from 'next/link'
 import { Prisma } from '@prisma/client'
 import { avecEncres } from '@/lib/connect/releves'
@@ -49,7 +50,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
     <>
       <Link href="/parc" className="text-sm text-gray-500 hover:text-gray-900">← Retour à la synthèse</Link>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">{machine.nomAffiche || machine.modele || 'Machine inconnue'}</h1>
+        <h1 className="text-2xl font-bold">{libelleMachine(machine, 'Machine inconnue')}</h1>
         {!suivie && <Badge>Autre marque</Badge>}
         {machine.horsContrat && <Badge ton="gris">Hors contrat</Badge>}
         {machine.aVerifier && <Badge ton="orange">À vérifier</Badge>}
@@ -249,6 +250,19 @@ export default async function MachinePage({ params }: { params: { id: string } }
         </Formulaire>
       </section>
 
+      <section className="mt-6 rounded-xl border bg-white p-6">
+        <h2 className="text-lg font-bold">Ce que la machine déclare</h2>
+        <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[12rem_1fr]">
+          <dt className="text-gray-500">Modèle retenu</dt>
+          <dd>{machine.modele ?? '—'}</dd>
+          <dt className="text-gray-500">Nom donné par le client</dt>
+          <dd>{machine.nomReseau ?? '—'}</dd>
+          <dt className="text-gray-500">Description technique</dt>
+          <dd className="break-words">{machine.sysDescr ?? '— (apparaît au prochain relevé)'}</dd>
+          <dt className="text-gray-500">N° de série</dt>
+          <dd>{machine.numeroSerie ?? '—'}</dd>
+        </dl>
+      </section>
     </>
   )
 }

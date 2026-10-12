@@ -43,6 +43,9 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
         ? await resoudreModele({ modele: modeleLu, sysDescr: texte(m.sys_descr, 300), nomReseau: texte(m.nom_reseau, 120), serie })
         : null
     const modele = modeleTrouve ?? modeleLu
+    const sysDescr = texte(m.sys_descr, 300)
+    // le nom donné par le client (ex. DFM-Compta) : le nom lu sur la machine, quand il diffère du modèle retenu
+    const nomClient = modeleLu && modele && modeleTrouve !== null && !modeleLu.toLowerCase().includes(modele.toLowerCase()) ? modeleLu : null
 
     // sans numéro de série, on reconnaît la machine par son adresse IP chez ce client
     let cle = serie ? `sn:${serie.toUpperCase()}` : ''
@@ -56,7 +59,7 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
       // à chaque relevé on met à jour ce que la machine déclare ; les choix faits à la main sont conservés
       machine = await prisma.connectMachine.update({
         where: { id: machine.id },
-        data: { ip, marque: marque ?? undefined, modele: modele ?? undefined, ...(modeleTrouve && machine.aVerifier ? { aVerifier: false } : {}) },
+        data: { ip, marque: marque ?? undefined, modele: modele ?? undefined, nomReseau: nomClient, sysDescr, ...(modeleTrouve && machine.aVerifier ? { aVerifier: false } : {}) },
       })
     } else {
       const c = await clientPourMachineNouvelle()
@@ -71,6 +74,8 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
           numeroSerie: serie,
           marque,
           modele,
+          nomReseau: nomClient,
+          sysDescr,
           ip,
           categorie: marque === 'Canon' ? 'mine' : 'autre',
           aVerifier: !marque || !modele,

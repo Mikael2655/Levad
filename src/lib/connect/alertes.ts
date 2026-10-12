@@ -1,3 +1,4 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import { avecEncres } from './releves'
 import { prisma } from '@/lib/db'
 import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
@@ -134,7 +135,7 @@ export async function etatDuParc(): Promise<ClientEtat[]> {
       })
       return {
         id: m.id,
-        nom: m.nomAffiche || m.modele || 'Machine inconnue',
+        nom: libelleMachine(m, 'Machine inconnue'),
         site: m.site,
         groupe,
         gamme: gammeDe(m)?.code ?? null,

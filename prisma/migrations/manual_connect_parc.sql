@@ -153,3 +153,7 @@ ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "nbErreurs" INTEGER NOT NUL
 
 -- v12 : mois de facturation du client (cycle trimestriel : 1 = janvier, 2 = février, 3 = mars)
 ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "moisFacturation" INTEGER;
+
+-- v13 : nom donné par le client à la machine + description technique déclarée
+ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "nomReseau" TEXT;
+ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "sysDescr" TEXT;
