@@ -66,7 +66,7 @@ async function fabriquer(req: Request) {
   }
   ws.getRow(1).font = { bold: true }
   ws.views = [{ state: 'frozen', ySplit: 1 }]
-  for (const k of ['nb', 'couleur', 'scans', 'nb2', 'couleur2', 'vnb', 'vcouleur']) ws.getColumn(k).numFmt = '#,##0'
+  for (const c of colonnes) if (c.key !== 'client' && c.key !== 'reference' && c.key !== 'serie' && c.key !== 'dateReleve') ws.getColumn(c.key).numFmt = '#,##0'
 
   const buf = Buffer.from(await wb.xlsx.writeBuffer())
   return new Response(new Uint8Array(buf), {
