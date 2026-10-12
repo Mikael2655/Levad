@@ -40,6 +40,7 @@ export default async function PriveLayout({ children }: { children: React.ReactN
                 { href: '/parc/alertes', titre: 'Alerte encre', badge: nbAlertes },
                 { href: '/parc/deconnexions', titre: 'Alerte déconnexion', badge: nbDeconnectes },
                 { href: '/parc/stocks', titre: 'Stocks' },
+                { href: '/parc/import', titre: 'Import' },
                 { href: '/parc/exports', titre: 'Exports' },
                 { href: '/parc/connexions', titre: 'Connexions' },
               ]}
