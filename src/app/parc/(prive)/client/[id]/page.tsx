@@ -19,7 +19,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
   const historique = [
     ...client.evenementsLien.map((e) => ({
       date: e.date,
-      texte: e.type === 'envoye' ? `Lien envoyé à ${e.detail ?? 'le client'}` : e.type === 'note' ? 'Lien envoyé (noté à la main)' : `Nouveau lien créé (${e.detail ?? 'l’ancien ne fonctionne plus'})`,
+      texte: e.type === 'envoye' ? `Lien envoyé à ${e.detail ?? 'le client'}` : e.type === 'note' ? 'Lien envoyé (noté à la main)' : e.type === 'installe' ? `Installé sur ${e.detail}` : e.type === 'desinstalle' ? `Programme désinstallé sur ${e.detail ?? 'un ordinateur'}` : `Nouveau lien créé (${e.detail ?? 'l’ancien ne fonctionne plus'})`,
     })),
     ...client.postes.map((p) => ({ date: p.premiereConnexion, texte: `Installé sur ${p.nom} (${p.site})` })),
   ].sort((a, b) => b.date.getTime() - a.date.getTime())

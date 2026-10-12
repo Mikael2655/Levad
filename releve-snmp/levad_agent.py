@@ -29,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.3"
+VERSION_AGENT = "1.4"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -113,7 +113,7 @@ class CodeInconnu(Exception):
     pass
 
 
-def appel(config, chemin, donnees):
+def appel(config, chemin, donnees, delai=60):
     """POST JSON vers le serveur ; retourne la réponse décodée. Lève CodeInconnu si le lien n'est plus valable."""
     try:
         import certifi
@@ -125,7 +125,7 @@ def appel(config, chemin, donnees):
         url, data=json.dumps(donnees, ensure_ascii=False).encode("utf-8"), method="POST",
         headers={"Content-Type": "application/json; charset=utf-8", "Authorization": "Bearer " + config["code"]})
     try:
-        with urllib.request.urlopen(requete, timeout=60, context=contexte) as reponse:
+        with urllib.request.urlopen(requete, timeout=delai, context=contexte) as reponse:
             return json.loads(reponse.read().decode("utf-8") or "{}")
     except urllib.error.HTTPError as e:
         if e.code == 401:
@@ -506,6 +506,13 @@ def desinstaller(avec_demarrage_auto=True):
             pass
     if avec_demarrage_auto:
         _retirer_surveillance()
+        # prévient LEVAD (historique du lien) ; sans conséquence si le réseau est coupé
+        try:
+            config = lire_config()
+            if config.get("code"):
+                appel(config, "/api/agent/ping", {"pc": socket.gethostname(), "version": VERSION_AGENT, "desinstalle": True}, delai=10)
+        except Exception:
+            pass
     os.makedirs(dossier_donnees(), exist_ok=True)
     with open(_chemin("arret"), "w") as f:
         f.write("arrêt")
