@@ -12,7 +12,7 @@ export function Menu({ entrees }: { entrees: Entree[] }) {
   const chemin = usePathname() ?? ''
   const actif = (href: string) => (href === '/parc' ? chemin === '/parc' || /^\/parc\/(client|machine)\//.test(chemin) : chemin === href || chemin.startsWith(href + '/'))
   return (
-    <nav className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 text-sm font-medium md:mx-0 md:px-0 md:pb-0">
+    <nav className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 text-sm font-medium xl:mx-0 xl:px-0 xl:pb-0">
       {entrees.map((e) => {
         const on = actif(e.href)
         return (
@@ -20,7 +20,7 @@ export function Menu({ entrees }: { entrees: Entree[] }) {
             key={e.href}
             href={e.href}
             aria-current={on ? 'page' : undefined}
-            className={`flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 ${on ? 'font-semibold text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            className={`flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 ${on ? 'font-semibold text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             style={on ? { backgroundColor: VERT } : undefined}
           >
             {e.titre}
