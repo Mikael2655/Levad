@@ -22,6 +22,8 @@ export const RECETTES: { code: string; nom: string; formule: string; nb: Terme[]
     nb: [[2, 112], [1, 113]],
     couleur: [[2, 122], [1, 123]],
   },
+  // Machine sans grand format (pas de 112 / 122) : le petit format est le total.
+  { code: 'D', nom: 'Petit format seul', formule: '113 / 123', nb: [[1, 113]], couleur: [[1, 123]] },
 ]
 
 export type Resultat = { code: string; nom: string; formule: string; nb: number; couleur: number; utilises: number[] }
