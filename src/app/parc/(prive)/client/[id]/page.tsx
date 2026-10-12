@@ -96,6 +96,15 @@ export default async function ClientPage({ params }: { params: { id: string } })
             Alerte de déconnexion après (jours)
             <input type="number" name="seuilDeconnexionJours" min={1} max={90} defaultValue={client.seuilDeconnexionJours} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
           </label>
+          <label className="text-sm font-medium text-gray-700">
+            Mois de facturation (tous les 3 mois)
+            <select name="moisFacturation" defaultValue={client.moisFacturation ?? ''} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+              <option value="">Non défini</option>
+              <option value="1">Janvier, avril, juillet, octobre</option>
+              <option value="2">Février, mai, août, novembre</option>
+              <option value="3">Mars, juin, septembre, décembre</option>
+            </select>
+          </label>
           <div className="flex items-end">
             <Bouton className="rounded-lg border border-gray-300 px-4 py-2 font-semibold">Enregistrer</Bouton>
           </div>

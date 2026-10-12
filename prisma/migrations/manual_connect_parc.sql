@@ -150,3 +150,6 @@ ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "derniereLectureOk" TIMESTA
 ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "derniereErreur" TEXT;
 ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "derniereErreurLe" TIMESTAMP(3);
 ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "nbErreurs" INTEGER NOT NULL DEFAULT 0;
+
+-- v12 : mois de facturation du client (cycle trimestriel : 1 = janvier, 2 = février, 3 = mars)
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "moisFacturation" INTEGER;
