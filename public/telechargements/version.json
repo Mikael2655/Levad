@@ -1,7 +1,8 @@
 {
-  "version": "1.4",
-  "sha256": "b035ddb2fc35ef0d28dd433f6bf44624506655dca5aa2bdff6a8b80c541861a9",
-  "taille": 12730064,
+  "version": "1.5",
+  "sha256": "7d287ab2891b7dcfb2c211e822833ef1dacf231975ff5e6690fe3d954cb8e8c8",
+  "taille": 12748840,
   "signe": true,
-  "signataire": ""
+  "signataire": "",
+  "mac": {"sha256": "d98cdea835f19a884fecaa5f11e9b453abd92b64e8b7f352e92ff5104e100860", "taille": 11387170}
 }
