@@ -68,6 +68,16 @@ export async function renommerClient(formData: FormData) {
   revalidatePath(`/parc/client/${id}`)
 }
 
+// Supprime un client avec ses machines, relevés, stock, ordinateurs et historique du lien (irréversible).
+export async function supprimerClient(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  if (!id) return
+  await prisma.connectClient.delete({ where: { id } })
+  revalidatePath('/parc', 'layout')
+  redirect('/parc')
+}
+
 // Seuils d'alerte appliqués d'un coup à toutes les machines d'un client.
 export async function appliquerSeuilsClient(formData: FormData) {
   if (!connecte()) throw new Error('Non connecté')

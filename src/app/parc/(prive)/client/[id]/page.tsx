@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, genererLien, majClient, regenererLien, renommerClient, retirerPoste } from '../../actions'
+import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient } from '../../actions'
 import { statutConnexion, urlLien } from '@/lib/connect/agent'
 import { Badge, formaterDate, depuis, jour } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR } from '@/lib/connect/alertes'
@@ -186,6 +186,20 @@ export default async function ClientPage({ params }: { params: { id: string } })
           </li>
         ))}
       </ul>
+      <section className="mt-10 rounded-xl border border-red-200 bg-white p-6">
+        <h2 className="text-lg font-bold text-red-700">Supprimer ce client</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Supprime définitivement le client avec ses {client.machines.length} machine{client.machines.length > 1 ? 's' : ''}, tous leurs relevés, son stock d&apos;encre et l&apos;historique de son lien. Son lien d&apos;installation cessera de fonctionner. Impossible à annuler.
+        </p>
+        <Formulaire
+          action={supprimerClient}
+          confirmation={`Supprimer définitivement « ${client.nom} » et toutes ses données (${client.machines.length} machine(s), relevés, stock) ? Cette action est irréversible.`}
+          className="mt-3"
+        >
+          <input type="hidden" name="id" value={client.id} />
+          <Bouton className="rounded-lg border border-red-300 px-4 py-2 font-semibold text-red-700">Supprimer le client</Bouton>
+        </Formulaire>
+      </section>
     </>
   )
 }
