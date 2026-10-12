@@ -23,6 +23,22 @@ export async function POST(req: Request) {
   const systeme = String(corps.systeme ?? '').trim().slice(0, 120) || null
   const version = String(corps.version ?? '').trim().slice(0, 20) || null
 
+  // le client a désinstallé le programme sur ce PC : on le retire de la liste et on le note dans l'historique du lien
+  if (corps.desinstalle === true) {
+    const poste = await prisma.connectPoste.findUnique({ where: { clientId_nom: { clientId: client.id, nom } } })
+    if (poste) {
+      // on garde la trace de l'installation (la ligne « Installé sur… » vient de la liste des ordinateurs, qui va perdre celui-ci)
+      await prisma.connectLienEvenement.createMany({
+        data: [
+          { clientId: client.id, type: 'installe', detail: `${poste.nom} (${poste.site})`, date: poste.premiereConnexion },
+          { clientId: client.id, type: 'desinstalle', detail: nom },
+        ],
+      })
+      await prisma.connectPoste.delete({ where: { id: poste.id } })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   // santé du programme (version 1.1+) : dernière erreur, dernière lecture réussie, heure de démarrage
   const d = corps.diag && typeof corps.diag === 'object' ? corps.diag : {}
   const date = (v: unknown) => {
