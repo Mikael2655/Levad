@@ -8,3 +8,10 @@ export function libelleMachine(m: Nommee, defaut = 'Machine inconnue'): string {
   if (modele && nom && modele.toLowerCase() !== nom.toLowerCase()) return `${modele} / ${nom}`
   return modele || nom || defaut
 }
+
+/** Machines regroupées par site d'installation, sites par ordre alphabétique. */
+export function groupesParSite<T extends { site: string }>(machines: T[]): [string, T[]][] {
+  const m = new Map<string, T[]>()
+  for (const x of machines) m.set(x.site, [...(m.get(x.site) ?? []), x])
+  return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], 'fr', { sensitivity: 'base' }))
+}

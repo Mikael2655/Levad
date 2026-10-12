@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Badge, Encres, depuis, formaterDate } from '@/components/connect/affichage'
+import { groupesParSite } from '@/lib/connect/libelle'
 import { COULEURS, NOM_COULEUR, clientsEnAlerte, type ClientEtat, type MachineEtat } from '@/lib/connect/alertes'
 
 export const dynamic = 'force-dynamic'
@@ -10,7 +11,7 @@ function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
   return (
     <Link href={`/parc/machine/${m.id}`} className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.2fr_2fr_1fr]">
       <div>
-        <p className="font-semibold">{m.nom}<span className="font-normal text-gray-500"> · {m.site}</span></p>
+        <p className="font-semibold">{m.nom}</p>
         {m.enAlerte ? (
           <p className="mt-1 text-sm font-semibold text-red-600">
             {m.couleurs
@@ -70,11 +71,16 @@ export default async function AlertesPage() {
                     </Link>
                   </div>
                 </div>
-                <div className="divide-y rounded-xl border bg-white">
-                  {[...c.machines].sort((a, b) => Number(b.enAlerte) - Number(a.enAlerte)).map((m) => (
-                    <LigneMachine key={m.id} m={m} client={c} />
-                  ))}
-                </div>
+                {groupesParSite(c.machines).map(([site, lesMachines], gi) => (
+                  <div key={site} className={gi > 0 ? 'mt-4' : ''}>
+                    <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>
+                    <div className="divide-y rounded-xl border bg-white">
+                      {[...lesMachines].sort((a, b) => Number(b.enAlerte) - Number(a.enAlerte)).map((m) => (
+                        <LigneMachine key={m.id} m={m} client={c} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
                 {c.machines.some((m) => !m.enAlerte) && (
                   <p className="mt-2 text-xs text-gray-500">
                     <Badge>Info</Badge> Les autres machines du client sont affichées pour pouvoir grouper une livraison.
