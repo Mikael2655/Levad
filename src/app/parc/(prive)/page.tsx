@@ -1,3 +1,4 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { prisma } from '@/lib/db'
@@ -148,7 +149,7 @@ export default async function ParcPage() {
                   >
                     <div>
                       <p className="font-semibold">
-                        {m.nomAffiche || m.modele || 'Machine inconnue'}
+                        {libelleMachine(m, 'Machine inconnue')}
                         <span className="font-normal text-gray-500"> · {m.site}</span>
                       </p>
                       <p className="text-sm text-gray-500">

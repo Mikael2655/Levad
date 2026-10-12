@@ -77,6 +77,8 @@ model ConnectMachine {
   modele      String?
   ip          String?
   nomAffiche  String?
+  nomReseau   String? // nom donné à la machine par le client (ex. DFM-Compta), tel que la machine le déclare
+  sysDescr    String? // description technique déclarée par la machine (aide à reconnaître le modèle)
   categorie   String          @default("mine") // mine = Canon vendue par LEVAD, autre = autre marque
   horsContrat Boolean         @default(false)
   site        String          @default("Site principal")

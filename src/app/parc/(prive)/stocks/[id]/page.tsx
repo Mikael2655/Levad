@@ -1,3 +1,4 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
@@ -54,7 +55,7 @@ export default async function StockClientPage({ params }: { params: { id: string
                   <Formulaire key={m.id} action={choisirGamme} message="Gamme enregistrée" className="mt-2 flex flex-wrap items-end gap-3">
                     <input type="hidden" name="id" value={m.id} />
                     <label className="grow text-sm font-medium text-gray-700">
-                      Gamme de {m.nomAffiche || m.modele || 'la machine'}
+                      Gamme de {libelleMachine(m, 'la machine')}
                       <select name="gamme" defaultValue="" required className={champ}>
                         <option value="" disabled>Choisir la gamme (ex. C-EXV 49)…</option>
                         {FAMILLES.map((x) => (
@@ -73,7 +74,7 @@ export default async function StockClientPage({ params }: { params: { id: string
                 const re = avecEncres(m.releves)
                 return (
                   <Link key={m.id} href={`/parc/machine/${m.id}`} className="grid items-center gap-3 py-3 hover:bg-gray-50 md:grid-cols-[1.2fr_2fr_1fr]">
-                    <p className="font-semibold">{m.nomAffiche || m.modele || 'Machine inconnue'}</p>
+                    <p className="font-semibold">{libelleMachine(m, 'Machine inconnue')}</p>
                     <Encres
                       encres={(re?.encres ?? []) as unknown as Encre[]}
                       seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
@@ -121,7 +122,7 @@ export default async function StockClientPage({ params }: { params: { id: string
               <div key={g.cle}>
                 <input type="hidden" name={`groupe_${i}`} value={g.cle} />
                 <p className="text-sm font-semibold text-gray-700">
-                  {g.site} · {g.gamme ? familleDe(g.gamme).variantes.map((v) => v.code).join(' / ') : g.machines.map((m) => m.nomAffiche || m.modele).join(', ')}
+                  {g.site} · {g.gamme ? familleDe(g.gamme).variantes.map((v) => v.code).join(' / ') : g.machines.map((m) => libelleMachine(m, '')).join(', ')}
                 </p>
                 <div className="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-4">
                   {(g.gamme ? COULEURS.filter((c) => familleDe(g.gamme!).variantes.some((v) => v.refs[c])) : COULEURS).map((c) => (
@@ -167,7 +168,7 @@ export default async function StockClientPage({ params }: { params: { id: string
               Site · gamme
               <select name="groupe" className={champ}>
                 {groupes.map((g) => (
-                  <option key={g.cle} value={g.cle}>{g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => m.nomAffiche || m.modele).join(', ')}</option>
+                  <option key={g.cle} value={g.cle}>{g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => libelleMachine(m, '')).join(', ')}</option>
                 ))}
               </select>
             </label>

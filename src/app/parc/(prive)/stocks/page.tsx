@@ -1,3 +1,4 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
@@ -52,7 +53,7 @@ export default async function StocksPage({ searchParams }: { searchParams: { cli
                       {i === 0 && <Link href={`/parc/stocks/${c.id}`} className="underline">{c.nom}</Link>}
                     </td>
                     <td className="py-2 pr-4 text-gray-600">
-                      {g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => m.nomAffiche || m.modele || 'machine').join(', ')}
+                      {g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => libelleMachine(m, 'machine')).join(', ')}
                       {!g.gamme && <span className="text-amber-700"> (gamme à choisir)</span>}
                     </td>
                     {COULEURS.map((k) => (

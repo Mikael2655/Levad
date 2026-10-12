@@ -25,7 +25,8 @@ export type EntreeModele = { modele?: string | null; sysDescr?: string | null; n
 /** Le modèle à retenir (reconnu dans la liste des gammes), ou null si on n'en trouve aucun. `exclureId` : la machine elle-même. */
 export async function resoudreModele(e: EntreeModele, exclureId?: number): Promise<string | null> {
   if (e.modele && gammeAuto(e.modele)) return e.modele
-  for (const t of [e.sysDescr, e.nomReseau]) {
+  const textes = [e.modele, e.sysDescr, e.nomReseau]
+  for (const t of textes) {
     const m = extraireModele(t)
     if (m && gammeAuto(m)) return m
   }
@@ -41,6 +42,11 @@ export async function resoudreModele(e: EntreeModele, exclureId?: number): Promi
     if (v?.modele) return v.modele
     const connu = SERIES_CONNUES[debut]
     if (connu && gammeAuto(connu)) return connu
+  }
+  // un modèle lisible mais absent de la liste des gammes vaut mieux qu'un nom donné par le client (la gamme se choisit alors à la main)
+  for (const t of textes) {
+    const m = extraireModele(t)
+    if (m) return m
   }
   return null
 }
