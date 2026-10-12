@@ -1,4 +1,4 @@
-import { libelleMachine } from '@/lib/connect/libelle'
+import { groupesParSite, libelleMachine } from '@/lib/connect/libelle'
 import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { prisma } from '@/lib/db'
@@ -11,13 +11,6 @@ import { clientsEnAlerte, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, 
 import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
-
-// Machines d'un client regroupées par site d'installation, sites par ordre alphabétique.
-function groupesParSite<T extends { site: string }>(machines: T[]): [string, T[]][] {
-  const m = new Map<string, T[]>()
-  for (const x of machines) m.set(x.site, [...(m.get(x.site) ?? []), x])
-  return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], 'fr', { sensitivity: 'base' }))
-}
 
 export default async function ParcPage() {
   let clients
