@@ -3,12 +3,23 @@ import { connecte } from '@/lib/connect/auth'
 import { calculerExport, lireParams } from '@/lib/connect/export'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
 function fr(d: Date | null) {
   return d ? d.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' }) : ''
 }
 
 export async function GET(req: Request) {
+  try {
+    return await fabriquer(req)
+  } catch (e) {
+    console.error('export excel', e)
+    return new Response('L’export a échoué : ' + (e instanceof Error ? e.message : String(e)), { status: 500, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+  }
+}
+
+async function fabriquer(req: Request) {
   if (!connecte()) return new Response('Non connecté', { status: 401 })
   const q: Record<string, string[]> = {}
   new URL(req.url).searchParams.forEach((v, k) => (q[k] = [...(q[k] ?? []), v]))
@@ -57,11 +68,12 @@ export async function GET(req: Request) {
   ws.views = [{ state: 'frozen', ySplit: 1 }]
   for (const k of ['nb', 'couleur', 'scans', 'nb2', 'couleur2', 'vnb', 'vcouleur']) ws.getColumn(k).numFmt = '#,##0'
 
-  const buf = await wb.xlsx.writeBuffer()
-  return new Response(buf, {
+  const buf = Buffer.from(await wb.xlsx.writeBuffer())
+  return new Response(new Uint8Array(buf), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="compteurs-${params.date}.xlsx"`,
+      'Content-Length': String(buf.length),
       'Cache-Control': 'no-store',
     },
   })
