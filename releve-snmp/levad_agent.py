@@ -29,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.7"
+VERSION_AGENT = "1.8"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -329,7 +329,7 @@ def appliquer_mise_a_jour(nouveau, actuel, ancien):
     if sys.platform != "win32":
         os.chmod(nouveau, 0o755)
     essai = subprocess.run([nouveau, "--verifier"], timeout=120, stdin=subprocess.DEVNULL,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **options)
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=_environnement_propre(), **options)
     if essai.returncode != 0:
         os.remove(nouveau)
         raise RuntimeError("la nouvelle version ne démarre pas (code %s)" % essai.returncode)
@@ -358,7 +358,7 @@ def _mise_a_jour_mac(info, etat):
     nouveau = os.path.join(dossier, "Levad Connect.app")
     subprocess.run(["xattr", "-cr", nouveau], capture_output=True, timeout=60)
     essai = subprocess.run([os.path.join(nouveau, "Contents", "MacOS", "Levad Connect"), "--verifier"], timeout=120,
-                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=_environnement_propre())
     if essai.returncode != 0:
         raise RuntimeError("la nouvelle version ne démarre pas (code %s)" % essai.returncode)
     shutil.rmtree(ancien, ignore_errors=True)
@@ -651,9 +651,19 @@ def _retirer_surveillance():
         pass
 
 
+def _environnement_propre():
+    """L'environnement pour lancer une autre copie de ce programme. Un programme PyInstaller « à fichier unique » qui en relance
+    un autre (même fichier, ou fichier remplacé par une mise à jour) lui transmet ses variables internes : le nouveau
+    réutiliserait alors le dossier temporaire de l'ancien, supprimé dès que celui-ci s'arrête (erreur « DLL load failed
+    while importing _tkinter »). On les retire pour que le nouveau programme s'installe dans son propre dossier."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("_PYI") and k != "_MEIPASS2"}
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+    return env
+
+
 def lancer_en_fond(commande):
     """Lance le programme résident sans fenêtre et indépendamment de celle-ci."""
-    options = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+    options = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL, "env": _environnement_propre()}
     if sys.platform == "win32":
         options["creationflags"] = 0x00000008 | 0x00000200 | 0x08000000   # DETACHED | NEW_GROUP | NO_WINDOW
     else:
