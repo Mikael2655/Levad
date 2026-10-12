@@ -82,7 +82,7 @@ export function PageTelechargement({
         <h2 className="mt-12 text-xl font-bold">Comment faire</h2>
         <ol className="mt-4 space-y-5">
           <Etape n={1} titre="Téléchargez le programme" texte="Cliquez sur le bouton correspondant à votre ordinateur, ci-dessus." />
-          <Etape n={2} titre="Ouvrez-le" texte="Double-cliquez sur le fichier téléchargé (sur Mac, ouvrez d'abord le dossier compressé, puis l'application)." />
+          <Etape n={2} titre="Ouvrez-le" texte={resident ? "Sous Windows, double-cliquez sur le fichier téléchargé. Sur Mac, ouvrez le dossier compressé (zip) téléchargé : un dossier « Levad-Connect-… » apparaît, double-cliquez sur l'application « Levad Connect » qu'il contient." : "Double-cliquez sur le fichier téléchargé (sur Mac, ouvrez d'abord le dossier compressé, puis l'application)."} />
           {resident ? (
             <>
               <Etape n={3} titre="Cliquez sur « Installer »" texte="L'installation prend quelques secondes. Le programme lit vos copieurs une première fois." />
