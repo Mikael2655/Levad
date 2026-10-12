@@ -3,6 +3,7 @@ import { cleClient } from './normaliser'
 import { COULEURS, varianteADecompter } from './alertes'
 import { cleGroupe } from './gammes'
 import { resoudreModele } from './modeles'
+import { avecEncres } from './releves'
 
 // Enregistre dans la base les relevés envoyés par le programme Levad Connect.
 // Une société est reconnue par son nom simplifié ; une machine par son numéro de série.
@@ -95,11 +96,9 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
     // au relevé précédent -> on retire une cartouche du stock du client (jamais en dessous de zéro).
     if (machine.categorie === 'mine' && !machine.horsContrat) {
       const groupe = cleGroupe(machine)
-      const precedent = await prisma.connectReleve.findFirst({
-        where: { machineId: machine.id },
-        orderBy: { date: 'desc' },
-        select: { encres: true },
-      })
+      const precedent = avecEncres(
+        await prisma.connectReleve.findMany({ where: { machineId: machine.id }, orderBy: { date: 'desc' }, take: 10, select: { encres: true } }),
+      )
       const avant = (precedent?.encres ?? []) as Json[]
       for (const e of encres) {
         if (e.pourcent !== 100 || !e.couleur || !(COULEURS as readonly string[]).includes(e.couleur)) continue

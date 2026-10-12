@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { prisma } from '@/lib/db'
+import { avecEncres } from '@/lib/connect/releves'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { VERT, Badge, Encres, depuis, jour, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
 import { statutConnexion } from '@/lib/connect/agent'
@@ -25,7 +26,7 @@ export default async function ParcPage() {
     clients = await prisma.connectClient.findMany({
       orderBy: { nom: 'asc' },
       include: {
-        machines: { orderBy: { creeLe: 'asc' }, include: { releves: { orderBy: { date: 'desc' }, take: 1 } } },
+        machines: { orderBy: { creeLe: 'asc' }, include: { releves: { orderBy: { date: 'desc' }, take: 10 } } },
         postes: true,
       },
     })
@@ -163,7 +164,7 @@ export default async function ParcPage() {
                       {encreSuivie ? (
                         <>
                         <Encres
-                          encres={(r?.encres ?? []) as unknown as Encre[]}
+                          encres={(avecEncres(m.releves)?.encres ?? []) as unknown as Encre[]}
                           seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
                           stock={stockDuGroupe(stocks!, c.id, cleGroupe(m))}
                         />

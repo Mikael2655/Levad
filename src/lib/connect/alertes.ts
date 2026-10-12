@@ -1,3 +1,4 @@
+import { avecEncres } from './releves'
 import { prisma } from '@/lib/db'
 import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
 
@@ -113,7 +114,7 @@ export async function etatDuParc(): Promise<ClientEtat[]> {
         machines: {
           where: { categorie: 'mine', horsContrat: false },
           orderBy: [{ site: 'asc' }, { creeLe: 'asc' }],
-          include: { releves: { orderBy: { date: 'desc' }, take: 1, select: { date: true, encres: true } } },
+          include: { releves: { orderBy: { date: 'desc' }, take: 10, select: { date: true, encres: true } } },
         },
       },
     }),
@@ -123,7 +124,7 @@ export async function etatDuParc(): Promise<ClientEtat[]> {
     const machines = c.machines.map((m) => {
       const groupe = cleGroupe(m)
       const stock = stockDuGroupe(stocks, c.id, groupe)
-      const r = m.releves[0]
+      const r = avecEncres(m.releves)
       const encres = ((r?.encres ?? []) as unknown as EncreJson[]) ?? []
       const couleurs = COULEURS.map((couleur): EtatCouleur => {
         const p = encres.find((e) => e.couleur === couleur && typeof e.pourcent === 'number')?.pourcent ?? null
