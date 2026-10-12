@@ -29,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.8"
+VERSION_AGENT = "1.9"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -182,9 +182,26 @@ def noter_erreur(message):
     DIAG["nbErreurs"] += 1
 
 
+_NOM_POSTE = []
+
+
+def nom_du_poste():
+    """Le nom de cet ordinateur, stable d'un redémarrage à l'autre. Sur Mac, le nom réseau change selon le réseau et la box
+    (« mini-de-mikael.home », « mac-mini-de-mikael.home »...) : on prend le nom donné à l'ordinateur dans les Réglages Système."""
+    if not _NOM_POSTE:
+        nom = None
+        if sys.platform == "darwin":
+            try:
+                nom = subprocess.run(["scutil", "--get", "ComputerName"], capture_output=True, text=True, timeout=5).stdout.strip() or None
+            except Exception:
+                nom = None
+        _NOM_POSTE.append(nom or socket.gethostname())
+    return _NOM_POSTE[0]
+
+
 def signal_de_vie(config):
     return appel(config, "/api/agent/ping", {
-        "pc": socket.gethostname(), "systeme": R.platform.platform(), "version": VERSION_AGENT, "diag": dict(DIAG)})
+        "pc": nom_du_poste(), "systeme": R.platform.platform(), "version": VERSION_AGENT, "diag": dict(DIAG)})
 
 
 # ----------------------------------------------------------------------------
@@ -237,7 +254,7 @@ def lire_les_copieurs(config):
 def lire_et_envoyer(config, commande_ids=()):
     machines = lire_les_copieurs(config)
     reponse = appel(config, "/api/agent/releve", {
-        "pc": socket.gethostname(), "systeme": R.platform.platform(), "version_programme": VERSION_AGENT,
+        "pc": nom_du_poste(), "systeme": R.platform.platform(), "version_programme": VERSION_AGENT,
         "machines": machines, "commandeIds": list(commande_ids)})
     config["derniere_lecture"] = time.time()
     ecrire_config(config)
@@ -686,7 +703,7 @@ def desinstaller(avec_demarrage_auto=True):
         try:
             config = lire_config()
             if config.get("code"):
-                appel(config, "/api/agent/ping", {"pc": socket.gethostname(), "version": VERSION_AGENT, "desinstalle": True}, delai=10)
+                appel(config, "/api/agent/ping", {"pc": nom_du_poste(), "version": VERSION_AGENT, "desinstalle": True}, delai=10)
         except Exception:
             pass
     os.makedirs(dossier_donnees(), exist_ok=True)
