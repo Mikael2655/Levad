@@ -138,6 +138,7 @@ export function PageTelechargement({
                   <strong>2.</strong> Au message « Ce fichier n&apos;est pas souvent téléchargé », cliquez sur{' '}
                   <strong>Télécharger le fichier suspect</strong> (et non sur « Supprimer de l&apos;historique »).
                 </p>
+                <Capture src="/aide/aide-chrome-2-telecharger.png" alt="Chrome : bouton Télécharger le fichier suspect" />
               </li>
             </ol>
           </div>
