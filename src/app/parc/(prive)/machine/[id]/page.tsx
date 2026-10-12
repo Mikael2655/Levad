@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { Prisma } from '@prisma/client'
+import { avecEncres } from '@/lib/connect/releves'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
@@ -13,7 +15,7 @@ export const dynamic = 'force-dynamic'
 export default async function MachinePage({ params }: { params: { id: string } }) {
   const machine = await prisma.connectMachine.findUnique({
     where: { id: Number(params.id) },
-    include: { client: true, releves: { orderBy: { date: 'desc' }, take: 1 } },
+    include: { client: true, releves: { orderBy: { date: 'desc' }, take: 10 } },
   })
   if (!machine) notFound()
   const clients = await prisma.connectClient.findMany({ orderBy: { nom: 'asc' } })
@@ -32,15 +34,16 @@ export default async function MachinePage({ params }: { params: { id: string } }
   const historique = await Promise.all(
     [7, 14, 21, 28].map(async (jours) => {
       const releve = await prisma.connectReleve.findFirst({
-        where: { machineId: machine.id, date: { lte: new Date(Date.now() - jours * 86400000) } },
+        where: { machineId: machine.id, date: { lte: new Date(Date.now() - jours * 86400000) }, NOT: { encres: { equals: Prisma.DbNull } } },
         orderBy: { date: 'desc' },
         select: { date: true, encres: true },
       })
       return { jours, date: releve?.date ?? null, encres: (releve?.encres ?? []) as unknown as Encre[] }
     }),
   )
-  const encres = (dernier?.encres ?? []) as unknown as Encre[]
-  const bacs = (dernier?.bacs ?? []) as unknown as Encre[]
+  const dernierEncres = avecEncres(machine.releves)
+  const encres = (dernierEncres?.encres ?? []) as unknown as Encre[]
+  const bacs = (dernierEncres?.bacs ?? []) as unknown as Encre[]
 
   return (
     <>

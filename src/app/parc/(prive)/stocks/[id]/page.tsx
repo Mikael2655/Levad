@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { avecEncres } from '@/lib/connect/releves'
 import { Encres, VERT, formaterDate, depuis, type Encre } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR, detailsParGroupe, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
 import { FAMILLES, familleDe, grouper } from '@/lib/connect/gammes'
@@ -18,7 +19,7 @@ export default async function StockClientPage({ params }: { params: { id: string
       machines: {
         where: { categorie: 'mine', horsContrat: false },
         orderBy: [{ site: 'asc' }, { creeLe: 'asc' }],
-        include: { releves: { orderBy: { date: 'desc' }, take: 1 } },
+        include: { releves: { orderBy: { date: 'desc' }, take: 10 } },
       },
     },
   })
@@ -69,11 +70,12 @@ export default async function StockClientPage({ params }: { params: { id: string
             <div className="mt-3 divide-y">
               {g.machines.map((m) => {
                 const r = m.releves[0]
+                const re = avecEncres(m.releves)
                 return (
                   <Link key={m.id} href={`/parc/machine/${m.id}`} className="grid items-center gap-3 py-3 hover:bg-gray-50 md:grid-cols-[1.2fr_2fr_1fr]">
                     <p className="font-semibold">{m.nomAffiche || m.modele || 'Machine inconnue'}</p>
                     <Encres
-                      encres={(r?.encres ?? []) as unknown as Encre[]}
+                      encres={(re?.encres ?? []) as unknown as Encre[]}
                       seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
                       stock={stock}
                     />
