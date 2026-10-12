@@ -9,6 +9,7 @@ import { cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
 import { assurerCode, regenererCode, urlLien } from '@/lib/connect/agent'
 import { envoyerMail } from '@/lib/connect/mail'
 import { cleClient } from '@/lib/connect/normaliser'
+import { dateValide, finDeJournee } from '@/lib/connect/export'
 
 const seuil = (v: FormDataEntryValue | null) => Math.min(100, Math.max(0, Number(v ?? 25) || 0))
 
@@ -320,4 +321,56 @@ export async function marquerLienEnvoye(formData: FormData): Promise<string | vo
   await prisma.connectLienEvenement.create({ data: { clientId: id, type: 'note' } })
   revalidatePath('/parc', 'layout')
   return 'Noté : lien envoyé aujourd’hui'
+}
+
+// Import d'un relevé reçu en PDF / photo, après vérification à l'écran.
+export type ElementImport = {
+  clientId: number
+  machineId: number | null // null = nouvelle machine
+  serie: string
+  modele: string
+  ip: string
+  compteurs: Record<string, { v: number; nom?: string }>
+}
+
+export async function enregistrerImport(json: string): Promise<string> {
+  if (!connecte()) throw new Error('Non connecté')
+  const { jour, elements } = JSON.parse(json) as { jour: string; elements: ElementImport[] }
+  const aujourdhui = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
+  const date = jour === aujourdhui || !dateValide(jour) ? new Date() : new Date(finDeJournee(jour).getTime() - 12 * 3600000)
+  let nb = 0
+  for (const e of elements) {
+    const client = await prisma.connectClient.findUnique({ where: { id: Number(e.clientId) } })
+    if (!client) throw new Error('Client introuvable')
+    const serie = String(e.serie ?? '').trim().slice(0, 80) || null
+    const ip = String(e.ip ?? '').trim().slice(0, 45) || null
+    const modele = String(e.modele ?? '').trim().slice(0, 120) || null
+    let machine = e.machineId ? await prisma.connectMachine.findUnique({ where: { id: Number(e.machineId) } }) : null
+    if (!machine) {
+      if (!serie && !ip) throw new Error('Une nouvelle machine a besoin d’un numéro de série ou d’une adresse IP.')
+      const cle = serie ? `sn:${serie.toUpperCase()}` : `ip:${client.id}:${ip}`
+      machine =
+        (await prisma.connectMachine.findUnique({ where: { cle } })) ??
+        (await prisma.connectMachine.create({
+          data: {
+            clientId: client.id,
+            cle,
+            numeroSerie: serie,
+            ip,
+            modele,
+            marque: modele && /^(iR|image ?(RUNNER|FORCE)|i-?SENSYS)/i.test(modele) ? 'Canon' : null,
+            categorie: modele && /^(iR|image ?(RUNNER|FORCE)|i-?SENSYS)/i.test(modele) ? 'mine' : 'autre',
+            aVerifier: !modele,
+          },
+        }))
+    }
+    const compteurs: Record<string, { v: number; nom?: string }> = {}
+    for (const [n, c] of Object.entries(e.compteurs ?? {})) {
+      if (/^\d{1,4}$/.test(n) && c && Number.isFinite(c.v)) compteurs[n] = { v: Math.round(c.v), nom: c.nom ? String(c.nom).slice(0, 120) : undefined }
+    }
+    await prisma.connectReleve.create({ data: { machineId: machine.id, date, source: 'import', compteurs } })
+    nb++
+  }
+  revalidatePath('/parc', 'layout')
+  return `${nb} relevé${nb > 1 ? 's' : ''} enregistré${nb > 1 ? 's' : ''}.`
 }
