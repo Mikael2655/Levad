@@ -28,6 +28,7 @@ import json
 import os
 import random
 import socket
+import subprocess
 import sys
 import time
 import io
@@ -805,9 +806,38 @@ def adresse_locale():
         sock.close()
 
 
+def _adresse_locale_mac():
+    """Mac : adresse de l'interface réseau principale (la méthode ci-dessus échoue parfois quand l'accès au réseau local est restreint)."""
+    interfaces = []
+    try:
+        sortie = subprocess.run(["route", "-n", "get", "default"], capture_output=True, text=True, timeout=10).stdout
+        for ligne in sortie.splitlines():
+            if ligne.strip().startswith("interface:"):
+                interfaces.append(ligne.split(":", 1)[1].strip())
+    except Exception:
+        pass
+    interfaces += ["en%d" % n for n in range(0, 9)]
+    for nom in interfaces:
+        try:
+            ip = subprocess.run(["ipconfig", "getifaddr", nom], capture_output=True, text=True, timeout=10).stdout.strip()
+            a = ipaddress.IPv4Address(ip)
+            if a.is_private and not a.is_loopback and not a.is_link_local:
+                return ip
+        except Exception:
+            continue
+    return None
+
+
 def plage_locale():
     """La plage 'a.b.c.0/24' du réseau où se trouve ce PC, ou None si ce n'est pas un réseau local."""
     ip = adresse_locale()
+    if sys.platform == "darwin":
+        try:
+            utilisable = bool(ip) and ipaddress.IPv4Address(ip).is_private and not ipaddress.IPv4Address(ip).is_loopback
+        except ValueError:
+            utilisable = False
+        if not utilisable:
+            ip = _adresse_locale_mac() or ip
     if not ip:
         return None
     a = ipaddress.IPv4Address(ip)

@@ -29,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.6"
+VERSION_AGENT = "1.7"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -211,8 +211,12 @@ def lire_les_copieurs(config):
                 trouvees = R.decouvrir(plage, "public", 1.0, port, versions)
                 connus = [{"ip": t["ip"], "version": t["version"]} for t in trouvees]
                 config["derniere_decouverte"] = maintenant
+                journal("recherche du réseau %s : %d équipement(s) répondent (%s)"
+                        % (plage, len(trouvees), ", ".join(t["ip"] for t in trouvees[:8]) or "aucun"))
             except Exception as e:
                 journal("recherche du réseau impossible : %s" % e)
+        else:
+            journal("recherche du réseau impossible : adresse de l'ordinateur sur le réseau local introuvable")
     machines, imprimantes = [], []
     for c in connus:
         v = versions if c.get("version") is None else (c["version"],)
