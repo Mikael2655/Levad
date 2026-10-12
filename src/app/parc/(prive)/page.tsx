@@ -1,4 +1,5 @@
 import { groupesParSite, libelleMachine } from '@/lib/connect/libelle'
+import { RechercheSynthese } from '@/components/connect/RechercheSynthese'
 import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { prisma } from '@/lib/db'
@@ -88,9 +89,11 @@ export default async function ParcPage() {
         </p>
       )}
 
-      <div className="mt-8 space-y-8">
+      {machines.length > 0 && <RechercheSynthese />}
+
+      <div className="mt-6 space-y-8">
         {clients.map((c) => (
-          <section key={c.id}>
+          <section key={c.id} data-client data-nom={c.nom}>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-bold">{c.nom}</h2>
@@ -125,7 +128,7 @@ export default async function ParcPage() {
               </p>
             )}
             {groupesParSite(c.machines).map(([site, lesMachines], gi) => (
-            <div key={site} className={gi > 0 ? 'mt-4' : ''}>
+            <div key={site} data-site className={gi > 0 ? 'mt-4' : ''}>
             <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>
             <div className="divide-y rounded-xl border bg-white">
               {lesMachines.map((m) => {
@@ -138,6 +141,8 @@ export default async function ParcPage() {
                   <Link
                     key={m.id}
                     href={`/parc/machine/${m.id}`}
+                    data-machine
+                    data-texte={[libelleMachine(m, ''), m.modele, m.nomReseau, m.marque, m.numeroSerie, m.ip, m.site].filter(Boolean).join(' ')}
                     className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.3fr_1.7fr_0.8fr_1fr]"
                   >
                     <div>
