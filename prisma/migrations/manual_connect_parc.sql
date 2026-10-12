@@ -157,3 +157,6 @@ ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "moisFacturation" INTEGER;
 -- v13 : nom donné par le client à la machine + description technique déclarée
 ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "nomReseau" TEXT;
 ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "sysDescr" TEXT;
+
+-- v14 : référence fixée (trouvée par numéro de série) : la lecture automatique ne l'écrase plus
+ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "modeleFixe" BOOLEAN NOT NULL DEFAULT false;

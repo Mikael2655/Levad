@@ -154,20 +154,18 @@ export default async function ParcPage() {
                       </div>
                     </div>
                     <div>
-                      {encreSuivie ? (
-                        <>
-                        <Encres
-                          encres={(avecEncres(m.releves)?.encres ?? []) as unknown as Encre[]}
-                          seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
-                          stock={stockDuGroupe(stocks!, c.id, cleGroupe(m))}
-                        />
-                        <p className="mt-1 text-xs text-gray-500">
-                          Stock : {COULEURS.map((k) => `${NOM_COULEUR[k]} ${stockDuGroupe(stocks!, c.id, cleGroupe(m))[k]}`).join(' · ')}
-                        </p>
-                        </>
-                      ) : (
-                        <p className="text-sm text-gray-400">{m.horsContrat ? 'Hors contrat : pas d’alerte d’encre' : 'Pas de suivi d’encre'}</p>
-                      )}
+                      <Encres
+                        encres={(avecEncres(m.releves)?.encres ?? []) as unknown as Encre[]}
+                        seuils={encreSuivie ? Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)])) : undefined}
+                        stock={encreSuivie ? stockDuGroupe(stocks!, c.id, cleGroupe(m)) : undefined}
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        {encreSuivie
+                          ? `Stock : ${COULEURS.map((k) => `${NOM_COULEUR[k]} ${stockDuGroupe(stocks!, c.id, cleGroupe(m))[k]}`).join(' · ')}`
+                          : m.horsContrat
+                            ? 'Hors contrat'
+                            : 'Autre marque : pas d’alerte d’encre'}
+                      </p>
                     </div>
                     <div className="text-sm">
                       {suivie && calc.retenue ? (

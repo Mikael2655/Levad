@@ -2,7 +2,7 @@ import { prisma } from '@/lib/db'
 import { cleClient } from './normaliser'
 import { COULEURS, varianteADecompter } from './alertes'
 import { cleGroupe } from './gammes'
-import { resoudreModele } from './modeles'
+import { modeleAutreMarque, resoudreModele } from './modeles'
 import { avecEncres } from './releves'
 
 // Enregistre dans la base les relevés envoyés par le programme Levad Connect.
@@ -41,7 +41,7 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
     const modeleTrouve =
       marque === 'Canon' || !marque
         ? await resoudreModele({ modele: modeleLu, sysDescr: texte(m.sys_descr, 300), nomReseau: texte(m.nom_reseau, 120), serie })
-        : null
+        : modeleAutreMarque({ modele: modeleLu, sysDescr: texte(m.sys_descr, 300), nomReseau: texte(m.nom_reseau, 120) })
     const modele = modeleTrouve ?? modeleLu
     const sysDescr = texte(m.sys_descr, 300)
     // le nom donné par le client (ex. DFM-Compta) : le nom lu sur la machine, quand il diffère du modèle retenu
@@ -59,7 +59,7 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
       // à chaque relevé on met à jour ce que la machine déclare ; les choix faits à la main sont conservés
       machine = await prisma.connectMachine.update({
         where: { id: machine.id },
-        data: { ip, marque: marque ?? undefined, modele: modele ?? undefined, nomReseau: nomClient, sysDescr, ...(modeleTrouve && machine.aVerifier ? { aVerifier: false } : {}) },
+        data: { ip, marque: marque ?? undefined, sysDescr, ...(machine.modeleFixe ? {} : { modele: modele ?? undefined, nomReseau: nomClient }), ...(modeleTrouve && machine.aVerifier ? { aVerifier: false } : {}) },
       })
     } else {
       const c = await clientPourMachineNouvelle()

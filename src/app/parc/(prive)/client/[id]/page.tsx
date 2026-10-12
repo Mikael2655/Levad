@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient } from '../../actions'
+import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient } from '../../actions'
 import { statutConnexion, urlLien } from '@/lib/connect/agent'
 import { Badge, formaterDate, depuis, jour } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR } from '@/lib/connect/alertes'
@@ -177,6 +177,18 @@ export default async function ClientPage({ params }: { params: { id: string } })
         regrouper deux noms qui désignent la même société, ouvrez une machine et changez son « Client ».
       </p>
       <h2 className="mt-8 text-lg font-bold">Machines</h2>
+      <div className="mt-2 flex flex-wrap gap-3">
+        <Formulaire action={definirHorsContratClient} message="Machines mises hors contrat" confirmation={`Mettre toutes les machines de ${client.nom} hors contrat (plus aucune alerte d'encre) ?`}>
+          <input type="hidden" name="id" value={client.id} />
+          <input type="hidden" name="valeur" value="oui" />
+          <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold">Tout mettre hors contrat</Bouton>
+        </Formulaire>
+        <Formulaire action={definirHorsContratClient} message="Machines remises sous contrat">
+          <input type="hidden" name="id" value={client.id} />
+          <input type="hidden" name="valeur" value="non" />
+          <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold">Tout remettre sous contrat</Bouton>
+        </Formulaire>
+      </div>
       <ul className="mt-2 list-disc pl-6 text-gray-700">
         {client.machines.map((m) => (
           <li key={m.id}>

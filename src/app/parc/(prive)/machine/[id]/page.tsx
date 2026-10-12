@@ -7,7 +7,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
-import { choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
+import { chercherReference, choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
 import { COULEURS, NOM_COULEUR, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
 import { FAMILLES, cleGroupe, gammeAuto, gammeDe } from '@/lib/connect/gammes'
 
@@ -90,6 +90,13 @@ export default async function MachinePage({ params }: { params: { id: string } }
           </span>
         </Formulaire>
       )}
+      {(!suivie || !gammeAuto(machine.modele)) && (
+        <Formulaire action={chercherReference} message="Référence trouvée" className="mt-3 flex flex-wrap items-center gap-3">
+          <input type="hidden" name="id" value={machine.id} />
+          <Bouton className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold">Trouver la référence avec le n° de série</Bouton>
+          <span className="text-sm text-gray-500">Recherche la référence exacte de la machine (marque + numéro de série). Compter une dizaine de secondes.</span>
+        </Formulaire>
+      )}
       <p className="mt-2 text-sm text-gray-500">
         {dernier ? `Dernier relevé : ${formaterDate(dernier.date)} (${depuis(dernier.date)})` : 'Aucun relevé'}
       </p>
@@ -98,15 +105,22 @@ export default async function MachinePage({ params }: { params: { id: string } }
         {/* Niveaux d'encre */}
         <section className="rounded-xl border bg-white p-6">
           <h2 className="text-lg font-bold">Niveaux d&apos;encre</h2>
-          {suivie && !machine.horsContrat ? (
-            <>
+          <>
               <div className="mt-4">
-                <Encres encres={encres} seuils={seuils} stock={stock} grand />
+                <Encres encres={encres} seuils={suivie && !machine.horsContrat ? seuils : undefined} stock={suivie && !machine.horsContrat ? stock : undefined} grand />
               </div>
               <p className="mt-3 text-xs text-gray-500">
-                Stock de cartouches chez ce client :{' '}
-                {COULEURS.map((c) => `${NOM_COULEUR[c]} ${stock[c]}`).join(' · ')}.{' '}
-                <Link href={`/parc/stocks/${machine.clientId}`} className="underline">Gérer le stock</Link>
+                {suivie && !machine.horsContrat ? (
+                  <>
+                    Stock de cartouches chez ce client :{' '}
+                    {COULEURS.map((c) => `${NOM_COULEUR[c]} ${stock[c]}`).join(' · ')}.{' '}
+                    <Link href={`/parc/stocks/${machine.clientId}`} className="underline">Gérer le stock</Link>
+                  </>
+                ) : machine.horsContrat ? (
+                  'Hors contrat : niveaux affichés à titre indicatif, aucune alerte.'
+                ) : (
+                  'Autre marque : niveaux affichés à titre indicatif, aucune alerte.'
+                )}
               </p>
               <h3 className="mt-5 text-sm font-semibold text-gray-700">Bacs récupérateurs</h3>
               {bacs.length ? (
@@ -131,10 +145,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
                   </div>
                 ))}
               </div>
-            </>
-          ) : (
-            <p className="mt-3 text-gray-600">{machine.horsContrat ? 'Machine hors contrat : pas d’alerte d’encre.' : 'Pas de suivi d’encre pour les autres marques.'}</p>
-          )}
+          </>
         </section>
 
         {/* Totaux */}

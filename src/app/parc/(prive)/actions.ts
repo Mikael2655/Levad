@@ -10,6 +10,7 @@ import { assurerCode, regenererCode, urlLien } from '@/lib/connect/agent'
 import { envoyerMail } from '@/lib/connect/mail'
 import { cleClient } from '@/lib/connect/normaliser'
 import { dateValide, finDeJournee } from '@/lib/connect/export'
+import { rechercherReference } from '@/lib/connect/modeles'
 
 const seuil = (v: FormDataEntryValue | null) => Math.min(100, Math.max(0, Number(v ?? 25) || 0))
 
@@ -66,6 +67,41 @@ export async function renommerClient(formData: FormData) {
   await prisma.connectClient.update({ where: { id }, data: { nom } })
   revalidatePath('/parc')
   revalidatePath(`/parc/client/${id}`)
+}
+
+// Met toutes les machines d'un client hors contrat (ou les remet sous contrat) d'un seul clic.
+export async function definirHorsContratClient(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const horsContrat = String(formData.get('valeur')) === 'oui'
+  await prisma.connectMachine.updateMany({ where: { clientId: id }, data: { horsContrat } })
+  revalidatePath('/parc', 'layout')
+}
+
+// Cherche la référence (modèle) d'une machine d'après sa marque et son numéro de série, avec l'IA et une recherche web.
+export async function chercherReference(formData: FormData): Promise<string> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const m = await prisma.connectMachine.findUnique({ where: { id } })
+  if (!m) return '!Machine introuvable'
+  try {
+    const trouve = await rechercherReference({ marque: m.marque, serie: m.numeroSerie, nom: m.modele, sysDescr: m.sysDescr })
+    if (!trouve) return '!Référence introuvable : indiquez-la à la main dans « Nom affiché »'
+    await prisma.connectMachine.update({
+      where: { id },
+      data: {
+        modele: trouve,
+        // le nom lu jusqu'ici (souvent celui donné par le client) est gardé à côté de la référence
+        nomReseau: m.nomReseau ?? (m.modele && m.modele.toLowerCase() !== trouve.toLowerCase() ? m.modele : null),
+        modeleFixe: true,
+        aVerifier: false,
+      },
+    })
+    revalidatePath('/parc', 'layout')
+    return `Référence trouvée : ${trouve}`
+  } catch (e) {
+    return '!La recherche a échoué : ' + (e instanceof Error ? e.message : 'erreur')
+  }
 }
 
 // Supprime un client avec ses machines, relevés, stock, ordinateurs et historique du lien (irréversible).
