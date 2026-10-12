@@ -17,8 +17,6 @@ const seuil = (v: FormDataEntryValue | null) => Math.min(100, Math.max(0, Number
 export async function enregistrerReglages(formData: FormData) {
   if (!connecte()) throw new Error('Non connecté')
   const id = Number(formData.get('id'))
-  const recette = String(formData.get('recette') ?? '')
-  const categorie = String(formData.get('categorie') ?? 'mine') === 'autre' ? 'autre' : 'mine'
   const clientId = Number(formData.get('clientId'))
   const nomAffiche = String(formData.get('nomAffiche') ?? '').trim().slice(0, 120) || null
   const site = String(formData.get('site') ?? '').trim().slice(0, 120) || 'Site principal'
@@ -30,8 +28,7 @@ export async function enregistrerReglages(formData: FormData) {
     where: { id },
     data: {
       gamme: gammeParCode(gammeChoisie) ? gammeChoisie : null,
-      recette: ['A', 'B', 'C'].includes(recette) ? recette : null,
-      categorie,
+      horsContrat: formData.get('horsContrat') === 'on',
       nomAffiche,
       site,
       seuilNoir: seuil(formData.get('seuilNoir')),
@@ -243,15 +240,6 @@ export async function demanderLecture(formData: FormData) {
 }
 
 // ---- Machine hors contrat : plus d'alerte d'encre, et exclue des exports -------------------------
-
-export async function basculerHorsContrat(formData: FormData) {
-  if (!connecte()) throw new Error('Non connecté')
-  const id = Number(formData.get('id'))
-  const m = await prisma.connectMachine.findUnique({ where: { id }, select: { horsContrat: true } })
-  if (!m) return
-  await prisma.connectMachine.update({ where: { id }, data: { horsContrat: !m.horsContrat } })
-  revalidatePath('/parc', 'layout')
-}
 
 // Depuis la synthèse : crée le lien du client s'il n'existe pas, puis ouvre sa fiche sur le lien à envoyer.
 export async function preparerLien(formData: FormData) {
