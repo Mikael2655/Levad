@@ -192,7 +192,9 @@ export async function majClient(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().slice(0, 200) || null
   const modeReleve = String(formData.get('modeReleve') ?? 'agent') === 'manuel' ? 'manuel' : 'agent'
   const jours = Math.min(90, Math.max(1, Math.floor(Number(formData.get('seuilDeconnexionJours')) || 10)))
-  await prisma.connectClient.update({ where: { id }, data: { email, modeReleve, seuilDeconnexionJours: jours } })
+  const mois = Number(formData.get('moisFacturation'))
+  const moisFacturation = [1, 2, 3].includes(mois) ? mois : null
+  await prisma.connectClient.update({ where: { id }, data: { email, modeReleve, seuilDeconnexionJours: jours, moisFacturation } })
   revalidatePath(`/parc/client/${id}`)
   revalidatePath('/parc/connexions')
 }

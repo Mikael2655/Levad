@@ -62,6 +62,7 @@ model ConnectClient {
   seuilDeconnexionJours Int       @default(10)
   deconnexionSignaleLe  DateTime? // mail de déconnexion déjà envoyé (remis à zéro quand le client se reconnecte)
   lienEnvoyeLe          DateTime? // dernier envoi du lien d'installation au client (mail ou marqué à la main)
+  moisFacturation       Int? // 1, 2 ou 3 : facturation trimestrielle (1 = janvier/avril/juillet/octobre, 2 = février/…, 3 = mars/…)
 
   @@map("connect_client")
 }
