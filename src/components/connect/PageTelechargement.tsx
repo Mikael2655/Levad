@@ -68,6 +68,10 @@ export function PageTelechargement({
           </a>
         </div>
 
+        <p className="mt-4 text-sm text-gray-500">
+          Un message d&apos;avertissement s&apos;affiche ? C&apos;est normal : <a href="#avertissements" className="underline">voici quoi faire</a>.
+        </p>
+
         <h2 className="mt-12 text-xl font-bold">Comment faire</h2>
         <ol className="mt-4 space-y-5">
           <Etape n={1} titre="Téléchargez le programme" texte="Cliquez sur le bouton correspondant à votre ordinateur, ci-dessus." />
@@ -85,51 +89,57 @@ export function PageTelechargement({
           )}
         </ol>
 
-        <h2 className="mt-12 text-xl font-bold">Votre navigateur bloque le téléchargement ?</h2>
+        <h2 id="avertissements" className="mt-12 scroll-mt-6 text-xl font-bold">Un message s&apos;affiche au téléchargement ou à l&apos;ouverture ?</h2>
         <p className="mt-2 text-gray-600">
-          C&apos;est normal pour un programme récent : le navigateur demande simplement de confirmer que vous
-          voulez bien le garder.
+          C&apos;est normal et sans danger : le programme est récent, et Windows comme les navigateurs préviennent pour tout
+          programme encore peu téléchargé. Le programme est signé par <strong>Levad</strong> : vérifiez que l&apos;éditeur
+          affiché est bien <strong>Levad</strong>, puis confirmez comme ci-dessous.
         </p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
+        <h3 className="mt-6 font-semibold">1. Dans votre navigateur (au téléchargement)</h3>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl bg-gray-50 p-5">
             <p className="font-semibold">Microsoft Edge</p>
-            <p className="mt-1 text-gray-600">
-              Dans la fenêtre des téléchargements, cliquez sur les <strong>trois points « … »</strong> à côté du
-              fichier, puis sur <strong>Conserver</strong>. Si un second message apparaît, cliquez sur{' '}
-              <strong>Afficher plus</strong>, puis sur <strong>Conserver quand même</strong>.
-            </p>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-600">
+              <li>Une fenêtre « Téléchargements » s&apos;ouvre en haut à droite.</li>
+              <li>Cliquez sur le message du fichier (« n&apos;est pas fréquemment téléchargé »).</li>
+              <li>Cliquez sur la <strong>flèche à droite du bouton « Supprimer »</strong>, puis sur <strong>Conserver</strong>.</li>
+              <li>Au message suivant, cliquez sur <strong>Afficher plus</strong>, puis <strong>Conserver quand même</strong>.</li>
+            </ol>
           </div>
           <div className="rounded-xl bg-gray-50 p-5">
             <p className="font-semibold">Google Chrome</p>
-            <p className="mt-1 text-gray-600">
-              Cliquez sur la flèche de téléchargement en haut à droite, puis sur <strong>Conserver</strong>. Si
-              besoin, cliquez ensuite sur <strong>Conserver quand même</strong>.
-            </p>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-600">
+              <li>Cliquez sur la flèche de téléchargement en haut à droite.</li>
+              <li>Cliquez sur les <strong>trois points « … »</strong> à côté du fichier, puis sur <strong>Conserver</strong>.</li>
+              <li>Au message suivant, cliquez sur <strong>Conserver quand même</strong>.</li>
+            </ol>
           </div>
         </div>
 
-        <h2 className="mt-12 text-xl font-bold">Un message de sécurité s&apos;affiche à l&apos;ouverture ?</h2>
-        <p className="mt-2 text-gray-600">
-          C&apos;est normal : le programme est nouveau et n&apos;est pas encore connu de Microsoft et d&apos;Apple.
-          Il ne présente aucun danger.
-        </p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <h3 className="mt-8 font-semibold">2. À l&apos;ouverture du fichier</h3>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl bg-gray-50 p-5">
             <p className="font-semibold">Sur Windows</p>
-            <p className="mt-1 text-gray-600">
-              Si « Windows a protégé votre ordinateur » apparaît : cliquez sur{' '}
-              <strong>Informations complémentaires</strong>, puis sur <strong>Exécuter quand même</strong>.
-            </p>
+            <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-600">
+              <li>Si « Windows a protégé votre ordinateur » apparaît, cliquez sur <strong>Informations complémentaires</strong>.</li>
+              <li>Vérifiez que l&apos;<strong>Éditeur</strong> indiqué est <strong>Levad</strong>.</li>
+              <li>Cliquez sur <strong>Exécuter quand même</strong>.</li>
+            </ol>
           </div>
           <div className="rounded-xl bg-gray-50 p-5">
             <p className="font-semibold">Sur Mac</p>
-            <p className="mt-1 text-gray-600">
+            <p className="mt-2 text-gray-600">
               Si Apple n&apos;a pas pu vérifier l&apos;application : cliquez sur <strong>Terminé</strong>, puis ouvrez le
               menu Pomme, <strong>Réglages Système</strong>, <strong>Confidentialité et sécurité</strong>, et cliquez sur{' '}
               <strong>Ouvrir quand même</strong> en bas de la page.
             </p>
           </div>
         </div>
+        <p className="mt-4 text-sm text-gray-500">
+          Ces messages disparaissent avec le temps, à mesure que le programme est téléchargé. Une difficulté ? Contactez votre
+          interlocuteur chez LEVAD.
+        </p>
 
         <h2 className="mt-12 text-xl font-bold">Ce que fait le programme</h2>
         <ul className="mt-3 list-disc space-y-1 pl-6 text-gray-600">
