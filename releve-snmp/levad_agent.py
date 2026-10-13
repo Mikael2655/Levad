@@ -29,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.9"
+VERSION_AGENT = "1.10"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -221,24 +221,36 @@ def lire_les_copieurs(config):
     versions = (1, 0)
     connus = config.get("copieurs", [])
     maintenant = time.time()
+    communaute = config.get("communaute", "public")
     if not connus or maintenant - config.get("derniere_decouverte", 0) > DECOUVERTE_TOUS_LES_JOURS:
         plage = config.get("plage") or R.plage_locale()
         if plage:
             try:
-                trouvees = R.decouvrir(plage, "public", 1.0, port, versions)
+                trouvees = []
+                # « public » est le mot de passe SNMP habituel ; à défaut, on essaie « private » avant d'abandonner
+                for essai in ("public", "private"):
+                    trouvees = R.decouvrir(plage, essai, 1.0, port, versions)
+                    if trouvees:
+                        communaute = essai
+                        config["communaute"] = essai
+                        break
                 connus = [{"ip": t["ip"], "version": t["version"]} for t in trouvees]
                 config["derniere_decouverte"] = maintenant
                 journal("recherche du réseau %s : %d équipement(s) répondent (%s)"
                         % (plage, len(trouvees), ", ".join(t["ip"] for t in trouvees[:8]) or "aucun"))
+                if not trouvees:
+                    DIAG["constat"] = "aucun équipement ne répond en SNMP sur %s (ce PC : %s)" % (plage, R.adresse_locale())
             except Exception as e:
                 journal("recherche du réseau impossible : %s" % e)
+                DIAG["constat"] = "recherche du réseau impossible : %s" % e
         else:
             journal("recherche du réseau impossible : adresse de l'ordinateur sur le réseau local introuvable")
+            DIAG["constat"] = "adresse de l'ordinateur sur le réseau local introuvable"
     machines, imprimantes = [], []
     for c in connus:
         v = versions if c.get("version") is None else (c["version"],)
         try:
-            r = R.lire_machine(c["ip"], "public", 2.0, port, v)
+            r = R.lire_machine(c["ip"], communaute, 2.0, port, v)
         except Exception as e:
             journal("lecture de %s impossible : %s" % (c["ip"], e))
             continue
@@ -247,6 +259,8 @@ def lire_les_copieurs(config):
             r["est_imprimante"] = True
             machines.append(r)
             imprimantes.append({"ip": c["ip"], "version": 1 if r.get("version_snmp") == "v2c" else 0})
+    if connus and not machines:
+        DIAG["constat"] = "%d équipement(s) répondent sur le réseau mais aucun n'est un copieur lisible" % len(connus)
     config["copieurs"] = imprimantes
     return machines
 
@@ -258,7 +272,11 @@ def lire_et_envoyer(config, commande_ids=()):
         "machines": machines, "commandeIds": list(commande_ids)})
     config["derniere_lecture"] = time.time()
     ecrire_config(config)
-    DIAG["derniereLectureOk"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    if machines:
+        DIAG.pop("constat", None)
+        DIAG["derniereLectureOk"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    elif DIAG.get("constat"):
+        noter_erreur("lecture : " + DIAG["constat"])   # reste affichée dans Connexions tant qu'aucun copieur n'est lu
     journal("relevé envoyé : %d copieur(s)" % len(machines))
     return len(machines), reponse
 

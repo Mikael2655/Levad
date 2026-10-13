@@ -34,6 +34,7 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith('/telechargements/') ||
       pathname.startsWith('/icons/connect-') ||
       pathname.startsWith('/aide/') ||
+      pathname.startsWith('/espace/') ||
       pathname.startsWith('/parc') ||
       pathname.startsWith('/api/parc/') ||
       pathname.startsWith('/_next/') ||

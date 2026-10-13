@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db'
 import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
 import { cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
-import { assurerCode, regenererCode, urlsTelechargement } from '@/lib/connect/agent'
+import { assurerCode, assurerCodeEspace, regenererCode, regenererCodeEspace, urlsTelechargement } from '@/lib/connect/agent'
 import { envoyerMail } from '@/lib/connect/mail'
 import { cleClient } from '@/lib/connect/normaliser'
 import { dateValide, finDeJournee } from '@/lib/connect/export'
@@ -152,6 +152,24 @@ export async function choisirGamme(formData: FormData): Promise<string | void> {
   return code ? `Gamme enregistrée : ${code}` : 'Gamme remise en automatique'
 }
 
+// Stock minimum voulu par le client pour un groupe (site + gamme) : en dessous, l'alerte se déclenche comme s'il n'y avait plus de stock.
+export async function definirStockMinimum(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const clientId = Number(formData.get('clientId'))
+  const groupe = String(formData.get('groupe') ?? '')
+  if (!clientId || !groupe) return '!Données manquantes'
+  for (const couleur of ['noir', 'cyan', 'magenta', 'jaune']) {
+    const brut = formData.get(`min_${couleur}`)
+    if (brut === null) continue
+    const minimum = Math.min(99, Math.max(0, Math.floor(Number(brut) || 0)))
+    const cle = { clientId_groupe_couleur: { clientId, groupe, couleur } }
+    if (minimum === 0) await prisma.connectStockMinimum.deleteMany({ where: { clientId, groupe, couleur } })
+    else await prisma.connectStockMinimum.upsert({ where: cle, update: { minimum }, create: { clientId, groupe, couleur, minimum } })
+  }
+  revalidatePath('/parc', 'layout')
+  return 'Stock minimum enregistré'
+}
+
 // Suppression d'une ligne de l'historique du stock (le stock est recalculé aussitôt).
 export async function supprimerMouvement(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
@@ -216,6 +234,21 @@ export async function corrigerStock(formData: FormData): Promise<string | void> 
 }
 
 // ---- Programme résident : lien personnel du client ------------------------------------------
+
+export async function genererEspace(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await assurerCodeEspace(id)
+  revalidatePath(`/parc/client/${id}`)
+}
+
+// Invalide l'ancien lien de l'espace client et en crée un nouveau.
+export async function regenererEspace(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await regenererCodeEspace(id)
+  revalidatePath(`/parc/client/${id}`)
+}
 
 export async function genererLien(formData: FormData) {
   if (!connecte()) throw new Error('Non connecté')

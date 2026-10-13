@@ -163,7 +163,7 @@ export default async function ParcPage() {
                         encres={(avecEncres(m.releves)?.encres ?? []) as unknown as Encre[]}
                         seuils={encreSuivie ? Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)])) : undefined}
                         stock={encreSuivie ? stockDuGroupe(stocks!, c.id, cleGroupe(m)) : undefined}
-                        etats={encreSuivie ? Object.fromEntries((etatsMachines?.get(m.id) ?? []).map((x) => [x.couleur, { bas: x.bas, jours: x.jours, mode: x.mode }])) : undefined}
+                        etats={encreSuivie ? Object.fromEntries((etatsMachines?.get(m.id) ?? []).map((x) => [x.couleur, { bas: x.bas, jours: x.jours, mode: x.mode, alerte: x.alerte }])) : undefined}
                       />
                       <p className="mt-1 text-xs text-gray-500">
                         {encreSuivie

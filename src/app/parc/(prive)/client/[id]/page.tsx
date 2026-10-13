@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient } from '../../actions'
-import { erreurEnCours, statutConnexion, urlLien, urlsTelechargement } from '@/lib/connect/agent'
+import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, genererEspace, regenererEspace, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient } from '../../actions'
+import { erreurEnCours, statutConnexion, urlEspace, urlLien, urlsTelechargement } from '@/lib/connect/agent'
 import { Badge, formaterDate, depuis, jour } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR } from '@/lib/connect/alertes'
 import { VERT } from '@/components/connect/affichage'
@@ -38,6 +38,31 @@ export default async function ClientPage({ params }: { params: { id: string } })
           Enregistrer
         </Bouton>
       </Formulaire>
+      <section id="espace" className="mt-6 max-w-3xl rounded-xl border bg-white p-6">
+        <h2 className="text-lg font-bold">Espace client (consultation du parc)</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Page privée où le client voit ses compteurs, ses niveaux d&apos;encre (avec la date de fin estimée) et ses stocks. Il n&apos;a pas de mot de passe : le lien est secret.
+        </p>
+        {client.codeEspace ? (
+          <>
+            <p className="mt-3 break-all rounded-lg bg-gray-50 p-3 font-mono text-sm">{urlEspace(client.codeEspace)}</p>
+            <p className="mt-2 text-sm">
+              <a href={`/espace/${client.codeEspace}`} target="_blank" className="underline">Voir l&apos;espace tel que le client le voit</a>
+            </p>
+            <Formulaire action={regenererEspace} message="Nouveau lien créé" className="mt-3">
+              <input type="hidden" name="id" value={client.id} />
+              <Bouton className="text-sm text-red-600 underline">Régénérer le lien (l&apos;ancien cesse de fonctionner)</Bouton>
+            </Formulaire>
+          </>
+        ) : (
+          <Formulaire action={genererEspace} message="Lien créé" className="mt-3">
+            <input type="hidden" name="id" value={client.id} />
+            <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>
+              Créer le lien de l&apos;espace client
+            </Bouton>
+          </Formulaire>
+        )}
+      </section>
       <section id="lien" className="mt-6 max-w-3xl scroll-mt-4 rounded-xl border bg-white p-6">
         <h2 className="text-lg font-bold">Programme résident (relevé automatique)</h2>
         {client.codeLien ? (
