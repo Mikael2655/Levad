@@ -4,7 +4,7 @@ import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient } from '../../actions'
-import { statutConnexion, urlLien } from '@/lib/connect/agent'
+import { erreurEnCours, statutConnexion, urlLien } from '@/lib/connect/agent'
 import { Badge, formaterDate, depuis, jour } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR } from '@/lib/connect/alertes'
 import { VERT } from '@/components/connect/affichage'
@@ -134,8 +134,8 @@ export default async function ClientPage({ params }: { params: { id: string } })
                   {p.derniereLectureOk && ` · dernière lecture réussie ${depuis(p.derniereLectureOk)}`}
                 </p>
                 {p.derniereErreur && p.derniereErreurLe && (
-                  <p className="mt-1 text-xs text-red-600">
-                    Dernière erreur du programme ({formaterDate(p.derniereErreurLe)}, {p.nbErreurs} depuis son démarrage) : {p.derniereErreur}
+                  <p className={`mt-1 text-xs ${erreurEnCours(p) ? 'text-red-600' : 'text-gray-400'}`}>
+                    {erreurEnCours(p) ? 'Dernière erreur du programme' : 'Dernière erreur du programme (résolue depuis)'} ({formaterDate(p.derniereErreurLe)}, {p.nbErreurs} depuis son démarrage) : {p.derniereErreur}
                   </p>
                 )}
                 <Formulaire action={definirSitePoste} message="Site enregistré" className="mt-2 flex flex-wrap items-end gap-3">

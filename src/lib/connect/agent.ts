@@ -54,3 +54,17 @@ export function statutConnexion(derniere: Date | null, seuilJours: number): Stat
   if (ageMs < seuilJours * 24 * 3600 * 1000) return 'inactif'
   return 'deconnecte'
 }
+
+/**
+ * La dernière erreur du programme est-elle encore d'actualité ? Elle est considérée comme résolue dès qu'un signal de vie
+ * (erreur de réseau) ou une lecture réussie (erreur de lecture, de mise à jour) est arrivé après elle.
+ */
+export function erreurEnCours(p: { derniereErreur: string | null; derniereErreurLe: Date | null; derniereConnexion: Date | null; derniereLectureOk: Date | null }): boolean {
+  if (!p.derniereErreur || !p.derniereErreurLe) return false
+  const quand = p.derniereErreurLe.getTime()
+  const erreurDeReseau = !/^(lecture|mise à jour)/i.test(p.derniereErreur)
+  const resolue = erreurDeReseau
+    ? Boolean(p.derniereConnexion && p.derniereConnexion.getTime() > quand + 30_000)
+    : Boolean(p.derniereLectureOk && p.derniereLectureOk.getTime() > quand)
+  return !resolue
+}
