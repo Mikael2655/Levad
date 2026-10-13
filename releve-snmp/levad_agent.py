@@ -29,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.10"
+VERSION_AGENT = "1.11"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -246,7 +246,10 @@ def lire_les_copieurs(config):
         else:
             journal("recherche du réseau impossible : adresse de l'ordinateur sur le réseau local introuvable")
             DIAG["constat"] = "adresse de l'ordinateur sur le réseau local introuvable"
-    machines, imprimantes = [], []
+    # adresses ajoutées à la main par LEVAD (copieurs hors de la plage de la recherche automatique)
+    manuelles = [ip for ip in config.get("ips_manuelles", []) if ip not in [c["ip"] for c in connus]]
+    connus = connus + [{"ip": ip, "version": None} for ip in manuelles]
+    machines, imprimantes, sans_reponse = [], [], []
     for c in connus:
         v = versions if c.get("version") is None else (c["version"],)
         try:
@@ -254,12 +257,16 @@ def lire_les_copieurs(config):
         except Exception as e:
             journal("lecture de %s impossible : %s" % (c["ip"], e))
             continue
+        if c["ip"] in config.get("ips_manuelles", []) and not r.get("repond"):
+            sans_reponse.append(c["ip"])
         if _est_imprimante(r):
             r.pop("brut", None)           # le détail brut n'est pas envoyé en lecture automatique
             r["est_imprimante"] = True
             machines.append(r)
             imprimantes.append({"ip": c["ip"], "version": 1 if r.get("version_snmp") == "v2c" else 0})
-    if connus and not machines:
+    if sans_reponse:
+        DIAG["constat"] = "adresse(s) ajoutée(s) à la main sans réponse : %s" % ", ".join(sans_reponse[:6])
+    elif connus and not machines:
         DIAG["constat"] = "%d équipement(s) répondent sur le réseau mais aucun n'est un copieur lisible" % len(connus)
     config["copieurs"] = imprimantes
     return machines
@@ -517,6 +524,10 @@ def boucle(max_tours=None):
             maj["fil"].start()
         try:
             reponse = signal_de_vie(config)
+            ips = [x for x in reponse.get("ips", []) if isinstance(x, str)]
+            if ips != config.get("ips_manuelles", []):
+                config["ips_manuelles"] = ips
+                ecrire_config(config)
             premier_refus = None
             occupe = lecteur["fil"] is not None and lecteur["fil"].is_alive()
             echeance = time.time() - config.get("derniere_lecture", 0) >= reponse.get("intervalleMinutes", 30) * 60

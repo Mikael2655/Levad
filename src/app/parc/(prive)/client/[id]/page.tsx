@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, genererEspace, regenererEspace, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient } from '../../actions'
+import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, enregistrerIps, genererEspace, regenererEspace, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient } from '../../actions'
 import { erreurEnCours, statutConnexion, urlEspace, urlLien, urlsTelechargement } from '@/lib/connect/agent'
 import { Badge, formaterDate, depuis, jour } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR } from '@/lib/connect/alertes'
@@ -38,6 +38,18 @@ export default async function ClientPage({ params }: { params: { id: string } })
           Enregistrer
         </Bouton>
       </Formulaire>
+      <section id="ips" className="mt-6 max-w-3xl rounded-xl border bg-white p-6">
+        <h2 className="text-lg font-bold">Machines non trouvées par la recherche automatique</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Saisissez l&apos;adresse IP de chaque copieur à lire en plus (une par ligne). Le programme du client les lit à chaque relevé, même si elles sont hors de son réseau habituel.
+          Le modèle et le numéro de série sont lus sur la machine. Il faut que le programme soit en version 1.11 ou plus.
+        </p>
+        <Formulaire action={enregistrerIps} message="Enregistré" className="mt-3 space-y-3">
+          <input type="hidden" name="id" value={client.id} />
+          <textarea name="ips" defaultValue={client.ipsManuelles ?? ''} rows={4} placeholder={'180.170.10.49\n180.170.10.211'} className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm" />
+          <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Enregistrer</Bouton>
+        </Formulaire>
+      </section>
       <section id="espace" className="mt-6 max-w-3xl rounded-xl border bg-white p-6">
         <h2 className="text-lg font-bold">Espace client (consultation du parc)</h2>
         <p className="mt-1 text-sm text-gray-600">

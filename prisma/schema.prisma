@@ -58,6 +58,7 @@ model ConnectClient {
   evenementsLien ConnectLienEvenement[]
   // Lien personnel d'installation (permanent, lié au client et non à un PC ; régénérable)
   codeLien              String?   @unique
+  ipsManuelles          String? // adresses IP de copieurs que la recherche automatique ne trouve pas (une par ligne), lues en plus à chaque relevé
   codeEspace            String?   @unique // lien privé de l'espace client (consultation du parc)
   email                 String? // pour envoyer le lien au client
   modeReleve            String    @default("agent") // agent = programme résident ; manuel = relevés reçus par mail

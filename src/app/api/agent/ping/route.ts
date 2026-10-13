@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { clientParRequete } from '@/lib/connect/agent'
+import { clientParRequete, listeIps } from '@/lib/connect/agent'
 
 // Signal de vie du programme résident (toutes les minutes) :
 //  - enregistre / met à jour le PC (nom, système, version, dernière connexion) ;
@@ -80,6 +80,7 @@ export async function POST(req: Request) {
     ok: true,
     client: client.nom,
     intervalleMinutes: 30,
+    ips: listeIps(client.ipsManuelles),
     commandes: commandes.map((c) => ({ id: c.id, type: c.type, machineId: c.machineId })),
   })
 }

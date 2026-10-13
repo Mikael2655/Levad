@@ -98,3 +98,15 @@ export function erreurEnCours(p: { derniereErreur: string | null; derniereErreur
     : Boolean(p.derniereLectureOk && p.derniereLectureOk.getTime() > quand)
   return !resolue
 }
+
+const MOTIF_IPV4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
+
+/** Les adresses IP valides d'un texte (une par ligne, ou séparées par des virgules / espaces), sans doublon. */
+export function listeIps(texte: string | null | undefined): string[] {
+  const vues = new Set<string>()
+  for (const x of (texte ?? '').split(/[\s,;]+/)) {
+    const ip = x.trim()
+    if (MOTIF_IPV4.test(ip)) vues.add(ip.split('.').map(Number).join('.'))
+  }
+  return Array.from(vues).slice(0, 50)
+}
