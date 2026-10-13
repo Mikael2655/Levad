@@ -4,11 +4,11 @@ import type { Metadata, Viewport } from 'next'
 // Appliqué aux pages /parc uniquement ; l'outil social garde les siens (src/lib/app-metadata.ts).
 const ICONES: Metadata['icons'] = {
   icon: [
-    { url: '/icons/connect-tab.ico', sizes: 'any' },
-    { url: '/icons/connect-tab-32.png', type: 'image/png', sizes: '32x32' },
-    { url: '/icons/connect-tab-64.png', type: 'image/png', sizes: '64x64' },
+    { url: '/icons/connect-logo-tab.ico', sizes: 'any' },
+    { url: '/icons/connect-logo-tab-32.png', type: 'image/png', sizes: '32x32' },
+    { url: '/icons/connect-logo-tab-64.png', type: 'image/png', sizes: '64x64' },
   ],
-  apple: [{ url: '/icons/connect-apple-touch-icon.png', sizes: '180x180' }],
+  apple: [{ url: '/icons/connect-logo-apple-touch-icon.png', sizes: '180x180' }],
 }
 
 export const connectMetadata: Metadata = {
