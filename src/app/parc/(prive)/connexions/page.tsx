@@ -59,29 +59,25 @@ export default async function ConnexionsPage() {
     : s === 'manuel' ? <Badge>Relevés manuels</Badge>
     : <Badge ton="orange">Pas encore installé</Badge>
 
-  const grille = 'grid items-center gap-3 px-5 py-4 md:grid-cols-[1.4fr_1.2fr_1fr_2fr_auto]'
-  const Contenu = ({ l, fleche, autres }: { l: Ligne; fleche?: boolean; autres?: Ligne[] }) => (
+  // une ligne par client ; si le client a plusieurs ordinateurs, les autres apparaissent dessous (une ligne chacun)
+  const grille = 'grid items-center gap-x-3 gap-y-0.5 px-4 py-1.5 text-[13px] md:grid-cols-[minmax(0,1.3fr)_minmax(0,1.4fr)_9.5rem_minmax(0,2.2fr)_auto]'
+  const Contenu = ({ l, suite }: { l: Ligne; suite?: boolean }) => (
     <>
-      <div className="flex items-center gap-2">
-        {fleche && (
-          <span className="inline-block text-gray-400 transition-transform group-open:rotate-90" aria-hidden="true">▸</span>
+      <div className="min-w-0 truncate">
+        {suite ? (
+          <span className="pl-4 text-gray-400" aria-hidden="true">↳</span>
+        ) : (
+          <Link href={`/parc/client/${l.clientId}`} className="font-semibold underline" title={l.client}>{l.client}</Link>
         )}
-        <Link href={`/parc/client/${l.clientId}`} className="font-semibold underline">{l.client}</Link>
       </div>
-      <div className="text-sm text-gray-600">
+      <div className="min-w-0 truncate text-gray-600" title={l.poste ? `${l.site} · ${l.poste}` : undefined}>
         {l.poste ? `${l.site} · ${l.poste}` : '—'}
-        {autres && autres.length > 0 && (
-          <span className="ml-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-            +{autres.length} autre{autres.length > 1 ? 's' : ''}
-            {autres.some((x) => x.statut === 'deconnecte') && <span className="text-red-600"> · dont déconnecté</span>}
-          </span>
-        )}
       </div>
-      <div>{badge(l.statut)}</div>
-      <div className="text-sm text-gray-600">
-        {l.derniere ? <>Dernier signal : {formaterDate(l.derniere)} ({depuis(l.derniere)})</> : l.statut === 'manuel' ? '—' : 'Aucun signal reçu'}
+      <div className="whitespace-nowrap">{badge(l.statut)}</div>
+      <div className="min-w-0 truncate text-gray-600" title={l.erreur ? `Erreur du programme : ${l.erreur}` : undefined}>
+        {l.derniere ? <>{formaterDate(l.derniere)} ({depuis(l.derniere)})</> : l.statut === 'manuel' ? '—' : 'Aucun signal reçu'}
         {l.version && <span className="text-gray-400"> · v{l.version}</span>}
-        {l.erreur && <span className="mt-0.5 block text-xs text-red-600">Erreur du programme : {l.erreur}</span>}
+        {l.erreur && <span className="text-red-600"> · Erreur : {l.erreur}</span>}
       </div>
       <div className="md:text-right">
         {l.posteId ? (
@@ -91,7 +87,7 @@ export default async function ConnexionsPage() {
             confirmation={`Retirer ${l.poste} de la liste ? (à faire seulement si le programme n'y est plus installé ou si cette ligne est un doublon)`}
           >
             <input type="hidden" name="id" value={l.posteId} />
-            <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-red-50 hover:text-red-700">Retirer</Bouton>
+            <Bouton className="rounded border border-gray-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-600 hover:bg-red-50 hover:text-red-700">Retirer</Bouton>
           </Formulaire>
         ) : null}
       </div>
@@ -109,26 +105,18 @@ export default async function ConnexionsPage() {
       <RechercheConnexions />
       <div className="mt-4 divide-y rounded-xl border bg-white">
         {groupes.length === 0 && <p className="p-6 text-gray-600">Aucun client pour l&apos;instant.</p>}
-        {groupes.map((g) =>
-          g.autres.length === 0 ? (
-            <div key={g.cle} className={grille} data-ligne-connexion data-texte={texteDe(g)}>
+        {groupes.map((g) => (
+          <div key={g.cle} data-ligne-connexion data-texte={texteDe(g)} className="divide-y divide-gray-100">
+            <div className={grille}>
               <Contenu l={g.tete} />
             </div>
-          ) : (
-            <details key={g.cle} className="group" data-ligne-connexion data-texte={texteDe(g)}>
-              <summary className={`${grille} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-                <Contenu l={g.tete} fleche autres={g.autres} />
-              </summary>
-              <div className="divide-y border-t bg-gray-50">
-                {g.autres.map((l) => (
-                  <div key={l.cle} className={grille}>
-                    <Contenu l={l} />
-                  </div>
-                ))}
+            {g.autres.map((l) => (
+              <div key={l.cle} className={`${grille} bg-gray-50`}>
+                <Contenu l={l} suite />
               </div>
-            </details>
-          ),
-        )}
+            ))}
+          </div>
+        ))}
       </div>
     </>
   )
