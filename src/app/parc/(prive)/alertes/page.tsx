@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
   const encres = m.couleurs.map((c) => ({ couleur: c.couleur, pourcent: c.pourcent }))
   const seuils = Object.fromEntries(m.couleurs.map((c) => [c.couleur, c.seuil]))
+  const etats = Object.fromEntries(m.couleurs.map((c) => [c.couleur, { bas: c.bas, jours: c.jours, mode: c.mode }]))
   return (
     <Link href={`/parc/machine/${m.id}`} className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.2fr_2fr_1fr]">
       <div>
@@ -24,7 +25,7 @@ function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
         )}
       </div>
       <div>
-        <Encres encres={encres} seuils={seuils} stock={m.stock} />
+        <Encres encres={encres} seuils={seuils} stock={m.stock} etats={etats} />
         <p className="mt-1 text-xs text-gray-500">Stock : {COULEURS.map((k) => `${NOM_COULEUR[k]} ${m.stock[k]}`).join(' · ')}</p>
       </div>
       <p className="text-sm text-gray-500 md:text-right" title={m.dernierReleve ? formaterDate(m.dernierReleve) : undefined}>
@@ -46,8 +47,8 @@ export default async function AlertesPage() {
     <>
       <h1 className="text-2xl font-bold">Alerte encre</h1>
       <p className="mt-1 text-gray-600">
-        Un client est en alerte pour une couleur quand son niveau est sous le seuil <strong>et</strong> qu&apos;il n&apos;a
-        plus de cartouche de cette couleur en stock. Seules les machines Canon suivies par LEVAD sont concernées.
+        Un client est en alerte pour une couleur quand il lui reste <strong>moins de 10 jours d&apos;encre</strong> (estimés d&apos;après sa consommation récente) <strong>et</strong> qu&apos;il n&apos;a
+        plus de cartouche de cette couleur en stock. Tant que l&apos;historique est trop court (moins de 7 jours), c&apos;est le seuil en % de la machine qui s&apos;applique. Seules les machines Canon suivies par LEVAD sont concernées.
       </p>
 
       {clients.length === 0 ? (

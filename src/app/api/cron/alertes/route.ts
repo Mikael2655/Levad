@@ -44,7 +44,7 @@ function construireMail(clients: ClientEtat[], urlParc: string) {
         .map((m) => {
           const niveaux = m.couleurs
             .map((x) => {
-              const txt = `${NOM_COULEUR[x.couleur]} ${x.pourcent === null ? '—' : x.pourcent + ' %'}`
+              const txt = `${NOM_COULEUR[x.couleur]} ${x.pourcent === null ? '—' : x.pourcent + ' %'}${x.mode === 'duree' && x.pourcent !== null ? (x.jours === null ? '' : x.jours < 1 ? ' (< 1 jour)' : ` (~${Math.round(x.jours)} j)`) : ''}`
               return x.alerte
                 ? `<strong style="color:#dc2626">${txt} (alerte)</strong>`
                 : x.bas
@@ -64,7 +64,7 @@ function construireMail(clients: ClientEtat[], urlParc: string) {
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:720px;margin:0 auto;padding:24px;color:#1a1a1a">
   <h2 style="margin-top:0">Alertes d'encre : ${clients.length} client${clients.length > 1 ? 's' : ''}, ${nbMachines} machine${nbMachines > 1 ? 's' : ''}</h2>
-  <p style="color:#4b5563">Niveau sous le seuil et plus de cartouche en stock. Les autres machines du client sont indiquées pour grouper la livraison.</p>
+  <p style="color:#4b5563">Moins de 10 jours d'encre estimés (ou niveau sous le seuil quand l'historique est trop court) et plus de cartouche en stock. Les autres machines du client sont indiquées pour grouper la livraison.</p>
   ${blocs}
   <p style="margin-top:28px"><a href="${esc(urlParc)}/parc/alertes" style="color:#4b6b4b">Ouvrir les alertes</a> · <a href="${esc(urlParc)}/parc/stocks" style="color:#4b6b4b">Saisir un envoi</a></p>
 </body></html>`

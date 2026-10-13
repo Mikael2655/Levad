@@ -8,16 +8,16 @@ import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { VERT, Badge, Encres, depuis, jour, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
 import { statutConnexion } from '@/lib/connect/agent'
 import { creerClient, preparerLien } from './actions'
-import { clientsEnAlerte, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
+import { clientsEnAlerte, etatsParMachine, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
 import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ParcPage() {
   let clients
-  let stocks, enAlerte
+  let stocks, enAlerte, etatsMachines
   try {
-    ;[stocks, enAlerte] = await Promise.all([stocksParGroupe(), clientsEnAlerte()])
+    ;[stocks, enAlerte, etatsMachines] = await Promise.all([stocksParGroupe(), clientsEnAlerte(), etatsParMachine()])
     clients = await prisma.connectClient.findMany({
       orderBy: { nom: 'asc' },
       include: {
@@ -163,6 +163,7 @@ export default async function ParcPage() {
                         encres={(avecEncres(m.releves)?.encres ?? []) as unknown as Encre[]}
                         seuils={encreSuivie ? Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)])) : undefined}
                         stock={encreSuivie ? stockDuGroupe(stocks!, c.id, cleGroupe(m)) : undefined}
+                        etats={encreSuivie ? Object.fromEntries((etatsMachines?.get(m.id) ?? []).map((x) => [x.couleur, { bas: x.bas, jours: x.jours, mode: x.mode }])) : undefined}
                       />
                       <p className="mt-1 text-xs text-gray-500">
                         {encreSuivie
