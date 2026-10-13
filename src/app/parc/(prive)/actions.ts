@@ -275,14 +275,14 @@ export async function envoyerLien(formData: FormData): Promise<string | void> {
     <li style="margin:0 0 6px"><strong>Mac</strong> : ouvrez le dossier compressé téléchargé, puis double-cliquez sur l'application « Levad Connect » qu'il contient.</li>
   </ul>
 
-  <p style="margin:0 0 4px"><strong>3. Un message d'avertissement s'affiche ? C'est normal</strong> (le programme est récent et encore peu téléchargé). Il est signé par <strong>Levad</strong> : vérifiez que l'éditeur affiché est bien Levad, puis confirmez ainsi :</p>
+  <p style="margin:0 0 4px"><strong>3. Un message d'avertissement s'affiche ? C'est normal.</strong> Le programme est signé par <strong>Levad</strong> : vérifiez que l'éditeur affiché est bien Levad, puis confirmez ainsi :</p>
   <ul style="margin:0 0 10px;padding-left:20px;font-size:14px">
     <li style="margin:0 0 6px"><strong>Au téléchargement, avec Microsoft Edge</strong> : « n'est pas fréquemment téléchargé » → cliquez sur les trois points « … » à droite du fichier → <strong>Conserver</strong> → puis sur la flèche à droite du bouton « Supprimer » → <strong>Conserver quand même</strong>.</li>
     <li style="margin:0 0 6px"><strong>Au téléchargement, avec Google Chrome</strong> : « Téléchargement suspect bloqué » → cliquez dessus, puis sur <strong>Télécharger le fichier suspect</strong> (et non « Supprimer de l'historique »).</li>
     <li style="margin:0 0 6px"><strong>À l'ouverture sous Windows</strong> : « Windows a protégé votre ordinateur » → cliquez sur <strong>Informations complémentaires</strong>, vérifiez « Éditeur : Levad », puis <strong>Exécuter quand même</strong>.</li>
     <li style="margin:0 0 6px"><strong>À l'ouverture sur Mac</strong> : « Apple n'a pas pu vérifier l'application » → <strong>Terminé</strong>, puis menu Pomme → Réglages Système → Confidentialité et sécurité → <strong>Ouvrir quand même</strong>. Acceptez aussi l'accès au « réseau local » si le Mac le demande.</li>
   </ul>
-  <p style="margin:0 0 18px;font-size:14px">Besoin d'aide ? <a href="${liens.page}" style="color:#4b6b4b">Voir les messages en images</a>.</p>
+  <p style="margin:0 0 18px;font-size:14px">Besoin d'aide sur : <a href="${liens.aideWindows}" style="color:#4b6b4b">Windows</a> · <a href="${liens.aideMac}" style="color:#4b6b4b">Mac</a> (la marche à suivre, avec les messages en images).</p>
 
   <p>Le programme ne fait que lire vos copieurs, ne modifie aucun réglage, et peut être désinstallé à tout moment.
   Ces liens sont personnels : en cas de changement d'ordinateur, il suffit de les réutiliser.</p>

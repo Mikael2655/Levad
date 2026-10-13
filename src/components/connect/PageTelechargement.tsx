@@ -1,12 +1,7 @@
 // Contenu de la page de téléchargement de Levad Connect (générique ou lien personnel d'un client).
-const VERT = '#8c9e8b'
+import { AideAvertissements } from './AideAvertissements'
 
-function Capture({ src, alt }: { src: string; alt: string }) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} loading="lazy" className="mt-2 h-auto max-w-full rounded-lg border border-gray-200 shadow-sm" style={{ maxWidth: 'min(380px, 100%)' }} />
-  )
-}
+const VERT = '#8c9e8b'
 
 function Etape({ n, titre, texte }: { n: number; titre: string; texte: string }) {
   return (
@@ -96,77 +91,7 @@ export function PageTelechargement({
           )}
         </ol>
 
-        <h2 id="avertissements" className="mt-12 scroll-mt-6 text-xl font-bold">Un message s&apos;affiche au téléchargement ou à l&apos;ouverture ?</h2>
-        <p className="mt-2 text-gray-600">
-          C&apos;est normal et sans danger : le programme est récent, et Windows comme les navigateurs préviennent pour tout
-          programme encore peu téléchargé. Le programme est signé par <strong>Levad</strong> : vérifiez que l&apos;éditeur
-          affiché est bien <strong>Levad</strong>, puis confirmez comme ci-dessous.
-        </p>
-
-        <h3 className="mt-6 font-semibold">1. Dans votre navigateur (au téléchargement)</h3>
-        <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="min-w-0 rounded-xl bg-gray-50 p-5">
-            <p className="font-semibold">Microsoft Edge</p>
-            <ol className="mt-2 space-y-5 text-gray-600">
-              <li>
-                <p><strong>1.</strong> Le fichier est signalé comme « pas fréquemment téléchargé ».</p>
-                <Capture src="/aide/aide-edge-1-avertissement.png" alt="Edge : message « n'est pas fréquemment téléchargé »" />
-              </li>
-              <li>
-                <p><strong>2.</strong> Cliquez sur les <strong>trois points « … »</strong> à droite du fichier, puis sur <strong>Conserver</strong>.</p>
-                <Capture src="/aide/aide-edge-2-conserver.png" alt="Edge : menu avec l'option Conserver" />
-              </li>
-              <li>
-                <p><strong>3.</strong> Vérifiez que l&apos;<strong>éditeur</strong> indiqué est <strong>Levad</strong>.</p>
-                <Capture src="/aide/aide-edge-3-verifier.png" alt="Edge : fenêtre « Vérifiez que vous faites confiance », éditeur Levad" />
-              </li>
-              <li>
-                <p><strong>4.</strong> Cliquez sur la <strong>flèche à droite du bouton « Supprimer »</strong>, puis sur <strong>Conserver quand même</strong>.</p>
-                <Capture src="/aide/aide-edge-4-conserver-quand-meme.png" alt="Edge : option Conserver quand même" />
-              </li>
-            </ol>
-          </div>
-          <div className="min-w-0 rounded-xl bg-gray-50 p-5">
-            <p className="font-semibold">Google Chrome</p>
-            <ol className="mt-2 space-y-5 text-gray-600">
-              <li>
-                <p><strong>1.</strong> Chrome affiche « Téléchargement suspect bloqué » : cliquez sur ce message.</p>
-                <Capture src="/aide/aide-chrome-1-bloque.png" alt="Chrome : Téléchargement suspect bloqué" />
-              </li>
-              <li>
-                <p>
-                  <strong>2.</strong> Au message « Ce fichier n&apos;est pas souvent téléchargé », cliquez sur{' '}
-                  <strong>Télécharger le fichier suspect</strong> (et non sur « Supprimer de l&apos;historique »).
-                </p>
-                <Capture src="/aide/aide-chrome-2-telecharger.png" alt="Chrome : bouton Télécharger le fichier suspect" />
-              </li>
-            </ol>
-          </div>
-        </div>
-
-        <h3 className="mt-8 font-semibold">2. À l&apos;ouverture du fichier</h3>
-        <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <div className="min-w-0 rounded-xl bg-gray-50 p-5">
-            <p className="font-semibold">Sur Windows</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-gray-600">
-              <li>Si « Windows a protégé votre ordinateur » apparaît, cliquez sur <strong>Informations complémentaires</strong>.</li>
-              <li>Vérifiez que l&apos;<strong>Éditeur</strong> indiqué est <strong>Levad</strong>.</li>
-              <li>Cliquez sur <strong>Exécuter quand même</strong>.</li>
-            </ol>
-          </div>
-          <div className="min-w-0 rounded-xl bg-gray-50 p-5">
-            <p className="font-semibold">Sur Mac</p>
-            <p className="mt-2 text-gray-600">
-              Si Apple n&apos;a pas pu vérifier l&apos;application : cliquez sur <strong>Terminé</strong>, puis ouvrez le
-              menu Pomme, <strong>Réglages Système</strong>, <strong>Confidentialité et sécurité</strong>, et cliquez sur{' '}
-              <strong>Ouvrir quand même</strong> en bas de la page.
-            </p>
-          </div>
-        </div>
-        <p className="mt-4 text-sm text-gray-500">
-          Ces messages disparaissent avec le temps, à mesure que le programme est téléchargé. Une difficulté ? Contactez votre
-          interlocuteur chez LEVAD.
-        </p>
+        <AideAvertissements />
 
         <h2 className="mt-12 text-xl font-bold">Ce que fait le programme</h2>
         <ul className="mt-3 list-disc space-y-1 pl-6 text-gray-600">
