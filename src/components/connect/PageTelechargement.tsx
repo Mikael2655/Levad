@@ -1,24 +1,7 @@
 // Contenu de la page de téléchargement de Levad Connect (générique ou lien personnel d'un client).
-import { AideAvertissements } from './AideAvertissements'
+import { CommentFaire } from './CommentFaire'
 
 const VERT = '#8c9e8b'
-
-function Etape({ n, titre, texte }: { n: number; titre: string; texte: string }) {
-  return (
-    <li className="flex gap-4">
-      <span
-        className="flex h-9 w-9 flex-none items-center justify-center rounded-full text-base font-bold text-white"
-        style={{ backgroundColor: VERT }}
-      >
-        {n}
-      </span>
-      <div>
-        <p className="font-semibold text-gray-900">{titre}</p>
-        <p className="text-gray-600">{texte}</p>
-      </div>
-    </li>
-  )
-}
 
 export function PageTelechargement({
   lienWindows = '/telechargements/Levad-Connect.exe',
@@ -70,28 +53,7 @@ export function PageTelechargement({
           </a>
         </div>
 
-        <p className="mt-4 text-sm text-gray-500">
-          Un message d&apos;avertissement s&apos;affiche ? C&apos;est normal : <a href="#avertissements" className="underline">voici quoi faire</a>.
-        </p>
-
-        <h2 className="mt-12 text-xl font-bold">Comment faire</h2>
-        <ol className="mt-4 space-y-5">
-          <Etape n={1} titre="Téléchargez le programme" texte="Cliquez sur le bouton correspondant à votre ordinateur, ci-dessus." />
-          <Etape n={2} titre="Ouvrez-le" texte={resident ? "Sous Windows, double-cliquez sur le fichier téléchargé. Sur Mac, ouvrez le dossier compressé (zip) téléchargé : un dossier « Levad-Connect-… » apparaît, double-cliquez sur l'application « Levad Connect » qu'il contient." : "Double-cliquez sur le fichier téléchargé (sur Mac, ouvrez d'abord le dossier compressé, puis l'application)."} />
-          {resident ? (
-            <>
-              <Etape n={3} titre="Cliquez sur « Installer »" texte="L'installation prend quelques secondes. Le programme lit vos copieurs une première fois." />
-              <Etape n={4} titre="C'est terminé" texte="Le programme fonctionne désormais en arrière-plan, à chaque démarrage de l'ordinateur. Vous pouvez fermer la fenêtre. En cas de changement d'ordinateur, retéléchargez-le avec ce même lien." />
-            </>
-          ) : (
-            <>
-              <Etape n={3} titre="Indiquez le nom de votre société" texte="Puis cliquez sur « Lancer le relevé ». Comptez environ une minute." />
-              <Etape n={4} titre="C'est terminé" texte="Le résultat est transmis automatiquement à LEVAD. Vous pouvez fermer la fenêtre." />
-            </>
-          )}
-        </ol>
-
-        <AideAvertissements />
+        <CommentFaire resident={resident} />
 
         <h2 className="mt-12 text-xl font-bold">Ce que fait le programme</h2>
         <ul className="mt-3 list-disc space-y-1 pl-6 text-gray-600">
