@@ -40,6 +40,30 @@ export async function regenererCode(clientId: number): Promise<string> {
   throw new Error('Impossible de créer un code de lien')
 }
 
+/** Lien privé de l'espace client (consultation du parc) : code distinct de celui du programme résident. */
+export async function assurerCodeEspace(clientId: number): Promise<string> {
+  const c = await prisma.connectClient.findUnique({ where: { id: clientId }, select: { codeEspace: true } })
+  if (c?.codeEspace) return c.codeEspace
+  return regenererCodeEspace(clientId)
+}
+
+export async function regenererCodeEspace(clientId: number): Promise<string> {
+  for (let essai = 0; essai < 5; essai++) {
+    const code = nouveauCode()
+    try {
+      await prisma.connectClient.update({ where: { id: clientId }, data: { codeEspace: code } })
+      return code
+    } catch {
+      // collision (quasi impossible) : on retente
+    }
+  }
+  throw new Error("Impossible de créer le lien de l'espace client")
+}
+
+export function urlEspace(code: string): string {
+  return `${process.env.PARC_URL || 'https://connect.levad.fr'}/espace/${code}`
+}
+
 export function urlLien(code: string): string {
   return `${process.env.PARC_URL || 'https://connect.levad.fr'}/telecharger/${code}`
 }

@@ -58,7 +58,7 @@ export function Encres({
   seuils?: Record<string, number>
   stock?: Record<string, number>
   /** Règle de durée restante (prioritaire sur les seuils en %) : « bas » et jours estimés par couleur. */
-  etats?: Record<string, { bas: boolean; jours: number | null; mode: 'duree' | 'pourcent' } | undefined>
+  etats?: Record<string, { bas: boolean; jours: number | null; mode: 'duree' | 'pourcent'; alerte?: boolean } | undefined>
   grand?: boolean
 }) {
   const liste = encres ?? []
@@ -70,7 +70,7 @@ export function Encres({
         const et = etats?.[c.cle]
         const bas = et ? p !== null && et.bas : Boolean(seuils) && p !== null && p <= (seuils?.[c.cle] ?? 25)
         const enStock = (stock?.[c.cle] ?? 0) > 0
-        const alerte = bas && !enStock
+        const alerte = et?.alerte ?? (bas && !enStock)
         const couleurBarre = alerte ? '#dc2626' : c.teinte
         return (
           <div key={c.cle} title={e?.description ?? c.nom}>

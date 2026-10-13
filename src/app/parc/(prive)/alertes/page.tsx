@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
   const encres = m.couleurs.map((c) => ({ couleur: c.couleur, pourcent: c.pourcent }))
   const seuils = Object.fromEntries(m.couleurs.map((c) => [c.couleur, c.seuil]))
-  const etats = Object.fromEntries(m.couleurs.map((c) => [c.couleur, { bas: c.bas, jours: c.jours, mode: c.mode }]))
+  const etats = Object.fromEntries(m.couleurs.map((c) => [c.couleur, { bas: c.bas, jours: c.jours, mode: c.mode, alerte: c.alerte }]))
   return (
     <Link href={`/parc/machine/${m.id}`} className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.2fr_2fr_1fr]">
       <div>

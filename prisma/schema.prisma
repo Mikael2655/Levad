@@ -52,11 +52,13 @@ model ConnectClient {
   creeLe   DateTime         @default(now())
   machines ConnectMachine[]
   mouvements ConnectStockMouvement[]
+  minimums ConnectStockMinimum[]
   postes   ConnectPoste[]
   commandes ConnectCommande[]
   evenementsLien ConnectLienEvenement[]
   // Lien personnel d'installation (permanent, lié au client et non à un PC ; régénérable)
   codeLien              String?   @unique
+  codeEspace            String?   @unique // lien privé de l'espace client (consultation du parc)
   email                 String? // pour envoyer le lien au client
   modeReleve            String    @default("agent") // agent = programme résident ; manuel = relevés reçus par mail
   seuilDeconnexionJours Int       @default(10)
@@ -131,6 +133,19 @@ model ConnectStockMouvement {
 
   @@index([clientId, couleur])
   @@map("connect_stock_mouvement")
+}
+
+// Stock minimum voulu par le client, par groupe (site + gamme) et par couleur.
+model ConnectStockMinimum {
+  id       Int           @id @default(autoincrement())
+  clientId Int
+  client   ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  groupe   String
+  couleur  String
+  minimum  Int
+
+  @@unique([clientId, groupe, couleur])
+  @@map("connect_stock_minimum")
 }
 
 // Un enregistrement par jour où le mail récapitulatif des alertes a été envoyé (évite les doublons).

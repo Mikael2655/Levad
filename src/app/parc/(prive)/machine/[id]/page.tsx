@@ -27,7 +27,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
   const auto = gammeAuto(machine.modele)
   const seuils = Object.fromEntries(COULEURS.map((c) => [c, seuilDe(machine, c)]))
   const etatsCouleurs = (await etatsParMachine()).get(machine.id) ?? []
-  const etats = Object.fromEntries(etatsCouleurs.map((c) => [c.couleur, { bas: c.bas, jours: c.jours, mode: c.mode }]))
+  const etats = Object.fromEntries(etatsCouleurs.map((c) => [c.couleur, { bas: c.bas, jours: c.jours, mode: c.mode, alerte: c.alerte }]))
 
   const dernier = machine.releves[0]
   const compteurs = (dernier?.compteurs ?? {}) as unknown as Compteurs
