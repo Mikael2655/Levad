@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { Badge, depuis, formaterDate } from '@/components/connect/affichage'
 import { erreurEnCours, statutConnexion } from '@/lib/connect/agent'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
+import { RechercheConnexions } from '@/components/connect/RechercheConnexions'
 import { retirerPoste } from '../actions'
 
 export const dynamic = 'force-dynamic'
@@ -45,7 +46,11 @@ export default async function ConnexionsPage() {
     const triees = [...liste].sort((a, b) => (b.derniere?.getTime() ?? 0) - (a.derniere?.getTime() ?? 0))
     return { cle, tete: triees[0], autres: triees.slice(1), ordre: Math.min(...liste.map((x) => ORDRE[x.statut])) }
   })
-  groupes.sort((a, b) => a.ordre - b.ordre || a.tete.client.localeCompare(b.tete.client) || (a.tete.site ?? '').localeCompare(b.tete.site ?? ''))
+  // ordre alphabétique des clients, puis des sites
+  const alpha = (a: string, b: string) => a.localeCompare(b, 'fr', { sensitivity: 'base' })
+  groupes.sort((a, b) => alpha(a.tete.client, b.tete.client) || alpha(a.tete.site ?? '', b.tete.site ?? ''))
+  const NOM_STATUT = { connecte: 'connecté', inactif: 'pas de signal récent', deconnecte: 'déconnecté', manuel: 'relevés manuels', jamais: 'pas encore installé' }
+  const texteDe = (g: Groupe) => [g.tete, ...g.autres].map((l) => `${l.client} ${l.site ?? ''} ${l.poste ?? ''} ${NOM_STATUT[l.statut]}`).join(' ')
 
   const badge = (s: string) =>
     s === 'connecte' ? <Badge ton="vert">Connecté</Badge>
@@ -101,15 +106,16 @@ export default async function ConnexionsPage() {
         signal pendant le délai réglé pour le client (10 jours par défaut), vous êtes prévenu par mail. Les clients en « relevés
         manuels » ne sont pas surveillés.
       </p>
-      <div className="mt-6 divide-y rounded-xl border bg-white">
+      <RechercheConnexions />
+      <div className="mt-4 divide-y rounded-xl border bg-white">
         {groupes.length === 0 && <p className="p-6 text-gray-600">Aucun client pour l&apos;instant.</p>}
         {groupes.map((g) =>
           g.autres.length === 0 ? (
-            <div key={g.cle} className={grille}>
+            <div key={g.cle} className={grille} data-ligne-connexion data-texte={texteDe(g)}>
               <Contenu l={g.tete} />
             </div>
           ) : (
-            <details key={g.cle} className="group">
+            <details key={g.cle} className="group" data-ligne-connexion data-texte={texteDe(g)}>
               <summary className={`${grille} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
                 <Contenu l={g.tete} fleche autres={g.autres} />
               </summary>
