@@ -81,6 +81,20 @@ jobs:
           $p = Start-Process -FilePath dist/Levad-Connect.exe -ArgumentList "--autotest" -PassThru
           if (-not $p.WaitForExit(90000)) { $p.Kill(); throw "La fenêtre ne s'ouvre pas (le programme est resté bloqué, probablement sur un message d'erreur)" }
           if ($p.ExitCode -ne 0) { throw "La fenêtre ne s'ouvre pas (code $($p.ExitCode))" }
+      - name: Essai Windows (relance de soi-même, comme lors d'une mise à jour automatique)
+        if: matrix.nom == 'Windows'
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:SystemRoot\system32;$env:SystemRoot"
+          Remove-Item Env:PYTHONHOME, Env:PYTHONPATH, Env:pythonLocation, Env:Python_ROOT_DIR, Env:Python2_ROOT_DIR, Env:Python3_ROOT_DIR -ErrorAction SilentlyContinue
+          $env:LEVAD_SANS_RESET = "1"
+          $drapeau = Join-Path $env:RUNNER_TEMP "relance-ok.txt"
+          Remove-Item $drapeau -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath dist/Levad-Connect.exe -ArgumentList "--essai-relance", $drapeau -PassThru
+          if (-not $p.WaitForExit(60000)) { $p.Kill(); throw "Le programme est resté bloqué" }
+          for ($i = 0; $i -lt 40 -and -not (Test-Path $drapeau); $i++) { Start-Sleep -Seconds 1 }
+          if (-not (Test-Path $drapeau)) { throw "La copie relancée n'a pas démarré correctement (même panne que lors d'une mise à jour)" }
+          Write-Host "Relance : OK"
       - name: Mac - texte d'autorisation réseau local, signature locale, essai, zip
         if: matrix.nom == 'Mac'
         run: |
