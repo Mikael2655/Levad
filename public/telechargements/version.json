@@ -1,8 +1,8 @@
 {
-  "version": "1.10",
-  "sha256": "e368d7faf2a3b2c603f3c277b233533750b618bfad94ae6658f8ad9b5ae86b95",
-  "taille": 12753688,
+  "version": "1.11",
+  "sha256": "a961d92129cba07ce9057b433cfbaa63a2b5e838deb36db2c111c0b35d08c594",
+  "taille": 12754040,
   "signe": true,
   "signataire": "",
-  "mac": {"sha256": "1dc710c1ff052a4da350e99679db3b99ea9846998b30e425eb80b9c968289efe", "taille": 11391490}
+  "mac": {"sha256": "8c1801a04cc1023b5b11cd09c8a07c24262ed2a6bcadddf4acf9f1aec3dbd85d", "taille": 11392461}
 }
