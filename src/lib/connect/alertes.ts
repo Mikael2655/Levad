@@ -7,9 +7,9 @@ import { prisma } from '@/lib/db'
 import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
 
 // Alertes d'encre : un client est en alerte pour une couleur quand il lui reste moins de 10 jours d'encre
-// (estimés d'après la consommation des 30 derniers jours) et qu'il n'a PAS de cartouche de cette couleur en stock.
-// Tant que l'historique est trop court pour estimer (moins de 7 jours depuis le dernier changement de cartouche),
-// c'est le seuil en % qui s'applique. Ne concerne que « mes machines ».
+// (estimés d'après la consommation des 60 derniers jours) et qu'il n'a PAS de cartouche de cette couleur en stock.
+// Après un changement de cartouche, on reprend la consommation de la précédente ; tant que la machine n'a pas assez
+// d'historique (moins de 7 jours de mesures), c'est le seuil en % qui s'applique. Ne concerne que « mes machines ».
 
 export const COULEURS = ['noir', 'cyan', 'magenta', 'jaune'] as const
 export type Couleur = (typeof COULEURS)[number]
@@ -112,7 +112,7 @@ export type MachineEtat = {
 }
 export type ClientEtat = { id: number; nom: string; machines: MachineEtat[]; nbAlertes: number }
 
-/** Un niveau par jour et par machine sur les 30 derniers jours (le dernier relevé de chaque jour) : léger et suffisant pour la prévision. */
+/** Un niveau par jour et par machine sur les 60 derniers jours (le dernier relevé de chaque jour) : léger et suffisant pour la prévision. */
 async function niveauxQuotidiens(ids: number[]): Promise<Map<number, { t: number; encres: EncreJson[] }[]>> {
   const res = new Map<number, { t: number; encres: EncreJson[] }[]>()
   if (ids.length === 0) return res

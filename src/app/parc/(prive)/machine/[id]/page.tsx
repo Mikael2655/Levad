@@ -240,7 +240,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
           <fieldset className="md:col-span-3">
             <legend className="text-sm font-medium text-gray-700">Seuil d&apos;alerte par couleur (%)</legend>
             <p className="text-xs text-gray-500">
-              L&apos;alerte se déclenche quand il reste moins de 10 jours d&apos;encre (estimés d&apos;après la consommation). Ce seuil en % ne sert que tant que l&apos;historique est trop court (moins de 7 jours depuis le dernier changement de cartouche).
+              L&apos;alerte se déclenche quand il reste moins de 10 jours d&apos;encre (estimés d&apos;après la consommation). Après un changement de cartouche, la consommation de la précédente est reprise. Ce seuil en % ne sert que tant que la machine n&apos;a pas assez d&apos;historique (moins de 7 jours de mesures).
             </p>
             <div className="mt-1 grid grid-cols-2 gap-4 md:grid-cols-4">
               {COULEURS.map((c) => (

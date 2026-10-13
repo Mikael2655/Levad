@@ -48,7 +48,7 @@ export default async function AlertesPage() {
       <h1 className="text-2xl font-bold">Alerte encre</h1>
       <p className="mt-1 text-gray-600">
         Un client est en alerte pour une couleur quand il lui reste <strong>moins de 10 jours d&apos;encre</strong> (estimés d&apos;après sa consommation récente) <strong>et</strong> qu&apos;il n&apos;a
-        plus de cartouche de cette couleur en stock. Tant que l&apos;historique est trop court (moins de 7 jours), c&apos;est le seuil en % de la machine qui s&apos;applique. Seules les machines Canon suivies par LEVAD sont concernées.
+        plus de cartouche de cette couleur en stock. Après un changement de cartouche, la consommation de la cartouche précédente est reprise. Faute d&apos;historique suffisant (machine récemment installée), c&apos;est le seuil en % de la machine qui s&apos;applique. Seules les machines Canon suivies par LEVAD sont concernées.
       </p>
 
       {clients.length === 0 ? (
