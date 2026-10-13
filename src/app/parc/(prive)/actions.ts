@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db'
 import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
 import { cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
-import { assurerCode, assurerCodeEspace, regenererCode, regenererCodeEspace, urlsTelechargement } from '@/lib/connect/agent'
+import { assurerCode, assurerCodeEspace, listeIps, regenererCode, regenererCodeEspace, urlsTelechargement } from '@/lib/connect/agent'
 import { envoyerMail } from '@/lib/connect/mail'
 import { cleClient } from '@/lib/connect/normaliser'
 import { dateValide, finDeJournee } from '@/lib/connect/export'
@@ -234,6 +234,20 @@ export async function corrigerStock(formData: FormData): Promise<string | void> 
 }
 
 // ---- Programme résident : lien personnel du client ------------------------------------------
+
+// Adresses IP de copieurs que la recherche automatique ne trouve pas : le programme les lit en plus, à chaque relevé.
+export async function enregistrerIps(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const brut = String(formData.get('ips') ?? '')
+  const ips = listeIps(brut)
+  const ignorees = brut.split(/[\s,;]+/).filter(Boolean).length - ips.length
+  await prisma.connectClient.update({ where: { id }, data: { ipsManuelles: ips.length ? ips.join('\n') : null } })
+  revalidatePath(`/parc/client/${id}`)
+  return ips.length
+    ? `${ips.length} adresse(s) enregistrée(s)${ignorees > 0 ? ` (${ignorees} ignorée(s) : adresse invalide ou doublon)` : ''}`
+    : 'Liste vidée'
+}
 
 export async function genererEspace(formData: FormData) {
   if (!connecte()) throw new Error('Non connecté')

@@ -172,3 +172,6 @@ CREATE TABLE IF NOT EXISTS "connect_stock_minimum" (
 CREATE UNIQUE INDEX IF NOT EXISTS "connect_stock_minimum_clientId_groupe_couleur_key" ON "connect_stock_minimum"("clientId", "groupe", "couleur");
 ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "codeEspace" TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS "connect_client_codeEspace_key" ON "connect_client"("codeEspace");
+
+-- v16 : adresses IP de copieurs ajoutées à la main (hors plage de la recherche automatique)
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "ipsManuelles" TEXT;
