@@ -51,11 +51,14 @@ export function Encres({
   encres,
   seuils,
   stock,
+  etats,
   grand,
 }: {
   encres: Encre[] | null | undefined
   seuils?: Record<string, number>
   stock?: Record<string, number>
+  /** Règle de durée restante (prioritaire sur les seuils en %) : « bas » et jours estimés par couleur. */
+  etats?: Record<string, { bas: boolean; jours: number | null; mode: 'duree' | 'pourcent' } | undefined>
   grand?: boolean
 }) {
   const liste = encres ?? []
@@ -64,7 +67,8 @@ export function Encres({
       {COULEURS.map((c) => {
         const e = liste.find((x) => x.couleur === c.cle && x.pourcent !== null)
         const p = e?.pourcent ?? null
-        const bas = Boolean(seuils) && p !== null && p <= (seuils?.[c.cle] ?? 25)
+        const et = etats?.[c.cle]
+        const bas = et ? p !== null && et.bas : Boolean(seuils) && p !== null && p <= (seuils?.[c.cle] ?? 25)
         const enStock = (stock?.[c.cle] ?? 0) > 0
         const alerte = bas && !enStock
         const orange = bas && enStock
@@ -81,6 +85,12 @@ export function Encres({
               }`}
             >
               {p === null ? '—' : `${p} %`}
+              {et?.mode === 'duree' && p !== null && (
+                <span className="font-normal text-gray-500">
+                  {' · '}
+                  {et.jours === null ? 'durée longue' : et.jours < 1 ? '< 1 j' : `~${Math.round(et.jours)} j`}
+                </span>
+              )}
               {orange && ' · en stock'}
             </p>
           </div>

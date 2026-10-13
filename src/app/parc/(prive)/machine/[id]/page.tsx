@@ -8,7 +8,7 @@ import { prisma } from '@/lib/db'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
 import { chercherReference, choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
-import { COULEURS, NOM_COULEUR, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
+import { COULEURS, NOM_COULEUR, etatsParMachine, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
 import { FAMILLES, cleGroupe, gammeAuto, gammeDe } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
@@ -26,6 +26,8 @@ export default async function MachinePage({ params }: { params: { id: string } }
   const gamme = gammeDe(machine)
   const auto = gammeAuto(machine.modele)
   const seuils = Object.fromEntries(COULEURS.map((c) => [c, seuilDe(machine, c)]))
+  const etatsCouleurs = (await etatsParMachine()).get(machine.id) ?? []
+  const etats = Object.fromEntries(etatsCouleurs.map((c) => [c.couleur, { bas: c.bas, jours: c.jours, mode: c.mode }]))
 
   const dernier = machine.releves[0]
   const compteurs = (dernier?.compteurs ?? {}) as unknown as Compteurs
@@ -107,7 +109,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
           <h2 className="text-lg font-bold">Niveaux d&apos;encre</h2>
           <>
               <div className="mt-4">
-                <Encres encres={encres} seuils={suivie && !machine.horsContrat ? seuils : undefined} stock={suivie && !machine.horsContrat ? stock : undefined} grand />
+                <Encres encres={encres} seuils={suivie && !machine.horsContrat ? seuils : undefined} stock={suivie && !machine.horsContrat ? stock : undefined} etats={suivie && !machine.horsContrat ? etats : undefined} grand />
               </div>
               <p className="mt-3 text-xs text-gray-500">
                 {suivie && !machine.horsContrat ? (
@@ -237,6 +239,9 @@ export default async function MachinePage({ params }: { params: { id: string } }
           </label>
           <fieldset className="md:col-span-3">
             <legend className="text-sm font-medium text-gray-700">Seuil d&apos;alerte par couleur (%)</legend>
+            <p className="text-xs text-gray-500">
+              L&apos;alerte se déclenche quand il reste moins de 10 jours d&apos;encre (estimés d&apos;après la consommation). Ce seuil en % ne sert que tant que l&apos;historique est trop court (moins de 7 jours depuis le dernier changement de cartouche).
+            </p>
             <div className="mt-1 grid grid-cols-2 gap-4 md:grid-cols-4">
               {COULEURS.map((c) => (
                 <label key={c} className="text-sm text-gray-600">

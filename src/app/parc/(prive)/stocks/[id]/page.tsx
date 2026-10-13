@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { avecEncres } from '@/lib/connect/releves'
 import { Encres, VERT, formaterDate, depuis, type Encre } from '@/components/connect/affichage'
-import { COULEURS, NOM_COULEUR, detailsParGroupe, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
+import { COULEURS, NOM_COULEUR, detailsParGroupe, etatsParMachine, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
 import { FAMILLES, familleDe, grouper } from '@/lib/connect/gammes'
 import { ajouterEnvoi, choisirGamme, corrigerStock, supprimerMouvement } from '../../actions'
 
@@ -26,6 +26,7 @@ export default async function StockClientPage({ params }: { params: { id: string
   })
   if (!client) notFound()
   const stocks = await stocksParGroupe()
+  const etats = await etatsParMachine()
   const details = await detailsParGroupe()
   const groupes = grouper(client.machines)
   const mouvements = await prisma.connectStockMouvement.findMany({ where: { clientId: client.id }, orderBy: { date: 'desc' }, take: 30 })
@@ -78,6 +79,7 @@ export default async function StockClientPage({ params }: { params: { id: string
                     <Encres
                       encres={(re?.encres ?? []) as unknown as Encre[]}
                       seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
+                      etats={Object.fromEntries((etats.get(m.id) ?? []).map((x) => [x.couleur, { bas: x.bas, jours: x.jours, mode: x.mode }]))}
                       stock={stock}
                     />
                     <p className="text-sm text-gray-500 md:text-right">{r ? `Relevé ${depuis(r.date)}` : 'Jamais lu'}</p>
