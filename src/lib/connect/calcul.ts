@@ -69,3 +69,19 @@ export function calculer(c: Compteurs, choix?: string | null) {
     aConfigurer: applicables.length === 0,
   }
 }
+
+/** Noms courts des compteurs Canon pour l'affichage (A4 / A3, N&B / couleur) ; les compteurs « 2 » comptent chaque A3 double. */
+export const NOM_COURT_COMPTEUR: Record<string, string> = {
+  '101': 'Total A4 + A3',
+  '102': 'Total A4 + 2×A3',
+  '106': 'A4 + 2×A3 couleur',
+  '108': 'A4 + A3 N&B',
+  '109': 'A4 + 2×A3 N&B',
+  '112': 'A3 N&B',
+  '113': 'A4 N&B',
+  '122': 'A3 couleur',
+  '123': 'A4 couleur',
+  '125': 'A4 + A3 couleur',
+  '301': 'Impressions',
+  '501': 'Scans',
+}

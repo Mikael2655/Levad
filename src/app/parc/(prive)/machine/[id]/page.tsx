@@ -5,7 +5,7 @@ import { avecEncres } from '@/lib/connect/releves'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { calculer, type Compteurs } from '@/lib/connect/calcul'
+import { NOM_COURT_COMPTEUR, calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
 import { chercherReference, choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
 import { COULEURS, NOM_COULEUR, etatsParMachine, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
@@ -33,7 +33,9 @@ export default async function MachinePage({ params }: { params: { id: string } }
   const compteurs = (dernier?.compteurs ?? {}) as unknown as Compteurs
   const calc = calculer(compteurs, machine.recette)
   const suivie = machine.categorie === 'mine'
-  const DETAIL = ['112', '113', '122', '123', '501']
+  // 112 / 113 / 122 / 123 / 501 toujours ; les autres compteurs (108, 109, 106, 125…) seulement s'ils servent au calcul retenu
+  const utilises = new Set((calc.retenue?.utilises ?? []).map(String))
+  const DETAIL = ['108', '109', '106', '112', '113', '125', '122', '123', '501'].filter((n) => ['112', '113', '122', '123', '501'].includes(n) || (utilises.has(n) && compteurs[n]))
   const historique = await Promise.all(
     [7, 14, 21, 28].map(async (jours) => {
       const releve = await prisma.connectReleve.findFirst({
@@ -103,7 +105,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
         {dernier ? `Dernier relevé : ${formaterDate(dernier.date)} (${depuis(dernier.date)})` : 'Aucun relevé'}
       </p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.15fr]">
         {/* Niveaux d'encre */}
         <section className="rounded-xl border bg-white p-6">
           <h2 className="text-lg font-bold">Niveaux d&apos;encre</h2>
@@ -136,8 +138,12 @@ export default async function MachinePage({ params }: { params: { id: string } }
               ) : (
                 <p className="mt-1 text-sm text-gray-600">Non disponible (la machine n&apos;en déclare pas).</p>
               )}
-              <h3 className="mt-5 text-sm font-semibold text-gray-700">Niveaux précédents</h3>
-              <div className="mt-2 space-y-3">
+              <details className="group mt-5">
+                <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-gray-700 [&::-webkit-details-marker]:hidden">
+                  <span className="inline-block text-gray-400 transition-transform group-open:rotate-90" aria-hidden="true">▸</span>
+                  Niveaux précédents
+                </summary>
+                <div className="mt-2 space-y-3">
                 {historique.map((h) => (
                   <div key={h.jours}>
                     <p className="text-xs text-gray-500">
@@ -147,6 +153,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
                   </div>
                 ))}
               </div>
+              </details>
           </>
         </section>
 
@@ -154,17 +161,17 @@ export default async function MachinePage({ params }: { params: { id: string } }
         <section className="rounded-xl border bg-white p-6">
           <h2 className="text-lg font-bold">Totaux (A3 compté double)</h2>
           {suivie ? (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,12rem)_1fr]">
               <div className="space-y-4">
                 {calc.retenue ? (
                   <>
                     <div className="rounded-lg bg-gray-50 p-4">
                       <p className="text-sm text-gray-500">Total N&amp;B</p>
-                      <p className="text-3xl font-bold">{nombre(calc.retenue.nb)}</p>
+                      <p className="text-2xl font-bold">{nombre(calc.retenue.nb)}</p>
                     </div>
                     <div className="rounded-lg bg-gray-50 p-4">
                       <p className="text-sm text-gray-500">Total couleur</p>
-                      <p className="text-3xl font-bold">{nombre(calc.retenue.couleur)}</p>
+                      <p className="text-2xl font-bold">{nombre(calc.retenue.couleur)}</p>
                     </div>
                   </>
                 ) : (
@@ -179,9 +186,9 @@ export default async function MachinePage({ params }: { params: { id: string } }
                   <tbody>
                     {DETAIL.map((n) => (
                       <tr key={n} className="border-b last:border-0">
-                        <td className="py-1.5 pr-3 font-semibold">{n}</td>
-                        <td className="py-1.5 pr-3 text-gray-600">{compteurs[n]?.nom ?? ''}</td>
-                        <td className="py-1.5 text-right tabular-nums">{compteurs[n] ? nombre(compteurs[n].v) : '—'}</td>
+                        <td className="whitespace-nowrap py-1 pr-3 font-semibold">{n}</td>
+                        <td className="whitespace-nowrap py-1 pr-3 text-gray-600" title={compteurs[n]?.nom ?? undefined}>{NOM_COURT_COMPTEUR[n] ?? compteurs[n]?.nom ?? ''}</td>
+                        <td className="whitespace-nowrap py-1 text-right tabular-nums">{compteurs[n] ? nombre(compteurs[n].v) : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
