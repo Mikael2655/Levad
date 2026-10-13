@@ -44,6 +44,12 @@ export function urlLien(code: string): string {
   return `${process.env.PARC_URL || 'https://connect.levad.fr'}/telecharger/${code}`
 }
 
+/** Liens de téléchargement direct du programme pour ce client (le nom du fichier contient son code). */
+export function urlsTelechargement(code: string): { windows: string; mac: string; page: string } {
+  const base = process.env.PARC_URL || 'https://connect.levad.fr'
+  return { windows: `${base}/telecharger/${code}/windows`, mac: `${base}/telecharger/${code}/mac`, page: `${base}/telecharger/${code}#avertissements` }
+}
+
 export type StatutConnexion = 'jamais' | 'connecte' | 'inactif' | 'deconnecte'
 
 /** connecté : signal de moins de 10 minutes ; déconnecté : plus de signal depuis le délai réglé (10 jours par défaut). */

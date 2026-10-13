@@ -4,7 +4,7 @@ import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient } from '../../actions'
-import { erreurEnCours, statutConnexion, urlLien } from '@/lib/connect/agent'
+import { erreurEnCours, statutConnexion, urlLien, urlsTelechargement } from '@/lib/connect/agent'
 import { Badge, formaterDate, depuis, jour } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR } from '@/lib/connect/alertes'
 import { VERT } from '@/components/connect/affichage'
@@ -46,6 +46,12 @@ export default async function ClientPage({ params }: { params: { id: string } })
               Lien personnel d&apos;installation de ce client (permanent, valable pour tous ses ordinateurs) :
             </p>
             <p className="mt-1 break-all rounded-lg bg-gray-50 p-3 font-mono text-sm">{urlLien(client.codeLien)}</p>
+            <p className="mt-3 text-sm text-gray-600">Liens de téléchargement direct (ceux du mail) :</p>
+            <p className="mt-1 break-all rounded-lg bg-gray-50 p-3 font-mono text-xs">
+              Windows : {urlsTelechargement(client.codeLien).windows}
+              <br />
+              Mac : {urlsTelechargement(client.codeLien).mac}
+            </p>
             <Formulaire action={envoyerLien} message="Lien envoyé" className="mt-4 flex flex-wrap items-end gap-3">
               <input type="hidden" name="id" value={client.id} />
               <label className="grow text-sm font-medium text-gray-700">
