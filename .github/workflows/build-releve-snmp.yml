@@ -87,7 +87,6 @@ jobs:
         run: |
           $env:PATH = "$env:SystemRoot\system32;$env:SystemRoot"
           Remove-Item Env:PYTHONHOME, Env:PYTHONPATH, Env:pythonLocation, Env:Python_ROOT_DIR, Env:Python2_ROOT_DIR, Env:Python3_ROOT_DIR -ErrorAction SilentlyContinue
-          $env:LEVAD_SANS_RESET = "1"
           $drapeau = Join-Path $env:RUNNER_TEMP "relance-ok.txt"
           Remove-Item $drapeau -ErrorAction SilentlyContinue
           $p = Start-Process -FilePath dist/Levad-Connect.exe -ArgumentList "--essai-relance", $drapeau -PassThru

@@ -673,8 +673,6 @@ def _environnement_propre():
     un autre (même fichier, ou fichier remplacé par une mise à jour) lui transmet ses variables internes : le nouveau
     réutiliserait alors le dossier temporaire de l'ancien, supprimé dès que celui-ci s'arrête (erreur « DLL load failed
     while importing _tkinter »). On les retire pour que le nouveau programme s'installe dans son propre dossier."""
-    if os.environ.get("LEVAD_SANS_RESET"):        # essais seulement : reproduit l'ancien comportement (versions 1.7 et avant)
-        return dict(os.environ)
     env = {k: v for k, v in os.environ.items() if not k.startswith("_PYI") and k != "_MEIPASS2"}
     env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
     return env
