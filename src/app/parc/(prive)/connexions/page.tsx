@@ -2,12 +2,14 @@ import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { Badge, depuis, formaterDate } from '@/components/connect/affichage'
 import { statutConnexion } from '@/lib/connect/agent'
+import { Bouton, Formulaire } from '@/components/connect/Formulaire'
+import { retirerPoste } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
 const ORDRE = { deconnecte: 0, jamais: 1, inactif: 2, connecte: 3, manuel: 4 } as const
 
-type Ligne = { erreur?: string | null; version?: string | null; cle: string; clientId: number; client: string; poste: string | null; site: string | null; derniere: Date | null; statut: keyof typeof ORDRE }
+type Ligne = { posteId?: number; erreur?: string | null; version?: string | null; cle: string; clientId: number; client: string; poste: string | null; site: string | null; derniere: Date | null; statut: keyof typeof ORDRE }
 
 export default async function ConnexionsPage() {
   let clients
@@ -21,6 +23,7 @@ export default async function ConnexionsPage() {
     if (c.postes.length === 0) return [{ cle: `c${c.id}`, clientId: c.id, client: c.nom, poste: null, site: null, derniere: null, statut: 'jamais' }]
     return c.postes.map((p) => ({
       cle: `p${p.id}`,
+      posteId: p.id,
       clientId: c.id,
       client: c.nom,
       poste: p.nom,
@@ -51,7 +54,7 @@ export default async function ConnexionsPage() {
     : s === 'manuel' ? <Badge>Relevés manuels</Badge>
     : <Badge ton="orange">Pas encore installé</Badge>
 
-  const grille = 'grid items-center gap-3 px-5 py-4 md:grid-cols-[1.4fr_1.2fr_1fr_2fr]'
+  const grille = 'grid items-center gap-3 px-5 py-4 md:grid-cols-[1.4fr_1.2fr_1fr_2fr_auto]'
   const Contenu = ({ l, fleche, autres }: { l: Ligne; fleche?: boolean; autres?: Ligne[] }) => (
     <>
       <div className="flex items-center gap-2">
@@ -74,6 +77,18 @@ export default async function ConnexionsPage() {
         {l.derniere ? <>Dernier signal : {formaterDate(l.derniere)} ({depuis(l.derniere)})</> : l.statut === 'manuel' ? '—' : 'Aucun signal reçu'}
         {l.version && <span className="text-gray-400"> · v{l.version}</span>}
         {l.erreur && <span className="mt-0.5 block text-xs text-red-600">Erreur du programme : {l.erreur}</span>}
+      </div>
+      <div className="md:text-right">
+        {l.posteId ? (
+          <Formulaire
+            action={retirerPoste}
+            message="Retiré"
+            confirmation={`Retirer ${l.poste} de la liste ? (à faire seulement si le programme n'y est plus installé ou si cette ligne est un doublon)`}
+          >
+            <input type="hidden" name="id" value={l.posteId} />
+            <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-red-50 hover:text-red-700">Retirer</Bouton>
+          </Formulaire>
+        ) : null}
       </div>
     </>
   )
