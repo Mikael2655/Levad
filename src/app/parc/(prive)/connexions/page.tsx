@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { Badge, depuis, formaterDate } from '@/components/connect/affichage'
-import { statutConnexion } from '@/lib/connect/agent'
+import { erreurEnCours, statutConnexion } from '@/lib/connect/agent'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { retirerPoste } from '../actions'
 
@@ -31,7 +31,7 @@ export default async function ConnexionsPage() {
       derniere: p.derniereConnexion,
       statut: statutConnexion(p.derniereConnexion, c.seuilDeconnexionJours),
       version: p.versionAgent,
-      erreur: p.derniereErreur && p.derniereErreurLe && Date.now() - p.derniereErreurLe.getTime() < 24 * 3600 * 1000 ? `${p.derniereErreur} (${formaterDate(p.derniereErreurLe)})` : null,
+      erreur: p.derniereErreur && p.derniereErreurLe && erreurEnCours(p) && Date.now() - p.derniereErreurLe.getTime() < 24 * 3600 * 1000 ? `${p.derniereErreur} (${formaterDate(p.derniereErreurLe)})` : null,
     }))
   })
   // Un seul affichage par client et par site : l'ordinateur au signal le plus récent, les autres se déroulent avec la flèche.
