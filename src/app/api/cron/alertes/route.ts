@@ -47,9 +47,7 @@ function construireMail(clients: ClientEtat[], urlParc: string) {
               const txt = `${NOM_COULEUR[x.couleur]} ${x.pourcent === null ? '—' : x.pourcent + ' %'}${x.mode === 'duree' && x.pourcent !== null ? (x.jours === null ? '' : x.jours < 1 ? ' (< 1 jour)' : ` (~${Math.round(x.jours)} j)`) : ''}`
               return x.alerte
                 ? `<strong style="color:#dc2626">${txt} (alerte)</strong>`
-                : x.bas
-                  ? `<span style="color:#d97706">${txt} (en stock)</span>`
-                  : txt
+                : txt
             })
             .join(' · ')
           return `<tr>
