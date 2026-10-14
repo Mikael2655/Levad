@@ -7,8 +7,10 @@ import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
 import { cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
 import { assurerCode, assurerCodeEspace, listeIps, regenererCode, regenererCodeEspace, urlsTelechargement } from '@/lib/connect/agent'
-import { adressesMail, envoyerMail } from '@/lib/connect/mail'
+import { adressesMail } from '@/lib/connect/mail'
+import { envoyerLienClient } from '@/lib/connect/lien-mail'
 import { cleClient } from '@/lib/connect/normaliser'
+import { MAX_CLIENTS_PAR_IMPORT, lireListe } from '@/lib/connect/import-clients'
 import { dateValide, finDeJournee } from '@/lib/connect/export'
 import { rechercherReference } from '@/lib/connect/modeles'
 
@@ -304,44 +306,7 @@ export async function envoyerLien(formData: FormData): Promise<string | void> {
   const email = valides.join('; ')
   const client = await prisma.connectClient.findUnique({ where: { id } })
   if (!client) return '!Client introuvable'
-  const liens = urlsTelechargement(await assurerCode(id))
-  const bouton = (href: string, texte: string) =>
-    `<a href="${href}" style="display:inline-block;background:#8c9e8b;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold;margin:0 8px 8px 0">${texte}</a>`
-  await envoyerMail({
-    to: valides,
-    sujet: 'Levad Connect : installer le relevé de vos copieurs',
-    html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1a1a1a;line-height:1.45">
-  <p>Bonjour,</p>
-  <p>Pour suivre automatiquement les compteurs et les niveaux de toner de vos copieurs, nous vous proposons d'installer
-  <strong>Levad Connect</strong>, un petit programme à installer une seule fois. Il fonctionne ensuite tout seul, en arrière-plan.</p>
-
-  <p style="margin:22px 0 4px"><strong>1. Téléchargez le programme (un clic) :</strong></p>
-  <p style="margin:0 0 18px">${bouton(liens.windows, 'Télécharger pour Windows')}${bouton(liens.mac, 'Télécharger pour Mac')}</p>
-
-  <p style="margin:0 0 4px"><strong>2. Ouvrez-le et cliquez sur « Installer » :</strong></p>
-  <ul style="margin:0 0 18px;padding-left:20px">
-    <li style="margin:0 0 6px"><strong>Windows</strong> : double-cliquez sur le fichier téléchargé (dossier Téléchargements).</li>
-    <li style="margin:0 0 6px"><strong>Mac</strong> : ouvrez le dossier compressé téléchargé, puis double-cliquez sur l'application « Levad Connect » qu'il contient.</li>
-  </ul>
-
-  <p style="margin:0 0 4px"><strong>3. Un message d'avertissement s'affiche ? C'est normal.</strong> Le programme est signé par <strong>Levad</strong> : vérifiez que l'éditeur affiché est bien Levad, puis confirmez ainsi :</p>
-  <ul style="margin:0 0 10px;padding-left:20px;font-size:14px">
-    <li style="margin:0 0 6px"><strong>Au téléchargement, avec Microsoft Edge</strong> : « n'est pas fréquemment téléchargé » → cliquez sur les trois points « … » à droite du fichier → <strong>Conserver</strong> → puis sur la flèche à droite du bouton « Supprimer » → <strong>Conserver quand même</strong>.</li>
-    <li style="margin:0 0 6px"><strong>Au téléchargement, avec Google Chrome</strong> : « Téléchargement suspect bloqué » → cliquez dessus, puis sur <strong>Télécharger le fichier suspect</strong> (et non « Supprimer de l'historique »).</li>
-    <li style="margin:0 0 6px"><strong>À l'ouverture sous Windows</strong> : « Windows a protégé votre ordinateur » → cliquez sur <strong>Informations complémentaires</strong>, vérifiez « Éditeur : Levad », puis <strong>Exécuter quand même</strong>.</li>
-    <li style="margin:0 0 6px"><strong>À l'ouverture sur Mac</strong> : « Apple n'a pas pu vérifier l'application » → <strong>Terminé</strong>, puis menu Pomme → Réglages Système → Confidentialité et sécurité → <strong>Ouvrir quand même</strong>. Acceptez aussi l'accès au « réseau local » si le Mac le demande.</li>
-  </ul>
-  <p style="margin:0 0 18px;font-size:14px">Besoin d'aide sur : <a href="${liens.aideWindows}" style="color:#4b6b4b">Windows</a> · <a href="${liens.aideMac}" style="color:#4b6b4b">Mac</a> (la marche à suivre, avec les messages en images).</p>
-
-  <p>Le programme ne fait que lire vos copieurs, ne modifie aucun réglage, et peut être désinstallé à tout moment.
-  Ces liens sont personnels : en cas de changement d'ordinateur, il suffit de les réutiliser.</p>
-  <p style="margin-bottom:6px">Cordialement,</p>
-  <img src="${process.env.PARC_URL || 'https://connect.levad.fr'}/signature-levad.png" width="260" alt="LEVAD - www.levad.fr - 01 70 72 19 40" style="display:block;border:0">
-</body></html>`,
-  })
-  await prisma.connectClient.update({ where: { id }, data: { email, lienEnvoyeLe: new Date() } })
-  await prisma.connectLienEvenement.create({ data: { clientId: id, type: 'envoye', detail: email } })
+  await envoyerLienClient(id, valides)
   revalidatePath('/parc', 'layout')
   return `Lien envoyé à ${email}`
 }
@@ -395,6 +360,58 @@ export async function creerClient(formData: FormData): Promise<string | void> {
   await assurerCode(client.id)
   revalidatePath('/parc', 'layout')
   redirect(`/parc/client/${client.id}#lien`)
+}
+
+// ---- Import d'une liste de clients ---------------------------------------------------------------
+
+export type ApercuClient = { nom: string; mails: string[]; etat: 'nouveau' | 'existe' | 'invalide' | 'sans-mail'; detail?: string }
+
+async function classer(texte: string): Promise<ApercuClient[]> {
+  const lignes = lireListe(texte)
+  const existants = new Set((await prisma.connectClient.findMany({ where: { cle: { in: lignes.map((l) => l.cle) } }, select: { cle: true } })).map((c) => c.cle))
+  return lignes.map((l): ApercuClient => {
+    if (existants.has(l.cle)) return { nom: l.nom, mails: l.mails, etat: 'existe', detail: 'existe déjà : ignoré' }
+    if (l.invalides.length) return { nom: l.nom, mails: l.mails, etat: 'invalide', detail: `adresse invalide : ${l.invalides.join(', ')}` }
+    if (l.mails.length === 0) return { nom: l.nom, mails: [], etat: 'sans-mail', detail: 'sans adresse mail : créé sans envoi' }
+    return { nom: l.nom, mails: l.mails, etat: 'nouveau' }
+  })
+}
+
+export async function apercuImportClients(texte: string): Promise<ApercuClient[]> {
+  if (!connecte()) throw new Error('Non connecté')
+  return classer(texte)
+}
+
+export type ResultatClient = { nom: string; ok: boolean; message: string }
+
+// Crée les nouveaux clients (leur lien personnel est créé en même temps) et, si demandé, leur envoie leur lien par mail.
+export async function importerClients(texte: string, envoyer: boolean): Promise<ResultatClient[]> {
+  if (!connecte()) throw new Error('Non connecté')
+  const apercu = await classer(texte)
+  const aFaire = apercu.filter((l) => l.etat === 'nouveau' || l.etat === 'sans-mail')
+  if (aFaire.length > MAX_CLIENTS_PAR_IMPORT) throw new Error(`${MAX_CLIENTS_PAR_IMPORT} clients au maximum à la fois`)
+  const resultats: ResultatClient[] = apercu.filter((l) => !aFaire.includes(l)).map((l) => ({ nom: l.nom, ok: false, message: `Ignoré : ${l.detail}` }))
+  for (const l of aFaire) {
+    try {
+      const client = await prisma.connectClient.create({ data: { cle: cleClient(l.nom), nom: l.nom, email: l.mails.length ? l.mails.join('; ') : null } })
+      await assurerCode(client.id)
+      if (envoyer && l.mails.length) {
+        try {
+          await envoyerLienClient(client.id, l.mails)
+          resultats.push({ nom: l.nom, ok: true, message: `Créé, lien envoyé à ${l.mails.join('; ')}` })
+        } catch (e) {
+          resultats.push({ nom: l.nom, ok: false, message: `Créé, mais l'envoi a échoué (${e instanceof Error ? e.message : 'erreur'}) : à renvoyer depuis sa fiche` })
+        }
+        await new Promise((r) => setTimeout(r, 600)) // le service de mail limite le rythme des envois
+      } else {
+        resultats.push({ nom: l.nom, ok: true, message: 'Créé, lien non envoyé' })
+      }
+    } catch {
+      resultats.push({ nom: l.nom, ok: false, message: 'Création impossible' })
+    }
+  }
+  revalidatePath('/parc', 'layout')
+  return resultats
 }
 
 // ---- Ordinateurs (un par site chez le client) ---------------------------------------------------
