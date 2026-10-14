@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, enregistrerIps, genererEspace, regenererEspace, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient } from '../../actions'
+import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, demanderLectureClient, enregistrerIps, genererEspace, regenererEspace, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient } from '../../actions'
 import { erreurEnCours, statutConnexion, urlEspace, urlLien, urlsTelechargement } from '@/lib/connect/agent'
 import { Badge, formaterDate, depuis, jour } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR } from '@/lib/connect/alertes'
@@ -48,6 +48,11 @@ export default async function ClientPage({ params }: { params: { id: string } })
           <input type="hidden" name="id" value={client.id} />
           <textarea name="ips" defaultValue={client.ipsManuelles ?? ''} rows={4} placeholder={'180.170.10.49\n180.170.10.211'} className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm" />
           <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Enregistrer</Bouton>
+        </Formulaire>
+        <Formulaire action={demanderLectureClient} message="Lecture demandée" className="mt-4 border-t pt-4">
+          <input type="hidden" name="id" value={client.id} />
+          <p className="mb-2 text-sm text-gray-600">Pas envie d&apos;attendre le prochain relevé ? Demandez une lecture tout de suite (le PC du client doit être allumé).</p>
+          <Bouton className="rounded-lg border border-gray-300 px-4 py-2 font-semibold">Lire maintenant</Bouton>
         </Formulaire>
       </section>
       <section id="espace" className="mt-6 max-w-3xl rounded-xl border bg-white p-6">
