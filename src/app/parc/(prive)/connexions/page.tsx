@@ -70,11 +70,11 @@ export default async function ConnexionsPage() {
           <Link href={`/parc/client/${l.clientId}`} className="font-semibold underline" title={l.client}>{l.client}</Link>
         )}
       </div>
-      <div className="min-w-0 truncate text-gray-600" title={l.poste ? `${l.site} · ${l.poste}` : undefined}>
+      <div className="min-w-0 text-gray-600 md:truncate" title={l.poste ? `${l.site} · ${l.poste}` : undefined}>
         {l.poste ? `${l.site} · ${l.poste}` : '—'}
       </div>
       <div className="whitespace-nowrap">{badge(l.statut)}</div>
-      <div className="min-w-0 truncate text-gray-600" title={l.erreur ? `Erreur du programme : ${l.erreur}` : undefined}>
+      <div className="min-w-0 text-gray-600 md:truncate" title={l.erreur ? `Erreur du programme : ${l.erreur}` : undefined}>
         {l.derniere ? <>{formaterDate(l.derniere)} ({depuis(l.derniere)})</> : l.statut === 'manuel' ? '—' : 'Aucun signal reçu'}
         {l.version && <span className="text-gray-400"> · v{l.version}</span>}
         {l.erreur && <span className="text-red-600"> · Erreur : {l.erreur}</span>}
