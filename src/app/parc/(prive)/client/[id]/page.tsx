@@ -98,7 +98,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
               <input type="hidden" name="id" value={client.id} />
               <label className="grow text-sm font-medium text-gray-700">
                 Envoyer ce lien par mail à
-                <input type="email" name="email" defaultValue={client.email ?? ''} placeholder="adresse du client" required className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                <input type="text" inputMode="email" name="email" defaultValue={client.email ?? ''} placeholder="adresse du client (plusieurs : séparées par ;)" required className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
               </label>
               <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>
                 Envoyer le lien

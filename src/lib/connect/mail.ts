@@ -4,7 +4,18 @@ import { Resend } from 'resend'
 export const MAIL_LEVAD = () => process.env.RELEVE_EMAIL_TO || 'contact@levad.fr'
 export const EXPEDITEUR = () => process.env.RELEVE_EMAIL_FROM || 'Levad Connect <contact@levad.fr>'
 
-export async function envoyerMail(params: { to: string; sujet: string; html: string }) {
+/** Les adresses mail valides d'une saisie (séparées par « ; », une virgule, un espace ou un retour à la ligne), sans doublon ; `invalides` = ce qui n'a pas la forme d'une adresse. */
+export function adressesMail(saisie: string): { valides: string[]; invalides: string[] } {
+  const valides: string[] = []
+  const invalides: string[] = []
+  for (const x of saisie.split(/[;,\s]+/).map((t) => t.trim()).filter(Boolean)) {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)) invalides.push(x)
+    else if (!valides.some((v) => v.toLowerCase() === x.toLowerCase())) valides.push(x)
+  }
+  return { valides, invalides }
+}
+
+export async function envoyerMail(params: { to: string | string[]; sujet: string; html: string }) {
   // Mode essai (MAIL_SIMULE=1, jamais activé en production) : le mail est affiché dans les journaux au lieu d'être envoyé.
   if (process.env.MAIL_SIMULE === '1') {
     console.log(`[mail simulé] à ${params.to} — ${params.sujet}`)
