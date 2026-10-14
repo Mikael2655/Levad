@@ -1,3 +1,4 @@
+import { comparerNoms } from '@/lib/connect/tri'
 import { prisma } from '@/lib/db'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 
@@ -58,11 +59,11 @@ export async function calculerExport(p: ParamsExport): Promise<LigneExport[]> {
   if (!p.clients.length) return []
   const fin = finDeJournee(p.date)
   const fin2 = p.date2 ? finDeJournee(p.date2) : null
-  const machines = await prisma.connectMachine.findMany({
+  const machines = (await prisma.connectMachine.findMany({
     where: { clientId: { in: p.clients }, horsContrat: false },
     include: { client: true },
     orderBy: [{ client: { nom: 'asc' } }, { site: 'asc' }, { id: 'asc' }],
-  })
+  })).sort((a, b) => comparerNoms(a.client.nom, b.client.nom)) // tri stable : site et id restent dans l'ordre
   const voulues = new Set(p.machines)
   const retenues = machines.filter((m) => voulues.has(m.id))
   const lignes = await Promise.all(

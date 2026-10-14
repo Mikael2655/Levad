@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { statutConnexion } from '@/lib/connect/agent'
+import { trierParNom } from '@/lib/connect/tri'
 
 export type PosteDeconnecte = {
   id: number
@@ -18,7 +19,7 @@ export async function postesDeconnectes(): Promise<PosteDeconnecte[]> {
     include: { postes: { orderBy: { derniereConnexion: 'asc' } } },
     orderBy: { nom: 'asc' },
   })
-  return clients.flatMap((c) =>
+  return trierParNom(clients).flatMap((c) =>
     c.postes
       .filter((p) => statutConnexion(p.derniereConnexion, c.seuilDeconnexionJours) === 'deconnecte')
       .map((p) => ({ id: p.id, clientId: c.id, clientNom: c.nom, nom: p.nom, site: p.site, seuilJours: c.seuilDeconnexionJours, derniere: p.derniereConnexion }))
@@ -40,7 +41,7 @@ export async function postesEnRetard(): Promise<PosteEnRetard[]> {
     orderBy: { nom: 'asc' },
   })
   const maintenant = Date.now()
-  return clients.flatMap((c) =>
+  return trierParNom(clients).flatMap((c) =>
     c.postes.flatMap((p): PosteEnRetard[] => {
       const base = { id: p.id, clientId: c.id, clientNom: c.nom, nom: p.nom, site: p.site, seuilJours: c.seuilDeconnexionJours, derniere: p.derniereConnexion }
       if (statutConnexion(p.derniereConnexion, c.seuilDeconnexionJours) === 'deconnecte') return [{ ...base, niveau: 'rouge' }]

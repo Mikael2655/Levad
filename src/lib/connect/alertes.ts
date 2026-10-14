@@ -4,6 +4,7 @@ import { libelleMachine } from '@/lib/connect/libelle'
 import { DELAI_ALERTE_JOURS, FENETRE_JOURS, previsionJours } from './prevision'
 import { avecEncres } from './releves'
 import { prisma } from '@/lib/db'
+import { trierParNom } from '@/lib/connect/tri'
 import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
 
 // Alertes d'encre : un client est en alerte pour une couleur quand il lui reste moins de 10 jours d'encre
@@ -154,7 +155,7 @@ async function niveauxQuotidiens(ids: number[]): Promise<Map<number, { t: number
 
 /** L'état d'encre de toutes les machines suivies (Canon LEVAD), client par client. */
 export const etatDuParc = cache(async function etatDuParc(): Promise<ClientEtat[]> {
-  const [clients, stocks, minimums] = await Promise.all([
+  const [clientsDb, stocks, minimums] = await Promise.all([
     prisma.connectClient.findMany({
       where: { machines: { some: { categorie: 'mine', horsContrat: false } } },
       orderBy: { nom: 'asc' },
@@ -169,6 +170,7 @@ export const etatDuParc = cache(async function etatDuParc(): Promise<ClientEtat[
     stocksParGroupe(),
     minimumsParGroupe(),
   ])
+  const clients = trierParNom(clientsDb)
   const niveaux = await niveauxQuotidiens(clients.flatMap((c) => c.machines.map((m) => m.id)))
   return clients.map((c) => {
     const machines = c.machines.map((m) => {

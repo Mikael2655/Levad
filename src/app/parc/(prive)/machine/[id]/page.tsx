@@ -5,6 +5,7 @@ import { avecEncres } from '@/lib/connect/releves'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { trierParNom } from '@/lib/connect/tri'
 import { NOM_COURT_COMPTEUR, calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
 import { chercherReference, choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
@@ -19,7 +20,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
     include: { client: true, releves: { orderBy: { date: 'desc' }, take: 10 } },
   })
   if (!machine) notFound()
-  const clients = await prisma.connectClient.findMany({ orderBy: { nom: 'asc' } })
+  const clients = trierParNom(await prisma.connectClient.findMany({ orderBy: { nom: 'asc' } }))
   const commandeEnCours = await prisma.connectCommande.findFirst({ where: { clientId: machine.clientId, faiteLe: null } })
   const aUnPoste = (await prisma.connectPoste.count({ where: { clientId: machine.clientId } })) > 0
   const stock = stockDuGroupe(await stocksParGroupe(), machine.clientId, cleGroupe(machine))
