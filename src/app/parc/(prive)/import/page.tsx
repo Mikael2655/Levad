@@ -1,14 +1,15 @@
 import { libelleMachine } from '@/lib/connect/libelle'
 import { prisma } from '@/lib/db'
+import { trierParNom } from '@/lib/connect/tri'
 import { ImportReleves } from '@/components/connect/ImportReleves'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ImportPage() {
-  const clients = await prisma.connectClient.findMany({
+  const clients = trierParNom(await prisma.connectClient.findMany({
     orderBy: { nom: 'asc' },
     include: { machines: { orderBy: [{ site: 'asc' }, { id: 'asc' }] } },
-  })
+  }))
   return (
     <>
       <h1 className="text-2xl font-bold">Import de relevés</h1>

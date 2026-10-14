@@ -1,5 +1,6 @@
 import { libelleMachine } from '@/lib/connect/libelle'
 import { prisma } from '@/lib/db'
+import { trierParNom } from '@/lib/connect/tri'
 import { Bouton } from '@/components/connect/Formulaire'
 import { SelectionExport } from '@/components/connect/SelectionExport'
 import { VERT, nombre } from '@/components/connect/affichage'
@@ -10,10 +11,10 @@ export const dynamic = 'force-dynamic'
 const jourFr = (d: Date) => d.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })
 
 export default async function ExportsPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
-  const clientsDb = await prisma.connectClient.findMany({
+  const clientsDb = trierParNom(await prisma.connectClient.findMany({
     orderBy: { nom: 'asc' },
     include: { machines: { where: { horsContrat: false }, orderBy: [{ site: 'asc' }, { id: 'asc' }] } },
-  })
+  }))
   const clients = clientsDb
     .filter((c) => c.machines.length > 0)
     .map((c) => ({

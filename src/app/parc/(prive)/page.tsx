@@ -3,6 +3,7 @@ import { RechercheSynthese } from '@/components/connect/RechercheSynthese'
 import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { prisma } from '@/lib/db'
+import { trierParNom } from '@/lib/connect/tri'
 import { avecEncres } from '@/lib/connect/releves'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { VERT, Badge, Encres, depuis, jour, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
@@ -18,13 +19,13 @@ export default async function ParcPage() {
   let stocks, enAlerte, etatsMachines
   try {
     ;[stocks, enAlerte, etatsMachines] = await Promise.all([stocksParGroupe(), clientsEnAlerte(), etatsParMachine()])
-    clients = await prisma.connectClient.findMany({
+    clients = trierParNom(await prisma.connectClient.findMany({
       orderBy: { nom: 'asc' },
       include: {
         machines: { orderBy: { creeLe: 'asc' }, include: { releves: { orderBy: { date: 'desc' }, take: 10 } } },
         postes: true,
       },
-    })
+    }))
   } catch {
     return (
       <div className="rounded-xl border border-amber-300 bg-amber-50 p-6">
