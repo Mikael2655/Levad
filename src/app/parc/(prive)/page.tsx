@@ -81,6 +81,7 @@ export default async function ParcPage() {
           </label>
           <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Créer et obtenir le lien</Bouton>
         </Formulaire>
+        <p className="mt-3 text-sm"><Link href="/parc/clients/import" className="underline">Importer une liste de clients et leur envoyer le lien</Link></p>
       </details>
 
       {machines.length === 0 && (
