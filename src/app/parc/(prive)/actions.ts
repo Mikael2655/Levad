@@ -7,7 +7,7 @@ import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
 import { cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
 import { assurerCode, assurerCodeEspace, listeIps, regenererCode, regenererCodeEspace, urlsTelechargement } from '@/lib/connect/agent'
-import { envoyerMail } from '@/lib/connect/mail'
+import { adressesMail, envoyerMail } from '@/lib/connect/mail'
 import { cleClient } from '@/lib/connect/normaliser'
 import { dateValide, finDeJournee } from '@/lib/connect/export'
 import { rechercherReference } from '@/lib/connect/modeles'
@@ -297,15 +297,18 @@ export async function majClient(formData: FormData) {
 export async function envoyerLien(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
   const id = Number(formData.get('id'))
-  const email = String(formData.get('email') ?? '').trim()
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return '!Adresse mail invalide'
+  const { valides, invalides } = adressesMail(String(formData.get('email') ?? ''))
+  if (valides.length === 0) return '!Adresse mail invalide'
+  if (invalides.length > 0) return `!Adresse invalide : ${invalides.join(', ')}`
+  if (valides.length > 10) return '!10 adresses au maximum'
+  const email = valides.join('; ')
   const client = await prisma.connectClient.findUnique({ where: { id } })
   if (!client) return '!Client introuvable'
   const liens = urlsTelechargement(await assurerCode(id))
   const bouton = (href: string, texte: string) =>
     `<a href="${href}" style="display:inline-block;background:#8c9e8b;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold;margin:0 8px 8px 0">${texte}</a>`
   await envoyerMail({
-    to: email,
+    to: valides,
     sujet: 'Levad Connect : installer le relevé de vos copieurs',
     html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1a1a1a;line-height:1.45">
