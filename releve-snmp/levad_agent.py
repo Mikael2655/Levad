@@ -29,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.11"
+VERSION_AGENT = "1.12"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -379,6 +379,10 @@ def appliquer_mise_a_jour(nouveau, actuel, ancien):
         os.remove(ancien)
     except OSError:
         pass
+    if os.path.exists(ancien):
+        # l'ancien fichier est encore utilisé (un reste de programme tourne toujours) : on prend un autre nom au lieu d'échouer
+        base, ext = os.path.splitext(ancien)
+        ancien = "%s-%d%s" % (base, int(time.time()), ext)
     os.replace(actuel, ancien)
     try:
         os.replace(nouveau, actuel)
@@ -473,7 +477,12 @@ def boucle(max_tours=None):
         ecrire_config(config)
     if max_tours is None:
         _assurer_surveillance()       # les installations de la version 1.0 reçoivent aussi la tâche de relance
-    for reste in ("Levad-Connect.old.exe", "Levad-Connect.new.exe", "maj-mac.zip"):      # restes d'une mise à jour précédente
+    restes = ["Levad-Connect.old.exe", "Levad-Connect.new.exe", "maj-mac.zip"]
+    try:
+        restes += [f for f in os.listdir(_chemin("")) if re.match(r"^Levad-Connect\.old-\d+\.exe$", f)]
+    except OSError:
+        pass
+    for reste in restes:      # restes d'une mise à jour précédente
         try:
             os.remove(_chemin(reste))
         except OSError:
