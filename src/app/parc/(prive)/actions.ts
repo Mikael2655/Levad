@@ -357,6 +357,14 @@ export async function demanderLecture(formData: FormData) {
   revalidatePath(`/parc/machine/${machineId}`)
 }
 
+// Marque les machines nouvellement découvertes comme vues (le bandeau « Nouvelles machines » disparaît).
+export async function marquerMachinesVues(): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const r = await prisma.connectMachine.updateMany({ where: { vueLe: null }, data: { vueLe: new Date() } })
+  revalidatePath('/parc', 'layout')
+  return `${r.count} machine${r.count > 1 ? 's' : ''} marquée${r.count > 1 ? 's' : ''} comme vue${r.count > 1 ? 's' : ''}`
+}
+
 // Lecture immédiate demandée depuis la fiche du client (utile quand il n'a encore aucune machine) : le programme la fait à son prochain signal (moins d'une minute).
 export async function demanderLectureClient(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')

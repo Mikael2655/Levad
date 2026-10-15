@@ -175,3 +175,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS "connect_client_codeEspace_key" ON "connect_cl
 
 -- v16 : adresses IP de copieurs ajoutées à la main (hors plage de la recherche automatique)
 ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "ipsManuelles" TEXT;
+
+-- v17 : machines « nouvelles » (découvertes après l'installation du lien, pas encore marquées comme vues).
+-- Les machines déjà présentes au moment du collage sont considérées comme vues.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'connect_machine' AND column_name = 'vueLe') THEN
+    ALTER TABLE "connect_machine" ADD COLUMN "vueLe" TIMESTAMP(3);
+    UPDATE "connect_machine" SET "vueLe" = now();
+  END IF;
+END $$;
