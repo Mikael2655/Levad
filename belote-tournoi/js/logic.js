@@ -368,58 +368,57 @@
       slots[i] = order[pos[i]]; slotPool[i] = pools[pos[i]]; slotRank[i] = ranks[pos[i]];
     }
 
-    // « Jamais deux 1ers » n'a de sens que si on peut les séparer (assez
-    // d'équipes moins bien classées). Sinon on ne garde que la contrainte
-    // de poule.
-    var nbFirsts = 0;
-    for (var f = 0; f < ranks.length; f++) if (ranks[f] === 1) nbFirsts++;
-    var avoidTwoFirsts = (nbFirsts * 2 <= bracketSize);
-    avoidSamePoolFirstRound(slots, slotPool, slotRank, avoidTwoFirsts);
+    separatePoolsInBracket(slots, slotPool, slotRank);
     return { size: bracketSize, slots: slots, seededAt: Date.now() };
   }
 
-  // Échange des positions du 1er tour pour qu'aucun match n'oppose deux
-  // équipes de la même poule — ni deux 1ers de poule. Le placement standard
-  // n'oppose jamais deux 1ers ; on veille à ne pas en créer en réparant les
-  // conflits de poule. Faisable tant qu'aucune poule ne fournit plus de la
-  // moitié des qualifiés (toujours vrai ici : 3 max par poule).
-  function avoidSamePoolFirstRound(slots, slotPool, slotRank, avoidTwoFirsts) {
-    var matches = slots.length / 2;
-    function conflict(k) {
-      var pa = slotPool[2 * k], pb = slotPool[2 * k + 1];
-      var ra = slotRank[2 * k], rb = slotRank[2 * k + 1];
-      var samePool = pa != null && pb != null && pa === pb;
-      var twoFirsts = avoidTwoFirsts && ra === 1 && rb === 1;
-      return samePool || twoFirsts;
-    }
-    function swap(x, y) {
-      var t = slots[x]; slots[x] = slots[y]; slots[y] = t;
-      var u = slotPool[x]; slotPool[x] = slotPool[y]; slotPool[y] = u;
-      var v = slotRank[x]; slotRank[x] = slotRank[y]; slotRank[y] = v;
-    }
-    // Plusieurs passes pour absorber d'éventuelles cascades.
-    for (var pass = 0; pass < slots.length; pass++) {
-      var conflicts = 0;
-      for (var k = 0; k < matches; k++) {
-        if (!conflict(k)) continue;
-        conflicts++;
-        var fixed = false;
-        // On tente d'échanger l'une des deux positions du match k avec une
-        // position d'un autre match, sans créer de nouveau conflit.
-        var here = [2 * k, 2 * k + 1];
-        for (var hi = 0; hi < 2 && !fixed; hi++) {
-          for (var j = 0; j < matches && !fixed; j++) {
-            if (j === k) continue;
-            for (var off = 0; off < 2 && !fixed; off++) {
-              var there = 2 * j + off;
-              swap(here[hi], there);
-              if (!conflict(k) && !conflict(j)) fixed = true;
-              else swap(here[hi], there); // annule
-            }
+  // Tour auquel se rencontrent deux positions du tableau (1 = 1er tour,
+  // log2(N) = finale) : longueur binaire de (i XOR j).
+  function meetRound(i, j) { var x = i ^ j, r = 0; while (x) { x >>= 1; r++; } return r; }
+
+  // Répartit les équipes dans le tableau pour que deux équipes d'une même
+  // poule se rencontrent le **plus tard possible** (idéalement seulement en
+  // finale — donc dans des moitiés opposées). On n'échange que des positions
+  // de **même rang** : la structure des têtes de série est préservée (1ers
+  // contre équipes moins bien classées, pas de 1er-1er au 1er tour).
+  function separatePoolsInBracket(slots, slotPool, slotRank) {
+    var N = slots.length;
+    var finalRound = 0, t = N; while (t > 1) { t >>= 1; finalRound++; }
+    // Coût : chaque paire de même poule qui se rencontre avant la finale est
+    // pénalisée, d'autant plus lourdement que la rencontre est précoce.
+    function cost() {
+      var c = 0;
+      for (var i = 0; i < N; i++) {
+        var pi = slotPool[i]; if (pi == null) continue;
+        for (var j = i + 1; j < N; j++) {
+          if (slotPool[j] === pi) {
+            var mr = meetRound(i, j);
+            if (mr < finalRound) c += (1 << (finalRound - mr));
           }
         }
       }
-      if (conflicts === 0) break;
+      return c;
+    }
+    function swap(x, y) {
+      var a = slots[x]; slots[x] = slots[y]; slots[y] = a;
+      var b = slotPool[x]; slotPool[x] = slotPool[y]; slotPool[y] = b;
+      var d = slotRank[x]; slotRank[x] = slotRank[y]; slotRank[y] = d;
+    }
+    // Descente locale : on échange deux positions de même rang si ça réduit
+    // le coût ; on recommence jusqu'à l'optimum local (ou coût nul).
+    for (var guard = 0; guard < 1000; guard++) {
+      var base = cost();
+      if (base === 0) break;
+      var improved = false;
+      for (var i = 0; i < N && !improved; i++) {
+        for (var j = i + 1; j < N && !improved; j++) {
+          if (slotRank[i] !== slotRank[j] || slotPool[i] === slotPool[j]) continue;
+          swap(i, j);
+          if (cost() < base) improved = true;
+          else swap(i, j);
+        }
+      }
+      if (!improved) break;
     }
   }
 

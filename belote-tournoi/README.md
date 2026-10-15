@@ -78,11 +78,14 @@ mode local (un seul appareil), seul l'organisateur peut saisir.
   puis **les meilleurs 3es**… jusqu'à remplir le tableau. Ex. 4 poules →
   tableau de 8 : les 4 1ers + les 4 2es ; tableau de 16 : 1ers + 2es + 3es +
   meilleurs 4es.
-- **Tirage du 1er tour du tableau** (même règle quel que soit le format) :
-  deux équipes d'une **même poule** ne se rencontrent jamais, et **deux 1ers
-  de poule** ne se rencontrent jamais (quand c'est possible). Les **1ers**
-  sont toujours **avantagés** : ils tombent sur une équipe moins bien classée
-  (un 3e en priorité, sinon un 2e).
+- **Tirage du tableau** (même règle quel que soit le format) : les **1ers**
+  sont **avantagés** (ils tombent au 1er tour sur une équipe moins bien
+  classée — un 3e en priorité, sinon un 2e), et **jamais deux 1ers** au 1er
+  tour. Surtout, deux équipes d'une **même poule** sont **séparées le plus
+  longtemps possible** : elles ne peuvent se recroiser qu'**au plus tard**
+  dans le tableau. Ex. **4 poules, 2 qualifiés → 1/4** : le 1er et le 2e
+  d'une même poule sont placés dans des **moitiés opposées** et ne peuvent se
+  rejouer qu'**en finale** (jamais en 1/4 ni en 1/2).
 - **Tous les matchs se jouent en 1500 points** (1/8, 1/4, 1/2), **sauf la
   finale et la petite finale** (3e place) en **2000 points**.
 - Tous les matchs du tableau sont des **matchs secs** (pas d'aller-retour) :
