@@ -8,7 +8,7 @@ import { avecEncres } from '@/lib/connect/releves'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { VERT, Badge, Encres, depuis, jour, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
 import { statutConnexion } from '@/lib/connect/agent'
-import { creerClient, preparerLien } from './actions'
+import { creerClient, marquerMachinesVues, preparerLien } from './actions'
 import { clientsEnAlerte, etatsParMachine, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
 import { cleGroupe, gammeADefinir } from '@/lib/connect/gammes'
 
@@ -45,30 +45,54 @@ export default async function ParcPage() {
       : []
 
   const machines = clients.flatMap((c) => c.machines.map((m) => ({ ...m, client: c })))
+  const nouvelles = machines.filter((m) => !m.vueLe).sort((a, b) => b.creeLe.getTime() - a.creeLe.getTime())
 
   return (
     <>
       <h1 className="text-2xl font-bold">Synthèse</h1>
-      <div className="mt-5 grid grid-cols-3 gap-3 sm:gap-4">
+      <div className="mt-5 grid grid-cols-3 items-stretch gap-3 sm:gap-4">
         {[
           ['Clients', clients.length, null],
           ['Machines', machines.length, `dont ${machines.filter((m) => m.horsContrat).length} hors contrat`],
           ['Clients en alerte', enAlerte.length, null],
         ].map(([titre, valeur, precision]) => {
           const carte = (
-            <div className={`rounded-xl border bg-white p-5 ${titre === 'Clients en alerte' && Number(valeur) > 0 ? 'border-red-300' : ''}`}>
+            <div className={`flex h-full flex-col rounded-xl border bg-white p-4 sm:p-5 ${titre === 'Clients en alerte' && Number(valeur) > 0 ? 'border-red-300' : ''}`}>
               <p className="text-sm text-gray-500">{titre}</p>
               <p className={`mt-1 text-3xl font-bold ${titre === 'Clients en alerte' && Number(valeur) > 0 ? 'text-red-600' : ''}`}>{valeur}</p>
               {precision && <p className="mt-0.5 text-xs text-gray-500">{precision}</p>}
             </div>
           )
           return titre === 'Clients en alerte' ? (
-            <Link key={String(titre)} href="/parc/alertes" className="block hover:shadow-md">{carte}</Link>
+            <Link key={String(titre)} href="/parc/alertes" className="block h-full hover:shadow-md">{carte}</Link>
           ) : (
-            <div key={String(titre)}>{carte}</div>
+            <div key={String(titre)} className="h-full">{carte}</div>
           )
         })}
       </div>
+
+      {nouvelles.length > 0 && (
+        <section className="mt-5 rounded-xl border-2 bg-white p-4" style={{ borderColor: VERT }}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-bold">
+              {nouvelles.length} nouvelle{nouvelles.length > 1 ? 's' : ''} machine{nouvelles.length > 1 ? 's' : ''} découverte{nouvelles.length > 1 ? 's' : ''}
+            </h2>
+            <Formulaire action={marquerMachinesVues} message="Marquées comme vues">
+              <Bouton className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold hover:bg-gray-50">Tout marquer comme vu</Bouton>
+            </Formulaire>
+          </div>
+          <ul className="mt-2 divide-y text-sm">
+            {nouvelles.map((m) => (
+              <li key={m.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-1.5">
+                <Link href={`/parc/client/${m.client.id}`} className="font-semibold underline">{m.client.nom}</Link>
+                <span className="text-gray-600">{m.site}</span>
+                <Link href={`/parc/machine/${m.id}`} className="underline">{libelleMachine(m, 'Machine inconnue')}</Link>
+                <span className="text-xs text-gray-500">{m.marque ?? '?'} · {m.numeroSerie ?? '—'} · découverte le {jour(m.creeLe)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <details className="mt-6 rounded-xl border bg-white p-4">
         <summary className="cursor-pointer font-semibold">+ Ajouter un client (pour lui envoyer le lien)</summary>
@@ -156,6 +180,7 @@ export default async function ParcPage() {
                         {m.marque ?? '?'} · {m.numeroSerie ?? '—'} · {m.ip ?? '—'}
                       </p>
                       <div className="mt-1 flex flex-wrap gap-1.5">
+                        {!m.vueLe && <Badge ton="vert">Nouvelle</Badge>}
                         {!suivie && <Badge>Autre marque</Badge>}
                         {encreSuivie && gammeADefinir(m) && <Badge ton="orange">Gamme d’encre à choisir</Badge>}
                         {m.aVerifier && <Badge ton="orange">À vérifier</Badge>}
