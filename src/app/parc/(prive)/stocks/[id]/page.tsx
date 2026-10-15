@@ -138,7 +138,7 @@ export default async function StockClientPage({ params }: { params: { id: string
       {groupes.length > 0 && (
         <section className="mt-6 rounded-xl border bg-white p-6">
           <h2 className="text-lg font-bold">Saisir un envoi de cartouches</h2>
-          <p className="text-sm text-gray-500">Indiquez la quantité de chaque couleur envoyée (0 ou vide = aucune).</p>
+          <p className="text-sm text-gray-500">Indiquez la quantité de chaque couleur envoyée (0 ou vide = aucune). « Jeu complet » compte une cartouche de chaque couleur ; pour une version L ou H dont le noir n'existe pas, le noir est celui de la version standard.</p>
           <Formulaire action={ajouterEnvoi} message="Envoi enregistré" reinitialiser className="mt-4 space-y-5">
             <input type="hidden" name="clientId" value={client.id} />
             {groupes.map((g, i) => (
@@ -147,21 +147,40 @@ export default async function StockClientPage({ params }: { params: { id: string
                 <p className="text-sm font-semibold text-gray-700">
                   {g.site} · {g.gamme ? familleDe(g.gamme).variantes.map((v) => v.code).join(' / ') : g.machines.map((m) => libelleMachine(m, '')).join(', ')}
                 </p>
-                <div className="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  {(g.gamme ? COULEURS.filter((c) => familleDe(g.gamme!).variantes.some((v) => v.refs[c])) : COULEURS).map((c) => (
-                    <div key={c} className="text-sm font-medium text-gray-700">
-                      {NOM_COULEUR[c]}
-                      {(g.gamme ? familleDe(g.gamme).variantes : [null]).map((v, vi) =>
-                        v && !v.refs[c] ? null : (
-                          <label key={vi} className="mt-1 block text-xs font-normal text-gray-500">
-                            {v ? `${v.code} · ${v.refs[c]}` : 'quantité'}
-                            <input type="number" inputMode="numeric" name={`qte_${i}_${c}_${vi}`} min={0} defaultValue={0} className={champ} />
-                          </label>
-                        )
+                {(() => {
+                  const variantes = g.gamme ? familleDe(g.gamme).variantes : [null]
+                  const couleurs = g.gamme ? COULEURS.filter((c) => familleDe(g.gamme!).variantes.some((v) => v.refs[c])) : COULEURS
+                  // cases aussi larges que leur texte de référence (« C-EXV 49 - 8524B002 »)
+                  const case_ = 'mt-1 block w-0 min-w-full rounded-lg border border-gray-300 px-3 py-2'
+                  return (
+                    <div className="mt-1 flex flex-wrap items-start gap-x-5 gap-y-3">
+                      {couleurs.length > 1 && (
+                        <div className="w-fit text-sm font-semibold text-gray-700">
+                          Jeu complet
+                          {variantes.map((v, vi) => (
+                            <label key={vi} className="mt-1 block w-fit whitespace-nowrap text-xs font-normal text-gray-500">
+                              {v ? `${v.code} - ${couleurs.length} cartouches` : `${couleurs.length} cartouches`}
+                              <input type="number" inputMode="numeric" name={`jeu_${i}_${vi}`} min={0} defaultValue={0} className={case_} />
+                            </label>
+                          ))}
+                        </div>
                       )}
+                      {couleurs.map((c) => (
+                        <div key={c} className="w-fit text-sm font-medium text-gray-700">
+                          {NOM_COULEUR[c]}
+                          {variantes.map((v, vi) =>
+                            v && !v.refs[c] ? null : (
+                              <label key={vi} className="mt-1 block w-fit whitespace-nowrap text-xs font-normal text-gray-500">
+                                {v ? `${v.code} - ${v.refs[c]}` : 'quantité'}
+                                <input type="number" inputMode="numeric" name={`qte_${i}_${c}_${vi}`} min={0} defaultValue={0} className={case_} />
+                              </label>
+                            )
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )
+                })()}
               </div>
             ))}
             <div className="grid gap-4 md:grid-cols-3">
