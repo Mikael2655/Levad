@@ -254,6 +254,10 @@
   FirebaseDB.prototype.startBracket = function (tid, bracket) {
     return this._doc(tid).set({ bracket: bracket, phase: 'bracket', bracketAt: now() }, { merge: true });
   };
+  // Annule un tableau généré (tant qu'aucun score de phase finale n'est saisi).
+  FirebaseDB.prototype.clearBracket = function (tid) {
+    return this._doc(tid).set({ bracket: null, phase: 'setup', bracketAt: null }, { merge: true });
+  };
   FirebaseDB.prototype.setPhase = function (tid, phase) {
     return this._doc(tid).set({ phase: phase }, { merge: true });
   };
@@ -451,6 +455,11 @@
   LocalDB.prototype.startBracket = function (tid, bracket) {
     var cfg = this._read(tid, 'config', {});
     cfg.bracket = bracket; cfg.phase = 'bracket'; cfg.bracketAt = now();
+    return this._write(tid, 'config', cfg);
+  };
+  LocalDB.prototype.clearBracket = function (tid) {
+    var cfg = this._read(tid, 'config', {});
+    cfg.bracket = null; cfg.phase = 'setup'; cfg.bracketAt = null;
     return this._write(tid, 'config', cfg);
   };
   LocalDB.prototype.setPhase = function (tid, phase) {
