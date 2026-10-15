@@ -1,11 +1,15 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import Link from 'next/link'
+import { Prisma } from '@prisma/client'
+import { avecEncres } from '@/lib/connect/releves'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { RECETTES, calculer, type Compteurs } from '@/lib/connect/calcul'
+import { trierParNom } from '@/lib/connect/tri'
+import { NOM_COURT_COMPTEUR, calculer, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
-import { basculerHorsContrat, choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
-import { COULEURS, NOM_COULEUR, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
+import { chercherReference, choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
+import { COULEURS, NOM_COULEUR, etatsParMachine, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
 import { FAMILLES, cleGroupe, gammeAuto, gammeDe } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
@@ -13,34 +17,45 @@ export const dynamic = 'force-dynamic'
 export default async function MachinePage({ params }: { params: { id: string } }) {
   const machine = await prisma.connectMachine.findUnique({
     where: { id: Number(params.id) },
-    include: { client: true, releves: { orderBy: { date: 'desc' }, take: 30 } },
+    include: { client: true, releves: { orderBy: { date: 'desc' }, take: 10 } },
   })
   if (!machine) notFound()
-  const clients = await prisma.connectClient.findMany({ orderBy: { nom: 'asc' } })
+  const clients = trierParNom(await prisma.connectClient.findMany({ orderBy: { nom: 'asc' } }))
   const commandeEnCours = await prisma.connectCommande.findFirst({ where: { clientId: machine.clientId, faiteLe: null } })
   const aUnPoste = (await prisma.connectPoste.count({ where: { clientId: machine.clientId } })) > 0
   const stock = stockDuGroupe(await stocksParGroupe(), machine.clientId, cleGroupe(machine))
   const gamme = gammeDe(machine)
   const auto = gammeAuto(machine.modele)
   const seuils = Object.fromEntries(COULEURS.map((c) => [c, seuilDe(machine, c)]))
+  const etatsCouleurs = (await etatsParMachine()).get(machine.id) ?? []
+  const etats = Object.fromEntries(etatsCouleurs.map((c) => [c.couleur, { bas: c.bas, jours: c.jours, mode: c.mode, alerte: c.alerte }]))
 
   const dernier = machine.releves[0]
   const compteurs = (dernier?.compteurs ?? {}) as unknown as Compteurs
   const calc = calculer(compteurs, machine.recette)
   const suivie = machine.categorie === 'mine'
-  const utilises = new Set(calc.retenue?.utilises ?? [])
-  // Seuls les compteurs de la règle de calcul + le 501 sont montrés ; si aucune règle ne s'applique, on les montre tous pour aider à configurer.
-  const toutes = Object.entries(compteurs).sort((a, b) => Number(a[0]) - Number(b[0]))
-  const lignes = utilises.size ? toutes.filter(([n]) => utilises.has(Number(n)) || n === '501') : toutes
-  const scans = compteurs['501']
-  const encres = (dernier?.encres ?? []) as unknown as Encre[]
-  const bacs = (dernier?.bacs ?? []) as unknown as Encre[]
+  // 112 / 113 / 122 / 123 / 501 toujours ; les autres compteurs (108, 109, 106, 125…) seulement s'ils servent au calcul retenu
+  const utilises = new Set((calc.retenue?.utilises ?? []).map(String))
+  const DETAIL = ['108', '109', '106', '112', '113', '125', '122', '123', '501'].filter((n) => ['112', '113', '122', '123', '501'].includes(n) || (utilises.has(n) && compteurs[n]))
+  const historique = await Promise.all(
+    [7, 14, 21, 28].map(async (jours) => {
+      const releve = await prisma.connectReleve.findFirst({
+        where: { machineId: machine.id, date: { lte: new Date(Date.now() - jours * 86400000) }, NOT: { encres: { equals: Prisma.DbNull } } },
+        orderBy: { date: 'desc' },
+        select: { date: true, encres: true },
+      })
+      return { jours, date: releve?.date ?? null, encres: (releve?.encres ?? []) as unknown as Encre[] }
+    }),
+  )
+  const dernierEncres = avecEncres(machine.releves)
+  const encres = (dernierEncres?.encres ?? []) as unknown as Encre[]
+  const bacs = (dernierEncres?.bacs ?? []) as unknown as Encre[]
 
   return (
     <>
       <Link href="/parc" className="text-sm text-gray-500 hover:text-gray-900">← Retour à la synthèse</Link>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">{machine.nomAffiche || machine.modele || 'Machine inconnue'}</h1>
+        <h1 className="text-2xl font-bold">{libelleMachine(machine, 'Machine inconnue')}</h1>
         {!suivie && <Badge>Autre marque</Badge>}
         {machine.horsContrat && <Badge ton="gris">Hors contrat</Badge>}
         {machine.aVerifier && <Badge ton="orange">À vérifier</Badge>}
@@ -80,23 +95,37 @@ export default async function MachinePage({ params }: { params: { id: string } }
           </span>
         </Formulaire>
       )}
+      {(!suivie || !gammeAuto(machine.modele)) && (
+        <Formulaire action={chercherReference} message="Référence trouvée" className="mt-3 flex flex-wrap items-center gap-3">
+          <input type="hidden" name="id" value={machine.id} />
+          <Bouton className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold">Trouver la référence avec le n° de série</Bouton>
+          <span className="text-sm text-gray-500">Recherche la référence exacte de la machine (marque + numéro de série). Compter une dizaine de secondes.</span>
+        </Formulaire>
+      )}
       <p className="mt-2 text-sm text-gray-500">
         {dernier ? `Dernier relevé : ${formaterDate(dernier.date)} (${depuis(dernier.date)})` : 'Aucun relevé'}
       </p>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.15fr]">
         {/* Niveaux d'encre */}
         <section className="rounded-xl border bg-white p-6">
           <h2 className="text-lg font-bold">Niveaux d&apos;encre</h2>
-          {suivie && !machine.horsContrat ? (
-            <>
+          <>
               <div className="mt-4">
-                <Encres encres={encres} seuils={seuils} stock={stock} grand />
+                <Encres encres={encres} seuils={suivie && !machine.horsContrat ? seuils : undefined} stock={suivie && !machine.horsContrat ? stock : undefined} etats={suivie && !machine.horsContrat ? etats : undefined} grand />
               </div>
               <p className="mt-3 text-xs text-gray-500">
-                Stock de cartouches chez ce client :{' '}
-                {COULEURS.map((c) => `${NOM_COULEUR[c]} ${stock[c]}`).join(' · ')}.{' '}
-                <Link href={`/parc/stocks/${machine.clientId}`} className="underline">Gérer le stock</Link>
+                {suivie && !machine.horsContrat ? (
+                  <>
+                    Stock de cartouches chez ce client :{' '}
+                    {COULEURS.map((c) => `${NOM_COULEUR[c]} ${stock[c]}`).join(' · ')}.{' '}
+                    <Link href={`/parc/stocks/${machine.clientId}`} className="underline">Gérer le stock</Link>
+                  </>
+                ) : machine.horsContrat ? (
+                  'Hors contrat : niveaux affichés à titre indicatif, aucune alerte.'
+                ) : (
+                  'Autre marque : niveaux affichés à titre indicatif, aucune alerte.'
+                )}
               </p>
               <h3 className="mt-5 text-sm font-semibold text-gray-700">Bacs récupérateurs</h3>
               {bacs.length ? (
@@ -110,63 +139,69 @@ export default async function MachinePage({ params }: { params: { id: string } }
               ) : (
                 <p className="mt-1 text-sm text-gray-600">Non disponible (la machine n&apos;en déclare pas).</p>
               )}
-            </>
-          ) : (
-            <p className="mt-3 text-gray-600">{machine.horsContrat ? 'Machine hors contrat : pas d’alerte d’encre.' : 'Pas de suivi d’encre pour les autres marques.'}</p>
-          )}
+              <details className="group mt-5">
+                <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-gray-700 [&::-webkit-details-marker]:hidden">
+                  <span className="inline-block text-gray-400 transition-transform group-open:rotate-90" aria-hidden="true">▸</span>
+                  Niveaux précédents
+                </summary>
+                <div className="mt-2 space-y-3">
+                {historique.map((h) => (
+                  <div key={h.jours}>
+                    <p className="text-xs text-gray-500">
+                      Il y a {h.jours} jours{h.date ? ` — ${h.date.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}` : ''}
+                    </p>
+                    {h.date ? <Encres encres={h.encres} /> : <p className="text-sm text-gray-400">Pas de relevé à cette date</p>}
+                  </div>
+                ))}
+              </div>
+              </details>
+          </>
         </section>
 
         {/* Totaux */}
         <section className="rounded-xl border bg-white p-6">
           <h2 className="text-lg font-bold">Totaux (A3 compté double)</h2>
-          {suivie && calc.retenue ? (
-            <>
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <p className="text-sm text-gray-500">Total N&amp;B</p>
-                  <p className="text-3xl font-bold">{nombre(calc.retenue.nb)}</p>
-                </div>
-                <div className="rounded-lg bg-gray-50 p-4">
-                  <p className="text-sm text-gray-500">Total couleur</p>
-                  <p className="text-3xl font-bold">{nombre(calc.retenue.couleur)}</p>
-                </div>
+          {suivie ? (
+            <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,12rem)_1fr]">
+              <div className="space-y-4">
+                {calc.retenue ? (
+                  <>
+                    <div className="rounded-lg bg-gray-50 p-4">
+                      <p className="text-sm text-gray-500">Total N&amp;B</p>
+                      <p className="text-2xl font-bold">{nombre(calc.retenue.nb)}</p>
+                    </div>
+                    <div className="rounded-lg bg-gray-50 p-4">
+                      <p className="text-sm text-gray-500">Total couleur</p>
+                      <p className="text-2xl font-bold">{nombre(calc.retenue.couleur)}</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                    Totaux indisponibles : il manque des compteurs sur cette machine.
+                  </div>
+                )}
               </div>
-              <p className="mt-3 text-sm text-gray-600">
-                Recette {calc.retenue.code} — {calc.retenue.nom} ({calc.retenue.formule}){' '}
-                {!machine.recette && <span className="text-gray-400">· choisie automatiquement</span>}
-              </p>
-              {calc.avertissement && (
-                <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                  {calc.avertissement}
-                  <ul className="mt-1 list-disc pl-5">
-                    {calc.applicables.map((r) => (
-                      <li key={r.code}>
-                        Recette {r.code} ({r.nom}) : N&amp;B {nombre(r.nb)} · couleur {nombre(r.couleur)}
-                      </li>
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-sm font-semibold text-gray-700">Détail des compteurs</p>
+                <table className="mt-2 w-full text-sm">
+                  <tbody>
+                    {DETAIL.map((n) => (
+                      <tr key={n} className="border-b last:border-0">
+                        <td className="whitespace-nowrap py-1 pr-3 font-semibold">{n}</td>
+                        <td className="whitespace-nowrap py-1 pr-3 text-gray-600" title={compteurs[n]?.nom ?? undefined}>{NOM_COURT_COMPTEUR[n] ?? compteurs[n]?.nom ?? ''}</td>
+                        <td className="whitespace-nowrap py-1 text-right tabular-nums">{compteurs[n] ? nombre(compteurs[n].v) : '—'}</td>
+                      </tr>
                     ))}
-                  </ul>
-                </div>
-              )}
-              {calc.choixImpossible && (
-                <p className="mt-3 text-sm text-red-600">La recette choisie ne peut pas s&apos;appliquer : il manque des compteurs.</p>
-              )}
-            </>
-          ) : suivie ? (
-            <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-              <strong>Compteurs à configurer.</strong> Aucune recette ne s&apos;applique à cette machine : il manque des
-              compteurs. Regardez la liste ci-dessous pour voir ceux qu&apos;elle fournit.
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
-            <p className="mt-3 text-gray-600">Autre marque : seul le compteur total standard est lu.</p>
+            <div className="mt-4 rounded-lg bg-gray-50 p-4">
+              <p className="text-sm text-gray-500">Total</p>
+              <p className="text-3xl font-bold">{nombre(dernier?.totalStandard)}</p>
+            </div>
           )}
-          <p className="mt-4 text-sm text-gray-600">
-            Compteur total standard : <strong>{nombre(dernier?.totalStandard)}</strong>
-            {scans && (
-              <>
-                {' '}· Scans (501) : <strong>{nombre(scans.v)}</strong> <span className="text-gray-400">(affichés à part)</span>
-              </>
-            )}
-          </p>
         </section>
       </div>
 
@@ -203,26 +238,18 @@ export default async function MachinePage({ params }: { params: { id: string } }
               ))}
             </select>
           </label>
-          <label className="text-sm font-medium text-gray-700">
-            Catégorie
-            <select name="categorie" defaultValue={machine.categorie} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
-              <option value="mine">Mes machines (Canon vendues par LEVAD)</option>
-              <option value="autre">Autre machine</option>
-            </select>
-          </label>
-          <label className="text-sm font-medium text-gray-700">
-            Règle de calcul
-            <select name="recette" defaultValue={machine.recette ?? ''} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
-              <option value="">Automatique (la première qui s&apos;applique)</option>
-              {RECETTES.map((r) => (
-                <option key={r.code} value={r.code}>
-                  {r.code} — {r.nom} ({r.formule})
-                </option>
-              ))}
-            </select>
+          <label className="self-end pb-1 text-sm font-medium text-gray-700">
+            <span className="flex items-center gap-2">
+              <input type="checkbox" name="horsContrat" defaultChecked={machine.horsContrat} className="h-4 w-4" />
+              Machine hors contrat
+            </span>
+            <span className="mt-1 block text-xs font-normal text-gray-500">Plus d&apos;alerte d&apos;encre, et absente des exports.</span>
           </label>
           <fieldset className="md:col-span-3">
             <legend className="text-sm font-medium text-gray-700">Seuil d&apos;alerte par couleur (%)</legend>
+            <p className="text-xs text-gray-500">
+              L&apos;alerte se déclenche quand il reste moins de 10 jours d&apos;encre (estimés d&apos;après la consommation). Après un changement de cartouche, la consommation de la précédente est reprise. Ce seuil en % ne sert que tant que la machine n&apos;a pas assez d&apos;historique (moins de 7 jours de mesures).
+            </p>
             <div className="mt-1 grid grid-cols-2 gap-4 md:grid-cols-4">
               {COULEURS.map((c) => (
                 <label key={c} className="text-sm text-gray-600">
@@ -247,78 +274,18 @@ export default async function MachinePage({ params }: { params: { id: string } }
         </Formulaire>
       </section>
 
-      {/* Hors contrat */}
       <section className="mt-6 rounded-xl border bg-white p-6">
-        <h2 className="text-lg font-bold">Machine hors contrat</h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Une machine hors contrat ne déclenche plus aucune alerte d&apos;encre (Canon ou autre marque) et ne figurera pas dans les exports.
-        </p>
-        <Formulaire action={basculerHorsContrat} message="Enregistré" className="mt-3">
-          <input type="hidden" name="id" value={machine.id} />
-          <Bouton className={`rounded-lg px-4 py-2 font-semibold ${machine.horsContrat ? 'text-white' : 'border border-gray-300 bg-white'}`} style={machine.horsContrat ? { backgroundColor: VERT } : undefined}>
-            {machine.horsContrat ? 'Remettre sous contrat' : 'Machine hors contrat'}
-          </Bouton>
-        </Formulaire>
-      </section>
-
-      {/* Compteurs bruts */}
-      <section className="mt-6 rounded-xl border bg-white p-6">
-        <h2 className="text-lg font-bold">{utilises.size ? 'Compteurs de la règle de calcul' : `Compteurs lus (${lignes.length})`}</h2>
-        {lignes.length === 0 ? (
-          <p className="mt-2 text-gray-600">Aucun compteur numéroté (machine d&apos;une autre marque).</p>
-        ) : (
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-gray-500">
-                  <th className="py-2 pr-4">N°</th>
-                  <th className="py-2 pr-4">Nom</th>
-                  <th className="py-2 text-right">Valeur</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lignes.map(([n, c]) => (
-                  <tr key={n} className={`border-b last:border-0 ${utilises.has(Number(n)) ? 'bg-green-50 font-semibold' : ''}`}>
-                    <td className="py-1.5 pr-4">{n}</td>
-                    <td className="py-1.5 pr-4 text-gray-600">{c.nom ?? ''}</td>
-                    <td className="py-1.5 text-right tabular-nums">{nombre(c.v)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="mt-2 text-xs text-gray-500">Compteurs utilisés par la règle de calcul retenue, et le 501 (scans).</p>
-          </div>
-        )}
-      </section>
-
-      {/* Historique */}
-      <section className="mt-6 rounded-xl border bg-white p-6">
-        <h2 className="text-lg font-bold">Historique des relevés</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="py-2 pr-4">Date</th>
-                <th className="py-2 pr-4 text-right">N&amp;B</th>
-                <th className="py-2 pr-4 text-right">Couleur</th>
-                <th className="py-2 text-right">Total standard</th>
-              </tr>
-            </thead>
-            <tbody>
-              {machine.releves.map((r) => {
-                const t = calculer((r.compteurs ?? {}) as unknown as Compteurs, machine.recette).retenue
-                return (
-                  <tr key={r.id} className="border-b last:border-0">
-                    <td className="py-1.5 pr-4">{formaterDate(r.date)}</td>
-                    <td className="py-1.5 pr-4 text-right tabular-nums">{nombre(t?.nb)}</td>
-                    <td className="py-1.5 pr-4 text-right tabular-nums">{nombre(t?.couleur)}</td>
-                    <td className="py-1.5 text-right tabular-nums">{nombre(r.totalStandard)}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <h2 className="text-lg font-bold">Ce que la machine déclare</h2>
+        <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[12rem_1fr]">
+          <dt className="text-gray-500">Modèle retenu</dt>
+          <dd>{machine.modele ?? '—'}</dd>
+          <dt className="text-gray-500">Nom donné par le client</dt>
+          <dd>{machine.nomReseau ?? '—'}</dd>
+          <dt className="text-gray-500">Description technique</dt>
+          <dd className="break-words">{machine.sysDescr ?? '— (apparaît au prochain relevé)'}</dd>
+          <dt className="text-gray-500">N° de série</dt>
+          <dd>{machine.numeroSerie ?? '—'}</dd>
+        </dl>
       </section>
     </>
   )

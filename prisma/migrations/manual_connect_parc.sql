@@ -150,3 +150,28 @@ ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "derniereLectureOk" TIMESTA
 ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "derniereErreur" TEXT;
 ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "derniereErreurLe" TIMESTAMP(3);
 ALTER TABLE "connect_poste" ADD COLUMN IF NOT EXISTS "nbErreurs" INTEGER NOT NULL DEFAULT 0;
+
+-- v12 : mois de facturation du client (cycle trimestriel : 1 = janvier, 2 = février, 3 = mars)
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "moisFacturation" INTEGER;
+
+-- v13 : nom donné par le client à la machine + description technique déclarée
+ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "nomReseau" TEXT;
+ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "sysDescr" TEXT;
+
+-- v14 : référence fixée (trouvée par numéro de série) : la lecture automatique ne l'écrase plus
+ALTER TABLE "connect_machine" ADD COLUMN IF NOT EXISTS "modeleFixe" BOOLEAN NOT NULL DEFAULT false;
+
+-- v15 : stock minimum par client / groupe / couleur + lien privé de l'espace client
+CREATE TABLE IF NOT EXISTS "connect_stock_minimum" (
+  "id"       SERIAL PRIMARY KEY,
+  "clientId" INTEGER NOT NULL REFERENCES "connect_client"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  "groupe"   TEXT NOT NULL,
+  "couleur"  TEXT NOT NULL,
+  "minimum"  INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "connect_stock_minimum_clientId_groupe_couleur_key" ON "connect_stock_minimum"("clientId", "groupe", "couleur");
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "codeEspace" TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS "connect_client_codeEspace_key" ON "connect_client"("codeEspace");
+
+-- v16 : adresses IP de copieurs ajoutées à la main (hors plage de la recherche automatique)
+ALTER TABLE "connect_client" ADD COLUMN IF NOT EXISTS "ipsManuelles" TEXT;

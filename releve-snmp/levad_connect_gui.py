@@ -294,11 +294,22 @@ def main():
     parser.add_argument("--desinstaller", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--autotest", action="store_true", help=argparse.SUPPRESS)   # essai de fabrication
     parser.add_argument("--verifier", action="store_true", help=argparse.SUPPRESS)   # essai de démarrage avant une mise à jour
+    parser.add_argument("--essai-relance", help=argparse.SUPPRESS)                  # essai de fabrication : relance de soi-même
+    parser.add_argument("--essai-fils", help=argparse.SUPPRESS)
     parser.add_argument("--plage", help=argparse.SUPPRESS)                          # essais
     parser.add_argument("--port", type=int, default=161, help=argparse.SUPPRESS)    # essais
     args, _ = parser.parse_known_args()
 
     if args.verifier:                             # le programme démarre correctement : rien d'autre à faire
+        return 0
+    if args.essai_relance:                        # comme lors d'une mise à jour : se relance puis s'arrête aussitôt
+        A.lancer_en_fond([sys.executable, "--essai-fils", args.essai_relance])
+        return 0
+    if args.essai_fils:                           # la copie relancée : attend l'arrêt de la première, puis charge ce qu'une mise à jour utilise
+        time.sleep(5)
+        import ssl, tkinter, urllib.request  # noqa: F401
+        with open(args.essai_fils, "w") as f:
+            f.write("ok")
         return 0
     if args.agent:                                # arrière-plan : aucune fenêtre
         return A.boucle()

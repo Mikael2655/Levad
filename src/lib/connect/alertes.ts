@@ -1,8 +1,16 @@
+import { cache } from 'react'
+import { Prisma } from '@prisma/client'
+import { libelleMachine } from '@/lib/connect/libelle'
+import { DELAI_ALERTE_JOURS, FENETRE_JOURS, previsionJours } from './prevision'
+import { avecEncres } from './releves'
 import { prisma } from '@/lib/db'
+import { trierParNom } from '@/lib/connect/tri'
 import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
 
-// Alertes d'encre : un client est en alerte pour une couleur tant que le niveau est SOUS LE SEUIL
-// et qu'il n'a PAS de cartouche de cette couleur en stock. Ne concerne que « mes machines ».
+// Alertes d'encre : un client est en alerte pour une couleur quand il lui reste moins de 10 jours d'encre
+// (estimés d'après la consommation des 60 derniers jours) et qu'il n'a PAS de cartouche de cette couleur en stock (au-dessus du stock minimum réglé pour lui).
+// Après un changement de cartouche, on reprend la consommation de la précédente ; tant que la machine n'a pas assez
+// d'historique (moins de 7 jours de mesures), c'est le seuil en % qui s'applique. Ne concerne que « mes machines ».
 
 export const COULEURS = ['noir', 'cyan', 'magenta', 'jaune'] as const
 export type Couleur = (typeof COULEURS)[number]
@@ -59,6 +67,26 @@ export async function detailsParGroupe(): Promise<Map<string, StockDetail>> {
   return res
 }
 
+/** Stock minimum que le client veut garder d'avance, par groupe et par couleur : en dessous (ou à égalité), tout se passe comme s'il n'en avait plus. */
+export async function minimumsParGroupe(): Promise<Map<string, Stock>> {
+  const res = new Map<string, Stock>()
+  try {
+    for (const l of await prisma.connectStockMinimum.findMany()) {
+      const k = cleStock(l.clientId, l.groupe)
+      const s = res.get(k) ?? stockVide()
+      if ((COULEURS as readonly string[]).includes(l.couleur)) s[l.couleur as Couleur] = Math.max(0, l.minimum)
+      res.set(k, s)
+    }
+  } catch {
+    // table pas encore créée : aucun minimum
+  }
+  return res
+}
+
+export function minimumDuGroupe(min: Map<string, Stock>, clientId: number, groupe: string): Stock {
+  return min.get(cleStock(clientId, groupe)) ?? stockVide()
+}
+
 export function stockDuGroupe(stocks: Map<string, Stock>, clientId: number, groupe: string): Stock {
   return stocks.get(cleStock(clientId, groupe)) ?? stockVide()
 }
@@ -86,9 +114,12 @@ export type EtatCouleur = {
   couleur: Couleur
   pourcent: number | null
   seuil: number
-  bas: boolean // niveau sous le seuil
+  bas: boolean // il reste peu d'encre (moins de 10 jours estimés, ou niveau sous le seuil faute d'historique)
+  jours: number | null // jours d'encre restants estimés (null : pas d'estimation, ou consommation quasi nulle)
+  mode: 'duree' | 'pourcent' // règle appliquée : durée estimée, ou seuil en % (historique insuffisant)
   stock: number
-  alerte: boolean // bas ET aucune cartouche en stock
+  minimum: number // stock à garder d'avance (réglé pour le client)
+  alerte: boolean // bas ET plus de cartouche au-dessus du minimum
 }
 export type MachineEtat = {
   id: number
@@ -103,9 +134,28 @@ export type MachineEtat = {
 }
 export type ClientEtat = { id: number; nom: string; machines: MachineEtat[]; nbAlertes: number }
 
+/** Un niveau par jour et par machine sur les 60 derniers jours (le dernier relevé de chaque jour) : léger et suffisant pour la prévision. */
+async function niveauxQuotidiens(ids: number[]): Promise<Map<number, { t: number; encres: EncreJson[] }[]>> {
+  const res = new Map<number, { t: number; encres: EncreJson[] }[]>()
+  if (ids.length === 0) return res
+  const lignes = await prisma.$queryRaw<{ machineId: number; date: Date; encres: unknown }[]>(Prisma.sql`
+    SELECT DISTINCT ON ("machineId", jour) "machineId", date, encres FROM (
+      SELECT "machineId", date, encres, date_trunc('day', date AT TIME ZONE 'Europe/Paris') AS jour
+      FROM connect_releve
+      WHERE "machineId" IN (${Prisma.join(ids)}) AND date > now() - ${`${FENETRE_JOURS} days`}::interval AND encres IS NOT NULL
+    ) s ORDER BY "machineId", jour, date DESC`)
+  for (const l of lignes) {
+    if (!Array.isArray(l.encres) || l.encres.length === 0) continue
+    const liste = res.get(l.machineId) ?? []
+    liste.push({ t: new Date(l.date).getTime(), encres: l.encres as EncreJson[] })
+    res.set(l.machineId, liste)
+  }
+  return res
+}
+
 /** L'état d'encre de toutes les machines suivies (Canon LEVAD), client par client. */
-export async function etatDuParc(): Promise<ClientEtat[]> {
-  const [clients, stocks] = await Promise.all([
+export const etatDuParc = cache(async function etatDuParc(): Promise<ClientEtat[]> {
+  const [clientsDb, stocks, minimums] = await Promise.all([
     prisma.connectClient.findMany({
       where: { machines: { some: { categorie: 'mine', horsContrat: false } } },
       orderBy: { nom: 'asc' },
@@ -113,27 +163,38 @@ export async function etatDuParc(): Promise<ClientEtat[]> {
         machines: {
           where: { categorie: 'mine', horsContrat: false },
           orderBy: [{ site: 'asc' }, { creeLe: 'asc' }],
-          include: { releves: { orderBy: { date: 'desc' }, take: 1, select: { date: true, encres: true } } },
+          include: { releves: { orderBy: { date: 'desc' }, take: 10, select: { date: true, encres: true } } },
         },
       },
     }),
     stocksParGroupe(),
+    minimumsParGroupe(),
   ])
+  const clients = trierParNom(clientsDb)
+  const niveaux = await niveauxQuotidiens(clients.flatMap((c) => c.machines.map((m) => m.id)))
   return clients.map((c) => {
     const machines = c.machines.map((m) => {
       const groupe = cleGroupe(m)
       const stock = stockDuGroupe(stocks, c.id, groupe)
-      const r = m.releves[0]
+      const minimum = minimumDuGroupe(minimums, c.id, groupe)
+      const r = avecEncres(m.releves)
       const encres = ((r?.encres ?? []) as unknown as EncreJson[]) ?? []
       const couleurs = COULEURS.map((couleur): EtatCouleur => {
         const p = encres.find((e) => e.couleur === couleur && typeof e.pourcent === 'number')?.pourcent ?? null
         const seuil = seuilDe(m, couleur)
-        const bas = p !== null && p <= seuil
-        return { couleur, pourcent: p, seuil, bas, stock: stock[couleur], alerte: bas && stock[couleur] <= 0 }
+        const points = (niveaux.get(m.id) ?? [])
+          .map((n) => ({ t: n.t, p: n.encres.find((e) => e.couleur === couleur && typeof e.pourcent === 'number')?.pourcent }))
+          .filter((x): x is { t: number; p: number } => typeof x.p === 'number')
+        // le niveau du dernier relevé fait foi pour « maintenant » (le dernier point du jour peut être plus ancien)
+        if (p !== null && r) points.push({ t: r.date.getTime(), p })
+        const prev = previsionJours(points.filter((x, i, a) => i === a.findIndex((y) => y.t === x.t)))
+        const mode: 'duree' | 'pourcent' = prev.fiable ? 'duree' : 'pourcent'
+        const bas = p === null ? false : prev.fiable ? prev.jours !== null && prev.jours <= DELAI_ALERTE_JOURS : p <= seuil
+        return { couleur, pourcent: p, seuil, bas, jours: prev.fiable ? prev.jours : null, mode, stock: stock[couleur], minimum: minimum[couleur], alerte: bas && stock[couleur] <= minimum[couleur] }
       })
       return {
         id: m.id,
-        nom: m.nomAffiche || m.modele || 'Machine inconnue',
+        nom: libelleMachine(m, 'Machine inconnue'),
         site: m.site,
         groupe,
         gamme: gammeDe(m)?.code ?? null,
@@ -145,6 +206,13 @@ export async function etatDuParc(): Promise<ClientEtat[]> {
     })
     return { id: c.id, nom: c.nom, machines, nbAlertes: machines.filter((m) => m.enAlerte).length }
   })
+})
+
+/** L'état d'encre par machine (clé : id de la machine), pour l'affichage. */
+export async function etatsParMachine(): Promise<Map<number, EtatCouleur[]>> {
+  const res = new Map<number, EtatCouleur[]>()
+  for (const c of await etatDuParc()) for (const m of c.machines) res.set(m.id, m.couleurs)
+  return res
 }
 
 export async function clientsEnAlerte(): Promise<ClientEtat[]> {

@@ -27,6 +27,7 @@ export default async function LienPersonnel({ params }: { params: { code: string
     <PageTelechargement
       resident
       lienWindows={`/telecharger/${params.code}/windows`}
+      lienMac={`/telecharger/${params.code}/mac`}
     />
   )
 }

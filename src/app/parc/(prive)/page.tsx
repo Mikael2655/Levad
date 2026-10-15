@@ -1,34 +1,31 @@
+import { groupesParSite, libelleMachine } from '@/lib/connect/libelle'
+import { RechercheSynthese } from '@/components/connect/RechercheSynthese'
 import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { prisma } from '@/lib/db'
+import { trierParNom } from '@/lib/connect/tri'
+import { avecEncres } from '@/lib/connect/releves'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { VERT, Badge, Encres, depuis, jour, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
 import { statutConnexion } from '@/lib/connect/agent'
 import { creerClient, preparerLien } from './actions'
-import { clientsEnAlerte, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
+import { clientsEnAlerte, etatsParMachine, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
 import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
 
-// Machines d'un client regroupées par site d'installation, sites par ordre alphabétique.
-function groupesParSite<T extends { site: string }>(machines: T[]): [string, T[]][] {
-  const m = new Map<string, T[]>()
-  for (const x of machines) m.set(x.site, [...(m.get(x.site) ?? []), x])
-  return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], 'fr', { sensitivity: 'base' }))
-}
-
 export default async function ParcPage() {
   let clients
-  let stocks, enAlerte
+  let stocks, enAlerte, etatsMachines
   try {
-    ;[stocks, enAlerte] = await Promise.all([stocksParGroupe(), clientsEnAlerte()])
-    clients = await prisma.connectClient.findMany({
+    ;[stocks, enAlerte, etatsMachines] = await Promise.all([stocksParGroupe(), clientsEnAlerte(), etatsParMachine()])
+    clients = trierParNom(await prisma.connectClient.findMany({
       orderBy: { nom: 'asc' },
       include: {
-        machines: { orderBy: { creeLe: 'asc' }, include: { releves: { orderBy: { date: 'desc' }, take: 1 } } },
+        machines: { orderBy: { creeLe: 'asc' }, include: { releves: { orderBy: { date: 'desc' }, take: 10 } } },
         postes: true,
       },
-    })
+    }))
   } catch {
     return (
       <div className="rounded-xl border border-amber-300 bg-amber-50 p-6">
@@ -85,6 +82,7 @@ export default async function ParcPage() {
           </label>
           <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Créer et obtenir le lien</Bouton>
         </Formulaire>
+        <p className="mt-3 text-sm"><Link href="/parc/clients/import" className="underline">Importer une liste de clients et leur envoyer le lien</Link></p>
       </details>
 
       {machines.length === 0 && (
@@ -93,9 +91,11 @@ export default async function ParcPage() {
         </p>
       )}
 
-      <div className="mt-8 space-y-8">
+      {machines.length > 0 && <RechercheSynthese />}
+
+      <div className="mt-6 space-y-8">
         {clients.map((c) => (
-          <section key={c.id}>
+          <section key={c.id} data-client data-nom={c.nom}>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-bold">{c.nom}</h2>
@@ -129,9 +129,9 @@ export default async function ParcPage() {
                 Aucune machine pour l&apos;instant : elles apparaîtront dès que le client aura installé Levad Connect avec son lien.
               </p>
             )}
-            {groupesParSite(c.machines).map(([site, lesMachines], gi, tous) => (
-            <div key={site} className={gi > 0 ? 'mt-4' : ''}>
-            {tous.length > 1 && <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>}
+            {groupesParSite(c.machines).map(([site, lesMachines], gi) => (
+            <div key={site} data-site className={gi > 0 ? 'mt-4' : ''}>
+            <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>
             <div className="divide-y rounded-xl border bg-white">
               {lesMachines.map((m) => {
                 const r = m.releves[0]
@@ -143,12 +143,13 @@ export default async function ParcPage() {
                   <Link
                     key={m.id}
                     href={`/parc/machine/${m.id}`}
+                    data-machine
+                    data-texte={[libelleMachine(m, ''), m.modele, m.nomReseau, m.marque, m.numeroSerie, m.ip, m.site].filter(Boolean).join(' ')}
                     className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.3fr_1.7fr_0.8fr_1fr]"
                   >
                     <div>
                       <p className="font-semibold">
-                        {m.nomAffiche || m.modele || 'Machine inconnue'}
-                        <span className="font-normal text-gray-500"> · {m.site}</span>
+                        {libelleMachine(m, 'Machine inconnue')}
                       </p>
                       <p className="text-sm text-gray-500">
                         {m.marque ?? '?'} · {m.numeroSerie ?? '—'} · {m.ip ?? '—'}
@@ -160,20 +161,19 @@ export default async function ParcPage() {
                       </div>
                     </div>
                     <div>
-                      {encreSuivie ? (
-                        <>
-                        <Encres
-                          encres={(r?.encres ?? []) as unknown as Encre[]}
-                          seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
-                          stock={stockDuGroupe(stocks!, c.id, cleGroupe(m))}
-                        />
-                        <p className="mt-1 text-xs text-gray-500">
-                          Stock : {COULEURS.map((k) => `${NOM_COULEUR[k]} ${stockDuGroupe(stocks!, c.id, cleGroupe(m))[k]}`).join(' · ')}
-                        </p>
-                        </>
-                      ) : (
-                        <p className="text-sm text-gray-400">{m.horsContrat ? 'Hors contrat : pas d’alerte d’encre' : 'Pas de suivi d’encre'}</p>
-                      )}
+                      <Encres
+                        encres={(avecEncres(m.releves)?.encres ?? []) as unknown as Encre[]}
+                        seuils={encreSuivie ? Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)])) : undefined}
+                        stock={encreSuivie ? stockDuGroupe(stocks!, c.id, cleGroupe(m)) : undefined}
+                        etats={encreSuivie ? Object.fromEntries((etatsMachines?.get(m.id) ?? []).map((x) => [x.couleur, { bas: x.bas, jours: x.jours, mode: x.mode, alerte: x.alerte }])) : undefined}
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        {encreSuivie
+                          ? `Stock : ${COULEURS.map((k) => `${NOM_COULEUR[k]} ${stockDuGroupe(stocks!, c.id, cleGroupe(m))[k]}`).join(' · ')}`
+                          : m.horsContrat
+                            ? 'Hors contrat'
+                            : 'Autre marque : pas d’alerte d’encre'}
+                      </p>
                     </div>
                     <div className="text-sm">
                       {suivie && calc.retenue ? (

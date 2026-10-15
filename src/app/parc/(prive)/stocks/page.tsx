@@ -1,6 +1,8 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { trierParNom } from '@/lib/connect/tri'
 import { COULEURS, NOM_COULEUR, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
 import { grouper } from '@/lib/connect/gammes'
 
@@ -10,11 +12,11 @@ export default async function StocksPage({ searchParams }: { searchParams: { cli
   if (Number(searchParams.client)) redirect(`/parc/stocks/${Number(searchParams.client)}`)
   let clients, stocks
   try {
-    clients = await prisma.connectClient.findMany({
+    clients = trierParNom(await prisma.connectClient.findMany({
       where: { machines: { some: { categorie: 'mine', horsContrat: false } } },
       orderBy: { nom: 'asc' },
       include: { machines: { where: { categorie: 'mine', horsContrat: false }, orderBy: { creeLe: 'asc' } } },
-    })
+    }))
     stocks = await stocksParGroupe()
   } catch {
     return (
@@ -52,7 +54,7 @@ export default async function StocksPage({ searchParams }: { searchParams: { cli
                       {i === 0 && <Link href={`/parc/stocks/${c.id}`} className="underline">{c.nom}</Link>}
                     </td>
                     <td className="py-2 pr-4 text-gray-600">
-                      {g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => m.nomAffiche || m.modele || 'machine').join(', ')}
+                      {g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => libelleMachine(m, 'machine')).join(', ')}
                       {!g.gamme && <span className="text-amber-700"> (gamme à choisir)</span>}
                     </td>
                     {COULEURS.map((k) => (

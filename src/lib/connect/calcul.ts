@@ -22,6 +22,8 @@ export const RECETTES: { code: string; nom: string; formule: string; nb: Terme[]
     nb: [[2, 112], [1, 113]],
     couleur: [[2, 122], [1, 123]],
   },
+  // Machine sans grand format (pas de 112 / 122) : le petit format est le total.
+  { code: 'D', nom: 'Petit format seul', formule: '113 / 123', nb: [[1, 113]], couleur: [[1, 123]] },
 ]
 
 export type Resultat = { code: string; nom: string; formule: string; nb: number; couleur: number; utilises: number[] }
@@ -66,4 +68,20 @@ export function calculer(c: Compteurs, choix?: string | null) {
         : null,
     aConfigurer: applicables.length === 0,
   }
+}
+
+/** Noms courts des compteurs Canon pour l'affichage (A4 / A3, N&B / couleur) ; les compteurs « 2 » comptent chaque A3 double. */
+export const NOM_COURT_COMPTEUR: Record<string, string> = {
+  '101': 'Total A4 + A3',
+  '102': 'Total A4 + 2×A3',
+  '106': 'A4 + 2×A3 couleur',
+  '108': 'A4 + A3 N&B',
+  '109': 'A4 + 2×A3 N&B',
+  '112': 'A3 N&B',
+  '113': 'A4 N&B',
+  '122': 'A3 couleur',
+  '123': 'A4 couleur',
+  '125': 'A4 + A3 couleur',
+  '301': 'Impressions',
+  '501': 'Scans',
 }

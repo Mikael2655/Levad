@@ -1,11 +1,13 @@
+import { libelleMachine } from '@/lib/connect/libelle'
 import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { avecEncres } from '@/lib/connect/releves'
 import { Encres, VERT, formaterDate, depuis, type Encre } from '@/components/connect/affichage'
-import { COULEURS, NOM_COULEUR, detailsParGroupe, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
+import { COULEURS, NOM_COULEUR, detailsParGroupe, etatsParMachine, minimumDuGroupe, minimumsParGroupe, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
 import { FAMILLES, familleDe, grouper } from '@/lib/connect/gammes'
-import { ajouterEnvoi, choisirGamme, corrigerStock, supprimerMouvement } from '../../actions'
+import { ajouterEnvoi, choisirGamme, corrigerStock, definirStockMinimum, supprimerMouvement } from '../../actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,13 +20,15 @@ export default async function StockClientPage({ params }: { params: { id: string
       machines: {
         where: { categorie: 'mine', horsContrat: false },
         orderBy: [{ site: 'asc' }, { creeLe: 'asc' }],
-        include: { releves: { orderBy: { date: 'desc' }, take: 1 } },
+        include: { releves: { orderBy: { date: 'desc' }, take: 10 } },
       },
     },
   })
   if (!client) notFound()
   const stocks = await stocksParGroupe()
+  const etats = await etatsParMachine()
   const details = await detailsParGroupe()
+  const minimums = await minimumsParGroupe()
   const groupes = grouper(client.machines)
   const mouvements = await prisma.connectStockMouvement.findMany({ where: { clientId: client.id }, orderBy: { date: 'desc' }, take: 30 })
 
@@ -36,6 +40,7 @@ export default async function StockClientPage({ params }: { params: { id: string
       {groupes.length === 0 && <p className="mt-6 rounded-xl border bg-white p-6 text-gray-600">Aucune machine suivie pour ce client.</p>}
       {groupes.map((g) => {
         const stock = stockDuGroupe(stocks, client.id, g.cle)
+        const minimum = minimumDuGroupe(minimums, client.id, g.cle)
         const variantes = g.gamme ? familleDe(g.gamme).variantes : []
         const detail = details.get(`${client.id}#${g.cle}`) ?? {}
         const couleursDuGroupe = variantes.length ? COULEURS.filter((c) => variantes.some((v) => v.refs[c])) : COULEURS
@@ -53,7 +58,7 @@ export default async function StockClientPage({ params }: { params: { id: string
                   <Formulaire key={m.id} action={choisirGamme} message="Gamme enregistrée" className="mt-2 flex flex-wrap items-end gap-3">
                     <input type="hidden" name="id" value={m.id} />
                     <label className="grow text-sm font-medium text-gray-700">
-                      Gamme de {m.nomAffiche || m.modele || 'la machine'}
+                      Gamme de {libelleMachine(m, 'la machine')}
                       <select name="gamme" defaultValue="" required className={champ}>
                         <option value="" disabled>Choisir la gamme (ex. C-EXV 49)…</option>
                         {FAMILLES.map((x) => (
@@ -69,12 +74,14 @@ export default async function StockClientPage({ params }: { params: { id: string
             <div className="mt-3 divide-y">
               {g.machines.map((m) => {
                 const r = m.releves[0]
+                const re = avecEncres(m.releves)
                 return (
                   <Link key={m.id} href={`/parc/machine/${m.id}`} className="grid items-center gap-3 py-3 hover:bg-gray-50 md:grid-cols-[1.2fr_2fr_1fr]">
-                    <p className="font-semibold">{m.nomAffiche || m.modele || 'Machine inconnue'}</p>
+                    <p className="font-semibold">{libelleMachine(m, 'Machine inconnue')}</p>
                     <Encres
-                      encres={(r?.encres ?? []) as unknown as Encre[]}
+                      encres={(re?.encres ?? []) as unknown as Encre[]}
                       seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
+                      etats={Object.fromEntries((etats.get(m.id) ?? []).map((x) => [x.couleur, { bas: x.bas, jours: x.jours, mode: x.mode, alerte: x.alerte }]))}
                       stock={stock}
                     />
                     <p className="text-sm text-gray-500 md:text-right">{r ? `Relevé ${depuis(r.date)}` : 'Jamais lu'}</p>
@@ -88,6 +95,7 @@ export default async function StockClientPage({ params }: { params: { id: string
                 <div key={c} className="rounded-lg bg-gray-50 p-3 text-center">
                   <p className="text-sm text-gray-500">{NOM_COULEUR[c]}</p>
                   <p className={`text-2xl font-bold ${stock[c] === 0 ? 'text-gray-400' : ''}`}>{stock[c]}</p>
+                  {minimum[c] > 0 && <p className="text-xs text-gray-500">minimum {minimum[c]}</p>}
                   {variantes.length === 1 && g.gamme?.refs[c] && <p className="text-xs text-gray-500">{g.gamme.refs[c]}</p>}
                   {variantes.length > 1 && (
                     <ul className="mt-1 space-y-0.5 text-left text-xs text-gray-500">
@@ -105,6 +113,23 @@ export default async function StockClientPage({ params }: { params: { id: string
                 </div>
               ))}
             </div>
+            <Formulaire action={definirStockMinimum} message="Stock minimum enregistré" className="mt-4 rounded-lg border border-dashed border-gray-300 p-3">
+              <input type="hidden" name="clientId" value={client.id} />
+              <input type="hidden" name="groupe" value={g.cle} />
+              <p className="text-sm font-semibold text-gray-700">Stock minimum à garder d&apos;avance</p>
+              <p className="text-xs text-gray-500">
+                Quand le stock descend à ce nombre (ou en dessous), l&apos;alerte se déclenche comme si le client n&apos;en avait plus. 0 = pas de minimum.
+              </p>
+              <div className="mt-2 flex flex-wrap items-end gap-3">
+                {couleursDuGroupe.map((c) => (
+                  <label key={c} className="text-sm font-medium text-gray-700">
+                    {NOM_COULEUR[c]}
+                    <input type="number" inputMode="numeric" name={`min_${c}`} min={0} max={99} defaultValue={minimum[c]} className="mt-1 block w-20 rounded-lg border border-gray-300 px-3 py-2" />
+                  </label>
+                ))}
+                <Bouton className="rounded-lg border border-gray-300 px-4 py-2 font-semibold">Enregistrer</Bouton>
+              </div>
+            </Formulaire>
           </section>
         )
       })}
@@ -119,7 +144,7 @@ export default async function StockClientPage({ params }: { params: { id: string
               <div key={g.cle}>
                 <input type="hidden" name={`groupe_${i}`} value={g.cle} />
                 <p className="text-sm font-semibold text-gray-700">
-                  {g.site} · {g.gamme ? familleDe(g.gamme).variantes.map((v) => v.code).join(' / ') : g.machines.map((m) => m.nomAffiche || m.modele).join(', ')}
+                  {g.site} · {g.gamme ? familleDe(g.gamme).variantes.map((v) => v.code).join(' / ') : g.machines.map((m) => libelleMachine(m, '')).join(', ')}
                 </p>
                 <div className="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-4">
                   {(g.gamme ? COULEURS.filter((c) => familleDe(g.gamme!).variantes.some((v) => v.refs[c])) : COULEURS).map((c) => (
@@ -165,7 +190,7 @@ export default async function StockClientPage({ params }: { params: { id: string
               Site · gamme
               <select name="groupe" className={champ}>
                 {groupes.map((g) => (
-                  <option key={g.cle} value={g.cle}>{g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => m.nomAffiche || m.modele).join(', ')}</option>
+                  <option key={g.cle} value={g.cle}>{g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => libelleMachine(m, '')).join(', ')}</option>
                 ))}
               </select>
             </label>

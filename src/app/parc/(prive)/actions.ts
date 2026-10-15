@@ -6,9 +6,13 @@ import { prisma } from '@/lib/db'
 import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
 import { cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
-import { assurerCode, regenererCode, urlLien } from '@/lib/connect/agent'
-import { envoyerMail } from '@/lib/connect/mail'
+import { assurerCode, assurerCodeEspace, listeIps, regenererCode, regenererCodeEspace, urlsTelechargement } from '@/lib/connect/agent'
+import { adressesMail } from '@/lib/connect/mail'
+import { envoyerLienClient } from '@/lib/connect/lien-mail'
 import { cleClient } from '@/lib/connect/normaliser'
+import { MAX_CLIENTS_PAR_IMPORT, lireListe } from '@/lib/connect/import-clients'
+import { dateValide, finDeJournee } from '@/lib/connect/export'
+import { rechercherReference } from '@/lib/connect/modeles'
 
 const seuil = (v: FormDataEntryValue | null) => Math.min(100, Math.max(0, Number(v ?? 25) || 0))
 
@@ -17,8 +21,6 @@ const seuil = (v: FormDataEntryValue | null) => Math.min(100, Math.max(0, Number
 export async function enregistrerReglages(formData: FormData) {
   if (!connecte()) throw new Error('Non connecté')
   const id = Number(formData.get('id'))
-  const recette = String(formData.get('recette') ?? '')
-  const categorie = String(formData.get('categorie') ?? 'mine') === 'autre' ? 'autre' : 'mine'
   const clientId = Number(formData.get('clientId'))
   const nomAffiche = String(formData.get('nomAffiche') ?? '').trim().slice(0, 120) || null
   const site = String(formData.get('site') ?? '').trim().slice(0, 120) || 'Site principal'
@@ -30,8 +32,7 @@ export async function enregistrerReglages(formData: FormData) {
     where: { id },
     data: {
       gamme: gammeParCode(gammeChoisie) ? gammeChoisie : null,
-      recette: ['A', 'B', 'C'].includes(recette) ? recette : null,
-      categorie,
+      horsContrat: formData.get('horsContrat') === 'on',
       nomAffiche,
       site,
       seuilNoir: seuil(formData.get('seuilNoir')),
@@ -70,6 +71,51 @@ export async function renommerClient(formData: FormData) {
   revalidatePath(`/parc/client/${id}`)
 }
 
+// Met toutes les machines d'un client hors contrat (ou les remet sous contrat) d'un seul clic.
+export async function definirHorsContratClient(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const horsContrat = String(formData.get('valeur')) === 'oui'
+  await prisma.connectMachine.updateMany({ where: { clientId: id }, data: { horsContrat } })
+  revalidatePath('/parc', 'layout')
+}
+
+// Cherche la référence (modèle) d'une machine d'après sa marque et son numéro de série, avec l'IA et une recherche web.
+export async function chercherReference(formData: FormData): Promise<string> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const m = await prisma.connectMachine.findUnique({ where: { id } })
+  if (!m) return '!Machine introuvable'
+  try {
+    const trouve = await rechercherReference({ marque: m.marque, serie: m.numeroSerie, nom: m.modele, sysDescr: m.sysDescr })
+    if (!trouve) return '!Référence introuvable : indiquez-la à la main dans « Nom affiché »'
+    await prisma.connectMachine.update({
+      where: { id },
+      data: {
+        modele: trouve,
+        // le nom lu jusqu'ici (souvent celui donné par le client) est gardé à côté de la référence
+        nomReseau: m.nomReseau ?? (m.modele && m.modele.toLowerCase() !== trouve.toLowerCase() ? m.modele : null),
+        modeleFixe: true,
+        aVerifier: false,
+      },
+    })
+    revalidatePath('/parc', 'layout')
+    return `Référence trouvée : ${trouve}`
+  } catch (e) {
+    return '!La recherche a échoué : ' + (e instanceof Error ? e.message : 'erreur')
+  }
+}
+
+// Supprime un client avec ses machines, relevés, stock, ordinateurs et historique du lien (irréversible).
+export async function supprimerClient(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  if (!id) return
+  await prisma.connectClient.delete({ where: { id } })
+  revalidatePath('/parc', 'layout')
+  redirect('/parc')
+}
+
 // Seuils d'alerte appliqués d'un coup à toutes les machines d'un client.
 export async function appliquerSeuilsClient(formData: FormData) {
   if (!connecte()) throw new Error('Non connecté')
@@ -106,6 +152,24 @@ export async function choisirGamme(formData: FormData): Promise<string | void> {
   }
   revalidatePath('/parc', 'layout')
   return code ? `Gamme enregistrée : ${code}` : 'Gamme remise en automatique'
+}
+
+// Stock minimum voulu par le client pour un groupe (site + gamme) : en dessous, l'alerte se déclenche comme s'il n'y avait plus de stock.
+export async function definirStockMinimum(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const clientId = Number(formData.get('clientId'))
+  const groupe = String(formData.get('groupe') ?? '')
+  if (!clientId || !groupe) return '!Données manquantes'
+  for (const couleur of ['noir', 'cyan', 'magenta', 'jaune']) {
+    const brut = formData.get(`min_${couleur}`)
+    if (brut === null) continue
+    const minimum = Math.min(99, Math.max(0, Math.floor(Number(brut) || 0)))
+    const cle = { clientId_groupe_couleur: { clientId, groupe, couleur } }
+    if (minimum === 0) await prisma.connectStockMinimum.deleteMany({ where: { clientId, groupe, couleur } })
+    else await prisma.connectStockMinimum.upsert({ where: cle, update: { minimum }, create: { clientId, groupe, couleur, minimum } })
+  }
+  revalidatePath('/parc', 'layout')
+  return 'Stock minimum enregistré'
 }
 
 // Suppression d'une ligne de l'historique du stock (le stock est recalculé aussitôt).
@@ -173,6 +237,35 @@ export async function corrigerStock(formData: FormData): Promise<string | void> 
 
 // ---- Programme résident : lien personnel du client ------------------------------------------
 
+// Adresses IP de copieurs que la recherche automatique ne trouve pas : le programme les lit en plus, à chaque relevé.
+export async function enregistrerIps(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const brut = String(formData.get('ips') ?? '')
+  const ips = listeIps(brut)
+  const ignorees = brut.split(/[\s,;]+/).filter(Boolean).length - ips.length
+  await prisma.connectClient.update({ where: { id }, data: { ipsManuelles: ips.length ? ips.join('\n') : null } })
+  revalidatePath(`/parc/client/${id}`)
+  return ips.length
+    ? `${ips.length} adresse(s) enregistrée(s)${ignorees > 0 ? ` (${ignorees} ignorée(s) : adresse invalide ou doublon)` : ''}`
+    : 'Liste vidée'
+}
+
+export async function genererEspace(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await assurerCodeEspace(id)
+  revalidatePath(`/parc/client/${id}`)
+}
+
+// Invalide l'ancien lien de l'espace client et en crée un nouveau.
+export async function regenererEspace(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await regenererCodeEspace(id)
+  revalidatePath(`/parc/client/${id}`)
+}
+
 export async function genererLien(formData: FormData) {
   if (!connecte()) throw new Error('Non connecté')
   const id = Number(formData.get('id'))
@@ -195,7 +288,9 @@ export async function majClient(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim().slice(0, 200) || null
   const modeReleve = String(formData.get('modeReleve') ?? 'agent') === 'manuel' ? 'manuel' : 'agent'
   const jours = Math.min(90, Math.max(1, Math.floor(Number(formData.get('seuilDeconnexionJours')) || 10)))
-  await prisma.connectClient.update({ where: { id }, data: { email, modeReleve, seuilDeconnexionJours: jours } })
+  const mois = Number(formData.get('moisFacturation'))
+  const moisFacturation = [1, 2, 3].includes(mois) ? mois : null
+  await prisma.connectClient.update({ where: { id }, data: { email, modeReleve, seuilDeconnexionJours: jours, moisFacturation } })
   revalidatePath(`/parc/client/${id}`)
   revalidatePath('/parc/connexions')
 }
@@ -204,28 +299,14 @@ export async function majClient(formData: FormData) {
 export async function envoyerLien(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
   const id = Number(formData.get('id'))
-  const email = String(formData.get('email') ?? '').trim()
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return '!Adresse mail invalide'
+  const { valides, invalides } = adressesMail(String(formData.get('email') ?? ''))
+  if (valides.length === 0) return '!Adresse mail invalide'
+  if (invalides.length > 0) return `!Adresse invalide : ${invalides.join(', ')}`
+  if (valides.length > 10) return '!10 adresses au maximum'
+  const email = valides.join('; ')
   const client = await prisma.connectClient.findUnique({ where: { id } })
   if (!client) return '!Client introuvable'
-  const lien = urlLien(await assurerCode(id))
-  await envoyerMail({
-    to: email,
-    sujet: 'Levad Connect : installer le relevé de vos copieurs',
-    html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
-  <p>Bonjour,</p>
-  <p>Pour suivre automatiquement les compteurs et les niveaux de toner de vos copieurs, nous vous proposons d'installer
-  <strong>Levad Connect</strong>, un petit programme à installer une seule fois. Il fonctionne ensuite tout seul, en arrière-plan.</p>
-  <p style="margin:24px 0"><a href="${lien}" style="background:#8c9e8b;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">Installer Levad Connect</a></p>
-  <p>Le programme ne fait que lire vos copieurs, ne modifie aucun réglage, et peut être désinstallé à tout moment.
-  Ce lien est personnel : en cas de changement d'ordinateur, il suffit de le réutiliser.</p>
-  <p style="margin-bottom:6px">Cordialement,</p>
-  <img src="${process.env.PARC_URL || 'https://connect.levad.fr'}/signature-levad.png" width="260" alt="LEVAD - www.levad.fr - 01 70 72 19 40" style="display:block;border:0">
-</body></html>`,
-  })
-  await prisma.connectClient.update({ where: { id }, data: { email, lienEnvoyeLe: new Date() } })
-  await prisma.connectLienEvenement.create({ data: { clientId: id, type: 'envoye', detail: email } })
+  await envoyerLienClient(id, valides)
   revalidatePath('/parc', 'layout')
   return `Lien envoyé à ${email}`
 }
@@ -242,16 +323,17 @@ export async function demanderLecture(formData: FormData) {
   revalidatePath(`/parc/machine/${machineId}`)
 }
 
-// ---- Machine hors contrat : plus d'alerte d'encre, et exclue des exports -------------------------
-
-export async function basculerHorsContrat(formData: FormData) {
+// Lecture immédiate demandée depuis la fiche du client (utile quand il n'a encore aucune machine) : le programme la fait à son prochain signal (moins d'une minute).
+export async function demanderLectureClient(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
-  const id = Number(formData.get('id'))
-  const m = await prisma.connectMachine.findUnique({ where: { id }, select: { horsContrat: true } })
-  if (!m) return
-  await prisma.connectMachine.update({ where: { id }, data: { horsContrat: !m.horsContrat } })
-  revalidatePath('/parc', 'layout')
+  const clientId = Number(formData.get('id'))
+  const deja = await prisma.connectCommande.findFirst({ where: { clientId, faiteLe: null } })
+  if (!deja) await prisma.connectCommande.create({ data: { clientId } })
+  revalidatePath(`/parc/client/${clientId}`)
+  return 'Lecture demandée : le programme la fait dans la minute (si le PC est allumé)'
 }
+
+// ---- Machine hors contrat : plus d'alerte d'encre, et exclue des exports -------------------------
 
 // Depuis la synthèse : crée le lien du client s'il n'existe pas, puis ouvre sa fiche sur le lien à envoyer.
 export async function preparerLien(formData: FormData) {
@@ -278,6 +360,58 @@ export async function creerClient(formData: FormData): Promise<string | void> {
   await assurerCode(client.id)
   revalidatePath('/parc', 'layout')
   redirect(`/parc/client/${client.id}#lien`)
+}
+
+// ---- Import d'une liste de clients ---------------------------------------------------------------
+
+export type ApercuClient = { nom: string; mails: string[]; etat: 'nouveau' | 'existe' | 'invalide' | 'sans-mail'; detail?: string }
+
+async function classer(texte: string): Promise<ApercuClient[]> {
+  const lignes = lireListe(texte)
+  const existants = new Set((await prisma.connectClient.findMany({ where: { cle: { in: lignes.map((l) => l.cle) } }, select: { cle: true } })).map((c) => c.cle))
+  return lignes.map((l): ApercuClient => {
+    if (existants.has(l.cle)) return { nom: l.nom, mails: l.mails, etat: 'existe', detail: 'existe déjà : ignoré' }
+    if (l.invalides.length) return { nom: l.nom, mails: l.mails, etat: 'invalide', detail: `adresse invalide : ${l.invalides.join(', ')}` }
+    if (l.mails.length === 0) return { nom: l.nom, mails: [], etat: 'sans-mail', detail: 'sans adresse mail : créé sans envoi' }
+    return { nom: l.nom, mails: l.mails, etat: 'nouveau' }
+  })
+}
+
+export async function apercuImportClients(texte: string): Promise<ApercuClient[]> {
+  if (!connecte()) throw new Error('Non connecté')
+  return classer(texte)
+}
+
+export type ResultatClient = { nom: string; ok: boolean; message: string }
+
+// Crée les nouveaux clients (leur lien personnel est créé en même temps) et, si demandé, leur envoie leur lien par mail.
+export async function importerClients(texte: string, envoyer: boolean): Promise<ResultatClient[]> {
+  if (!connecte()) throw new Error('Non connecté')
+  const apercu = await classer(texte)
+  const aFaire = apercu.filter((l) => l.etat === 'nouveau' || l.etat === 'sans-mail')
+  if (aFaire.length > MAX_CLIENTS_PAR_IMPORT) throw new Error(`${MAX_CLIENTS_PAR_IMPORT} clients au maximum à la fois`)
+  const resultats: ResultatClient[] = apercu.filter((l) => !aFaire.includes(l)).map((l) => ({ nom: l.nom, ok: false, message: `Ignoré : ${l.detail}` }))
+  for (const l of aFaire) {
+    try {
+      const client = await prisma.connectClient.create({ data: { cle: cleClient(l.nom), nom: l.nom, email: l.mails.length ? l.mails.join('; ') : null } })
+      await assurerCode(client.id)
+      if (envoyer && l.mails.length) {
+        try {
+          await envoyerLienClient(client.id, l.mails)
+          resultats.push({ nom: l.nom, ok: true, message: `Créé, lien envoyé à ${l.mails.join('; ')}` })
+        } catch (e) {
+          resultats.push({ nom: l.nom, ok: false, message: `Créé, mais l'envoi a échoué (${e instanceof Error ? e.message : 'erreur'}) : à renvoyer depuis sa fiche` })
+        }
+        await new Promise((r) => setTimeout(r, 600)) // le service de mail limite le rythme des envois
+      } else {
+        resultats.push({ nom: l.nom, ok: true, message: 'Créé, lien non envoyé' })
+      }
+    } catch {
+      resultats.push({ nom: l.nom, ok: false, message: 'Création impossible' })
+    }
+  }
+  revalidatePath('/parc', 'layout')
+  return resultats
 }
 
 // ---- Ordinateurs (un par site chez le client) ---------------------------------------------------
@@ -330,4 +464,56 @@ export async function marquerLienEnvoye(formData: FormData): Promise<string | vo
   await prisma.connectLienEvenement.create({ data: { clientId: id, type: 'note' } })
   revalidatePath('/parc', 'layout')
   return 'Noté : lien envoyé aujourd’hui'
+}
+
+// Import d'un relevé reçu en PDF / photo, après vérification à l'écran.
+export type ElementImport = {
+  clientId: number
+  machineId: number | null // null = nouvelle machine
+  serie: string
+  modele: string
+  ip: string
+  compteurs: Record<string, { v: number; nom?: string }>
+}
+
+export async function enregistrerImport(json: string): Promise<string> {
+  if (!connecte()) throw new Error('Non connecté')
+  const { jour, elements } = JSON.parse(json) as { jour: string; elements: ElementImport[] }
+  const aujourdhui = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
+  const date = jour === aujourdhui || !dateValide(jour) ? new Date() : new Date(finDeJournee(jour).getTime() - 12 * 3600000)
+  let nb = 0
+  for (const e of elements) {
+    const client = await prisma.connectClient.findUnique({ where: { id: Number(e.clientId) } })
+    if (!client) throw new Error('Client introuvable')
+    const serie = String(e.serie ?? '').trim().slice(0, 80) || null
+    const ip = String(e.ip ?? '').trim().slice(0, 45) || null
+    const modele = String(e.modele ?? '').trim().slice(0, 120) || null
+    let machine = e.machineId ? await prisma.connectMachine.findUnique({ where: { id: Number(e.machineId) } }) : null
+    if (!machine) {
+      if (!serie && !ip) throw new Error('Une nouvelle machine a besoin d’un numéro de série ou d’une adresse IP.')
+      const cle = serie ? `sn:${serie.toUpperCase()}` : `ip:${client.id}:${ip}`
+      machine =
+        (await prisma.connectMachine.findUnique({ where: { cle } })) ??
+        (await prisma.connectMachine.create({
+          data: {
+            clientId: client.id,
+            cle,
+            numeroSerie: serie,
+            ip,
+            modele,
+            marque: modele && /^(iR|image ?(RUNNER|FORCE)|i-?SENSYS)/i.test(modele) ? 'Canon' : null,
+            categorie: modele && /^(iR|image ?(RUNNER|FORCE)|i-?SENSYS)/i.test(modele) ? 'mine' : 'autre',
+            aVerifier: !modele,
+          },
+        }))
+    }
+    const compteurs: Record<string, { v: number; nom?: string }> = {}
+    for (const [n, c] of Object.entries(e.compteurs ?? {})) {
+      if (/^\d{1,4}$/.test(n) && c && Number.isFinite(c.v)) compteurs[n] = { v: Math.round(c.v), nom: c.nom ? String(c.nom).slice(0, 120) : undefined }
+    }
+    await prisma.connectReleve.create({ data: { machineId: machine.id, date, source: 'import', compteurs } })
+    nb++
+  }
+  revalidatePath('/parc', 'layout')
+  return `${nb} relevé${nb > 1 ? 's' : ''} enregistré${nb > 1 ? 's' : ''}.`
 }

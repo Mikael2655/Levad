@@ -52,16 +52,20 @@ model ConnectClient {
   creeLe   DateTime         @default(now())
   machines ConnectMachine[]
   mouvements ConnectStockMouvement[]
+  minimums ConnectStockMinimum[]
   postes   ConnectPoste[]
   commandes ConnectCommande[]
   evenementsLien ConnectLienEvenement[]
   // Lien personnel d'installation (permanent, lié au client et non à un PC ; régénérable)
   codeLien              String?   @unique
+  ipsManuelles          String? // adresses IP de copieurs que la recherche automatique ne trouve pas (une par ligne), lues en plus à chaque relevé
+  codeEspace            String?   @unique // lien privé de l'espace client (consultation du parc)
   email                 String? // pour envoyer le lien au client
   modeReleve            String    @default("agent") // agent = programme résident ; manuel = relevés reçus par mail
   seuilDeconnexionJours Int       @default(10)
   deconnexionSignaleLe  DateTime? // mail de déconnexion déjà envoyé (remis à zéro quand le client se reconnecte)
   lienEnvoyeLe          DateTime? // dernier envoi du lien d'installation au client (mail ou marqué à la main)
+  moisFacturation       Int? // 1, 2 ou 3 : facturation trimestrielle (1 = janvier/avril/juillet/octobre, 2 = février/…, 3 = mars/…)
 
   @@map("connect_client")
 }
@@ -76,6 +80,9 @@ model ConnectMachine {
   modele      String?
   ip          String?
   nomAffiche  String?
+  nomReseau   String? // nom donné à la machine par le client (ex. DFM-Compta), tel que la machine le déclare
+  modeleFixe  Boolean         @default(false) // la référence a été trouvée / fixée : la lecture automatique ne la remplace plus
+  sysDescr    String? // description technique déclarée par la machine (aide à reconnaître le modèle)
   categorie   String          @default("mine") // mine = Canon vendue par LEVAD, autre = autre marque
   horsContrat Boolean         @default(false)
   site        String          @default("Site principal")
@@ -127,6 +134,19 @@ model ConnectStockMouvement {
 
   @@index([clientId, couleur])
   @@map("connect_stock_mouvement")
+}
+
+// Stock minimum voulu par le client, par groupe (site + gamme) et par couleur.
+model ConnectStockMinimum {
+  id       Int           @id @default(autoincrement())
+  clientId Int
+  client   ConnectClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  groupe   String
+  couleur  String
+  minimum  Int
+
+  @@unique([clientId, groupe, couleur])
+  @@map("connect_stock_minimum")
 }
 
 // Un enregistrement par jour où le mail récapitulatif des alertes a été envoyé (évite les doublons).

@@ -2,6 +2,8 @@ import { prisma } from '@/lib/db'
 import { cleClient } from './normaliser'
 import { COULEURS, varianteADecompter } from './alertes'
 import { cleGroupe } from './gammes'
+import { modeleAutreMarque, resoudreModele } from './modeles'
+import { avecEncres } from './releves'
 
 // Enregistre dans la base les relevés envoyés par le programme Levad Connect.
 // Une société est reconnue par son nom simplifié ; une machine par son numéro de série.
@@ -34,7 +36,16 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
     const serie = texte(m.numero_serie, 80)
     const ip = texte(m.ip, 45)
     const marque = texte(m.marque, 60)
-    const modele = texte(m.modele, 120)
+    const modeleLu = texte(m.modele, 120)
+    // le client a pu renommer sa machine : on retrouve le vrai modèle d'après la description technique ou le numéro de série
+    const modeleTrouve =
+      marque === 'Canon' || !marque
+        ? await resoudreModele({ modele: modeleLu, sysDescr: texte(m.sys_descr, 300), nomReseau: texte(m.nom_reseau, 120), serie })
+        : modeleAutreMarque({ modele: modeleLu, sysDescr: texte(m.sys_descr, 300), nomReseau: texte(m.nom_reseau, 120) })
+    const modele = modeleTrouve ?? modeleLu
+    const sysDescr = texte(m.sys_descr, 300)
+    // le nom donné par le client (ex. DFM-Compta) : le nom lu sur la machine, quand il diffère du modèle retenu
+    const nomClient = modeleLu && modele && modeleTrouve !== null && !modeleLu.toLowerCase().includes(modele.toLowerCase()) ? modeleLu : null
 
     // sans numéro de série, on reconnaît la machine par son adresse IP chez ce client
     let cle = serie ? `sn:${serie.toUpperCase()}` : ''
@@ -48,7 +59,7 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
       // à chaque relevé on met à jour ce que la machine déclare ; les choix faits à la main sont conservés
       machine = await prisma.connectMachine.update({
         where: { id: machine.id },
-        data: { ip, marque: marque ?? undefined, modele: modele ?? undefined },
+        data: { ip, marque: marque ?? undefined, sysDescr, ...(machine.modeleFixe ? {} : { modele: modele ?? undefined, nomReseau: nomClient }), ...(modeleTrouve && machine.aVerifier ? { aVerifier: false } : {}) },
       })
     } else {
       const c = await clientPourMachineNouvelle()
@@ -63,6 +74,8 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
           numeroSerie: serie,
           marque,
           modele,
+          nomReseau: nomClient,
+          sysDescr,
           ip,
           categorie: marque === 'Canon' ? 'mine' : 'autre',
           aVerifier: !marque || !modele,
@@ -88,11 +101,9 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
     // au relevé précédent -> on retire une cartouche du stock du client (jamais en dessous de zéro).
     if (machine.categorie === 'mine' && !machine.horsContrat) {
       const groupe = cleGroupe(machine)
-      const precedent = await prisma.connectReleve.findFirst({
-        where: { machineId: machine.id },
-        orderBy: { date: 'desc' },
-        select: { encres: true },
-      })
+      const precedent = avecEncres(
+        await prisma.connectReleve.findMany({ where: { machineId: machine.id }, orderBy: { date: 'desc' }, take: 10, select: { encres: true } }),
+      )
       const avant = (precedent?.encres ?? []) as Json[]
       for (const e of encres) {
         if (e.pourcent !== 100 || !e.couleur || !(COULEURS as readonly string[]).includes(e.couleur)) continue

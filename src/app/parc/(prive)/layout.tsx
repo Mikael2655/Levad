@@ -27,19 +27,21 @@ export default async function PriveLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-5 py-3">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-5 py-3">
           <Link href="/parc" className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/levad-logo.png" alt="LEVAD" className="h-9 w-auto" />
             <span className="text-lg font-semibold text-gray-700">Connect</span>
           </Link>
-          <div className="order-3 w-full md:order-none md:w-auto">
+          <div className="order-3 w-full xl:order-none xl:w-auto">
             <Menu
               entrees={[
                 { href: '/parc', titre: 'Synthèse' },
                 { href: '/parc/alertes', titre: 'Alerte encre', badge: nbAlertes },
                 { href: '/parc/deconnexions', titre: 'Alerte déconnexion', badge: nbDeconnectes },
                 { href: '/parc/stocks', titre: 'Stocks' },
+                { href: '/parc/import', titre: 'Import' },
+                { href: '/parc/exports', titre: 'Exports' },
                 { href: '/parc/connexions', titre: 'Connexions' },
               ]}
             />

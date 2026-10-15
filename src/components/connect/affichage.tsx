@@ -43,7 +43,7 @@ export function nombre(n: number | null | undefined) {
 /**
  * Les quatre niveaux d'encre en barres, avec le nom de chaque couleur.
  *  - normal : barre de la couleur ;
- *  - niveau bas mais cartouche en stock chez le client : orange ;
+ *  - niveau bas mais cartouche en stock chez le client : affichage normal (pas d'alerte) ;
  *  - niveau bas ET plus de stock : rouge (c'est l'alerte).
  * `seuils` et `stock` ne servent que pour « mes machines » ; sans eux, aucune alerte n'est affichée.
  */
@@ -51,11 +51,14 @@ export function Encres({
   encres,
   seuils,
   stock,
+  etats,
   grand,
 }: {
   encres: Encre[] | null | undefined
   seuils?: Record<string, number>
   stock?: Record<string, number>
+  /** Règle de durée restante (prioritaire sur les seuils en %) : « bas » et jours estimés par couleur. */
+  etats?: Record<string, { bas: boolean; jours: number | null; mode: 'duree' | 'pourcent'; alerte?: boolean } | undefined>
   grand?: boolean
 }) {
   const liste = encres ?? []
@@ -64,11 +67,11 @@ export function Encres({
       {COULEURS.map((c) => {
         const e = liste.find((x) => x.couleur === c.cle && x.pourcent !== null)
         const p = e?.pourcent ?? null
-        const bas = Boolean(seuils) && p !== null && p <= (seuils?.[c.cle] ?? 25)
+        const et = etats?.[c.cle]
+        const bas = et ? p !== null && et.bas : Boolean(seuils) && p !== null && p <= (seuils?.[c.cle] ?? 25)
         const enStock = (stock?.[c.cle] ?? 0) > 0
-        const alerte = bas && !enStock
-        const orange = bas && enStock
-        const couleurBarre = alerte ? '#dc2626' : orange ? '#f59e0b' : c.teinte
+        const alerte = et?.alerte ?? (bas && !enStock)
+        const couleurBarre = alerte ? '#dc2626' : c.teinte
         return (
           <div key={c.cle} title={e?.description ?? c.nom}>
             <p className="text-xs font-semibold text-gray-600">{c.nom}</p>
@@ -77,11 +80,16 @@ export function Encres({
             </div>
             <p
               className={`mt-0.5 text-xs ${
-                alerte ? 'font-bold text-red-600' : orange ? 'font-semibold text-amber-600' : 'text-gray-700'
+                alerte ? 'font-bold text-red-600' : 'text-gray-700'
               }`}
             >
               {p === null ? '—' : `${p} %`}
-              {orange && ' · en stock'}
+              {et?.mode === 'duree' && p !== null && (
+                <span className="font-normal text-gray-500">
+                  {' · '}
+                  {et.jours === null ? 'durée longue' : et.jours < 1 ? '< 1 j' : `~${Math.round(et.jours)} j`}
+                </span>
+              )}
             </p>
           </div>
         )

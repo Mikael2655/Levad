@@ -40,8 +40,38 @@ export async function regenererCode(clientId: number): Promise<string> {
   throw new Error('Impossible de créer un code de lien')
 }
 
+/** Lien privé de l'espace client (consultation du parc) : code distinct de celui du programme résident. */
+export async function assurerCodeEspace(clientId: number): Promise<string> {
+  const c = await prisma.connectClient.findUnique({ where: { id: clientId }, select: { codeEspace: true } })
+  if (c?.codeEspace) return c.codeEspace
+  return regenererCodeEspace(clientId)
+}
+
+export async function regenererCodeEspace(clientId: number): Promise<string> {
+  for (let essai = 0; essai < 5; essai++) {
+    const code = nouveauCode()
+    try {
+      await prisma.connectClient.update({ where: { id: clientId }, data: { codeEspace: code } })
+      return code
+    } catch {
+      // collision (quasi impossible) : on retente
+    }
+  }
+  throw new Error("Impossible de créer le lien de l'espace client")
+}
+
+export function urlEspace(code: string): string {
+  return `${process.env.PARC_URL || 'https://connect.levad.fr'}/espace/${code}`
+}
+
 export function urlLien(code: string): string {
   return `${process.env.PARC_URL || 'https://connect.levad.fr'}/telecharger/${code}`
+}
+
+/** Liens de téléchargement direct du programme pour ce client (le nom du fichier contient son code). */
+export function urlsTelechargement(code: string): { windows: string; mac: string; page: string; aideWindows: string; aideMac: string } {
+  const base = process.env.PARC_URL || 'https://connect.levad.fr'
+  return { windows: `${base}/telecharger/${code}/windows`, mac: `${base}/telecharger/${code}/mac`, page: `${base}/telecharger/${code}#avertissements`, aideWindows: `${base}/telecharger/${code}?os=windows#avertissements`, aideMac: `${base}/telecharger/${code}?os=mac#avertissements` }
 }
 
 export type StatutConnexion = 'jamais' | 'connecte' | 'inactif' | 'deconnecte'
@@ -53,4 +83,30 @@ export function statutConnexion(derniere: Date | null, seuilJours: number): Stat
   if (ageMs < 10 * 60 * 1000) return 'connecte'
   if (ageMs < seuilJours * 24 * 3600 * 1000) return 'inactif'
   return 'deconnecte'
+}
+
+/**
+ * La dernière erreur du programme est-elle encore d'actualité ? Elle est considérée comme résolue dès qu'un signal de vie
+ * (erreur de réseau) ou une lecture réussie (erreur de lecture, de mise à jour) est arrivé après elle.
+ */
+export function erreurEnCours(p: { derniereErreur: string | null; derniereErreurLe: Date | null; derniereConnexion: Date | null; derniereLectureOk: Date | null }): boolean {
+  if (!p.derniereErreur || !p.derniereErreurLe) return false
+  const quand = p.derniereErreurLe.getTime()
+  const erreurDeReseau = !/^(lecture|mise à jour)/i.test(p.derniereErreur)
+  const resolue = erreurDeReseau
+    ? Boolean(p.derniereConnexion && p.derniereConnexion.getTime() > quand + 30_000)
+    : Boolean(p.derniereLectureOk && p.derniereLectureOk.getTime() > quand)
+  return !resolue
+}
+
+const MOTIF_IPV4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
+
+/** Les adresses IP valides d'un texte (une par ligne, ou séparées par des virgules / espaces), sans doublon. */
+export function listeIps(texte: string | null | undefined): string[] {
+  const vues = new Set<string>()
+  for (const x of (texte ?? '').split(/[\s,;]+/)) {
+    const ip = x.trim()
+    if (MOTIF_IPV4.test(ip)) vues.add(ip.split('.').map(Number).join('.'))
+  }
+  return Array.from(vues).slice(0, 50)
 }

@@ -29,7 +29,7 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.3"
+VERSION_AGENT = "1.12"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
@@ -99,10 +99,46 @@ def est_installe():
 # ----------------------------------------------------------------------------
 # Code du client (dans le nom du fichier téléchargé)
 # ----------------------------------------------------------------------------
+def _chemin_reel_mac(chemin):
+    """Mac : macOS lance parfois une application téléchargée depuis un chemin aléatoire (« AppTranslocation »), qui ne
+    contient plus le nom du dossier d'origine. La liste des volumes (commande mount) indique le vrai emplacement."""
+    if not chemin or "AppTranslocation" not in chemin:
+        return chemin
+    try:
+        sortie = subprocess.run(["mount"], capture_output=True, text=True, timeout=15).stdout
+    except Exception:
+        return chemin
+    for ligne in sortie.splitlines():
+        m = re.match(r"^(?P<origine>.+) on (?P<point>/\S*AppTranslocation\S*) \(", ligne)
+        if m and chemin.startswith(m.group("point")):
+            return m.group("origine") + chemin[len(m.group("point")):]
+    return chemin
+
+
 def code_depuis_nom_de_fichier():
     """Le code du lien personnel, lu dans le nom de ce programme ; None s'il n'y en a pas."""
     chemin = sys.executable if getattr(sys, "frozen", False) else sys.argv[0]
+    if sys.platform == "darwin":
+        chemin = _chemin_reel_mac(chemin)
     m = MOTIF_CODE.search(os.path.basename(chemin or ""))
+    if m is None and sys.platform == "darwin":
+        # Mac : le fichier téléchargé est un zip « Levad-Connect-<code>.zip » ; en l'ouvrant, macOS crée un dossier du même nom
+        # qui contient l'application : on cherche donc le code dans les dossiers parents.
+        for dossier in os.path.abspath(chemin or "").split(os.sep):
+            m = MOTIF_CODE.search(dossier)
+            if m:
+                break
+    if m is None and sys.platform == "darwin":
+        # dernier recours : le zip ou le dossier « Levad-Connect-<code> » le plus récent du dossier Téléchargements
+        dl = os.path.join(os.path.expanduser("~"), "Downloads")
+        try:
+            candidats = sorted(os.listdir(dl), key=lambda n: os.path.getmtime(os.path.join(dl, n)), reverse=True)
+        except OSError:
+            candidats = []
+        for nom in candidats:
+            m = MOTIF_CODE.search(nom)
+            if m:
+                break
     return m.group(1).lower() if m else None
 
 
@@ -113,7 +149,7 @@ class CodeInconnu(Exception):
     pass
 
 
-def appel(config, chemin, donnees):
+def appel(config, chemin, donnees, delai=60):
     """POST JSON vers le serveur ; retourne la réponse décodée. Lève CodeInconnu si le lien n'est plus valable."""
     try:
         import certifi
@@ -125,7 +161,7 @@ def appel(config, chemin, donnees):
         url, data=json.dumps(donnees, ensure_ascii=False).encode("utf-8"), method="POST",
         headers={"Content-Type": "application/json; charset=utf-8", "Authorization": "Bearer " + config["code"]})
     try:
-        with urllib.request.urlopen(requete, timeout=60, context=contexte) as reponse:
+        with urllib.request.urlopen(requete, timeout=delai, context=contexte) as reponse:
             return json.loads(reponse.read().decode("utf-8") or "{}")
     except urllib.error.HTTPError as e:
         if e.code == 401:
@@ -146,9 +182,26 @@ def noter_erreur(message):
     DIAG["nbErreurs"] += 1
 
 
+_NOM_POSTE = []
+
+
+def nom_du_poste():
+    """Le nom de cet ordinateur, stable d'un redémarrage à l'autre. Sur Mac, le nom réseau change selon le réseau et la box
+    (« mini-de-mikael.home », « mac-mini-de-mikael.home »...) : on prend le nom donné à l'ordinateur dans les Réglages Système."""
+    if not _NOM_POSTE:
+        nom = None
+        if sys.platform == "darwin":
+            try:
+                nom = subprocess.run(["scutil", "--get", "ComputerName"], capture_output=True, text=True, timeout=5).stdout.strip() or None
+            except Exception:
+                nom = None
+        _NOM_POSTE.append(nom or socket.gethostname())
+    return _NOM_POSTE[0]
+
+
 def signal_de_vie(config):
     return appel(config, "/api/agent/ping", {
-        "pc": socket.gethostname(), "systeme": R.platform.platform(), "version": VERSION_AGENT, "diag": dict(DIAG)})
+        "pc": nom_du_poste(), "systeme": R.platform.platform(), "version": VERSION_AGENT, "diag": dict(DIAG)})
 
 
 # ----------------------------------------------------------------------------
@@ -168,28 +221,53 @@ def lire_les_copieurs(config):
     versions = (1, 0)
     connus = config.get("copieurs", [])
     maintenant = time.time()
+    communaute = config.get("communaute", "public")
     if not connus or maintenant - config.get("derniere_decouverte", 0) > DECOUVERTE_TOUS_LES_JOURS:
         plage = config.get("plage") or R.plage_locale()
         if plage:
             try:
-                trouvees = R.decouvrir(plage, "public", 1.0, port, versions)
+                trouvees = []
+                # « public » est le mot de passe SNMP habituel ; à défaut, on essaie « private » avant d'abandonner
+                for essai in ("public", "private"):
+                    trouvees = R.decouvrir(plage, essai, 1.0, port, versions)
+                    if trouvees:
+                        communaute = essai
+                        config["communaute"] = essai
+                        break
                 connus = [{"ip": t["ip"], "version": t["version"]} for t in trouvees]
                 config["derniere_decouverte"] = maintenant
+                journal("recherche du réseau %s : %d équipement(s) répondent (%s)"
+                        % (plage, len(trouvees), ", ".join(t["ip"] for t in trouvees[:8]) or "aucun"))
+                if not trouvees:
+                    DIAG["constat"] = "aucun équipement ne répond en SNMP sur %s (ce PC : %s)" % (plage, R.adresse_locale())
             except Exception as e:
                 journal("recherche du réseau impossible : %s" % e)
-    machines, imprimantes = [], []
+                DIAG["constat"] = "recherche du réseau impossible : %s" % e
+        else:
+            journal("recherche du réseau impossible : adresse de l'ordinateur sur le réseau local introuvable")
+            DIAG["constat"] = "adresse de l'ordinateur sur le réseau local introuvable"
+    # adresses ajoutées à la main par LEVAD (copieurs hors de la plage de la recherche automatique)
+    manuelles = [ip for ip in config.get("ips_manuelles", []) if ip not in [c["ip"] for c in connus]]
+    connus = connus + [{"ip": ip, "version": None} for ip in manuelles]
+    machines, imprimantes, sans_reponse = [], [], []
     for c in connus:
         v = versions if c.get("version") is None else (c["version"],)
         try:
-            r = R.lire_machine(c["ip"], "public", 2.0, port, v)
+            r = R.lire_machine(c["ip"], communaute, 2.0, port, v)
         except Exception as e:
             journal("lecture de %s impossible : %s" % (c["ip"], e))
             continue
+        if c["ip"] in config.get("ips_manuelles", []) and not r.get("repond"):
+            sans_reponse.append(c["ip"])
         if _est_imprimante(r):
             r.pop("brut", None)           # le détail brut n'est pas envoyé en lecture automatique
             r["est_imprimante"] = True
             machines.append(r)
             imprimantes.append({"ip": c["ip"], "version": 1 if r.get("version_snmp") == "v2c" else 0})
+    if sans_reponse:
+        DIAG["constat"] = "adresse(s) ajoutée(s) à la main sans réponse : %s" % ", ".join(sans_reponse[:6])
+    elif connus and not machines:
+        DIAG["constat"] = "%d équipement(s) répondent sur le réseau mais aucun n'est un copieur lisible" % len(connus)
     config["copieurs"] = imprimantes
     return machines
 
@@ -197,11 +275,15 @@ def lire_les_copieurs(config):
 def lire_et_envoyer(config, commande_ids=()):
     machines = lire_les_copieurs(config)
     reponse = appel(config, "/api/agent/releve", {
-        "pc": socket.gethostname(), "systeme": R.platform.platform(), "version_programme": VERSION_AGENT,
+        "pc": nom_du_poste(), "systeme": R.platform.platform(), "version_programme": VERSION_AGENT,
         "machines": machines, "commandeIds": list(commande_ids)})
     config["derniere_lecture"] = time.time()
     ecrire_config(config)
-    DIAG["derniereLectureOk"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    if machines:
+        DIAG.pop("constat", None)
+        DIAG["derniereLectureOk"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    elif DIAG.get("constat"):
+        noter_erreur("lecture : " + DIAG["constat"])   # reste affichée dans Connexions tant qu'aucun copieur n'est lu
     journal("relevé envoyé : %d copieur(s)" % len(machines))
     return len(machines), reponse
 
@@ -232,7 +314,13 @@ def chercher_mise_a_jour(config):
         info = json.loads(r.read().decode("utf-8"))
     if _numeros(info.get("version", "0")) <= _numeros(VERSION_AGENT):
         return None
-    info["url"] = base + "/Levad-Connect.exe"
+    if sys.platform == "darwin":                  # Mac : l'application est livrée dans un zip, avec sa propre empreinte
+        mac = info.get("mac") or {}
+        if not mac:
+            return None
+        info.update({"url": base + "/Levad-Connect-Mac.zip", "sha256": mac.get("sha256", ""), "taille": mac.get("taille", 0), "signe": False})
+    else:
+        info["url"] = base + "/Levad-Connect.exe"
     return info
 
 
@@ -283,7 +371,7 @@ def appliquer_mise_a_jour(nouveau, actuel, ancien):
     if sys.platform != "win32":
         os.chmod(nouveau, 0o755)
     essai = subprocess.run([nouveau, "--verifier"], timeout=120, stdin=subprocess.DEVNULL,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **options)
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=_environnement_propre(), **options)
     if essai.returncode != 0:
         os.remove(nouveau)
         raise RuntimeError("la nouvelle version ne démarre pas (code %s)" % essai.returncode)
@@ -291,6 +379,10 @@ def appliquer_mise_a_jour(nouveau, actuel, ancien):
         os.remove(ancien)
     except OSError:
         pass
+    if os.path.exists(ancien):
+        # l'ancien fichier est encore utilisé (un reste de programme tourne toujours) : on prend un autre nom au lieu d'échouer
+        base, ext = os.path.splitext(ancien)
+        ancien = "%s-%d%s" % (base, int(time.time()), ext)
     os.replace(actuel, ancien)
     try:
         os.replace(nouveau, actuel)
@@ -299,12 +391,47 @@ def appliquer_mise_a_jour(nouveau, actuel, ancien):
         raise
 
 
+def _mise_a_jour_mac(info, etat):
+    """Mac : télécharge le zip, vérifie son empreinte, fait l'essai de démarrage de la nouvelle application puis la met en place."""
+    app = _dossier_app_installee()
+    if not os.path.isdir(app):
+        return                                    # lancé depuis le dossier de téléchargement : rien à remplacer
+    archive, dossier, ancien = _chemin("maj-mac.zip"), _chemin("maj-mac"), _chemin("Levad Connect.old.app")
+    telecharger_et_verifier(info, archive)
+    shutil.rmtree(dossier, ignore_errors=True)
+    os.makedirs(dossier)
+    subprocess.run(["ditto", "-x", "-k", archive, dossier], check=True, timeout=300)
+    nouveau = os.path.join(dossier, "Levad Connect.app")
+    subprocess.run(["xattr", "-cr", nouveau], capture_output=True, timeout=60)
+    essai = subprocess.run([os.path.join(nouveau, "Contents", "MacOS", "Levad Connect"), "--verifier"], timeout=120,
+                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=_environnement_propre())
+    if essai.returncode != 0:
+        raise RuntimeError("la nouvelle version ne démarre pas (code %s)" % essai.returncode)
+    shutil.rmtree(ancien, ignore_errors=True)
+    os.rename(app, ancien)
+    try:
+        os.rename(nouveau, app)
+    except OSError:
+        os.rename(ancien, app)
+        raise
+    shutil.rmtree(dossier, ignore_errors=True)
+    try:
+        os.remove(archive)
+    except OSError:
+        pass
+    journal("mise à jour vers la version %s installée : redémarrage" % info.get("version"))
+    etat["redemarrer"] = True
+
+
 def _mise_a_jour(config, etat):
-    """Vérifie s'il existe une nouvelle version et l'installe. Ne s'applique qu'au programme installé sous Windows."""
+    """Vérifie s'il existe une nouvelle version et l'installe (Windows : le programme installé ; Mac : l'application installée)."""
     info = chercher_mise_a_jour(config)
     if info is None:
         return
     journal("nouvelle version %s disponible (actuelle : %s)" % (info.get("version"), VERSION_AGENT))
+    if sys.platform == "darwin" and getattr(sys, "frozen", False):
+        _mise_a_jour_mac(info, etat)
+        return
     if getattr(sys, "frozen", False) and sys.platform == "win32":
         actuel = _commande_agent()[0]
     elif os.environ.get("LEVAD_MAJ_ACTUEL"):      # essais seulement : un faux programme à remplacer
@@ -350,11 +477,18 @@ def boucle(max_tours=None):
         ecrire_config(config)
     if max_tours is None:
         _assurer_surveillance()       # les installations de la version 1.0 reçoivent aussi la tâche de relance
-    for reste in ("Levad-Connect.old.exe", "Levad-Connect.new.exe"):      # restes d'une mise à jour précédente
+    restes = ["Levad-Connect.old.exe", "Levad-Connect.new.exe", "maj-mac.zip"]
+    try:
+        restes += [f for f in os.listdir(_chemin("")) if re.match(r"^Levad-Connect\.old-\d+\.exe$", f)]
+    except OSError:
+        pass
+    for reste in restes:      # restes d'une mise à jour précédente
         try:
             os.remove(_chemin(reste))
         except OSError:
             pass
+    for reste in ("Levad Connect.old.app", "maj-mac"):
+        shutil.rmtree(_chemin(reste), ignore_errors=True)
     maj = {"fil": None, "prochaine": time.time() + float(os.environ.get("LEVAD_MAJ_DELAI", 120)), "redemarrer": False}
     tours = 0
     lecteur = {"fil": None}           # la lecture des copieurs se fait à part : elle ne retarde jamais le signal de vie
@@ -381,6 +515,10 @@ def boucle(max_tours=None):
         if maj["redemarrer"]:
             journal("redémarrage sur la nouvelle version")
             verrou.close()                         # libère le verrou pour que la nouvelle version puisse démarrer
+            if sys.platform == "darwin" and os.path.exists(_plist_mac()):
+                _launchctl("kickstart", "-k", "gui/%d/%s" % (os.getuid(), LABEL_MAC))   # launchd relance la nouvelle application
+                time.sleep(5)
+                return 0
             lancer_en_fond(_commande_agent())
             return 0
         if time.time() >= maj["prochaine"] and not (maj["fil"] is not None and maj["fil"].is_alive()):
@@ -395,6 +533,10 @@ def boucle(max_tours=None):
             maj["fil"].start()
         try:
             reponse = signal_de_vie(config)
+            ips = [x for x in reponse.get("ips", []) if isinstance(x, str)]
+            if ips != config.get("ips_manuelles", []):
+                config["ips_manuelles"] = ips
+                ecrire_config(config)
             premier_refus = None
             occupe = lecteur["fil"] is not None and lecteur["fil"].is_alive()
             echeance = time.time() - config.get("derniere_lecture", 0) >= reponse.get("intervalleMinutes", 30) * 60
@@ -427,9 +569,78 @@ CLE_DEMARRAGE = r"Software\Microsoft\Windows\CurrentVersion\Run"
 NOM_DEMARRAGE = "LevadConnect"
 
 
+# --- Mac : l'application est copiée dans le dossier de données et lancée par launchd (agent utilisateur, sans mot de passe) ---
+LABEL_MAC = "fr.levad.connect.agent"
+
+
+def _dossier_app_installee():
+    return os.path.join(dossier_donnees(), "Levad Connect.app")
+
+
+def _plist_mac():
+    return os.path.join(os.path.expanduser("~"), "Library", "LaunchAgents", LABEL_MAC + ".plist")
+
+
+def _app_courante():
+    """Le dossier « .app » dans lequel ce programme tourne (None hors application)."""
+    p = os.path.abspath(sys.executable)
+    while True:
+        if p.endswith(".app"):
+            return p
+        parent = os.path.dirname(p)
+        if parent == p:
+            return None
+        p = parent
+
+
+def _launchctl(*args):
+    return subprocess.run(["launchctl", *args], capture_output=True, timeout=30)
+
+
+def _contenu_plist_mac(commande):
+    return {
+        "Label": LABEL_MAC,
+        "ProgramArguments": list(commande),
+        "RunAtLoad": True,
+        "KeepAlive": {"SuccessfulExit": False},        # relancé s'il s'arrête de façon imprévue ; reste arrêté après une désinstallation
+        "ThrottleInterval": 30,
+        "ProcessType": "Background",
+        "StandardErrorPath": _chemin("launchd.log"),
+        "StandardOutPath": _chemin("launchd.log"),
+    }
+
+
+def _installer_lancement_mac(commande):
+    """Mac : démarrage automatique à l'ouverture de session. Retourne True si launchd a pris le relais."""
+    import plistlib
+    chemin = _plist_mac()
+    os.makedirs(os.path.dirname(chemin), exist_ok=True)
+    with open(chemin, "wb") as f:
+        plistlib.dump(_contenu_plist_mac(commande), f)
+    cible = "gui/%d" % os.getuid()
+    _launchctl("bootout", "%s/%s" % (cible, LABEL_MAC))
+    ok = _launchctl("bootstrap", cible, chemin).returncode == 0 or _launchctl("load", "-w", chemin).returncode == 0
+    if not ok:
+        journal("démarrage automatique non installé (launchctl a refusé)")
+    return ok
+
+
+def _retirer_lancement_mac():
+    try:
+        _launchctl("bootout", "gui/%d/%s" % (os.getuid(), LABEL_MAC))
+    except Exception:
+        pass
+    try:
+        os.remove(_plist_mac())
+    except OSError:
+        pass
+
+
 def _commande_agent():
     """La commande qui lance le programme résident."""
     if getattr(sys, "frozen", False):
+        if sys.platform == "darwin":
+            return [os.path.join(_dossier_app_installee(), "Contents", "MacOS", "Levad Connect"), "--agent"]
         return [os.path.join(dossier_donnees(), "Levad-Connect.exe"), "--agent"]
     return [sys.executable, os.path.abspath(sys.argv[0]), "--agent"]
 
@@ -444,7 +655,15 @@ def installer(code, serveur=None, avec_demarrage_auto=True):
         os.remove(_chemin("arret"))
     except OSError:
         pass
-    if getattr(sys, "frozen", False):
+    if getattr(sys, "frozen", False) and sys.platform == "darwin":
+        source, destination = _app_courante(), _dossier_app_installee()
+        if source and os.path.abspath(source) != os.path.abspath(destination):
+            if avec_demarrage_auto:
+                _retirer_lancement_mac()                      # arrête une ancienne installation avant de la remplacer
+            shutil.rmtree(destination, ignore_errors=True)
+            subprocess.run(["ditto", "--noqtn", source, destination], check=True, timeout=300)
+            subprocess.run(["xattr", "-cr", destination], capture_output=True, timeout=60)
+    elif getattr(sys, "frozen", False):
         destination = _commande_agent()[0]
         if os.path.abspath(sys.executable) != os.path.abspath(destination):
             shutil.copy2(sys.executable, destination)
@@ -456,6 +675,8 @@ def installer(code, serveur=None, avec_demarrage_auto=True):
     journal("installé (code %s…)" % code[:4])
     if avec_demarrage_auto:
         _assurer_surveillance()
+    if avec_demarrage_auto and sys.platform == "darwin" and getattr(sys, "frozen", False) and _installer_lancement_mac(commande):
+        return                                                # launchd a démarré le programme
     lancer_en_fond(commande)
 
 
@@ -485,9 +706,19 @@ def _retirer_surveillance():
         pass
 
 
+def _environnement_propre():
+    """L'environnement pour lancer une autre copie de ce programme. Un programme PyInstaller « à fichier unique » qui en relance
+    un autre (même fichier, ou fichier remplacé par une mise à jour) lui transmet ses variables internes : le nouveau
+    réutiliserait alors le dossier temporaire de l'ancien, supprimé dès que celui-ci s'arrête (erreur « DLL load failed
+    while importing _tkinter »). On les retire pour que le nouveau programme s'installe dans son propre dossier."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("_PYI") and k != "_MEIPASS2"}
+    env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
+    return env
+
+
 def lancer_en_fond(commande):
     """Lance le programme résident sans fenêtre et indépendamment de celle-ci."""
-    options = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+    options = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL, "env": _environnement_propre()}
     if sys.platform == "win32":
         options["creationflags"] = 0x00000008 | 0x00000200 | 0x08000000   # DETACHED | NEW_GROUP | NO_WINDOW
     else:
@@ -506,10 +737,22 @@ def desinstaller(avec_demarrage_auto=True):
             pass
     if avec_demarrage_auto:
         _retirer_surveillance()
+        # prévient LEVAD (historique du lien) ; sans conséquence si le réseau est coupé
+        try:
+            config = lire_config()
+            if config.get("code"):
+                appel(config, "/api/agent/ping", {"pc": nom_du_poste(), "version": VERSION_AGENT, "desinstalle": True}, delai=10)
+        except Exception:
+            pass
     os.makedirs(dossier_donnees(), exist_ok=True)
     with open(_chemin("arret"), "w") as f:
         f.write("arrêt")
     journal("désinstallation demandée")
+    if avec_demarrage_auto and sys.platform == "darwin" and getattr(sys, "frozen", False):
+        _retirer_lancement_mac()                              # arrête aussitôt le programme résident
+        dossier = dossier_donnees()
+        subprocess.Popen(["sh", "-c", 'sleep 3; rm -rf "%s/Levad Connect.app" "%s/Levad Connect.old.app" "%s/maj-mac" "%s/config.json" "%s/config.bak" "%s/arret"'
+                          % ((dossier,) * 6)], start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def _nettoyer_apres_arret():

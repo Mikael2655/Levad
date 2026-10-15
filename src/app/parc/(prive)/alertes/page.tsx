@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Badge, Encres, depuis, formaterDate } from '@/components/connect/affichage'
+import { groupesParSite } from '@/lib/connect/libelle'
 import { COULEURS, NOM_COULEUR, clientsEnAlerte, type ClientEtat, type MachineEtat } from '@/lib/connect/alertes'
 
 export const dynamic = 'force-dynamic'
@@ -7,10 +8,11 @@ export const dynamic = 'force-dynamic'
 function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
   const encres = m.couleurs.map((c) => ({ couleur: c.couleur, pourcent: c.pourcent }))
   const seuils = Object.fromEntries(m.couleurs.map((c) => [c.couleur, c.seuil]))
+  const etats = Object.fromEntries(m.couleurs.map((c) => [c.couleur, { bas: c.bas, jours: c.jours, mode: c.mode, alerte: c.alerte }]))
   return (
     <Link href={`/parc/machine/${m.id}`} className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.2fr_2fr_1fr]">
       <div>
-        <p className="font-semibold">{m.nom}<span className="font-normal text-gray-500"> · {m.site}</span></p>
+        <p className="font-semibold">{m.nom}</p>
         {m.enAlerte ? (
           <p className="mt-1 text-sm font-semibold text-red-600">
             {m.couleurs
@@ -23,7 +25,7 @@ function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
         )}
       </div>
       <div>
-        <Encres encres={encres} seuils={seuils} stock={m.stock} />
+        <Encres encres={encres} seuils={seuils} stock={m.stock} etats={etats} />
         <p className="mt-1 text-xs text-gray-500">Stock : {COULEURS.map((k) => `${NOM_COULEUR[k]} ${m.stock[k]}`).join(' · ')}</p>
       </div>
       <p className="text-sm text-gray-500 md:text-right" title={m.dernierReleve ? formaterDate(m.dernierReleve) : undefined}>
@@ -45,8 +47,8 @@ export default async function AlertesPage() {
     <>
       <h1 className="text-2xl font-bold">Alerte encre</h1>
       <p className="mt-1 text-gray-600">
-        Un client est en alerte pour une couleur quand son niveau est sous le seuil <strong>et</strong> qu&apos;il n&apos;a
-        plus de cartouche de cette couleur en stock. Seules les machines Canon suivies par LEVAD sont concernées.
+        Un client est en alerte pour une couleur quand il lui reste <strong>moins de 10 jours d&apos;encre</strong> (estimés d&apos;après sa consommation récente) <strong>et</strong> qu&apos;il n&apos;a
+        plus de cartouche de cette couleur en stock. Après un changement de cartouche, la consommation de la cartouche précédente est reprise. Faute d&apos;historique suffisant (machine récemment installée), c&apos;est le seuil en % de la machine qui s&apos;applique. Seules les machines Canon suivies par LEVAD sont concernées.
       </p>
 
       {clients.length === 0 ? (
@@ -70,11 +72,16 @@ export default async function AlertesPage() {
                     </Link>
                   </div>
                 </div>
-                <div className="divide-y rounded-xl border bg-white">
-                  {[...c.machines].sort((a, b) => Number(b.enAlerte) - Number(a.enAlerte)).map((m) => (
-                    <LigneMachine key={m.id} m={m} client={c} />
-                  ))}
-                </div>
+                {groupesParSite(c.machines).map(([site, lesMachines], gi) => (
+                  <div key={site} className={gi > 0 ? 'mt-4' : ''}>
+                    <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>
+                    <div className="divide-y rounded-xl border bg-white">
+                      {[...lesMachines].sort((a, b) => Number(b.enAlerte) - Number(a.enAlerte)).map((m) => (
+                        <LigneMachine key={m.id} m={m} client={c} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
                 {c.machines.some((m) => !m.enAlerte) && (
                   <p className="mt-2 text-xs text-gray-500">
                     <Badge>Info</Badge> Les autres machines du client sont affichées pour pouvoir grouper une livraison.
