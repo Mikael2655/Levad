@@ -17,6 +17,9 @@ export default async function ClientPage({ params }: { params: { id: string } })
     include: { machines: true, postes: { orderBy: { derniereConnexion: 'desc' } }, evenementsLien: true },
   })
   if (!client) notFound()
+  // adresse proposée par défaut : celle du dernier envoi du lien (sinon celle enregistrée sur le client)
+  const dernierEnvoi = client.evenementsLien.filter((e) => e.type === 'envoye' && e.detail).sort((a, b) => b.date.getTime() - a.date.getTime())[0]
+  const emailParDefaut = dernierEnvoi?.detail ?? client.email ?? ''
   const historique = [
     ...client.evenementsLien.map((e) => ({
       date: e.date,
@@ -98,7 +101,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
               <input type="hidden" name="id" value={client.id} />
               <label className="grow text-sm font-medium text-gray-700">
                 Envoyer ce lien par mail à
-                <input type="text" inputMode="email" name="email" defaultValue={client.email ?? ''} placeholder="adresse du client (plusieurs : séparées par ;)" required className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+                <input type="text" inputMode="email" name="email" defaultValue={emailParDefaut} placeholder="adresse du client (plusieurs : séparées par ;)" required className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
               </label>
               <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>
                 Envoyer le lien
@@ -133,7 +136,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
 
         <Formulaire action={majClient} message="Enregistré" className="mt-6 grid gap-4 border-t pt-4 md:grid-cols-3">
           <input type="hidden" name="id" value={client.id} />
-          <input type="hidden" name="email" value={client.email ?? ''} />
+          <input type="hidden" name="email" value={emailParDefaut} />
           <label className="text-sm font-medium text-gray-700">
             Mode de relevé
             <select name="modeReleve" defaultValue={client.modeReleve} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
