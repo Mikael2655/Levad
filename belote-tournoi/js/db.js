@@ -86,12 +86,12 @@
   FirebaseDB.prototype.createTournament = function (tid, config) {
     var doc = this._doc(tid);
     var isKo = config.format === 'ko';
-    var teams = isKo ? L.makeKoTeams(config.numTeams) : L.makeTeams(config.numPools, config.poolSize);
-    var matches = isKo ? [] : L.makePoolMatches(config.numPools, config.poolSize);
+    // Formats à poules : les équipes et les matchs sont générés au tirage
+    // (tailles de poules variables selon le nombre d'inscrits).
+    var teams = isKo ? L.makeKoTeams(config.numTeams) : [];
     var batch = this.fb.batch();
     batch.set(doc, Object.assign({ id: tid, createdAt: now() }, config));
     teams.forEach(function (t) { batch.set(doc.collection('teams').doc(t.id), t); });
-    matches.forEach(function (m) { batch.set(doc.collection('matches').doc(m.id), m); });
     return batch.commit();
   };
   FirebaseDB.prototype.listTournaments = function () {
@@ -197,28 +197,50 @@
       return batch.commit();
     });
   };
-  // Place (ou replace) toutes les équipes de la liste dans des places tirées au sort.
+  // Tire au sort : répartit la liste dans les poules (tailles équilibrées) et
+  // (re)génère équipes + matchs de poule. Annule un éventuel tableau.
   FirebaseDB.prototype.drawTeams = function (tid) {
-    var self = this;
-    return this._loadRoster(tid).then(function (s) {
-      if (s.roster.length > s.teams.length) return Promise.reject(new Error('TROP_D_EQUIPES'));
-      var names = shuffle(s.roster), slots = shuffle(s.teams.slice());
+    var self = this, doc = this._doc(tid);
+    return Promise.all([doc.get(), doc.collection('teams').get(), doc.collection('matches').get()]).then(function (res) {
+      var cfg = res[0].data() || {}, oldTeams = [];
+      res[1].forEach(function (d) { oldTeams.push(d.data()); });
+      var roster = deriveRoster(cfg, oldTeams);
+      if (!roster.length) return Promise.reject(new Error('VIDE'));
+      var draw = L.buildPoolDraw(shuffle(roster), cfg.numPools, now());
       var batch = self.fb.batch();
-      slots.forEach(function (t, i) {
-        var r = names[i], ref = s.doc.collection('teams').doc(t.id);
-        if (r) batch.update(ref, { assigned: true, name: r.name, rid: r.id, assignedAt: now() });
-        else batch.update(ref, { assigned: false, name: '', rid: null, assignedAt: null });
-      });
-      batch.set(s.doc, { roster: s.roster, drawnAt: now() }, { merge: true });
+      res[1].forEach(function (d) { batch.delete(d.ref); });
+      res[2].forEach(function (d) { batch.delete(d.ref); });
+      draw.teams.forEach(function (t) { batch.set(doc.collection('teams').doc(t.id), t); });
+      draw.matches.forEach(function (m) { batch.set(doc.collection('matches').doc(m.id), m); });
+      batch.set(doc, { roster: roster, drawnAt: now(), bracket: null, phase: 'setup' }, { merge: true });
       return batch.commit();
     });
   };
-  // Efface les placements (les équipes restent dans la liste).
+  // Efface le tirage : supprime équipes + matchs générés (la liste reste).
   FirebaseDB.prototype.clearDraw = function (tid) {
     var self = this, doc = this._doc(tid);
-    return doc.collection('teams').get().then(function (qs) {
+    return Promise.all([doc.get(), doc.collection('teams').get(), doc.collection('matches').get()]).then(function (res) {
+      var cfg = res[0].data() || {}, teams = [];
+      res[1].forEach(function (d) { teams.push(d.data()); });
+      var roster = deriveRoster(cfg, teams);
       var batch = self.fb.batch();
-      qs.forEach(function (d) { batch.update(d.ref, { assigned: false, name: '', rid: null, assignedAt: null }); });
+      res[1].forEach(function (d) { batch.delete(d.ref); });
+      res[2].forEach(function (d) { batch.delete(d.ref); });
+      batch.set(doc, { roster: roster, bracket: null, phase: 'setup' }, { merge: true });
+      return batch.commit();
+    });
+  };
+  // Change le nombre de poules : efface le tirage (à re-tirer), garde la liste.
+  FirebaseDB.prototype.setNumPools = function (tid, n) {
+    var self = this, doc = this._doc(tid);
+    return Promise.all([doc.get(), doc.collection('teams').get(), doc.collection('matches').get()]).then(function (res) {
+      var cfg = res[0].data() || {}, teams = [];
+      res[1].forEach(function (d) { teams.push(d.data()); });
+      var roster = deriveRoster(cfg, teams);
+      var batch = self.fb.batch();
+      res[1].forEach(function (d) { batch.delete(d.ref); });
+      res[2].forEach(function (d) { batch.delete(d.ref); });
+      batch.set(doc, { numPools: n, roster: roster, bracket: null, phase: 'setup' }, { merge: true });
       return batch.commit();
     });
   };
@@ -326,12 +348,20 @@
   };
   LocalDB.prototype.createTournament = function (tid, config) {
     var isKo = config.format === 'ko';
-    var teams = isKo ? L.makeKoTeams(config.numTeams) : L.makeTeams(config.numPools, config.poolSize);
-    var matches = {};
-    if (!isKo) L.makePoolMatches(config.numPools, config.poolSize).forEach(function (m) { matches[m.id] = m; });
+    // Poules : équipes et matchs générés au tirage (tailles variables).
+    var teams = isKo ? L.makeKoTeams(config.numTeams) : [];
     localStorage.setItem(this._key(tid, 'teams'), JSON.stringify(teams));
-    localStorage.setItem(this._key(tid, 'matches'), JSON.stringify(matches));
+    localStorage.setItem(this._key(tid, 'matches'), JSON.stringify({}));
     return this._write(tid, 'config', Object.assign({ id: tid, createdAt: now() }, config));
+  };
+  LocalDB.prototype.setNumPools = function (tid, n) {
+    var cfg = this._read(tid, 'config', {}) || {};
+    var teams = this._read(tid, 'teams', []);
+    cfg.roster = deriveRoster(cfg, teams);
+    cfg.numPools = n; cfg.bracket = null; cfg.phase = 'setup';
+    localStorage.setItem(this._key(tid, 'teams'), JSON.stringify([]));
+    localStorage.setItem(this._key(tid, 'matches'), JSON.stringify({}));
+    return this._write(tid, 'config', cfg);
   };
   LocalDB.prototype.resizeTournament = function (tid, numPools, poolSize) {
     var cfg = this._read(tid, 'config', null);
@@ -403,21 +433,21 @@
     var cfg = this._read(tid, 'config', {}) || {};
     var teams = this._read(tid, 'teams', []);
     var roster = deriveRoster(cfg, teams);
-    if (roster.length > teams.length) return Promise.reject(new Error('TROP_D_EQUIPES'));
-    var names = shuffle(roster), slots = shuffle(teams.slice());
-    slots.forEach(function (t, i) {
-      var r = names[i];
-      if (r) { t.assigned = true; t.name = r.name; t.rid = r.id; t.assignedAt = now(); }
-      else { t.assigned = false; t.name = ''; t.rid = null; t.assignedAt = null; }
-    });
-    cfg.roster = roster; cfg.drawnAt = now();
-    localStorage.setItem(this._key(tid, 'teams'), JSON.stringify(teams));
+    if (!roster.length) return Promise.reject(new Error('VIDE'));
+    var draw = L.buildPoolDraw(shuffle(roster), cfg.numPools, now());
+    var matchMap = {}; draw.matches.forEach(function (m) { matchMap[m.id] = m; });
+    cfg.roster = roster; cfg.drawnAt = now(); cfg.bracket = null; cfg.phase = 'setup';
+    localStorage.setItem(this._key(tid, 'teams'), JSON.stringify(draw.teams));
+    localStorage.setItem(this._key(tid, 'matches'), JSON.stringify(matchMap));
     return this._write(tid, 'config', cfg);
   };
   LocalDB.prototype.clearDraw = function (tid) {
+    var cfg = this._read(tid, 'config', {}) || {};
     var teams = this._read(tid, 'teams', []);
-    teams.forEach(function (t) { t.assigned = false; t.name = ''; t.rid = null; t.assignedAt = null; });
-    return this._write(tid, 'teams', teams);
+    cfg.roster = deriveRoster(cfg, teams); cfg.bracket = null; cfg.phase = 'setup';
+    localStorage.setItem(this._key(tid, 'teams'), JSON.stringify([]));
+    localStorage.setItem(this._key(tid, 'matches'), JSON.stringify({}));
+    return this._write(tid, 'config', cfg);
   };
   LocalDB.prototype.renameTeam = function (tid, teamId, name) {
     var teams = this._read(tid, 'teams', []);

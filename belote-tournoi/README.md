@@ -20,33 +20,27 @@ plusieurs appareils).
   - **Poules seulement** : classement des poules, sans tableau.
   - **Élimination directe** : tableau tiré au sort (4, 8, 16 ou 32 équipes),
     sans poules.
-  Pour les formats à poules on choisit le **nombre de poules**, le **nombre
-  d'équipes par poule** et le **nombre de qualifiés par poule** pour le
-  tableau (petits tournois de 4 ou 8 équipes possibles : ex. 1 poule de 4,
-  ou 8 équipes en élimination directe). Le **nombre de qualifiés par poule**
-  pilote le 1er tour du tableau : ex. **4 poules × 2 qualifiés → 1/4 de
-  finale** (8 équipes), **6 poules × 2 → 1/8** (16, complété par les
-  meilleurs 3es). Quand (qualifiés × poules) n'est pas une puissance de 2,
-  l'appli **repêche** les meilleurs suivants pour compléter le tableau.
-  Seuls les réglages qui **« tombent juste »** (tableau rempli, **sans
-  exempt**) sont acceptés : l'aperçu indique les nombres de qualifiés
-  possibles (ex. 6 poules de 4 → 1 ou 2 ; 4 poules de 4 → 1, 2, 3 ou 4).
-  Réglable aussi après coup dans l'onglet **Réglages**, tant qu'aucun score
-  n'est saisi.
+  Pour les formats à poules on choisit seulement le **nombre de poules** : les
+  équipes inscrites sont **réparties au hasard** en poules de tailles
+  **équilibrées** (elles peuvent donc être inégales — ex. **22 équipes en
+  4 poules → 6, 6, 5, 5**). Le nombre d'équipes par poule n'est pas fixé à
+  l'avance : on inscrit autant d'équipes qu'on veut.
 - **Administration** (protégée par un code) :
   1. **Saisir les équipes** : on prépare d'abord la **liste** de toutes les
      équipes (ajout, renommage, suppression). Puis, d'un seul bouton
-     **« Tirer au sort les placements »**, l'appli place chaque équipe au
-     hasard (poule + numéro, ou position dans le tableau). On peut
-     **relancer** ou **effacer** le tirage tant que le tournoi n'a pas
-     démarré (effacer garde la liste mais libère les places) ; une fois
-     un score saisi, la liste et les placements sont figés. Chaque action
-     affiche un indicateur **« en cours »** puis une confirmation.
+     **« Tirer au sort la répartition »**, l'appli répartit les équipes au
+     hasard dans les poules. On peut **relancer** ou **effacer** le tirage
+     tant que le tournoi n'a pas démarré ; une fois un score saisi, la liste
+     et les placements sont figés. Chaque action affiche un indicateur
+     **« en cours »** puis une confirmation.
   2. **Saisir les scores** des matchs (poules et/ou tableau).
-  3. En format « poules + tableau », **clôturer les poules** génère le tableau
-     final (têtes de série tirées du classement).
-- **Classement** (vue publique, partageable) : classement des poules,
-  meilleurs 3es, et tableau final en direct — selon le format choisi.
+  3. En format « poules + tableau », **clôturer les poules** : on **choisit le
+     tour de départ** du tableau (1/16, 1/8, 1/4, 1/2 ou finale). L'appli
+     qualifie en conséquence les meilleures équipes (les 1ers, puis les 2es,
+     puis les meilleurs 3es…) pour remplir exactement ce tableau, têtes de
+     série tirées du classement.
+- **Classement** (vue publique, partageable) : classement des poules et
+  tableau final en direct — selon le format choisi.
 
 ## Saisie par les équipes (QR par équipe)
 
@@ -69,24 +63,24 @@ mode local (un seul appareil), seul l'organisateur peut saisir.
 
 ## Règles du tournoi
 
-- **Poules de 4 équipes** (au moins 6 poules recommandées). Chaque équipe
-  rencontre les 3 autres.
+- **Poules de taille libre** (4, 5, 6… équipes), réparties au hasard et
+  équilibrées. Chaque équipe rencontre toutes les autres de sa poule.
 - Matchs de poule en **1500 points**. **Victoire = 1 pt**, **défaite = 0**.
   **Victoire par rubicon** (le gagnant atteint au moins le **double** des
   points de l'adversaire) = **2 pts**.
 - Départage : **points**, puis **goal-average** (différence de points), puis
   **total de points marqués**.
-- Les **N premiers** de chaque poule (N = qualifiés par poule, réglable) +
-  éventuellement les **meilleurs repêchés** (les (N+1)èmes) sont qualifiés.
-  Le tableau a une taille en puissance de 2 : **6 poules × 2 → 1/8 à 16**,
-  **4 poules × 2 → 1/4 à 8**.
+- **Qualification** : on **choisit le tour de départ** du tableau (taille en
+  puissance de 2 ≤ nombre d'équipes). L'appli qualifie alors les meilleures
+  équipes par priorité : **tous les 1ers de poule**, puis **tous les 2es**,
+  puis **les meilleurs 3es**… jusqu'à remplir le tableau. Ex. 4 poules →
+  tableau de 8 : les 4 1ers + les 4 2es ; tableau de 16 : 1ers + 2es + 3es +
+  meilleurs 4es.
 - **Tirage du 1er tour du tableau** (même règle quel que soit le format) :
   deux équipes d'une **même poule** ne se rencontrent jamais, et **deux 1ers
   de poule** ne se rencontrent jamais (quand c'est possible). Les **1ers**
   sont toujours **avantagés** : ils tombent sur une équipe moins bien classée
-  — un **repêché** (3e…) en priorité, sinon un **2e**. Ex. à 6 poules × 2 :
-  4 meilleurs 3es → 4 « 1er contre 3e », les 2 autres 1ers → « 1er contre
-  2e », et les 2es restants s'affrontent entre eux.
+  (un 3e en priorité, sinon un 2e).
 - **Tous les matchs se jouent en 1500 points** (1/8, 1/4, 1/2), **sauf la
   finale et la petite finale** (3e place) en **2000 points**.
 - Tous les matchs du tableau sont des **matchs secs** (pas d'aller-retour) :
