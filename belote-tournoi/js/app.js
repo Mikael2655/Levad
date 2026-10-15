@@ -21,6 +21,7 @@
              bracketChoice: null, tourList: null };
   var screen = document.getElementById('screen');
   var pendingRender = false;
+  var lastRenderRoute = null;
 
   /* ---- Utilitaires ------------------------------------------------- */
   function esc(s) {
@@ -63,6 +64,18 @@
       parts.push('les ' + n + ' ' + (rk <= 2 ? ordinalFr(rk) + 's' : 'meilleurs ' + ordinalFr(rk) + 's'));
     });
     return parts.join(' + ');
+  }
+  // Ensemble des équipes qualifiées pour le tableau (selon le tour de départ
+  // choisi). null si pas de tableau (poules seules / élimination directe).
+  function qualSet() {
+    var c = store.config;
+    if (!c || fmt() !== 'pools') return null;
+    var size = chosenBracketSize(teamCount());
+    if (!size) return null;
+    var standings = L.allStandings(c.numPools, store.teams, store.matches);
+    var set = {};
+    L.qualifyFor(c.numPools, standings, size).seeds.forEach(function (r) { if (r) set[r.teamId] = true; });
+    return set;
   }
   function formatLabel(f) {
     return { pools: 'Poules + tableau', poolsonly: 'Poules seulement', ko: 'Élimination directe' }[f] || 'Poules + tableau';
@@ -223,6 +236,15 @@
     else { chip.hidden = true; }
 
     var route = (location.hash || '#/').split('?')[0];
+    // Conserve la position de défilement quand on re-rend la même vue (ex. mise
+    // à jour temps réel d'un score) : sinon l'écran « remonte » tout seul.
+    var keepScroll = (route === lastRenderRoute);
+    var y = keepScroll ? (window.scrollY || window.pageYOffset || 0) : 0;
+    renderRoute(route);
+    lastRenderRoute = route;
+    if (keepScroll && y) window.scrollTo(0, y);
+  }
+  function renderRoute(route) {
     if (route === '#/' || route === '') return renderList();
     if (route === '#/new') return renderCreate();
     if (!state.tid) { go('#/'); return; }
@@ -330,18 +352,17 @@
       '<span class="pill ' + (view === 'detail' ? 'active' : '') + '" data-act="stand-view" data-v="detail">Détaillé</span>' +
       '<span class="pill ' + (view === 'condense' ? 'active' : '') + '" data-act="stand-view" data-v="condense">Condensé (toutes poules)</span></div>';
 
-    var body, legend =
-      '<div class="legend">' +
-        '<span><i style="background:var(--green)"></i>1er</span>' +
-        '<span><i style="background:var(--gold)"></i>2e</span>' +
-        '<span><i style="background:#9aa5a0"></i>3e</span>' +
-      '</div>';
+    var qual = qualSet();
+    var legend = qual
+      ? '<div class="legend"><span><i style="background:var(--green)"></i>Qualifié pour le tableau</span></div>'
+      : '';
+    var body;
     if (view === 'condense') {
       body = '<div class="standings-grid">' + pools.map(function (P) {
-        return '<div class="mini-pool"><h4>Poule ' + P + '</h4>' + compactStandingsTable(standings[P]) + '</div>';
+        return '<div class="mini-pool"><h4>Poule ' + P + '</h4>' + compactStandingsTable(standings[P], qual) + '</div>';
       }).join('') + '</div>' + legend;
     } else {
-      body = poolTabs(pools) + standingsTable(standings[ui.poolTab]) + legend +
+      body = poolTabs(pools) + standingsTable(standings[ui.poolTab], qual) + legend +
         '<p class="sub" style="margin-top:8px">Départage : points, puis +/- (différence de points), puis total de points marqués (non affiché).</p>';
     }
     var html = backList() + '<div class="card"><h2>' + esc(c.name) + ' — Classement</h2>' + viewToggle + body + '</div>';
@@ -363,10 +384,14 @@
       return '<span class="pill ' + (P === ui.poolTab ? 'active' : '') + '" data-act="pool-tab" data-pool="' + P + '">Poule ' + P + '</span>';
     }).join('') + '</div>';
   }
-  function standingsTable(rows) {
+  function rowQualClass(r, qual) {
+    if (qual) return qual[r.teamId] ? 'qual-in' : '';
+    return 'qual-' + (r.rank <= 3 ? r.rank : 0); // pas de tableau : couleur par rang
+  }
+  function standingsTable(rows, qual) {
     if (!rows || !rows.length) return '<p class="sub">Aucune équipe.</p>';
     var body = rows.map(function (r) {
-      return '<tr class="qual-' + (r.rank <= 3 ? r.rank : 0) + '">' +
+      return '<tr class="' + rowQualClass(r, qual) + '">' +
         '<td class="rankbadge">' + r.rank + '</td>' +
         '<td class="name">' + teamName(r.team) + '<small>' + r.pool + r.slot + '</small></td>' +
         '<td>' + r.played + '</td><td>' + r.wins + '</td>' +
@@ -379,10 +404,10 @@
       '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>V</th><th>Pts</th><th>+/-</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table>';
   }
-  function compactStandingsTable(rows) {
+  function compactStandingsTable(rows, qual) {
     if (!rows || !rows.length) return '<p class="sub">—</p>';
     var body = rows.map(function (r) {
-      return '<tr class="qual-' + (r.rank <= 3 ? r.rank : 0) + '">' +
+      return '<tr class="' + rowQualClass(r, qual) + '">' +
         '<td class="rankbadge">' + r.rank + '</td>' +
         '<td class="name">' + teamNameLines(r.team) + '</td>' +
         '<td>' + r.played + '</td>' +
@@ -664,7 +689,7 @@
       return '<span class="pill ' + (P === ui.poolTab ? 'active' : '') + '" data-act="pool-tab" data-pool="' + P + '">' + P + '</span>';
     }).join('') + '</div>';
     var P = ui.poolTab;
-    var html = '<div class="card"><h2>Poule ' + P + '</h2>' + tabs + standingsTable(standings[P]) + '</div>';
+    var html = '<div class="card"><h2>Poule ' + P + '</h2>' + tabs + standingsTable(standings[P], qualSet()) + '</div>';
     var order = L.poolMatchOrder(poolSizeOf(P) || 4);
     var pm = store.matches.filter(function (m) { return m.phase === 'pool' && m.pool === P; })
       .sort(function (a, b) { return (order[a.slotA + '-' + a.slotB] || 0) - (order[b.slotA + '-' + b.slotB] || 0); });
@@ -870,7 +895,16 @@
         .then(function () { if (ev.target.id === 'rz-bracket') toast('Tour de départ enregistré.'); });
     }
   });
-  screen.addEventListener('focusout', function () { setTimeout(function () { if (pendingRender) render(); }, 50); });
+  screen.addEventListener('focusout', function () {
+    setTimeout(function () {
+      if (!pendingRender) return;
+      // Ne pas re-rendre tant qu'une saisie est en cours (ex. passage d'un
+      // champ de score à l'autre) : sinon on effacerait le score en cours.
+      var ae = document.activeElement;
+      if (ae && screen.contains(ae) && ae.tagName === 'INPUT') return;
+      render();
+    }, 50);
+  });
 
   function readScores(mid) {
     return { sa: parseInt((document.getElementById('sa-' + mid) || {}).value, 10),
