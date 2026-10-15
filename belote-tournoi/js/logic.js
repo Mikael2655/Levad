@@ -180,27 +180,46 @@
 
   function nextPow2AtLeast(n) { var p = 1; while (p < n) p *= 2; return p; }
 
-  // Taille du tableau : plus petite puissance de 2 >= 2 × nb de poules.
-  // 6 poules -> 16 (1/8 de finale) ; 8 poules -> 16 ; 5 poules -> 16 ; etc.
-  function bracketSizeFor(numPools) { return nextPow2AtLeast(2 * numPools); }
+  // Taille du tableau : plus petite puissance de 2 >= (qualifiés/poule) × poules.
+  // Défaut 2/poule : 6 poules -> 16 (1/8) ; 8 -> 16 ; 5 -> 16.
+  // 2/poule avec 4 poules -> 8 (1/4) ; 3/poule avec 4 poules -> 16 ; etc.
+  function bracketSizeFor(numPools, qualPerPool) {
+    return nextPow2AtLeast(Math.max(2, (qualPerPool || 2) * numPools));
+  }
 
   // Détermine les qualifiés à partir des classements de poules.
-  function qualifiers(numPools, standings) {
-    var size = bracketSizeFor(numPools);
-    var winners = [], runners = [], allThirds = [];
-    for (var p = 0; p < numPools; p++) {
-      var s = standings[poolLabel(p)] || [];
-      if (s[0]) winners.push(s[0]);
-      if (s[1]) runners.push(s[1]);
-      if (s[2]) allThirds.push(s[2]);
+  // `qualPerPool` : nombre d'équipes qualifiées d'office par poule (défaut 2).
+  // Si (qualPerPool × poules) n'est pas une puissance de 2, on complète le
+  // tableau avec les meilleurs (qualPerPool+1)èmes (repêchés).
+  function qualifiers(numPools, standings, qualPerPool) {
+    qualPerPool = qualPerPool || 2;
+    var size = bracketSizeFor(numPools, qualPerPool);
+    function rankList(idx) {
+      var a = [];
+      for (var p = 0; p < numPools; p++) {
+        var s = standings[poolLabel(p)] || [];
+        if (s[idx]) a.push(s[idx]);
+      }
+      a.sort(cmpStandings);
+      return a;
     }
-    winners.sort(cmpStandings);
-    runners.sort(cmpStandings);
-    allThirds.sort(cmpStandings);
-    var need = size - winners.length - runners.length;
-    var thirds = allThirds.slice(0, Math.max(0, need));
-    return { size: size, winners: winners, runners: runners,
-             thirds: thirds, allThirds: allThirds, thirdsNeeded: Math.max(0, need) };
+    var byRank = [];
+    for (var k = 0; k < qualPerPool; k++) byRank.push(rankList(k));
+    var directs = [];
+    byRank.forEach(function (lst) { directs = directs.concat(lst); });
+    var allRepechage = rankList(qualPerPool); // les (qualPerPool+1)èmes
+    var need = Math.max(0, size - directs.length);
+    var repechage = allRepechage.slice(0, need);
+    var seeds = directs.concat(repechage); // ordre des têtes de série
+    return {
+      size: size, qualPerPool: qualPerPool,
+      byRank: byRank, seeds: seeds,
+      repechage: repechage, allRepechage: allRepechage,
+      repechageNeeded: need, repechageRank: qualPerPool + 1,
+      // alias de compatibilité (cas 2/poule : repêchés = 3es)
+      winners: byRank[0] || [], runners: byRank[1] || [],
+      thirds: repechage, allThirds: allRepechage, thirdsNeeded: need
+    };
   }
 
   /* ---- Construction du tableau ------------------------------------- */
@@ -230,15 +249,12 @@
   // rencontrent jamais au 1er tour (réparée par échanges de positions, sans
   // jamais créer d'affrontement entre deux 1ers).
   // Renvoie { size, slots:[teamId|null …] } (par position de tableau).
-  function seedBracket(numPools, standings) {
-    var q = qualifiers(numPools, standings);
-    var seeds = q.winners.concat(q.runners).concat(q.thirds); // rangs -> lignes
+  function seedBracket(numPools, standings, qualPerPool) {
+    var q = qualifiers(numPools, standings, qualPerPool);
+    var seeds = q.seeds; // déjà ordonnés : 1ers, puis 2es, …, puis repêchés
     var order = seeds.map(function (r) { return r.teamId; });
     var pools = seeds.map(function (r) { return r.pool; });
-    // Rang de poule : 1 = 1er, 2 = 2e, 3 = 3e (0 = place vide / bye).
-    var ranks = q.winners.map(function () { return 1; })
-      .concat(q.runners.map(function () { return 2; }))
-      .concat(q.thirds.map(function () { return 3; }));
+    var ranks = seeds.map(function (r) { return r.rank; }); // rang de poule (1 = 1er)
     while (order.length < q.size) { order.push(null); pools.push(null); ranks.push(0); } // byes
 
     var pos = standardSeedPositions(q.size);
@@ -249,7 +265,11 @@
       slots[i] = order[pos[i]]; slotPool[i] = pools[pos[i]]; slotRank[i] = ranks[pos[i]];
     }
 
-    avoidSamePoolFirstRound(slots, slotPool, slotRank);
+    // « Jamais deux 1ers » n'a de sens que si on peut les séparer (assez de
+    // places / d'équipes moins bien classées). Sinon (ex. 1 qualifié/poule),
+    // on ne garde que la contrainte de poule.
+    var avoidTwoFirsts = (numPools * 2 <= q.size);
+    avoidSamePoolFirstRound(slots, slotPool, slotRank, avoidTwoFirsts);
     return { size: q.size, slots: slots, seededAt: Date.now() };
   }
 
@@ -258,13 +278,13 @@
   // n'oppose jamais deux 1ers ; on veille à ne pas en créer en réparant les
   // conflits de poule. Faisable tant qu'aucune poule ne fournit plus de la
   // moitié des qualifiés (toujours vrai ici : 3 max par poule).
-  function avoidSamePoolFirstRound(slots, slotPool, slotRank) {
+  function avoidSamePoolFirstRound(slots, slotPool, slotRank, avoidTwoFirsts) {
     var matches = slots.length / 2;
     function conflict(k) {
       var pa = slotPool[2 * k], pb = slotPool[2 * k + 1];
       var ra = slotRank[2 * k], rb = slotRank[2 * k + 1];
       var samePool = pa != null && pb != null && pa === pb;
-      var twoFirsts = ra === 1 && rb === 1;
+      var twoFirsts = avoidTwoFirsts && ra === 1 && rb === 1;
       return samePool || twoFirsts;
     }
     function swap(x, y) {

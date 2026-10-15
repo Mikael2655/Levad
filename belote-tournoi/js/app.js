@@ -17,7 +17,7 @@
   var state = { tid: null };
   var subs = [];
   var ui = { poolTab: 'A', adminTab: 'equipes', lastDraw: null, draftTeam: '',
-             newFormat: 'pools', newName: '', newPin: '', newPools: 6, newSize: 4, newTeams: 16,
+             newFormat: 'pools', newName: '', newPin: '', newPools: 6, newSize: 4, newQual: 2, newTeams: 16,
              tourList: null };
   var screen = document.getElementById('screen');
   var pendingRender = false;
@@ -32,6 +32,8 @@
   function norm(s) { return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   function fmt() { return (store.config && store.config.format) || 'pools'; }
   function poolSize() { return (store.config && store.config.poolSize) || 4; }
+  function qualPerPool() { return (store.config && store.config.qualPerPool) || 2; }
+  function ordinalFr(n) { return n === 1 ? '1er' : (n + 'e'); } // 1er, 2e, 3e…
   function formatLabel(f) {
     return { pools: 'Poules + tableau', poolsonly: 'Poules seulement', ko: 'Élimination directe' }[f] || 'Poules + tableau';
   }
@@ -237,7 +239,11 @@
     } else {
       specific = '<div class="field-2">' +
         '<div><label>Nombre de poules</label><input id="c-pools" type="number" min="1" max="26" value="' + ui.newPools + '"></div>' +
-        '<div><label>Équipes / poule</label><input id="c-size" type="number" min="2" max="10" value="' + ui.newSize + '"></div></div>';
+        '<div><label>Équipes / poule</label><input id="c-size" type="number" min="2" max="10" value="' + ui.newSize + '"></div></div>' +
+        (f === 'pools'
+          ? '<label>Qualifiés par poule (pour le tableau)</label>' +
+            '<input id="c-qual" type="number" min="1" max="8" value="' + ui.newQual + '">'
+          : '');
     }
     screen.innerHTML = backList() +
       '<div class="card"><h2>Nouveau tournoi</h2>' +
@@ -250,7 +256,7 @@
       '<div style="height:12px"></div>' +
       '<button class="btn primary block" data-act="do-create">Créer le tournoi</button></div>';
     updateCreatePreview();
-    ['c-pools', 'c-size', 'c-teams'].forEach(function (id) {
+    ['c-pools', 'c-size', 'c-qual', 'c-teams'].forEach(function (id) {
       var el = document.getElementById(id); if (el) el.addEventListener('input', updateCreatePreview);
     });
   }
@@ -260,6 +266,7 @@
     if (g('c-pin') != null) ui.newPin = g('c-pin');
     if (g('c-pools') != null) ui.newPools = Math.max(1, Math.min(26, parseInt(g('c-pools'), 10) || 1));
     if (g('c-size') != null) ui.newSize = Math.max(2, Math.min(10, parseInt(g('c-size'), 10) || 4));
+    if (g('c-qual') != null) ui.newQual = Math.max(1, Math.min(ui.newSize, parseInt(g('c-qual'), 10) || 2));
     if (g('c-teams') != null) ui.newTeams = parseInt(g('c-teams'), 10) || 16;
   }
   function updateCreatePreview() {
@@ -272,10 +279,11 @@
     } else if (f === 'poolsonly') {
       el.innerHTML = ui.newPools + ' poule(s) de ' + ui.newSize + ' = <b>' + (ui.newPools * ui.newSize) + ' équipes</b>. Classement, sans tableau final.';
     } else {
-      var n = ui.newPools, size = L.bracketSizeFor(n), thirds = size - 2 * n;
+      var n = ui.newPools, qpp = ui.newQual, size = L.bracketSizeFor(n, qpp), extra = size - qpp * n;
       var fr = L.resolveBracket({ size: size, slots: [] }, [], {}).rounds[0].key;
       el.innerHTML = n + ' poule(s) de ' + ui.newSize + ' = ' + (n * ui.newSize) + ' équipes. Tableau à <b>' + size +
-        '</b> (' + L.roundLabel(fr) + ') : 2 premiers' + (thirds > 0 ? ' + ' + thirds + ' meilleurs 3es' : '') + '.';
+        '</b> (' + L.roundLabel(fr) + ') : les <b>' + qpp + ' premiers</b> de chaque poule' +
+        (extra > 0 ? ' + les <b>' + extra + '</b> meilleurs ' + ordinalFr(qpp + 1) + 's' : '') + '.';
     }
   }
 
@@ -313,10 +321,11 @@
     var html = backList() + '<div class="card"><h2>' + esc(c.name) + ' — Classement</h2>' + viewToggle + body + '</div>';
 
     if (fmt() === 'pools') {
-      var q = L.qualifiers(c.numPools, standings);
-      if (q.thirdsNeeded > 0 && q.allThirds.length) {
-        html += '<div class="card"><h2>Meilleurs 3es</h2>' +
-          '<p class="sub">Les ' + q.thirdsNeeded + ' meilleurs 3es complètent le tableau à ' + q.size + '.</p>' + thirdsTable(q) + '</div>';
+      var q = L.qualifiers(c.numPools, standings, qualPerPool());
+      if (q.repechageNeeded > 0 && q.allRepechage.length) {
+        var rk = ordinalFr(q.repechageRank);
+        html += '<div class="card"><h2>Meilleurs ' + rk + 's</h2>' +
+          '<p class="sub">Les ' + q.repechageNeeded + ' meilleurs ' + rk + 's complètent le tableau à ' + q.size + '.</p>' + repechageTable(q) + '</div>';
       }
       if (c.bracket) html += '<div class="card"><h2>Tableau final</h2>' + bracketView(c.bracket) + '</div>';
       else {
@@ -366,9 +375,9 @@
       '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>Pts</th><th>+/-</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table>';
   }
-  function thirdsTable(q) {
-    var body = q.allThirds.map(function (r, i) {
-      var inn = i < q.thirdsNeeded;
+  function repechageTable(q) {
+    var body = q.allRepechage.map(function (r, i) {
+      var inn = i < q.repechageNeeded;
       return '<tr class="' + (inn ? 'qual-1' : '') + '">' +
         '<td class="rankbadge">' + (i + 1) + '</td>' +
         '<td class="name">' + teamName(r.team) + '<small>Poule ' + r.pool + '</small></td>' +
@@ -680,13 +689,13 @@
     var standings = L.allStandings(c.numPools, store.teams, store.matches);
     var prog = L.poolProgress(c.numPools, store.matches, poolSize());
     if (!c.bracket) {
-      var q = L.qualifiers(c.numPools, standings);
+      var q = L.qualifiers(c.numPools, standings, qualPerPool());
       return '<div class="card"><h2>Lancer la phase finale</h2>' +
         '<p class="sub">Poules jouées : ' + prog.done + '/' + prog.total + '.' +
         (prog.complete ? ' ✅ Toutes les rencontres sont saisies.' : ' ⚠️ Toutes les rencontres ne sont pas terminées.') + '</p>' +
-        '<p class="sub">Le tableau à ' + q.size + ' réunira les 2 premiers de chaque poule' +
-        (q.thirdsNeeded > 0 ? ' et les ' + q.thirdsNeeded + ' meilleurs 3es' : '') +
-        '. Aucun affrontement de même poule au 1er tour.</p>' +
+        '<p class="sub">Le tableau à ' + q.size + ' réunira les ' + q.qualPerPool + ' premiers de chaque poule' +
+        (q.repechageNeeded > 0 ? ' et les ' + q.repechageNeeded + ' meilleurs ' + ordinalFr(q.repechageRank) + 's' : '') +
+        '. Aucun affrontement de même poule au 1er tour, et les 1ers tombent sur une équipe moins bien classée.</p>' +
         '<div class="notice">Une fois lancé, le tirage est figé (les scores restent corrigeables).</div>' +
         '<button class="btn primary block" data-act="start-bracket">Clôturer les poules &amp; générer le tableau</button></div>';
     }
@@ -797,7 +806,13 @@
         '<div class="field-2">' +
         '<div><label>Nombre de poules</label><input id="rz-pools" type="number" min="1" max="26" value="' + c.numPools + '"></div>' +
         '<div><label>Équipes / poule</label><input id="rz-size" type="number" min="2" max="10" value="' + poolSize() + '"></div></div>' +
-        '<button class="btn small block" data-act="resize" style="margin-top:8px">Appliquer la nouvelle taille</button>';
+        (fmt() === 'pools'
+          ? '<label>Qualifiés par poule (pour le tableau)</label>' +
+            '<input id="rz-qual" type="number" min="1" max="8" value="' + qualPerPool() + '">' +
+            '<p class="sub">Détermine le 1er tour du tableau (ex. 4 poules × 2 = 1/4 de finale). ' +
+            'Si besoin, les meilleurs suivants sont repêchés pour compléter.</p>'
+          : '') +
+        '<button class="btn small block" data-act="resize" style="margin-top:8px">Appliquer</button>';
     } else if (fmt() === 'pools' && c.bracket) {
       resize = '<div style="height:20px"></div><h3>Taille du tournoi</h3>' +
         '<p class="sub">Le tableau final est déjà lancé : la taille des poules ne peut plus être modifiée.</p>';
@@ -949,7 +964,12 @@
     if (act === 'resize') {
       var np = Math.max(1, Math.min(26, parseInt(document.getElementById('rz-pools').value, 10) || 1));
       var ps = Math.max(2, Math.min(10, parseInt(document.getElementById('rz-size').value, 10) || 4));
-      runBusy('Mise à jour…', DB.resizeTournament(tid, np, ps), 'Taille mise à jour : ' + np + ' poule(s) de ' + ps).then(function () {
+      var qEl = document.getElementById('rz-qual');
+      var nq = qEl ? Math.max(1, Math.min(ps, parseInt(qEl.value, 10) || 2)) : null;
+      var op = DB.resizeTournament(tid, np, ps).then(function () {
+        return nq != null ? DB.updateConfig(tid, { qualPerPool: nq }) : null;
+      });
+      runBusy('Mise à jour…', op, 'Réglages mis à jour (' + np + ' poule(s) de ' + ps + (nq != null ? ', ' + nq + ' qualifié(s)/poule' : '') + ')').then(function () {
         ui.poolTab = 'A'; render();
       }, function (e) {
         var m = (e && e.message) || '';
@@ -972,7 +992,10 @@
     var f = ui.newFormat;
     var config = { name: name, format: f };
     if (f === 'ko') { config.numTeams = ui.newTeams; config.phase = 'ko'; }
-    else { config.numPools = ui.newPools; config.poolSize = ui.newSize; config.phase = 'setup'; }
+    else {
+      config.numPools = ui.newPools; config.poolSize = ui.newSize; config.phase = 'setup';
+      if (f === 'pools') config.qualPerPool = Math.max(1, Math.min(ui.newSize, ui.newQual || 2));
+    }
     var tid = newTid(name);
     sha256(pin).then(function (hash) {
       config.adminHash = hash;
@@ -1021,13 +1044,13 @@
   function startBracket() {
     var c = store.config, tid = state.tid;
     var standings = L.allStandings(c.numPools, store.teams, store.matches);
-    var q = L.qualifiers(c.numPools, standings);
-    var enough = q.winners.length + q.runners.length + q.thirds.length >= q.size;
+    var q = L.qualifiers(c.numPools, standings, qualPerPool());
+    var enough = q.seeds.length >= q.size;
     var ask = enough ? Promise.resolve(true)
       : modalConfirm('Toutes les places qualificatives ne sont pas encore déterminées. Générer le tableau quand même ?', 'Générer');
     ask.then(function (ok) {
       if (!ok) return;
-      var bracket = L.seedBracket(c.numPools, standings);
+      var bracket = L.seedBracket(c.numPools, standings, qualPerPool());
       runBusy('Génération du tableau…', DB.startBracket(tid, bracket), 'Tableau généré !')
         .then(function () { ui.adminTab = 'tableau'; render(); },
           function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
