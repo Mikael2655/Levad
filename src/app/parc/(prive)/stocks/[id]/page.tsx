@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db'
 import { avecEncres } from '@/lib/connect/releves'
 import { Encres, VERT, formaterDate, depuis, type Encre } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR, detailsParGroupe, etatsParMachine, minimumDuGroupe, minimumsParGroupe, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
-import { FAMILLES, familleDe, grouper } from '@/lib/connect/gammes'
+import { FAMILLES, GAMME_AUTRES, familleDe, grouper } from '@/lib/connect/gammes'
 import { ajouterEnvoi, choisirGamme, corrigerStock, definirStockMinimum, supprimerMouvement } from '../../actions'
 
 export const dynamic = 'force-dynamic'
@@ -47,9 +47,9 @@ export default async function StockClientPage({ params }: { params: { id: string
         return (
           <section key={g.cle} className="mt-6 rounded-xl border bg-white p-6">
             <h2 className="text-lg font-bold">
-              {g.site} · {g.gamme ? `${variantes.map((v) => v.code).join(' / ')} (${g.gamme.modeles})` : 'gamme non reconnue'}
+              {g.site} · {g.gamme ? `${variantes.map((v) => v.code).join(' / ')} (${g.gamme.modeles})` : g.machines.every((m) => m.gamme === GAMME_AUTRES) ? 'Autres' : 'gamme non reconnue'}
             </h2>
-            {!g.gamme && (
+            {!g.gamme && !g.machines.every((m) => m.gamme === GAMME_AUTRES) && (
               <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
                 <p className="text-sm text-amber-900">
                   Gamme d&apos;encre non reconnue : ce stock est propre à cette machine. Choisissez sa gamme pour le partager avec les machines compatibles du site.
@@ -64,6 +64,7 @@ export default async function StockClientPage({ params }: { params: { id: string
                         {FAMILLES.map((x) => (
                           <option key={x.cle} value={x.cle}>{x.cle} — {x.modeles}</option>
                         ))}
+                        <option value={GAMME_AUTRES}>Autres (cartouches non listées)</option>
                       </select>
                     </label>
                     <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Valider</Bouton>
@@ -137,7 +138,7 @@ export default async function StockClientPage({ params }: { params: { id: string
       {groupes.length > 0 && (
         <section className="mt-6 rounded-xl border bg-white p-6">
           <h2 className="text-lg font-bold">Saisir un envoi de cartouches</h2>
-          <p className="text-sm text-gray-500">Indiquez la quantité de chaque couleur envoyée (0 ou vide = aucune).</p>
+          <p className="text-sm text-gray-500">Indiquez la quantité de chaque couleur envoyée (0 ou vide = aucune). « Jeu complet » compte une cartouche de chaque couleur ; pour une version L ou H dont le noir n'existe pas, le noir est celui de la version standard.</p>
           <Formulaire action={ajouterEnvoi} message="Envoi enregistré" reinitialiser className="mt-4 space-y-5">
             <input type="hidden" name="clientId" value={client.id} />
             {groupes.map((g, i) => (
@@ -146,21 +147,40 @@ export default async function StockClientPage({ params }: { params: { id: string
                 <p className="text-sm font-semibold text-gray-700">
                   {g.site} · {g.gamme ? familleDe(g.gamme).variantes.map((v) => v.code).join(' / ') : g.machines.map((m) => libelleMachine(m, '')).join(', ')}
                 </p>
-                <div className="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  {(g.gamme ? COULEURS.filter((c) => familleDe(g.gamme!).variantes.some((v) => v.refs[c])) : COULEURS).map((c) => (
-                    <div key={c} className="text-sm font-medium text-gray-700">
-                      {NOM_COULEUR[c]}
-                      {(g.gamme ? familleDe(g.gamme).variantes : [null]).map((v, vi) =>
-                        v && !v.refs[c] ? null : (
-                          <label key={vi} className="mt-1 block text-xs font-normal text-gray-500">
-                            {v ? `${v.code} · ${v.refs[c]}` : 'quantité'}
-                            <input type="number" inputMode="numeric" name={`qte_${i}_${c}_${vi}`} min={0} defaultValue={0} className={champ} />
-                          </label>
-                        )
+                {(() => {
+                  const variantes = g.gamme ? familleDe(g.gamme).variantes : [null]
+                  const couleurs = g.gamme ? COULEURS.filter((c) => familleDe(g.gamme!).variantes.some((v) => v.refs[c])) : COULEURS
+                  // cases aussi larges que leur texte de référence (« C-EXV 49 - 8524B002 »)
+                  const case_ = 'mt-1 block w-0 min-w-full rounded-lg border border-gray-300 px-3 py-2'
+                  return (
+                    <div className="mt-1 flex flex-wrap items-start gap-x-5 gap-y-3">
+                      {couleurs.length > 1 && (
+                        <div className="w-fit text-sm font-semibold text-gray-700">
+                          Jeu complet
+                          {variantes.map((v, vi) => (
+                            <label key={vi} className="mt-1 block w-fit whitespace-nowrap text-xs font-normal text-gray-500">
+                              {v ? `${v.code} - ${couleurs.length} cartouches` : `${couleurs.length} cartouches`}
+                              <input type="number" inputMode="numeric" name={`jeu_${i}_${vi}`} min={0} defaultValue={0} className={case_} />
+                            </label>
+                          ))}
+                        </div>
                       )}
+                      {couleurs.map((c) => (
+                        <div key={c} className="w-fit text-sm font-medium text-gray-700">
+                          {NOM_COULEUR[c]}
+                          {variantes.map((v, vi) =>
+                            v && !v.refs[c] ? null : (
+                              <label key={vi} className="mt-1 block w-fit whitespace-nowrap text-xs font-normal text-gray-500">
+                                {v ? `${v.code} - ${v.refs[c]}` : 'quantité'}
+                                <input type="number" inputMode="numeric" name={`qte_${i}_${c}_${vi}`} min={0} defaultValue={0} className={case_} />
+                              </label>
+                            )
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )
+                })()}
               </div>
             ))}
             <div className="grid gap-4 md:grid-cols-3">

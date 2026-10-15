@@ -95,6 +95,7 @@ model ConnectMachine {
   seuilMagenta Int            @default(25)
   seuilJaune   Int            @default(25)
   creeLe      DateTime        @default(now())
+  vueLe       DateTime? // null = machine nouvellement découverte, pas encore marquée comme vue
   releves     ConnectReleve[]
 
   @@index([clientId])

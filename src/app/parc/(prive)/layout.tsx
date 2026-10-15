@@ -3,6 +3,7 @@ import { connectMetadata, connectViewport } from '@/lib/connect/metadata'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { connecte } from '@/lib/connect/auth'
+import { prisma } from '@/lib/db'
 import { VERT } from '@/components/connect/affichage'
 import { clientsEnAlerte } from '@/lib/connect/alertes'
 import { Menu } from '@/components/connect/Menu'
@@ -18,9 +19,11 @@ export default async function PriveLayout({ children }: { children: React.ReactN
   if (!connecte()) redirect('/parc/connexion')
   let nbAlertes = 0
   let nbDeconnectes = 0
+  let nbNouvelles = 0
   try {
     nbAlertes = (await clientsEnAlerte()).length
     nbDeconnectes = (await postesDeconnectes()).length
+    nbNouvelles = await prisma.connectMachine.count({ where: { vueLe: null } })
   } catch {
     // base pas encore prête : la page concernée l'expliquera
   }
@@ -36,7 +39,7 @@ export default async function PriveLayout({ children }: { children: React.ReactN
           <div className="order-3 w-full xl:order-none xl:w-auto">
             <Menu
               entrees={[
-                { href: '/parc', titre: 'Synthèse' },
+                { href: '/parc', titre: 'Synthèse', badge: nbNouvelles, badgeVert: true },
                 { href: '/parc/alertes', titre: 'Alerte encre', badge: nbAlertes },
                 { href: '/parc/deconnexions', titre: 'Alerte déconnexion', badge: nbDeconnectes },
                 { href: '/parc/stocks', titre: 'Stocks' },

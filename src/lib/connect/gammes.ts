@@ -48,9 +48,18 @@ export function gammeParCode(code: string | null | undefined): Gamme | null {
 
 type MachineGamme = { id: number; site: string; modele: string | null; gamme: string | null }
 
-/** Gamme d'une machine : celle choisie à la main, sinon celle reconnue d'après le modèle. */
+/** Choix « Autres » : des cartouches qui ne figurent pas dans la liste. La machine garde son propre stock et n'est plus signalée « gamme à choisir ». */
+export const GAMME_AUTRES = 'autres'
+
+/** Gamme d'une machine : celle choisie à la main, sinon celle reconnue d'après le modèle (null si « Autres »). */
 export function gammeDe(m: Pick<MachineGamme, 'modele' | 'gamme'>): Gamme | null {
+  if (m.gamme === GAMME_AUTRES) return null
   return gammeParCode(m.gamme) ?? gammeAuto(m.modele)
+}
+
+/** La gamme reste à choisir : ni reconnue, ni réglée sur « Autres ». */
+export function gammeADefinir(m: Pick<MachineGamme, 'modele' | 'gamme'>): boolean {
+  return m.gamme !== GAMME_AUTRES && !gammeDe(m)
 }
 
 /**

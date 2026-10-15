@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 
 const VERT = '#8c9e8b'
 
-type Entree = { href: string; titre: string; badge?: number }
+type Entree = { href: string; titre: string; badge?: number; badgeVert?: boolean }
 
 // Menu du tableau de bord : l'entrée active ressort en vert ; sur téléphone il défile sans se chevaucher.
 export function Menu({ entrees }: { entrees: Entree[] }) {
@@ -25,7 +25,7 @@ export function Menu({ entrees }: { entrees: Entree[] }) {
           >
             {e.titre}
             {!!e.badge && e.badge > 0 && (
-              <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-bold text-white">{e.badge}</span>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-bold text-white ${e.badgeVert ? '' : 'bg-red-600'}`} style={e.badgeVert ? { backgroundColor: VERT } : undefined}>{e.badge}</span>
             )}
           </Link>
         )

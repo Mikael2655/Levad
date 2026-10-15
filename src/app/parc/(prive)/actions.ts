@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
-import { cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
+import { GAMME_AUTRES, cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
 import { assurerCode, assurerCodeEspace, listeIps, regenererCode, regenererCodeEspace, urlsTelechargement } from '@/lib/connect/agent'
 import { adressesMail } from '@/lib/connect/mail'
 import { envoyerLienClient } from '@/lib/connect/lien-mail'
@@ -61,14 +61,32 @@ export async function enregistrerReglages(formData: FormData) {
   revalidatePath('/parc', 'layout')
 }
 
-export async function renommerClient(formData: FormData) {
+export async function renommerClient(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
   const id = Number(formData.get('id'))
   const nom = String(formData.get('nom') ?? '').trim().slice(0, 120)
   if (!nom) return
-  await prisma.connectClient.update({ where: { id }, data: { nom } })
-  revalidatePath('/parc')
-  revalidatePath(`/parc/client/${id}`)
+  // la clé de reconnaissance suit le nom : sinon l'ancien nom resterait « pris » et on ne pourrait plus créer un client de ce nom
+  const cle = cleClient(nom)
+  const pris = await prisma.connectClient.findUnique({ where: { cle } })
+  if (pris && pris.id !== id) return `!Un client s'appelle déjà « ${pris.nom} »`
+  await prisma.connectClient.update({ where: { id }, data: { nom, cle } })
+  revalidatePath('/parc', 'layout')
+  return 'Nom enregistré'
+}
+
+// Répare les clients renommés avant ce correctif : leur clé de reconnaissance est restée celle de leur ancien nom.
+async function corrigerClesObsoletes(cles: string[]) {
+  const trouves = await prisma.connectClient.findMany({ where: { cle: { in: cles } } })
+  for (const c of trouves) {
+    const juste = cleClient(c.nom)
+    if (juste === c.cle) continue
+    try {
+      await prisma.connectClient.update({ where: { id: c.id }, data: { cle: juste } })
+    } catch {
+      // la clé juste est déjà prise par un autre client : on laisse
+    }
+  }
 }
 
 // Met toutes les machines d'un client hors contrat (ou les remet sous contrat) d'un seul clic.
@@ -139,7 +157,7 @@ export async function choisirGamme(formData: FormData): Promise<string | void> {
   const code = String(formData.get('gamme') ?? '')
   const avant = await prisma.connectMachine.findUnique({ where: { id } })
   if (!avant) return '!Machine introuvable'
-  if (code && !gammeParCode(code)) return '!Gamme inconnue'
+  if (code && code !== GAMME_AUTRES && !gammeParCode(code)) return '!Gamme inconnue'
   await prisma.connectMachine.update({ where: { id }, data: { gamme: code || null } })
   const apres = { ...avant, gamme: code || null }
   const ancienne = cleGroupe(avant)
@@ -151,7 +169,7 @@ export async function choisirGamme(formData: FormData): Promise<string | void> {
     }
   }
   revalidatePath('/parc', 'layout')
-  return code ? `Gamme enregistrée : ${code}` : 'Gamme remise en automatique'
+  return code ? `Gamme enregistrée : ${code === GAMME_AUTRES ? 'Autres' : code}` : 'Gamme remise en automatique'
 }
 
 // Stock minimum voulu par le client pour un groupe (site + gamme) : en dessous, l'alerte se déclenche comme s'il n'y avait plus de stock.
@@ -203,6 +221,22 @@ export async function ajouterEnvoi(formData: FormData): Promise<string | void> {
     if (!valides.has(String(groupe))) continue
     const g = gammeParCode(String(groupe).slice(String(groupe).lastIndexOf('|') + 1))
     const variantes = g ? familleDe(g).variantes : [null]
+    // « jeu complet » : une cartouche de chaque couleur par jeu. Une version L / H sans noir prend le noir de la version standard.
+    if (g) {
+      const vs = familleDe(g).variantes
+      vs.forEach((v, vi) => {
+        const q = Math.floor(Number(formData.get(`jeu_${i}_${vi}`)) || 0)
+        if (q < 1) return
+        for (const couleur of COULEURS) {
+          const idx = v.refs[couleur] ? vi : vs.findIndex((x) => x.refs[couleur])
+          if (idx < 0) continue
+          data.push({ clientId, groupe: String(groupe), variante: idx === 0 ? '' : vs[idx].code, couleur, delta: Math.min(q, 999), motif: 'envoi', note: note ? `${note} (jeu complet)` : 'Jeu complet', date })
+        }
+      })
+    } else {
+      const q = Math.floor(Number(formData.get(`jeu_${i}_0`)) || 0)
+      if (q >= 1) for (const couleur of COULEURS) data.push({ clientId, groupe: String(groupe), variante: '', couleur, delta: Math.min(q, 999), motif: 'envoi', note: note ? `${note} (jeu complet)` : 'Jeu complet', date })
+    }
     for (const couleur of COULEURS) {
       variantes.forEach((v, vi) => {
         const q = Math.floor(Number(formData.get(`qte_${i}_${couleur}_${vi}`)) || 0)
@@ -323,6 +357,14 @@ export async function demanderLecture(formData: FormData) {
   revalidatePath(`/parc/machine/${machineId}`)
 }
 
+// Marque les machines nouvellement découvertes comme vues (le bandeau « Nouvelles machines » disparaît).
+export async function marquerMachinesVues(): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const r = await prisma.connectMachine.updateMany({ where: { vueLe: null }, data: { vueLe: new Date() } })
+  revalidatePath('/parc', 'layout')
+  return `${r.count} machine${r.count > 1 ? 's' : ''} marquée${r.count > 1 ? 's' : ''} comme vue${r.count > 1 ? 's' : ''}`
+}
+
 // Lecture immédiate demandée depuis la fiche du client (utile quand il n'a encore aucune machine) : le programme la fait à son prochain signal (moins d'une minute).
 export async function demanderLectureClient(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
@@ -352,6 +394,7 @@ export async function creerClient(formData: FormData): Promise<string | void> {
   if (!nom) return '!Indiquez le nom du client'
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return '!Adresse mail invalide'
   const cle = cleClient(nom)
+  await corrigerClesObsoletes([cle])
   const client = await prisma.connectClient.upsert({
     where: { cle },
     update: email ? { email } : {},
@@ -368,6 +411,7 @@ export type ApercuClient = { nom: string; mails: string[]; etat: 'nouveau' | 'ex
 
 async function classer(texte: string): Promise<ApercuClient[]> {
   const lignes = lireListe(texte)
+  await corrigerClesObsoletes(lignes.map((l) => l.cle))
   const existants = new Set((await prisma.connectClient.findMany({ where: { cle: { in: lignes.map((l) => l.cle) } }, select: { cle: true } })).map((c) => c.cle))
   return lignes.map((l): ApercuClient => {
     if (existants.has(l.cle)) return { nom: l.nom, mails: l.mails, etat: 'existe', detail: 'existe déjà : ignoré' }
