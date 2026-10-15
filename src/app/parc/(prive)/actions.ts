@@ -221,6 +221,22 @@ export async function ajouterEnvoi(formData: FormData): Promise<string | void> {
     if (!valides.has(String(groupe))) continue
     const g = gammeParCode(String(groupe).slice(String(groupe).lastIndexOf('|') + 1))
     const variantes = g ? familleDe(g).variantes : [null]
+    // « jeu complet » : une cartouche de chaque couleur par jeu. Une version L / H sans noir prend le noir de la version standard.
+    if (g) {
+      const vs = familleDe(g).variantes
+      vs.forEach((v, vi) => {
+        const q = Math.floor(Number(formData.get(`jeu_${i}_${vi}`)) || 0)
+        if (q < 1) return
+        for (const couleur of COULEURS) {
+          const idx = v.refs[couleur] ? vi : vs.findIndex((x) => x.refs[couleur])
+          if (idx < 0) continue
+          data.push({ clientId, groupe: String(groupe), variante: idx === 0 ? '' : vs[idx].code, couleur, delta: Math.min(q, 999), motif: 'envoi', note: note ? `${note} (jeu complet)` : 'Jeu complet', date })
+        }
+      })
+    } else {
+      const q = Math.floor(Number(formData.get(`jeu_${i}_0`)) || 0)
+      if (q >= 1) for (const couleur of COULEURS) data.push({ clientId, groupe: String(groupe), variante: '', couleur, delta: Math.min(q, 999), motif: 'envoi', note: note ? `${note} (jeu complet)` : 'Jeu complet', date })
+    }
     for (const couleur of COULEURS) {
       variantes.forEach((v, vi) => {
         const q = Math.floor(Number(formData.get(`qte_${i}_${couleur}_${vi}`)) || 0)
