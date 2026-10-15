@@ -81,6 +81,13 @@
     if (t.name) return esc(t.name);
     return '<span class="muted">Équipe ' + slotNum(t) + ' (vide)</span>';
   }
+  // Nom d'équipe sur plusieurs lignes : « / » sépare les 2 joueurs,
+  // chacun sur sa propre ligne (pour le classement condensé).
+  function teamNameLines(t) {
+    if (!t) return '—';
+    if (!t.name) return '<span class="muted">Équipe ' + slotNum(t) + ' (vide)</span>';
+    return t.name.split('/').map(function (s) { return esc(s.trim()); }).join('<br>');
+  }
   function teamTag(id) { var t = teamById(id); return (t && t.pool != null) ? (t.pool + t.slot) : ''; }
   // Liste des équipes saisies (avant/après tirage).
   function rosterList() {
@@ -377,7 +384,7 @@
     var body = rows.map(function (r) {
       return '<tr class="qual-' + (r.rank <= 3 ? r.rank : 0) + '">' +
         '<td class="rankbadge">' + r.rank + '</td>' +
-        '<td class="name">' + teamName(r.team) + '</td>' +
+        '<td class="name">' + teamNameLines(r.team) + '</td>' +
         '<td>' + r.played + '</td>' +
         '<td class="pts-col">' + r.pts + '</td>' +
         '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td></tr>';
