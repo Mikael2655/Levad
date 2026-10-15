@@ -242,7 +242,7 @@
         '<div><label>Équipes / poule</label><input id="c-size" type="number" min="2" max="10" value="' + ui.newSize + '"></div></div>' +
         (f === 'pools'
           ? '<label>Qualifiés par poule (pour le tableau)</label>' +
-            '<input id="c-qual" type="number" min="1" max="8" value="' + ui.newQual + '">'
+            '<input id="c-qual" type="number" min="1" max="' + ui.newSize + '" value="' + ui.newQual + '">'
           : '');
     }
     screen.innerHTML = backList() +
@@ -254,7 +254,7 @@
       '<p class="sub" id="c-preview"></p>' +
       '<label>Code administrateur (à retenir)</label><input id="c-pin" type="password" placeholder="Code secret" value="' + esc(ui.newPin) + '">' +
       '<div style="height:12px"></div>' +
-      '<button class="btn primary block" data-act="do-create">Créer le tournoi</button></div>';
+      '<button class="btn primary block" id="do-create-btn" data-act="do-create">Créer le tournoi</button></div>';
     updateCreatePreview();
     ['c-pools', 'c-size', 'c-qual', 'c-teams'].forEach(function (id) {
       var el = document.getElementById(id); if (el) el.addEventListener('input', updateCreatePreview);
@@ -279,11 +279,23 @@
     } else if (f === 'poolsonly') {
       el.innerHTML = ui.newPools + ' poule(s) de ' + ui.newSize + ' = <b>' + (ui.newPools * ui.newSize) + ' équipes</b>. Classement, sans tableau final.';
     } else {
-      var n = ui.newPools, qpp = ui.newQual, size = L.bracketSizeFor(n, qpp), extra = size - qpp * n;
-      var fr = L.resolveBracket({ size: size, slots: [] }, [], {}).rounds[0].key;
-      el.innerHTML = n + ' poule(s) de ' + ui.newSize + ' = ' + (n * ui.newSize) + ' équipes. Tableau à <b>' + size +
-        '</b> (' + L.roundLabel(fr) + ') : les <b>' + qpp + ' premiers</b> de chaque poule' +
-        (extra > 0 ? ' + les <b>' + extra + '</b> meilleurs ' + ordinalFr(qpp + 1) + 's' : '') + '.';
+      var n = ui.newPools, ps = ui.newSize, qpp = ui.newQual;
+      var plan = L.bracketPlan(n, ps, qpp);
+      var valid = L.validQualsFor(n, ps);
+      var fr = L.resolveBracket({ size: plan.size, slots: [] }, [], {}).rounds[0].key;
+      var base = n + ' poule(s) de ' + ps + ' = ' + (n * ps) + ' équipes. ';
+      var btn = document.getElementById('do-create-btn');
+      if (plan.clean) {
+        el.innerHTML = base + 'Tableau à <b>' + plan.size + '</b> (' + L.roundLabel(fr) + ') : les <b>' +
+          qpp + ' premiers</b> de chaque poule' +
+          (plan.repechageUsed > 0 ? ' + les <b>' + plan.repechageUsed + '</b> meilleurs ' + ordinalFr(plan.repechageRank) + 's' : '') + '.';
+        if (btn) btn.disabled = false;
+      } else {
+        el.innerHTML = base + '<b style="color:var(--red)">⚠️ ' + qpp + ' qualifiés/poule ne tombe pas juste</b> ' +
+          '(tableau de ' + plan.size + ' avec ' + plan.byes + ' exempt(s)). ' +
+          'Qualifiés/poule possibles ici : <b>' + (valid.join(', ') || 'aucun — changez poules/taille') + '</b>.';
+        if (btn) btn.disabled = true;
+      }
     }
   }
 
@@ -814,7 +826,8 @@
           ? '<label>Qualifiés par poule (pour le tableau)</label>' +
             '<input id="rz-qual" type="number" min="1" max="8" value="' + qualPerPool() + '">' +
             '<p class="sub">Détermine le 1er tour du tableau (ex. 4 poules × 2 = 1/4 de finale). ' +
-            'Si besoin, les meilleurs suivants sont repêchés pour compléter.</p>'
+            'Doit « tomber juste » (tableau sans exempt). Possibles pour ' + c.numPools + ' poule(s) de ' + poolSize() + ' : <b>' +
+            (L.validQualsFor(c.numPools, poolSize()).join(', ') || '—') + '</b>.</p>'
           : '') +
         (c.bracket ? '<div class="notice">Un tableau est généré : l\'appliquer l\'annulera pour reprendre en compte les nouveaux réglages.</div>' : '') +
         '<button class="btn small block" data-act="resize" style="margin-top:8px">Appliquer</button>';
@@ -979,6 +992,16 @@
       var ps = Math.max(2, Math.min(10, parseInt(document.getElementById('rz-size').value, 10) || 4));
       var qEl = document.getElementById('rz-qual');
       var nq = qEl ? Math.max(1, Math.min(ps, parseInt(qEl.value, 10) || 2)) : null;
+      // Refuse une combinaison qui ne « tombe pas juste » (tableau à exempts).
+      if (nq != null) {
+        var plan = L.bracketPlan(np, ps, nq);
+        if (!plan.clean) {
+          var valid = L.validQualsFor(np, ps);
+          toast('Combinaison impossible : ' + nq + ' qualifiés/poule → ' + plan.byes +
+            ' exempt(s). Possibles : ' + (valid.join(', ') || 'changez poules/taille') + '.');
+          return;
+        }
+      }
       var hadBracket = !!(store.config && store.config.bracket);
       var op = DB.resizeTournament(tid, np, ps).then(function () {
         // Applique le nb de qualifiés et annule un éventuel tableau de test.
@@ -1007,6 +1030,14 @@
     var pin = ui.newPin;
     if (!pin || pin.length < 3) { toast('Choisissez un code d\'au moins 3 caractères.'); return; }
     var f = ui.newFormat;
+    if (f === 'pools') {
+      var plan = L.bracketPlan(ui.newPools, ui.newSize, ui.newQual);
+      if (!plan.clean) {
+        var valid = L.validQualsFor(ui.newPools, ui.newSize);
+        toast('Qualifiés/poule impossible ici (tableau à exempts). Possibles : ' + (valid.join(', ') || 'changez poules/taille') + '.');
+        return;
+      }
+    }
     var config = { name: name, format: f };
     if (f === 'ko') { config.numTeams = ui.newTeams; config.phase = 'ko'; }
     else {
@@ -1060,6 +1091,12 @@
   }
   function startBracket() {
     var c = store.config, tid = state.tid;
+    var plan = L.bracketPlan(c.numPools, poolSize(), qualPerPool());
+    if (!plan.clean) {
+      var valid = L.validQualsFor(c.numPools, poolSize());
+      toast('Réglage impossible (tableau à exempts). Qualifiés/poule possibles : ' + (valid.join(', ') || 'changez poules/taille') + ' — onglet Réglages.');
+      return;
+    }
     var standings = L.allStandings(c.numPools, store.teams, store.matches);
     var q = L.qualifiers(c.numPools, standings, qualPerPool());
     var enough = q.seeds.length >= q.size;

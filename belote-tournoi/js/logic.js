@@ -187,6 +187,33 @@
     return nextPow2AtLeast(Math.max(2, (qualPerPool || 2) * numPools));
   }
 
+  // Plan du tableau pour une config donnée, pour savoir si elle « tombe juste »
+  // (tableau rempli, sans exempt). Les repêchés disponibles = les
+  // (qualPerPool+1)èmes, soit une équipe par poule si la poule est assez grande.
+  function bracketPlan(numPools, poolSize, qualPerPool) {
+    qualPerPool = qualPerPool || 2;
+    var directs = qualPerPool * numPools;
+    var size = bracketSizeFor(numPools, qualPerPool);
+    var available = (poolSize > qualPerPool) ? numPools : 0;
+    var need = Math.max(0, size - directs);
+    var repechageUsed = Math.min(need, available);
+    var byes = size - directs - repechageUsed;
+    return {
+      size: size, directs: directs, available: available,
+      repechageNeeded: need, repechageUsed: repechageUsed,
+      byes: byes, clean: byes === 0, repechageRank: qualPerPool + 1
+    };
+  }
+  // Valeurs de « qualifiés par poule » qui donnent un tableau propre (sans
+  // exempt) pour ce nombre de poules et cette taille de poule.
+  function validQualsFor(numPools, poolSize) {
+    var out = [];
+    for (var q = 1; q <= poolSize; q++) {
+      if (bracketPlan(numPools, poolSize, q).clean) out.push(q);
+    }
+    return out;
+  }
+
   // Détermine les qualifiés à partir des classements de poules.
   // `qualPerPool` : nombre d'équipes qualifiées d'office par poule (défaut 2).
   // Si (qualPerPool × poules) n'est pas une puissance de 2, on complète le
@@ -422,7 +449,8 @@
     matchPoints: matchPoints, scoreOf: scoreOf,
     poolStandings: poolStandings, allStandings: allStandings, poolProgress: poolProgress,
     cmpStandings: cmpStandings,
-    bracketSizeFor: bracketSizeFor, qualifiers: qualifiers,
+    bracketSizeFor: bracketSizeFor, bracketPlan: bracketPlan, validQualsFor: validQualsFor,
+    qualifiers: qualifiers,
     standardSeedPositions: standardSeedPositions, seedBracket: seedBracket,
     resolveBracket: resolveBracket, bracketMatchList: bracketMatchList,
     winnerOf: winnerOf, roundLabel: roundLabel
