@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db'
 import { avecEncres } from '@/lib/connect/releves'
 import { Encres, VERT, formaterDate, depuis, type Encre } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR, detailsParGroupe, etatsParMachine, minimumDuGroupe, minimumsParGroupe, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
-import { FAMILLES, familleDe, grouper } from '@/lib/connect/gammes'
+import { FAMILLES, GAMME_AUTRES, familleDe, grouper } from '@/lib/connect/gammes'
 import { ajouterEnvoi, choisirGamme, corrigerStock, definirStockMinimum, supprimerMouvement } from '../../actions'
 
 export const dynamic = 'force-dynamic'
@@ -47,9 +47,9 @@ export default async function StockClientPage({ params }: { params: { id: string
         return (
           <section key={g.cle} className="mt-6 rounded-xl border bg-white p-6">
             <h2 className="text-lg font-bold">
-              {g.site} · {g.gamme ? `${variantes.map((v) => v.code).join(' / ')} (${g.gamme.modeles})` : 'gamme non reconnue'}
+              {g.site} · {g.gamme ? `${variantes.map((v) => v.code).join(' / ')} (${g.gamme.modeles})` : g.machines.every((m) => m.gamme === GAMME_AUTRES) ? 'Autres' : 'gamme non reconnue'}
             </h2>
-            {!g.gamme && (
+            {!g.gamme && !g.machines.every((m) => m.gamme === GAMME_AUTRES) && (
               <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
                 <p className="text-sm text-amber-900">
                   Gamme d&apos;encre non reconnue : ce stock est propre à cette machine. Choisissez sa gamme pour le partager avec les machines compatibles du site.
@@ -64,6 +64,7 @@ export default async function StockClientPage({ params }: { params: { id: string
                         {FAMILLES.map((x) => (
                           <option key={x.cle} value={x.cle}>{x.cle} — {x.modeles}</option>
                         ))}
+                        <option value={GAMME_AUTRES}>Autres (cartouches non listées)</option>
                       </select>
                     </label>
                     <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Valider</Bouton>

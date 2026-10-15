@@ -55,7 +55,7 @@ export default async function StocksPage({ searchParams }: { searchParams: { cli
                     </td>
                     <td className="py-2 pr-4 text-gray-600">
                       {g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => libelleMachine(m, 'machine')).join(', ')}
-                      {!g.gamme && <span className="text-amber-700"> (gamme à choisir)</span>}
+                      {!g.gamme && !g.machines.every((m) => m.gamme === 'autres') && <span className="text-amber-700"> (gamme à choisir)</span>}
                     </td>
                     {COULEURS.map((k) => (
                       <td key={k} className={`py-2 pr-4 text-right tabular-nums ${s[k] === 0 ? 'text-gray-400' : 'font-semibold'}`}>
