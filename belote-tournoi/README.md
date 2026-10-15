@@ -28,8 +28,11 @@ plusieurs appareils).
   finale** (8 équipes), **6 poules × 2 → 1/8** (16, complété par les
   meilleurs 3es). Quand (qualifiés × poules) n'est pas une puissance de 2,
   l'appli **repêche** les meilleurs suivants pour compléter le tableau.
-  Réglable aussi après coup dans l'onglet **Réglages**, tant que le tableau
-  n'est pas lancé.
+  Seuls les réglages qui **« tombent juste »** (tableau rempli, **sans
+  exempt**) sont acceptés : l'aperçu indique les nombres de qualifiés
+  possibles (ex. 6 poules de 4 → 1 ou 2 ; 4 poules de 4 → 1, 2, 3 ou 4).
+  Réglable aussi après coup dans l'onglet **Réglages**, tant qu'aucun score
+  n'est saisi.
 - **Administration** (protégée par un code) :
   1. **Saisir les équipes** : on prépare d'abord la **liste** de toutes les
      équipes (ajout, renommage, suppression). Puis, d'un seul bouton
