@@ -60,11 +60,11 @@
       .slice().sort(function (a, b) { return (a.assignedAt || 0) - (b.assignedAt || 0); })
       .map(function (t) { return { id: t.rid || t.id, name: t.name }; });
   }
-  // Le tournoi a-t-il démarré ? (un score validé ou un tableau généré)
+  // Le tournoi a-t-il vraiment démarré ? = au moins un score validé.
+  // Tant qu'aucun point n'est saisi, tout reste modifiable (liste, tirage,
+  // réglages, tableau de test) même si un tableau a été généré pour voir.
   function hasStarted() {
-    if (store.matches.some(function (m) { return m.validated; })) return true;
-    if (store.config && (store.config.bracket || store.config.phase === 'bracket')) return true;
-    return false;
+    return store.matches.some(function (m) { return m.validated; });
   }
   function matchById(id) {
     for (var i = 0; i < store.matches.length; i++) if (store.matches[i].id === id) return store.matches[i];
@@ -696,10 +696,14 @@
         '<p class="sub">Le tableau à ' + q.size + ' réunira les ' + q.qualPerPool + ' premiers de chaque poule' +
         (q.repechageNeeded > 0 ? ' et les ' + q.repechageNeeded + ' meilleurs ' + ordinalFr(q.repechageRank) + 's' : '') +
         '. Aucun affrontement de même poule au 1er tour, et les 1ers tombent sur une équipe moins bien classée.</p>' +
-        '<div class="notice">Une fois lancé, le tirage est figé (les scores restent corrigeables).</div>' +
+        '<div class="notice">Vous pourrez l\'annuler tant qu\'aucun score de phase finale n\'est saisi.</div>' +
         '<button class="btn primary block" data-act="start-bracket">Clôturer les poules &amp; générer le tableau</button></div>';
     }
-    return '<div class="card"><h2>Tableau final</h2>' + bracketView(c.bracket) + '</div>' + koScoreCard(c.bracket);
+    var undo = !hasStarted()
+      ? '<div class="card"><p class="sub">Tableau généré. Tant qu\'aucun score de phase finale n\'est saisi, vous pouvez l\'annuler pour revenir aux poules (modifier les réglages, re-tirer, etc.).</p>' +
+        '<button class="btn danger block" data-act="clear-bracket">↩️ Annuler le tableau</button></div>'
+      : '';
+    return '<div class="card"><h2>Tableau final</h2>' + bracketView(c.bracket) + '</div>' + undo + koScoreCard(c.bracket);
   }
   function koScoreCard(br) {
     var resolved = L.resolveBracket(br, store.teams, koResults());
@@ -799,10 +803,10 @@
         (fmt() === 'pools' ? '<button class="btn small" data-act="set-phase" data-phase="bracket">Phase finale</button>' : '') +
         '<button class="btn small" data-act="set-phase" data-phase="done">Terminé</button>';
     var resize = '';
-    if (fmt() !== 'ko' && !(fmt() === 'pools' && c.bracket)) {
-      resize = '<div style="height:20px"></div><h3>Taille du tournoi</h3>' +
-        '<p class="sub">Ajustez si des équipes s\'ajoutent : les équipes et scores déjà saisis sont conservés. ' +
-        'On ne peut retirer que des places encore libres.</p>' +
+    if (fmt() !== 'ko' && !hasStarted()) {
+      resize = '<div style="height:20px"></div><h3>Taille &amp; format</h3>' +
+        '<p class="sub">Modifiable tant qu\'aucun score n\'est saisi. Les équipes déjà placées sont conservées ; ' +
+        'on ne peut retirer que des places encore libres.</p>' +
         '<div class="field-2">' +
         '<div><label>Nombre de poules</label><input id="rz-pools" type="number" min="1" max="26" value="' + c.numPools + '"></div>' +
         '<div><label>Équipes / poule</label><input id="rz-size" type="number" min="2" max="10" value="' + poolSize() + '"></div></div>' +
@@ -812,10 +816,11 @@
             '<p class="sub">Détermine le 1er tour du tableau (ex. 4 poules × 2 = 1/4 de finale). ' +
             'Si besoin, les meilleurs suivants sont repêchés pour compléter.</p>'
           : '') +
+        (c.bracket ? '<div class="notice">Un tableau est généré : l\'appliquer l\'annulera pour reprendre en compte les nouveaux réglages.</div>' : '') +
         '<button class="btn small block" data-act="resize" style="margin-top:8px">Appliquer</button>';
-    } else if (fmt() === 'pools' && c.bracket) {
-      resize = '<div style="height:20px"></div><h3>Taille du tournoi</h3>' +
-        '<p class="sub">Le tableau final est déjà lancé : la taille des poules ne peut plus être modifiée.</p>';
+    } else if (fmt() === 'pools' && hasStarted()) {
+      resize = '<div style="height:20px"></div><h3>Taille &amp; format</h3>' +
+        '<p class="sub">Des scores sont déjà saisis : la taille des poules et le nombre de qualifiés ne peuvent plus être modifiés.</p>';
     }
     return '<div class="card"><h2>Réglages</h2>' +
       '<p class="sub">« ' + esc(c.name) + ' » — ' + formatLabel(fmt()) + '.</p>' +
@@ -960,16 +965,28 @@
     if (act === 'acces-sort') { ui.accesSort = a.getAttribute('data-s'); render(); return; }
     if (act === 'admin-unlock') return adminUnlock();
     if (act === 'start-bracket') return startBracket();
+    if (act === 'clear-bracket') {
+      modalConfirm('Annuler le tableau et revenir aux poules ? (possible tant qu\'aucun score de phase finale n\'est saisi)', 'Annuler le tableau').then(function (ok) {
+        if (!ok) return;
+        runBusy('Annulation…', DB.clearBracket(tid), 'Tableau annulé').then(function () { ui.adminTab = 'tableau'; render(); },
+          function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
+      });
+      return;
+    }
     if (act === 'set-phase') { DB.setPhase(tid, a.getAttribute('data-phase')).then(function () { toast('Phase mise à jour.'); }); return; }
     if (act === 'resize') {
       var np = Math.max(1, Math.min(26, parseInt(document.getElementById('rz-pools').value, 10) || 1));
       var ps = Math.max(2, Math.min(10, parseInt(document.getElementById('rz-size').value, 10) || 4));
       var qEl = document.getElementById('rz-qual');
       var nq = qEl ? Math.max(1, Math.min(ps, parseInt(qEl.value, 10) || 2)) : null;
+      var hadBracket = !!(store.config && store.config.bracket);
       var op = DB.resizeTournament(tid, np, ps).then(function () {
-        return nq != null ? DB.updateConfig(tid, { qualPerPool: nq }) : null;
+        // Applique le nb de qualifiés et annule un éventuel tableau de test.
+        var patch = { bracket: null, phase: 'setup' };
+        if (nq != null) patch.qualPerPool = nq;
+        return DB.updateConfig(tid, patch);
       });
-      runBusy('Mise à jour…', op, 'Réglages mis à jour (' + np + ' poule(s) de ' + ps + (nq != null ? ', ' + nq + ' qualifié(s)/poule' : '') + ')').then(function () {
+      runBusy('Mise à jour…', op, 'Réglages mis à jour (' + np + ' poule(s) de ' + ps + (nq != null ? ', ' + nq + ' qualifié(s)/poule' : '') + ')' + (hadBracket ? ' — tableau annulé' : '')).then(function () {
         ui.poolTab = 'A'; render();
       }, function (e) {
         var m = (e && e.message) || '';
