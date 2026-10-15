@@ -10,7 +10,7 @@ import { VERT, Badge, Encres, depuis, jour, formaterDate, nombre, type Encre } f
 import { statutConnexion } from '@/lib/connect/agent'
 import { creerClient, preparerLien } from './actions'
 import { clientsEnAlerte, etatsParMachine, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
-import { cleGroupe, gammeDe } from '@/lib/connect/gammes'
+import { cleGroupe, gammeADefinir } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
 
@@ -156,7 +156,7 @@ export default async function ParcPage() {
                       </p>
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {!suivie && <Badge>Autre marque</Badge>}
-                        {encreSuivie && !gammeDe(m) && <Badge ton="orange">Gamme d’encre à choisir</Badge>}
+                        {encreSuivie && gammeADefinir(m) && <Badge ton="orange">Gamme d’encre à choisir</Badge>}
                         {m.aVerifier && <Badge ton="orange">À vérifier</Badge>}
                       </div>
                     </div>

@@ -10,7 +10,7 @@ import { NOM_COURT_COMPTEUR, calculer, type Compteurs } from '@/lib/connect/calc
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
 import { chercherReference, choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
 import { COULEURS, NOM_COULEUR, etatsParMachine, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
-import { FAMILLES, cleGroupe, gammeAuto, gammeDe } from '@/lib/connect/gammes'
+import { FAMILLES, GAMME_AUTRES, cleGroupe, gammeADefinir, gammeAuto, gammeDe } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,7 +64,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
         <Link href={`/parc/client/${machine.client.id}`} className="underline">{machine.client.nom}</Link> ·{' '}
         {machine.site} · {machine.marque ?? '?'} {machine.modele ?? ''} · n° {machine.numeroSerie ?? '—'} · IP {machine.ip ?? '—'}
       </p>
-      {suivie && !machine.horsContrat && !gamme && (
+      {suivie && !machine.horsContrat && gammeADefinir(machine) && (
         <Formulaire action={choisirGamme} message="Gamme enregistrée" className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
           <input type="hidden" name="id" value={machine.id} />
           <label className="grow text-sm font-medium text-gray-800">
@@ -74,6 +74,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
               {FAMILLES.map((g) => (
                 <option key={g.cle} value={g.cle}>{g.cle} — {g.modeles}</option>
               ))}
+              <option value={GAMME_AUTRES}>Autres (cartouches non listées)</option>
             </select>
           </label>
           <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Valider</Bouton>
@@ -225,9 +226,10 @@ export default async function MachinePage({ params }: { params: { id: string } }
               {FAMILLES.map((g) => (
                 <option key={g.cle} value={g.cle}>{g.cle} — {g.modeles}</option>
               ))}
+              <option value={GAMME_AUTRES}>Autres (cartouches non listées)</option>
             </select>
             <span className="mt-1 block text-xs font-normal text-gray-500">
-              {gamme ? `Partage son stock avec les machines de même gamme du site « ${machine.site} ».` : 'Gamme non reconnue : cette machine a son propre stock tant que vous ne choisissez pas sa gamme.'}
+              {gamme ? `Partage son stock avec les machines de même gamme du site « ${machine.site} ».` : machine.gamme === GAMME_AUTRES ? 'Gamme « Autres » : cette machine a son propre stock.' : 'Gamme non reconnue : cette machine a son propre stock tant que vous ne choisissez pas sa gamme.'}
             </span>
           </label>
           <label className="text-sm font-medium text-gray-700">

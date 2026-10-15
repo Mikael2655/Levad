@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { connecte } from '@/lib/connect/auth'
 import { COULEURS, stockCourant } from '@/lib/connect/alertes'
-import { cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
+import { GAMME_AUTRES, cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
 import { assurerCode, assurerCodeEspace, listeIps, regenererCode, regenererCodeEspace, urlsTelechargement } from '@/lib/connect/agent'
 import { adressesMail } from '@/lib/connect/mail'
 import { envoyerLienClient } from '@/lib/connect/lien-mail'
@@ -139,7 +139,7 @@ export async function choisirGamme(formData: FormData): Promise<string | void> {
   const code = String(formData.get('gamme') ?? '')
   const avant = await prisma.connectMachine.findUnique({ where: { id } })
   if (!avant) return '!Machine introuvable'
-  if (code && !gammeParCode(code)) return '!Gamme inconnue'
+  if (code && code !== GAMME_AUTRES && !gammeParCode(code)) return '!Gamme inconnue'
   await prisma.connectMachine.update({ where: { id }, data: { gamme: code || null } })
   const apres = { ...avant, gamme: code || null }
   const ancienne = cleGroupe(avant)
@@ -151,7 +151,7 @@ export async function choisirGamme(formData: FormData): Promise<string | void> {
     }
   }
   revalidatePath('/parc', 'layout')
-  return code ? `Gamme enregistrée : ${code}` : 'Gamme remise en automatique'
+  return code ? `Gamme enregistrée : ${code === GAMME_AUTRES ? 'Autres' : code}` : 'Gamme remise en automatique'
 }
 
 // Stock minimum voulu par le client pour un groupe (site + gamme) : en dessous, l'alerte se déclenche comme s'il n'y avait plus de stock.
