@@ -51,14 +51,15 @@ export default async function ParcPage() {
       <h1 className="text-2xl font-bold">Synthèse</h1>
       <div className="mt-5 grid grid-cols-3 gap-3 sm:gap-4">
         {[
-          ['Clients', clients.length],
-          ['Machines', machines.length],
-          ['Clients en alerte', enAlerte.length],
-        ].map(([titre, valeur]) => {
+          ['Clients', clients.length, null],
+          ['Machines', machines.length, `dont ${machines.filter((m) => m.horsContrat).length} hors contrat`],
+          ['Clients en alerte', enAlerte.length, null],
+        ].map(([titre, valeur, precision]) => {
           const carte = (
             <div className={`rounded-xl border bg-white p-5 ${titre === 'Clients en alerte' && Number(valeur) > 0 ? 'border-red-300' : ''}`}>
               <p className="text-sm text-gray-500">{titre}</p>
               <p className={`mt-1 text-3xl font-bold ${titre === 'Clients en alerte' && Number(valeur) > 0 ? 'text-red-600' : ''}`}>{valeur}</p>
+              {precision && <p className="mt-0.5 text-xs text-gray-500">{precision}</p>}
             </div>
           )
           return titre === 'Clients en alerte' ? (
