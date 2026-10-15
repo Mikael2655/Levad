@@ -17,8 +17,8 @@
   var state = { tid: null };
   var subs = [];
   var ui = { poolTab: 'A', adminTab: 'equipes', lastDraw: null, draftTeam: '',
-             newFormat: 'pools', newName: '', newPin: '', newPools: 6, newSize: 4, newQual: 2, newTeams: 16,
-             tourList: null };
+             newFormat: 'pools', newName: '', newPin: '', newPools: 6, newTeams: 16,
+             bracketChoice: null, tourList: null };
   var screen = document.getElementById('screen');
   var pendingRender = false;
 
@@ -32,8 +32,30 @@
   function norm(s) { return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   function fmt() { return (store.config && store.config.format) || 'pools'; }
   function poolSize() { return (store.config && store.config.poolSize) || 4; }
-  function qualPerPool() { return (store.config && store.config.qualPerPool) || 2; }
   function ordinalFr(n) { return n === 1 ? '1er' : (n + 'e'); } // 1er, 2e, 3e…
+  // Nombre d'équipes placées dans une poule (tailles variables).
+  function poolSizeOf(P) { return store.teams.filter(function (t) { return t.pool === P && t.assigned; }).length; }
+  // Nombre total d'équipes placées (après tirage).
+  function teamCount() { return store.teams.filter(function (t) { return t.assigned; }).length; }
+  // Avancement des poules (matchs validés / total), tailles variables.
+  function poolProg() {
+    var pool = store.matches.filter(function (m) { return m.phase === 'pool'; });
+    var done = pool.filter(function (m) { return m.validated; }).length;
+    return { done: done, total: pool.length, complete: pool.length > 0 && done >= pool.length };
+  }
+  // Nom du tour pour une taille de tableau (2 → Finale, 4 → 1/2, 8 → 1/4…).
+  function roundNameForSize(size) {
+    return L.roundLabel(L.resolveBracket({ size: size, slots: [] }, [], {}).rounds[0].key);
+  }
+  // Décrit la qualification : « les 4 1ers + les 4 2es + les 2 meilleurs 3es ».
+  function describeQual(rankCounts) {
+    var parts = [];
+    Object.keys(rankCounts).map(Number).sort(function (a, b) { return a - b; }).forEach(function (rk) {
+      var n = rankCounts[rk];
+      parts.push('les ' + n + ' ' + (rk <= 2 ? ordinalFr(rk) + 's' : 'meilleurs ' + ordinalFr(rk) + 's'));
+    });
+    return parts.join(' + ');
+  }
   function formatLabel(f) {
     return { pools: 'Poules + tableau', poolsonly: 'Poules seulement', ko: 'Élimination directe' }[f] || 'Poules + tableau';
   }
@@ -237,13 +259,8 @@
       }).join('');
       specific = '<label>Nombre d\'équipes (tableau)</label><select id="c-teams">' + opts + '</select>';
     } else {
-      specific = '<div class="field-2">' +
-        '<div><label>Nombre de poules</label><input id="c-pools" type="number" min="1" max="26" value="' + ui.newPools + '"></div>' +
-        '<div><label>Équipes / poule</label><input id="c-size" type="number" min="2" max="10" value="' + ui.newSize + '"></div></div>' +
-        (f === 'pools'
-          ? '<label>Qualifiés par poule (pour le tableau)</label>' +
-            '<input id="c-qual" type="number" min="1" max="' + ui.newSize + '" value="' + ui.newQual + '">'
-          : '');
+      specific = '<label>Nombre de poules</label>' +
+        '<input id="c-pools" type="number" min="1" max="26" value="' + ui.newPools + '">';
     }
     screen.innerHTML = backList() +
       '<div class="card"><h2>Nouveau tournoi</h2>' +
@@ -256,7 +273,7 @@
       '<div style="height:12px"></div>' +
       '<button class="btn primary block" id="do-create-btn" data-act="do-create">Créer le tournoi</button></div>';
     updateCreatePreview();
-    ['c-pools', 'c-size', 'c-qual', 'c-teams'].forEach(function (id) {
+    ['c-pools', 'c-teams'].forEach(function (id) {
       var el = document.getElementById(id); if (el) el.addEventListener('input', updateCreatePreview);
     });
   }
@@ -265,8 +282,6 @@
     if (g('c-name') != null) ui.newName = g('c-name');
     if (g('c-pin') != null) ui.newPin = g('c-pin');
     if (g('c-pools') != null) ui.newPools = Math.max(1, Math.min(26, parseInt(g('c-pools'), 10) || 1));
-    if (g('c-size') != null) ui.newSize = Math.max(2, Math.min(10, parseInt(g('c-size'), 10) || 4));
-    if (g('c-qual') != null) ui.newQual = Math.max(1, Math.min(ui.newSize, parseInt(g('c-qual'), 10) || 2));
     if (g('c-teams') != null) ui.newTeams = parseInt(g('c-teams'), 10) || 16;
   }
   function updateCreatePreview() {
@@ -277,25 +292,9 @@
       var first = L.resolveBracket({ size: ui.newTeams, slots: [] }, [], {}).rounds[0].key;
       el.innerHTML = ui.newTeams + ' équipes tirées au sort en <b>' + L.roundLabel(first) + '</b>, jusqu\'à la finale.';
     } else if (f === 'poolsonly') {
-      el.innerHTML = ui.newPools + ' poule(s) de ' + ui.newSize + ' = <b>' + (ui.newPools * ui.newSize) + ' équipes</b>. Classement, sans tableau final.';
+      el.innerHTML = '<b>' + ui.newPools + ' poule(s)</b>. Les équipes inscrites seront réparties au hasard, en poules de tailles équilibrées (ex. 22 en 4 poules → 6, 6, 5, 5). Classement, sans tableau final.';
     } else {
-      var n = ui.newPools, ps = ui.newSize, qpp = ui.newQual;
-      var plan = L.bracketPlan(n, ps, qpp);
-      var valid = L.validQualsFor(n, ps);
-      var fr = L.resolveBracket({ size: plan.size, slots: [] }, [], {}).rounds[0].key;
-      var base = n + ' poule(s) de ' + ps + ' = ' + (n * ps) + ' équipes. ';
-      var btn = document.getElementById('do-create-btn');
-      if (plan.clean) {
-        el.innerHTML = base + 'Tableau à <b>' + plan.size + '</b> (' + L.roundLabel(fr) + ') : les <b>' +
-          qpp + ' premiers</b> de chaque poule' +
-          (plan.repechageUsed > 0 ? ' + les <b>' + plan.repechageUsed + '</b> meilleurs ' + ordinalFr(plan.repechageRank) + 's' : '') + '.';
-        if (btn) btn.disabled = false;
-      } else {
-        el.innerHTML = base + '<b style="color:var(--red)">⚠️ ' + qpp + ' qualifiés/poule ne tombe pas juste</b> ' +
-          '(tableau de ' + plan.size + ' avec ' + plan.byes + ' exempt(s)). ' +
-          'Qualifiés/poule possibles ici : <b>' + (valid.join(', ') || 'aucun — changez poules/taille') + '</b>.';
-        if (btn) btn.disabled = true;
-      }
+      el.innerHTML = '<b>' + ui.newPools + ' poule(s)</b>. Les équipes inscrites seront réparties au hasard, en poules de tailles équilibrées (ex. 22 en 4 poules → 6, 6, 5, 5). Le <b>tour de départ du tableau</b> (1/16, 1/8, 1/4, 1/2 ou finale) se choisit à la <b>clôture des poules</b>.';
     }
   }
 
@@ -333,15 +332,9 @@
     var html = backList() + '<div class="card"><h2>' + esc(c.name) + ' — Classement</h2>' + viewToggle + body + '</div>';
 
     if (fmt() === 'pools') {
-      var q = L.qualifiers(c.numPools, standings, qualPerPool());
-      if (q.repechageNeeded > 0 && q.allRepechage.length) {
-        var rk = ordinalFr(q.repechageRank);
-        html += '<div class="card"><h2>Meilleurs ' + rk + 's</h2>' +
-          '<p class="sub">Les ' + q.repechageNeeded + ' meilleurs ' + rk + 's complètent le tableau à ' + q.size + '.</p>' + repechageTable(q) + '</div>';
-      }
       if (c.bracket) html += '<div class="card"><h2>Tableau final</h2>' + bracketView(c.bracket) + '</div>';
       else {
-        var prog = L.poolProgress(c.numPools, store.matches, poolSize());
+        var prog = poolProg();
         html += '<div class="card"><h2>Tableau final</h2><p class="sub">Il s\'affichera après la clôture des poules (' +
           prog.done + '/' + prog.total + ' matchs joués).</p></div>';
       }
@@ -387,21 +380,6 @@
       '<th>#</th><th style="text-align:left">Équipe</th><th>J</th><th>Pts</th><th>+/-</th>' +
       '</tr></thead><tbody>' + body + '</tbody></table>';
   }
-  function repechageTable(q) {
-    var body = q.allRepechage.map(function (r, i) {
-      var inn = i < q.repechageNeeded;
-      return '<tr class="' + (inn ? 'qual-1' : '') + '">' +
-        '<td class="rankbadge">' + (i + 1) + '</td>' +
-        '<td class="name">' + teamName(r.team) + '<small>Poule ' + r.pool + '</small></td>' +
-        '<td class="pts-col">' + r.pts + '</td>' +
-        '<td>' + (r.ga > 0 ? '+' : '') + r.ga + '</td>' +
-        '<td>' + (inn ? '✅' : '—') + '</td></tr>';
-    }).join('');
-    return '<table class="standings">' +
-      '<colgroup><col class="c-rank"><col><col class="c-n"><col class="c-diff"><col class="c-q"></colgroup>' +
-      '<thead><tr><th>#</th><th style="text-align:left">Équipe</th><th>Pts</th><th>+/-</th><th>Qual.</th></tr></thead><tbody>' + body + '</tbody></table>';
-  }
-
   /* ---- Tableau (bracket) ------------------------------------------- */
   function bracketView(bracket) {
     if (!bracket) return '<p class="sub">Tableau indisponible.</p>';
@@ -449,7 +427,7 @@
       '<p class="sub">Saisissez vos scores : l\'équipe adverse valide, et tout remonte à l\'organisateur.</p></div>';
 
     var mine = [];
-    var pOrder = L.poolMatchOrder(poolSize());
+    var pOrder = L.poolMatchOrder(poolSizeOf(t.pool) || 4);
     store.matches.filter(function (m) { return m.phase === 'pool' && (m.teamA === myId || m.teamB === myId); })
       .sort(function (a, b) { return (pOrder[a.slotA + '-' + a.slotB] || 0) - (pOrder[b.slotA + '-' + b.slotB] || 0); })
       .forEach(function (m) { mine.push({ m: m, title: null }); });
@@ -572,8 +550,8 @@
     var nav = navRow(row1) + '<div style="height:6px"></div>' + navRow(row2);
 
     var nbRoster = rosterList().length;
-    var meta = (fmt() === 'ko' ? formatLabel('ko') : (c.numPools + ' poule(s) de ' + poolSize())) +
-      ' · ' + nbRoster + ' équipe(s) · ' + store.teams.length + ' place(s)';
+    var meta = (fmt() === 'ko' ? formatLabel('ko') : (c.numPools + ' poule(s)')) +
+      ' · ' + nbRoster + ' équipe(s)' + (teamCount() ? ' réparties' : '');
     var head = '<div class="card"><h2>' + esc(c.name) + '</h2><p class="sub">' + formatLabel(fmt()) + ' · ' + meta + '</p>' + nav + '</div>';
 
     var body;
@@ -591,11 +569,10 @@
 
   function adminEquipes(c, assigned) {
     var isKo = fmt() === 'ko';
-    var total = store.teams.length;
     var roster = rosterList();
     var started = hasStarted();
     var drawn = assigned > 0;
-    var tooMany = roster.length > total;
+    var changed = drawn && roster.length !== assigned; // liste modifiée depuis le tirage
 
     /* Carte 1 — liste des équipes saisies */
     var list = roster.length
@@ -608,29 +585,24 @@
       card1 += '<label>Nom de l\'équipe</label>' +
         '<div class="field-2"><div style="flex:2"><input id="new-team" placeholder="Ex. Les Atouts" autocomplete="off" value="' + esc(ui.draftTeam) + '"></div>' +
         '<button class="btn primary" data-act="add-roster" style="flex:1">+ Ajouter</button></div>' +
-        '<p class="sub">Saisissez toutes vos équipes, puis lancez le tirage ci-dessous. ' +
-        total + ' place(s) disponible(s).</p>';
+        '<p class="sub">Saisissez toutes vos équipes, puis lancez le tirage : elles seront réparties au hasard dans les ' +
+        c.numPools + ' poule(s).</p>';
     }
     card1 += list + '</div>';
 
     /* Carte 2 — tirage et placements */
     var card2 = '<div class="card"><h2>' + (isKo ? 'Tirage du tableau' : 'Tirage des poules') + '</h2>';
-    if (tooMany) {
-      card2 += '<div class="notice">Trop d\'équipes (' + roster.length + ') pour ' + total +
-        ' place(s). Retirez-en, ou agrandissez le tournoi dans l\'onglet <b>Réglages</b>.</div>';
-    }
     if (!drawn) {
-      card2 += '<p class="sub">' + (roster.length ? 'Prêt à placer ' + roster.length + ' équipe(s) au hasard.' : 'Ajoutez d\'abord des équipes.') + '</p>' +
-        '<button class="btn primary block" data-act="draw-teams"' + (roster.length && !tooMany ? '' : ' disabled') +
-        '>🎲 Tirer au sort les placements</button>';
+      card2 += '<p class="sub">' + (roster.length ? 'Prêt à répartir ' + roster.length + ' équipe(s) dans ' + c.numPools + ' poule(s).' : 'Ajoutez d\'abord des équipes.') + '</p>' +
+        '<button class="btn primary block" data-act="draw-teams"' + (roster.length ? '' : ' disabled') +
+        '>🎲 Tirer au sort la répartition</button>';
     } else {
-      var unplaced = roster.length - assigned;
-      if (unplaced > 0 && !started)
-        card2 += '<div class="notice">' + unplaced + ' équipe(s) pas encore placée(s). Relancez le tirage pour les intégrer.</div>';
+      if (changed && !started)
+        card2 += '<div class="notice">La liste a changé depuis le dernier tirage. Relancez-le pour répartir à nouveau.</div>';
       card2 += placementGrid(c, isKo);
       if (!started) {
         card2 += '<div class="btn-row" style="margin-top:12px">' +
-          '<button class="btn" data-act="draw-teams"' + (tooMany ? ' disabled' : '') + '>🔁 Relancer</button>' +
+          '<button class="btn" data-act="draw-teams">🔁 Relancer</button>' +
           '<button class="btn danger" data-act="clear-draw">🧹 Effacer le tirage</button></div>' +
           '<p class="sub">Vous pouvez relancer ou effacer le tirage tant que le tournoi n\'a pas démarré. ' +
           (isKo ? 'Passez à l\'onglet <b>Tableau</b> quand c\'est bon.' : 'Passez à l\'onglet <b>Poules</b> quand c\'est bon.') + '</p>';
@@ -658,9 +630,8 @@
     var g = '';
     for (var p = 0; p < c.numPools; p++) {
       var P = L.poolLabel(p);
-      var cc = store.teams.filter(function (t) { return t.pool === P; })
-        .sort(function (a, b) { return a.slot - b.slot; }).map(placeCell).join('');
-      g += '<h3>Poule ' + P + '</h3><div class="grid-teams">' + cc + '</div>';
+      var members = store.teams.filter(function (t) { return t.pool === P; }).sort(function (a, b) { return a.slot - b.slot; });
+      g += '<h3>Poule ' + P + ' (' + members.length + ')</h3><div class="grid-teams">' + members.map(placeCell).join('') + '</div>';
     }
     return g;
   }
@@ -679,7 +650,7 @@
     }).join('') + '</div>';
     var P = ui.poolTab;
     var html = '<div class="card"><h2>Poule ' + P + '</h2>' + tabs + standingsTable(standings[P]) + '</div>';
-    var order = L.poolMatchOrder(poolSize());
+    var order = L.poolMatchOrder(poolSizeOf(P) || 4);
     var pm = store.matches.filter(function (m) { return m.phase === 'pool' && m.pool === P; })
       .sort(function (a, b) { return (order[a.slotA + '-' + a.slotB] || 0) - (order[b.slotA + '-' + b.slotB] || 0); });
     html += '<div class="card"><h2>Matchs de la poule ' + P + '</h2>' +
@@ -699,16 +670,27 @@
     }
     // Format « poules + tableau »
     var standings = L.allStandings(c.numPools, store.teams, store.matches);
-    var prog = L.poolProgress(c.numPools, store.matches, poolSize());
+    var prog = poolProg();
     if (!c.bracket) {
-      var q = L.qualifiers(c.numPools, standings, qualPerPool());
+      var total = teamCount();
+      var sizes = L.validBracketSizes(total);
+      if (!sizes.length) {
+        return '<div class="card"><h2>Lancer la phase finale</h2>' +
+          '<p class="sub">Répartissez d\'abord les équipes (onglet Équipes) : il en faut au moins 2.</p></div>';
+      }
+      if (sizes.indexOf(ui.bracketChoice) < 0) ui.bracketChoice = sizes[sizes.length - 1];
+      var choice = ui.bracketChoice;
+      var opts = sizes.map(function (s) {
+        return '<option value="' + s + '"' + (s === choice ? ' selected' : '') + '>' + roundNameForSize(s) + ' — ' + s + ' équipes</option>';
+      }).join('');
+      var qf = L.qualifyFor(c.numPools, standings, choice);
       return '<div class="card"><h2>Lancer la phase finale</h2>' +
         '<p class="sub">Poules jouées : ' + prog.done + '/' + prog.total + '.' +
         (prog.complete ? ' ✅ Toutes les rencontres sont saisies.' : ' ⚠️ Toutes les rencontres ne sont pas terminées.') + '</p>' +
-        '<p class="sub">Le tableau à ' + q.size + ' réunira les ' + q.qualPerPool + ' premiers de chaque poule' +
-        (q.repechageNeeded > 0 ? ' et les ' + q.repechageNeeded + ' meilleurs ' + ordinalFr(q.repechageRank) + 's' : '') +
-        '. Aucun affrontement de même poule au 1er tour, et les 1ers tombent sur une équipe moins bien classée.</p>' +
-        '<div class="notice">Vous pourrez l\'annuler tant qu\'aucun score de phase finale n\'est saisi.</div>' +
+        '<label>Tour de départ du tableau</label>' +
+        '<select id="bracket-size">' + opts + '</select>' +
+        '<p class="sub">Qualifiés : <b>' + describeQual(qf.rankCounts) + '</b>. Aucun affrontement de même poule au 1er tour ; les 1ers tombent sur une équipe moins bien classée.</p>' +
+        '<div class="notice">Vous pourrez annuler le tableau tant qu\'aucun score de phase finale n\'est saisi.</div>' +
         '<button class="btn primary block" data-act="start-bracket">Clôturer les poules &amp; générer le tableau</button></div>';
     }
     var undo = !hasStarted()
@@ -816,24 +798,14 @@
         '<button class="btn small" data-act="set-phase" data-phase="done">Terminé</button>';
     var resize = '';
     if (fmt() !== 'ko' && !hasStarted()) {
-      resize = '<div style="height:20px"></div><h3>Taille &amp; format</h3>' +
-        '<p class="sub">Modifiable tant qu\'aucun score n\'est saisi. Les équipes déjà placées sont conservées ; ' +
-        'on ne peut retirer que des places encore libres.</p>' +
-        '<div class="field-2">' +
-        '<div><label>Nombre de poules</label><input id="rz-pools" type="number" min="1" max="26" value="' + c.numPools + '"></div>' +
-        '<div><label>Équipes / poule</label><input id="rz-size" type="number" min="2" max="10" value="' + poolSize() + '"></div></div>' +
-        (fmt() === 'pools'
-          ? '<label>Qualifiés par poule (pour le tableau)</label>' +
-            '<input id="rz-qual" type="number" min="1" max="8" value="' + qualPerPool() + '">' +
-            '<p class="sub">Détermine le 1er tour du tableau (ex. 4 poules × 2 = 1/4 de finale). ' +
-            'Doit « tomber juste » (tableau sans exempt). Possibles pour ' + c.numPools + ' poule(s) de ' + poolSize() + ' : <b>' +
-            (L.validQualsFor(c.numPools, poolSize()).join(', ') || '—') + '</b>.</p>'
-          : '') +
-        (c.bracket ? '<div class="notice">Un tableau est généré : l\'appliquer l\'annulera pour reprendre en compte les nouveaux réglages.</div>' : '') +
+      resize = '<div style="height:20px"></div><h3>Nombre de poules</h3>' +
+        '<p class="sub">Modifiable tant qu\'aucun score n\'est saisi. Les équipes seront re-réparties (relancez le tirage).</p>' +
+        '<label>Nombre de poules</label><input id="rz-pools" type="number" min="1" max="26" value="' + c.numPools + '">' +
+        '<div class="notice">Appliquer efface le tirage et un éventuel tableau : à re-tirer ensuite.</div>' +
         '<button class="btn small block" data-act="resize" style="margin-top:8px">Appliquer</button>';
     } else if (fmt() === 'pools' && hasStarted()) {
-      resize = '<div style="height:20px"></div><h3>Taille &amp; format</h3>' +
-        '<p class="sub">Des scores sont déjà saisis : la taille des poules et le nombre de qualifiés ne peuvent plus être modifiés.</p>';
+      resize = '<div style="height:20px"></div><h3>Nombre de poules</h3>' +
+        '<p class="sub">Des scores sont déjà saisis : le nombre de poules ne peut plus être modifié.</p>';
     }
     return '<div class="card"><h2>Réglages</h2>' +
       '<p class="sub">« ' + esc(c.name) + ' » — ' + formatLabel(fmt()) + '.</p>' +
@@ -862,6 +834,9 @@
   });
   screen.addEventListener('keydown', function (ev) {
     if (ev.key === 'Enter' && ev.target.id === 'new-team') { ev.preventDefault(); handleAction('add-roster'); }
+  });
+  screen.addEventListener('change', function (ev) {
+    if (ev.target.id === 'bracket-size') { ui.bracketChoice = parseInt(ev.target.value, 10); render(); }
   });
   screen.addEventListener('focusout', function () { setTimeout(function () { if (pendingRender) render(); }, 50); });
 
@@ -989,32 +964,9 @@
     if (act === 'set-phase') { DB.setPhase(tid, a.getAttribute('data-phase')).then(function () { toast('Phase mise à jour.'); }); return; }
     if (act === 'resize') {
       var np = Math.max(1, Math.min(26, parseInt(document.getElementById('rz-pools').value, 10) || 1));
-      var ps = Math.max(2, Math.min(10, parseInt(document.getElementById('rz-size').value, 10) || 4));
-      var qEl = document.getElementById('rz-qual');
-      var nq = qEl ? Math.max(1, Math.min(ps, parseInt(qEl.value, 10) || 2)) : null;
-      // Refuse une combinaison qui ne « tombe pas juste » (tableau à exempts).
-      if (nq != null) {
-        var plan = L.bracketPlan(np, ps, nq);
-        if (!plan.clean) {
-          var valid = L.validQualsFor(np, ps);
-          toast('Combinaison impossible : ' + nq + ' qualifiés/poule → ' + plan.byes +
-            ' exempt(s). Possibles : ' + (valid.join(', ') || 'changez poules/taille') + '.');
-          return;
-        }
-      }
-      var hadBracket = !!(store.config && store.config.bracket);
-      var op = DB.resizeTournament(tid, np, ps).then(function () {
-        // Applique le nb de qualifiés et annule un éventuel tableau de test.
-        var patch = { bracket: null, phase: 'setup' };
-        if (nq != null) patch.qualPerPool = nq;
-        return DB.updateConfig(tid, patch);
-      });
-      runBusy('Mise à jour…', op, 'Réglages mis à jour (' + np + ' poule(s) de ' + ps + (nq != null ? ', ' + nq + ' qualifié(s)/poule' : '') + ')' + (hadBracket ? ' — tableau annulé' : '')).then(function () {
-        ui.poolTab = 'A'; render();
-      }, function (e) {
-        var m = (e && e.message) || '';
-        toast(/ASSIGNED_IN_REMOVED/.test(m) ? 'Retirez d\'abord les équipes des places à supprimer.' : ('Erreur : ' + m));
-      });
+      runBusy('Mise à jour…', DB.setNumPools(tid, np), np + ' poule(s) — relancez le tirage').then(function () {
+        ui.poolTab = 'A'; ui.adminTab = 'equipes'; render();
+      }, function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
       return;
     }
     if (act === 'lock-admin') { sessionStorage.removeItem('bt:admin:' + tid); go('#/classement'); return; }
@@ -1030,20 +982,9 @@
     var pin = ui.newPin;
     if (!pin || pin.length < 3) { toast('Choisissez un code d\'au moins 3 caractères.'); return; }
     var f = ui.newFormat;
-    if (f === 'pools') {
-      var plan = L.bracketPlan(ui.newPools, ui.newSize, ui.newQual);
-      if (!plan.clean) {
-        var valid = L.validQualsFor(ui.newPools, ui.newSize);
-        toast('Qualifiés/poule impossible ici (tableau à exempts). Possibles : ' + (valid.join(', ') || 'changez poules/taille') + '.');
-        return;
-      }
-    }
     var config = { name: name, format: f };
     if (f === 'ko') { config.numTeams = ui.newTeams; config.phase = 'ko'; }
-    else {
-      config.numPools = ui.newPools; config.poolSize = ui.newSize; config.phase = 'setup';
-      if (f === 'pools') config.qualPerPool = Math.max(1, Math.min(ui.newSize, ui.newQual || 2));
-    }
+    else { config.numPools = ui.newPools; config.phase = 'setup'; }
     var tid = newTid(name);
     sha256(pin).then(function (hash) {
       config.adminHash = hash;
@@ -1091,20 +1032,17 @@
   }
   function startBracket() {
     var c = store.config, tid = state.tid;
-    var plan = L.bracketPlan(c.numPools, poolSize(), qualPerPool());
-    if (!plan.clean) {
-      var valid = L.validQualsFor(c.numPools, poolSize());
-      toast('Réglage impossible (tableau à exempts). Qualifiés/poule possibles : ' + (valid.join(', ') || 'changez poules/taille') + ' — onglet Réglages.');
-      return;
-    }
+    var total = teamCount();
+    var sizes = L.validBracketSizes(total);
+    var size = (sizes.indexOf(ui.bracketChoice) >= 0) ? ui.bracketChoice : sizes[sizes.length - 1];
+    if (!size) { toast('Pas assez d\'équipes réparties pour un tableau.'); return; }
     var standings = L.allStandings(c.numPools, store.teams, store.matches);
-    var q = L.qualifiers(c.numPools, standings, qualPerPool());
-    var enough = q.seeds.length >= q.size;
-    var ask = enough ? Promise.resolve(true)
-      : modalConfirm('Toutes les places qualificatives ne sont pas encore déterminées. Générer le tableau quand même ?', 'Générer');
+    var prog = poolProg();
+    var ask = prog.complete ? Promise.resolve(true)
+      : modalConfirm('Toutes les rencontres de poule ne sont pas terminées. Générer le tableau quand même ?', 'Générer');
     ask.then(function (ok) {
       if (!ok) return;
-      var bracket = L.seedBracket(c.numPools, standings, qualPerPool());
+      var bracket = L.seedBracket(c.numPools, standings, size);
       runBusy('Génération du tableau…', DB.startBracket(tid, bracket), 'Tableau généré !')
         .then(function () { ui.adminTab = 'tableau'; render(); },
           function (e) { toast('Erreur : ' + ((e && e.message) || '')); });

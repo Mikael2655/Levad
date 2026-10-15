@@ -266,38 +266,116 @@
     return arr.map(function (x) { return x - 1; });
   }
 
+  /* ---- Répartition en poules (tailles variables) ------------------- */
+
+  // Répartit `total` équipes en `numPools` poules aussi équilibrées que
+  // possible. Ex. 22 en 4 poules -> [6, 6, 5, 5].
+  function poolSizesFor(total, numPools) {
+    var base = Math.floor(total / numPools), rem = total % numPools, sizes = [];
+    for (var p = 0; p < numPools; p++) sizes.push(base + (p < rem ? 1 : 0));
+    return sizes;
+  }
+
+  // À partir d'une liste de noms déjà mélangée et d'un nombre de poules,
+  // construit les équipes placées + les matchs de poule (round-robin par
+  // poule, tailles variables). `roster` : [{ id, name }].
+  function buildPoolDraw(roster, numPools, nowTs) {
+    nowTs = nowTs || Date.now();
+    var sizes = poolSizesFor(roster.length, numPools);
+    var teams = [], matches = [], idx = 0;
+    for (var p = 0; p < numPools; p++) {
+      var L = poolLabel(p);
+      for (var s = 1; s <= sizes[p]; s++) {
+        var r = roster[idx++];
+        teams.push({ id: L + s, pool: L, slot: s, name: r.name, rid: r.id, assigned: true, assignedAt: nowTs });
+      }
+      scheduledPairs(sizes[p]).forEach(function (pair) {
+        matches.push({
+          id: 'pool-' + L + '-' + pair[0] + '-' + pair[1],
+          phase: 'pool', pool: L, slotA: pair[0], slotB: pair[1],
+          teamA: L + pair[0], teamB: L + pair[1],
+          target: POOL_TARGET, proposal: null, validated: false
+        });
+      });
+    }
+    return { teams: teams, matches: matches, sizes: sizes };
+  }
+
+  /* ---- Qualification par tour de départ choisi --------------------- */
+
+  // Toutes les équipes classées par priorité de qualification :
+  // tous les 1ers de poule (triés entre eux), puis tous les 2es, etc.
+  function allSeeds(numPools, standings) {
+    var maxRank = 0;
+    for (var p = 0; p < numPools; p++) {
+      var s = standings[poolLabel(p)] || [];
+      if (s.length > maxRank) maxRank = s.length;
+    }
+    var seeds = [];
+    for (var r = 0; r < maxRank; r++) {
+      var tier = [];
+      for (var p2 = 0; p2 < numPools; p2++) {
+        var s2 = standings[poolLabel(p2)] || [];
+        if (s2[r]) tier.push(s2[r]);
+      }
+      tier.sort(cmpStandings);
+      seeds = seeds.concat(tier);
+    }
+    return seeds;
+  }
+
+  // Qualifie les `bracketSize` meilleures équipes (par priorité de rang)
+  // pour remplir un tableau de cette taille. rankCounts : combien de 1ers,
+  // 2es, 3es… sont qualifiés (pour l'affichage).
+  function qualifyFor(numPools, standings, bracketSize) {
+    var all = allSeeds(numPools, standings);
+    var seeds = all.slice(0, bracketSize);
+    var rankCounts = {};
+    seeds.forEach(function (r) { rankCounts[r.rank] = (rankCounts[r.rank] || 0) + 1; });
+    return { size: bracketSize, seeds: seeds, rankCounts: rankCounts, available: all.length };
+  }
+
+  // Tailles de tableau possibles (puissances de 2, de 2 jusqu'à <= total).
+  function validBracketSizes(total) {
+    var out = [], s = 2;
+    while (s <= total) { out.push(s); s *= 2; }
+    return out;
+  }
+
   // Place les qualifiés dans les positions du tableau.
-  // Ordre des têtes : 1ers de poule (classés), puis 2es, puis meilleurs 3es.
+  // Ordre des têtes : 1ers de poule (classés), puis 2es, puis 3es…
   // Le placement standard fait que, au 1er tour :
   //   • deux 1ers de poule ne se rencontrent jamais ;
-  //   • les 1ers tombent en priorité sur les meilleurs 3es, et les 1ers
-  //     restants (quand il n'y a plus de 3e) tombent sur des 2es.
+  //   • les 1ers tombent en priorité sur une équipe moins bien classée.
   // Contrainte supplémentaire : deux équipes d'une même poule ne se
   // rencontrent jamais au 1er tour (réparée par échanges de positions, sans
   // jamais créer d'affrontement entre deux 1ers).
+  // `bracketSize` : taille du tableau choisie (puissance de 2).
   // Renvoie { size, slots:[teamId|null …] } (par position de tableau).
-  function seedBracket(numPools, standings, qualPerPool) {
-    var q = qualifiers(numPools, standings, qualPerPool);
-    var seeds = q.seeds; // déjà ordonnés : 1ers, puis 2es, …, puis repêchés
+  function seedBracket(numPools, standings, bracketSize) {
+    var q = qualifyFor(numPools, standings, bracketSize);
+    var seeds = q.seeds; // déjà ordonnés : 1ers, puis 2es, …
     var order = seeds.map(function (r) { return r.teamId; });
     var pools = seeds.map(function (r) { return r.pool; });
     var ranks = seeds.map(function (r) { return r.rank; }); // rang de poule (1 = 1er)
-    while (order.length < q.size) { order.push(null); pools.push(null); ranks.push(0); } // byes
+    while (order.length < bracketSize) { order.push(null); pools.push(null); ranks.push(0); } // byes
 
-    var pos = standardSeedPositions(q.size);
-    var slots = new Array(q.size);
-    var slotPool = new Array(q.size);
-    var slotRank = new Array(q.size);
-    for (var i = 0; i < q.size; i++) {
+    var pos = standardSeedPositions(bracketSize);
+    var slots = new Array(bracketSize);
+    var slotPool = new Array(bracketSize);
+    var slotRank = new Array(bracketSize);
+    for (var i = 0; i < bracketSize; i++) {
       slots[i] = order[pos[i]]; slotPool[i] = pools[pos[i]]; slotRank[i] = ranks[pos[i]];
     }
 
-    // « Jamais deux 1ers » n'a de sens que si on peut les séparer (assez de
-    // places / d'équipes moins bien classées). Sinon (ex. 1 qualifié/poule),
-    // on ne garde que la contrainte de poule.
-    var avoidTwoFirsts = (numPools * 2 <= q.size);
+    // « Jamais deux 1ers » n'a de sens que si on peut les séparer (assez
+    // d'équipes moins bien classées). Sinon on ne garde que la contrainte
+    // de poule.
+    var nbFirsts = 0;
+    for (var f = 0; f < ranks.length; f++) if (ranks[f] === 1) nbFirsts++;
+    var avoidTwoFirsts = (nbFirsts * 2 <= bracketSize);
     avoidSamePoolFirstRound(slots, slotPool, slotRank, avoidTwoFirsts);
-    return { size: q.size, slots: slots, seededAt: Date.now() };
+    return { size: bracketSize, slots: slots, seededAt: Date.now() };
   }
 
   // Échange des positions du 1er tour pour qu'aucun match n'oppose deux
@@ -451,6 +529,8 @@
     cmpStandings: cmpStandings,
     bracketSizeFor: bracketSizeFor, bracketPlan: bracketPlan, validQualsFor: validQualsFor,
     qualifiers: qualifiers,
+    poolSizesFor: poolSizesFor, buildPoolDraw: buildPoolDraw,
+    allSeeds: allSeeds, qualifyFor: qualifyFor, validBracketSizes: validBracketSizes,
     standardSeedPositions: standardSeedPositions, seedBracket: seedBracket,
     resolveBracket: resolveBracket, bracketMatchList: bracketMatchList,
     winnerOf: winnerOf, roundLabel: roundLabel
