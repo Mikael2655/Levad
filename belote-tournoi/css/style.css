@@ -191,7 +191,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .mini-pool { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--panel-2); }
 .mini-pool h4 { margin: 2px 0 6px; font-size: .85rem; }
 .standings.compact th, .standings.compact td { padding: 3px 4px; font-size: .8rem; }
-.standings.compact td.name { font-size: .82rem; }
+.standings.compact td.name { font-size: .82rem; line-height: 1.2; }
 .standings.compact th { font-size: .64rem; }
 
 /* Fenêtre modale (remplace prompt/confirm) */
