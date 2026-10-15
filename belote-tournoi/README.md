@@ -34,11 +34,13 @@ plusieurs appareils).
      et les placements sont figés. Chaque action affiche un indicateur
      **« en cours »** puis une confirmation.
   2. **Saisir les scores** des matchs (poules et/ou tableau).
-  3. En format « poules + tableau », **clôturer les poules** : on **choisit le
-     tour de départ** du tableau (1/16, 1/8, 1/4, 1/2 ou finale). L'appli
-     qualifie en conséquence les meilleures équipes (les 1ers, puis les 2es,
-     puis les meilleurs 3es…) pour remplir exactement ce tableau, têtes de
-     série tirées du classement.
+  3. En format « poules + tableau », on **choisit le tour de départ** du
+     tableau (1/16, 1/8, 1/4, 1/2 ou finale) — dans les **Réglages** (à côté
+     du nombre de poules) ou au moment de la clôture, avec une option
+     **« Auto »** (le plus grand tableau possible). À la **clôture des
+     poules**, l'appli qualifie en conséquence les meilleures équipes (les
+     1ers, puis les 2es, puis les meilleurs 3es…) pour remplir exactement ce
+     tableau, têtes de série tirées du classement.
 - **Classement** (vue publique, partageable) : classement des poules et
   tableau final en direct — selon le format choisi.
 

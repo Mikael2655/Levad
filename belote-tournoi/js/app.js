@@ -47,6 +47,14 @@
   function roundNameForSize(size) {
     return L.roundLabel(L.resolveBracket({ size: size, slots: [] }, [], {}).rounds[0].key);
   }
+  // Tour de départ choisi : config.bracketSize si valide pour `total` équipes,
+  // sinon le plus grand tableau possible (« Auto »).
+  function chosenBracketSize(total) {
+    var sizes = L.validBracketSizes(total);
+    if (!sizes.length) return 0;
+    var pref = store.config && store.config.bracketSize;
+    return (sizes.indexOf(pref) >= 0) ? pref : sizes[sizes.length - 1];
+  }
   // Décrit la qualification : « les 4 1ers + les 4 2es + les 2 meilleurs 3es ».
   function describeQual(rankCounts) {
     var parts = [];
@@ -678,8 +686,7 @@
         return '<div class="card"><h2>Lancer la phase finale</h2>' +
           '<p class="sub">Répartissez d\'abord les équipes (onglet Équipes) : il en faut au moins 2.</p></div>';
       }
-      if (sizes.indexOf(ui.bracketChoice) < 0) ui.bracketChoice = sizes[sizes.length - 1];
-      var choice = ui.bracketChoice;
+      var choice = chosenBracketSize(total);
       var opts = sizes.map(function (s) {
         return '<option value="' + s + '"' + (s === choice ? ' selected' : '') + '>' + roundNameForSize(s) + ' — ' + s + ' équipes</option>';
       }).join('');
@@ -687,7 +694,7 @@
       return '<div class="card"><h2>Lancer la phase finale</h2>' +
         '<p class="sub">Poules jouées : ' + prog.done + '/' + prog.total + '.' +
         (prog.complete ? ' ✅ Toutes les rencontres sont saisies.' : ' ⚠️ Toutes les rencontres ne sont pas terminées.') + '</p>' +
-        '<label>Tour de départ du tableau</label>' +
+        '<label>Tour de départ du tableau <span class="sub">(défini aussi dans les Réglages)</span></label>' +
         '<select id="bracket-size">' + opts + '</select>' +
         '<p class="sub">Qualifiés : <b>' + describeQual(qf.rankCounts) + '</b>. Aucun affrontement de même poule au 1er tour ; les 1ers tombent sur une équipe moins bien classée.</p>' +
         '<div class="notice">Vous pourrez annuler le tableau tant qu\'aucun score de phase finale n\'est saisi.</div>' +
@@ -807,6 +814,20 @@
       resize = '<div style="height:20px"></div><h3>Nombre de poules</h3>' +
         '<p class="sub">Des scores sont déjà saisis : le nombre de poules ne peut plus être modifié.</p>';
     }
+    // Tour de départ du tableau (format poules + tableau), tant que le tableau
+    // n'est pas généré et qu'aucun score n'est saisi.
+    if (fmt() === 'pools' && !c.bracket && !hasStarted()) {
+      var pref = c.bracketSize || 0;
+      var rounds = [32, 16, 8, 4, 2];
+      var opts = '<option value="0"' + (pref ? '' : ' selected') + '>Auto (le plus grand possible)</option>' +
+        rounds.map(function (s) {
+          return '<option value="' + s + '"' + (pref === s ? ' selected' : '') + '>' + roundNameForSize(s) + ' (' + s + ' équipes)</option>';
+        }).join('');
+      resize += '<div style="height:20px"></div><h3>Tour de départ du tableau</h3>' +
+        '<p class="sub">Phase à la sortie des poules. « Auto » prend le plus grand tableau que permet le nombre d\'équipes. ' +
+        'Un tableau plus petit qualifie moins d\'équipes (les mieux classées).</p>' +
+        '<select id="rz-bracket">' + opts + '</select>';
+    }
     return '<div class="card"><h2>Réglages</h2>' +
       '<p class="sub">« ' + esc(c.name) + ' » — ' + formatLabel(fmt()) + '.</p>' +
       '<label>Phase</label><div class="btn-row">' + phases + '</div>' +
@@ -836,7 +857,11 @@
     if (ev.key === 'Enter' && ev.target.id === 'new-team') { ev.preventDefault(); handleAction('add-roster'); }
   });
   screen.addEventListener('change', function (ev) {
-    if (ev.target.id === 'bracket-size') { ui.bracketChoice = parseInt(ev.target.value, 10); render(); }
+    // Les deux sélecteurs (Réglages / clôture) écrivent le même réglage persistant.
+    if (ev.target.id === 'bracket-size' || ev.target.id === 'rz-bracket') {
+      DB.updateConfig(state.tid, { bracketSize: parseInt(ev.target.value, 10) || 0 })
+        .then(function () { if (ev.target.id === 'rz-bracket') toast('Tour de départ enregistré.'); });
+    }
   });
   screen.addEventListener('focusout', function () { setTimeout(function () { if (pendingRender) render(); }, 50); });
 
@@ -1033,8 +1058,7 @@
   function startBracket() {
     var c = store.config, tid = state.tid;
     var total = teamCount();
-    var sizes = L.validBracketSizes(total);
-    var size = (sizes.indexOf(ui.bracketChoice) >= 0) ? ui.bracketChoice : sizes[sizes.length - 1];
+    var size = chosenBracketSize(total);
     if (!size) { toast('Pas assez d\'équipes réparties pour un tableau.'); return; }
     var standings = L.allStandings(c.numPools, store.teams, store.matches);
     var prog = poolProg();
