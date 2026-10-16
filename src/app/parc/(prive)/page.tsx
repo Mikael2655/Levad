@@ -195,17 +195,18 @@ export default async function ParcPage() {
                         encres={(avecEncres(m.releves)?.encres ?? []) as unknown as Encre[]}
                         seuils={encreSuivie ? Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)])) : undefined}
                         stock={encreSuivie ? stockDuGroupe(stocks!, c.id, cleGroupe(m)) : undefined}
+                        afficherStock={encreSuivie}
                         etats={encreSuivie ? Object.fromEntries((etatsMachines?.get(m.id) ?? []).map((x) => [x.couleur, { bas: x.bas, jours: x.jours, mode: x.mode, alerte: x.alerte }])) : undefined}
                       />
-                      <p className="mt-1 text-xs text-gray-500">
-                        {encreSuivie
-                          ? enPartage.has(m.id)
-                            ? 'Stock partagé : voir en bas du site'
-                            : `Stock : ${COULEURS.map((k) => `${NOM_COULEUR[k]} ${stockDuGroupe(stocks!, c.id, cleGroupe(m))[k]}`).join(' · ')}`
-                          : m.horsContrat
-                            ? 'Hors contrat'
-                            : 'Autre marque : pas d’alerte d’encre'}
-                      </p>
+                      {(!encreSuivie || enPartage.has(m.id)) && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          {encreSuivie
+                            ? `Stock partagé avec ${(partages.find((g) => g.machines.some((x) => x.id === m.id))?.machines ?? []).filter((x) => x.id !== m.id).map((x) => libelleMachine(x, '').split(' / ').pop()).join(' et ')}`
+                            : m.horsContrat
+                              ? 'Hors contrat'
+                              : 'Autre marque : pas d’alerte d’encre'}
+                        </p>
+                      )}
                     </div>
                     <div className="text-sm">
                       {suivie && calc.retenue ? (
@@ -222,17 +223,6 @@ export default async function ParcPage() {
                       {r ? `Relevé ${depuis(r.date)}` : 'Jamais lu'}
                     </p>
                   </Link>
-                )
-              })}
-              {partages.map((g) => {
-                const stock = stockDuGroupe(stocks!, c.id, g.cle)
-                return (
-                  <div key={g.cle} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 bg-gray-50 px-5 py-3 text-sm">
-                    <span className="font-semibold text-gray-700">
-                      Stock partagé par {g.machines.map((x) => libelleMachine(x, '').split(' / ').pop()).join(' et ')}{g.gamme ? ` (${g.gamme.code})` : ''} :
-                    </span>
-                    <span className="text-gray-700">{COULEURS.map((k) => `${NOM_COULEUR[k]} ${stock[k]}`).join(' · ')}</span>
-                  </div>
                 )
               })}
             </div>

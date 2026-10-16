@@ -25,8 +25,7 @@ function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
         )}
       </div>
       <div>
-        <Encres encres={encres} seuils={seuils} stock={m.stock} etats={etats} />
-        <p className="mt-1 text-xs text-gray-500">Stock : {COULEURS.map((k) => `${NOM_COULEUR[k]} ${m.stock[k]}`).join(' · ')}</p>
+        <Encres encres={encres} seuils={seuils} stock={m.stock} etats={etats} afficherStock />
       </div>
       <p className="text-sm text-gray-500 md:text-right" title={m.dernierReleve ? formaterDate(m.dernierReleve) : undefined}>
         {m.dernierReleve ? `Relevé ${depuis(m.dernierReleve)}` : 'Jamais lu'}
