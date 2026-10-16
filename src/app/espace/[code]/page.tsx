@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db'
 import { MOTIF_CODE } from '@/lib/connect/agent'
 import { connectMetadata, connectViewport } from '@/lib/connect/metadata'
 import { COULEURS, NOM_COULEUR, etatDuParc, stockDuGroupe, stocksParGroupe, type Couleur } from '@/lib/connect/alertes'
-import { grouper } from '@/lib/connect/gammes'
+import { cleGroupe, grouper } from '@/lib/connect/gammes'
 import { groupesParSite, libelleMachine } from '@/lib/connect/libelle'
 import { NOM_COURT_COMPTEUR, type Compteurs } from '@/lib/connect/calcul'
 import { VERT, formaterDate, jour, nombre } from '@/components/connect/affichage'
@@ -83,6 +83,8 @@ export default async function EspaceClient({ params }: { params: { code: string 
                 const numeros = PRINCIPAUX.some((n) => compteurs[n]) ? [...PRINCIPAUX, '501'] : [...AUTRES, '501']
                 const lignes = numeros.filter((n) => compteurs[n])
                 const couleurs = etats.get(m.id) ?? []
+                const stockM = stockDuGroupe(stocks, client.id, cleGroupe(m))
+                const memeStock = (groupes.find((g) => g.machines.some((x) => x.id === m.id))?.machines ?? []).filter((x) => x.id !== m.id)
                 return (
                   <article key={m.id} className="rounded-xl border bg-white p-5">
                     <h3 className="text-lg font-semibold">{libelleMachine(m, 'Machine')}</h3>
@@ -119,10 +121,16 @@ export default async function EspaceClient({ params }: { params: { code: string 
                               <div className="h-full rounded" style={{ width: `${c.pourcent ?? 0}%`, backgroundColor: TEINTE[c.couleur] }} />
                             </div>
                             <p className="mt-0.5 text-sm text-gray-800">{c.pourcent === null ? '—' : `${c.pourcent} %`}</p>
+                            <p className="text-xs text-gray-500">
+                              stock <strong className={stockM[c.couleur] > 0 ? 'text-gray-800' : 'text-gray-400'}>{stockM[c.couleur]}</strong>
+                            </p>
                             {c.pourcent !== null && fin(c.jours, c.mode) && <p className="text-xs text-gray-500">{fin(c.jours, c.mode)}</p>}
                           </div>
                         ))}
                       </div>
+                    )}
+                    {memeStock.length > 0 && (
+                      <p className="mt-2 text-xs text-gray-500">Stock partagé avec {memeStock.map((x) => libelleMachine(x, 'Machine').split(' / ').pop()).join(' et ')}.</p>
                     )}
                   </article>
                 )
