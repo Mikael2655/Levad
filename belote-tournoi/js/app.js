@@ -353,8 +353,10 @@
       '<span class="pill ' + (view === 'condense' ? 'active' : '') + '" data-act="stand-view" data-v="condense">Condensé (toutes poules)</span></div>';
 
     var qual = qualSet();
+    var qSize = chosenBracketSize(teamCount());
+    var qLabel = qSize === 2 ? 'la finale' : 'les ' + roundNameForSize(qSize);
     var legend = qual
-      ? '<div class="legend"><span><i style="background:var(--green)"></i>Qualifié pour le tableau</span></div>'
+      ? '<div class="legend"><span><i style="background:var(--green)"></i>Qualifié pour ' + qLabel + '</span></div>'
       : '';
     var body;
     if (view === 'condense') {
