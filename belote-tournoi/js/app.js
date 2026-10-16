@@ -18,7 +18,7 @@
   var subs = [];
   var ui = { poolTab: 'A', adminTab: 'equipes', lastDraw: null, draftTeam: '',
              newFormat: 'pools', newName: '', newPin: '', newPools: 6, newTeams: 16,
-             bracketChoice: null, tourList: null };
+             bracketChoice: null, tourList: null, poolSearch: '' };
   var screen = document.getElementById('screen');
   var pendingRender = false;
   var lastRenderRoute = null;
@@ -613,6 +613,7 @@
 
     screen.innerHTML = backList() + head + body;
     if (ui.adminTab === 'acces') { drawQRs(); applyAccesFilter(); }
+    if (ui.adminTab === 'poules') applyPoolFilter();
     var input = document.getElementById('new-team');
     if (input) input.focus();
   }
@@ -700,13 +701,72 @@
     }).join('') + '</div>';
     var P = ui.poolTab;
     var html = '<div class="card"><h2>Poule ' + P + '</h2>' + tabs + standingsTable(standings[P], qualSet()) + '</div>';
-    var order = L.poolMatchOrder(poolSizeOf(P) || 4);
-    var pm = store.matches.filter(function (m) { return m.phase === 'pool' && m.pool === P; })
-      .sort(function (a, b) { return (order[a.slotA + '-' + a.slotB] || 0) - (order[b.slotA + '-' + b.slotB] || 0); });
-    html += '<div class="card"><h2>Matchs de la poule ' + P + '</h2>' +
-      '<p class="sub">Saisissez le score de chaque rencontre (en ' + L.POOL_TARGET + ' points).</p>';
-    pm.forEach(function (m) { html += matchCard(m); });
-    return html + '</div>';
+
+    // Toutes les rencontres de toutes les poules, chacune présente une seule
+    // fois dans le DOM (identifiants de saisie uniques). Par défaut on n'affiche
+    // que la poule sélectionnée ci-dessus ; la recherche permet de saisir dans
+    // n'importe quel ordre, sur l'ensemble des poules.
+    var cards = pools.map(function (PP) {
+      var order = L.poolMatchOrder(poolSizeOf(PP) || 4);
+      return store.matches.filter(function (m) { return m.phase === 'pool' && m.pool === PP; })
+        .sort(function (a, b) { return (order[a.slotA + '-' + a.slotB] || 0) - (order[b.slotA + '-' + b.slotB] || 0); })
+        .map(function (m) {
+          var ta = teamById(m.teamA), tb = teamById(m.teamB);
+          var hay = norm([(ta && ta.name) || '', (tb && tb.name) || '',
+            teamTag(m.teamA), teamTag(m.teamB), 'poule ' + m.pool].join(' '));
+          return '<div class="pool-match-row" data-search="' + esc(hay) + '" data-pool="' + esc(norm(m.pool)) + '">' +
+            matchCard(m) + '</div>';
+        }).join('');
+    }).join('');
+
+    var search = '<div style="position:relative;margin-top:4px">' +
+      '<input id="pool-search" placeholder="🔎 Rechercher une rencontre (équipe, A1, poule B…)" autocomplete="off" value="' + esc(ui.poolSearch || '') + '">' +
+      '<span id="pool-search-count" class="sub" style="display:block;margin-top:6px"></span></div>';
+
+    html += '<div class="card"><h2>Rencontres des poules</h2>' +
+      '<p class="sub">Saisissez le score de chaque rencontre (en ' + L.POOL_TARGET + ' points). ' +
+      'Par défaut : la poule sélectionnée ci-dessus. Si les matchs ne se jouent pas dans l\'ordre, ' +
+      'cherchez une équipe pour saisir directement, toutes poules confondues.</p>' +
+      search +
+      '<div id="pool-match-list">' + cards + '</div>' +
+      '<p id="pool-search-none" class="sub center hidden">Aucune rencontre ne correspond à « <span id="pool-search-none-q"></span> ».</p>' +
+      '</div>';
+    return html;
+  }
+  // Filtre les rencontres de poule selon la recherche (sans re-rendu, focus
+  // conservé). Recherche vide → seule la poule sélectionnée est affichée.
+  function applyPoolFilter() {
+    var list = document.getElementById('pool-match-list');
+    if (!list) return;
+    var raw = (ui.poolSearch || '').trim();
+    var nraw = norm(raw);
+    var poolOnly = nraw.match(/^poule\s+([a-z])$/);
+    var tokens = nraw.split(/\s+/).filter(Boolean);
+    var activePool = norm(ui.poolTab || '');
+    var rows = list.querySelectorAll('.pool-match-row');
+    var shown = 0;
+    Array.prototype.forEach.call(rows, function (el) {
+      var ok;
+      if (!tokens.length) {
+        ok = el.getAttribute('data-pool') === activePool;
+      } else if (poolOnly) {
+        ok = el.getAttribute('data-pool') === poolOnly[1];
+      } else {
+        var hay = el.getAttribute('data-search');
+        ok = tokens.every(function (tk) { return hay.indexOf(tk) >= 0; });
+      }
+      el.classList.toggle('hidden', !ok);
+      if (ok) shown++;
+    });
+    var none = document.getElementById('pool-search-none');
+    if (none) {
+      none.classList.toggle('hidden', !(tokens.length && shown === 0));
+      var nq = document.getElementById('pool-search-none-q'); if (nq) nq.textContent = raw;
+    }
+    var cnt = document.getElementById('pool-search-count');
+    if (cnt) cnt.textContent = tokens.length
+      ? (shown + ' rencontre(s) trouvée(s) sur ' + rows.length)
+      : (shown + ' rencontre(s) · poule ' + (ui.poolTab || '') + ' (recherchez pour saisir dans une autre poule)');
   }
 
   function adminTableau(c) {
@@ -894,6 +954,7 @@
   screen.addEventListener('input', function (ev) {
     if (ev.target.id === 'new-team') ui.draftTeam = ev.target.value;
     if (ev.target.id === 'acces-q') { ui.accesQ = ev.target.value; applyAccesFilter(); }
+    if (ev.target.id === 'pool-search') { ui.poolSearch = ev.target.value; applyPoolFilter(); }
   });
   screen.addEventListener('keydown', function (ev) {
     if (ev.key === 'Enter' && ev.target.id === 'new-team') { ev.preventDefault(); handleAction('add-roster'); }
@@ -1023,9 +1084,9 @@
       else toast('Copie non supportée.');
       return;
     }
-    if (act === 'pool-tab') { ui.poolTab = a.getAttribute('data-pool'); render(); return; }
+    if (act === 'pool-tab') { ui.poolTab = a.getAttribute('data-pool'); ui.poolSearch = ''; render(); return; }
     if (act === 'stand-view') { ui.standView = a.getAttribute('data-v'); render(); return; }
-    if (act === 'admin-tab') { ui.adminTab = a.getAttribute('data-tab'); ui.lastDraw = null; render(); return; }
+    if (act === 'admin-tab') { ui.adminTab = a.getAttribute('data-tab'); ui.lastDraw = null; ui.poolSearch = ''; render(); return; }
     if (act === 'acces-sort') { ui.accesSort = a.getAttribute('data-s'); render(); return; }
     if (act === 'admin-unlock') return adminUnlock();
     if (act === 'start-bracket') return startBracket();
