@@ -10,7 +10,7 @@ import { VERT, Badge, Encres, depuis, jour, formaterDate, nombre, type Encre } f
 import { statutConnexion } from '@/lib/connect/agent'
 import { creerClient, marquerMachinesVues, preparerLien } from './actions'
 import { clientsEnAlerte, etatsParMachine, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
-import { cleGroupe, gammeADefinir } from '@/lib/connect/gammes'
+import { cleGroupe, gammeADefinir, grouper } from '@/lib/connect/gammes'
 
 export const dynamic = 'force-dynamic'
 
@@ -154,7 +154,11 @@ export default async function ParcPage() {
                 Aucune machine pour l&apos;instant : elles apparaîtront dès que le client aura installé Levad Connect avec son lien.
               </p>
             )}
-            {groupesParSite(c.machines).map(([site, lesMachines], gi) => (
+            {groupesParSite(c.machines).map(([site, lesMachines], gi) => {
+            // machines du site qui partagent le même stock (cartouches compatibles) : le stock s'affiche une seule fois, sous la liste
+            const partages = grouper(lesMachines.filter((x) => x.categorie === 'mine' && !x.horsContrat)).filter((g) => g.machines.length > 1)
+            const enPartage = new Set(partages.flatMap((g) => g.machines.map((x) => x.id)))
+            return (
             <div key={site} data-site className={gi > 0 ? 'mt-4' : ''}>
             <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>
             <div className="divide-y rounded-xl border bg-white">
@@ -195,7 +199,9 @@ export default async function ParcPage() {
                       />
                       <p className="mt-1 text-xs text-gray-500">
                         {encreSuivie
-                          ? `Stock : ${COULEURS.map((k) => `${NOM_COULEUR[k]} ${stockDuGroupe(stocks!, c.id, cleGroupe(m))[k]}`).join(' · ')}`
+                          ? enPartage.has(m.id)
+                            ? 'Stock partagé : voir en bas du site'
+                            : `Stock : ${COULEURS.map((k) => `${NOM_COULEUR[k]} ${stockDuGroupe(stocks!, c.id, cleGroupe(m))[k]}`).join(' · ')}`
                           : m.horsContrat
                             ? 'Hors contrat'
                             : 'Autre marque : pas d’alerte d’encre'}
@@ -218,9 +224,20 @@ export default async function ParcPage() {
                   </Link>
                 )
               })}
+              {partages.map((g) => {
+                const stock = stockDuGroupe(stocks!, c.id, g.cle)
+                return (
+                  <div key={g.cle} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 bg-gray-50 px-5 py-3 text-sm">
+                    <span className="font-semibold text-gray-700">
+                      Stock partagé par {g.machines.map((x) => libelleMachine(x, '').split(' / ').pop()).join(' et ')}{g.gamme ? ` (${g.gamme.code})` : ''} :
+                    </span>
+                    <span className="text-gray-700">{COULEURS.map((k) => `${NOM_COULEUR[k]} ${stock[k]}`).join(' · ')}</span>
+                  </div>
+                )
+              })}
             </div>
             </div>
-            ))}
+            )})}
           </section>
         ))}
       </div>
