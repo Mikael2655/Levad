@@ -142,27 +142,34 @@ export default async function EspaceClient({ params }: { params: { code: string 
         {groupes.length > 0 && (
           <section className="mt-8">
             <h2 className="text-xl font-bold">Vos stocks de cartouches</h2>
-            <div className="mt-2 space-y-4">
-              {groupes.map((g) => {
+            <div className="mt-2 divide-y rounded-xl border bg-white">
+              {groupes.flatMap((g) => {
                 const stock = stockDuGroupe(stocks, client.id, g.cle)
                 const couleurs = g.gamme ? COULEURS.filter((c) => g.gamme!.refs[c]) : COULEURS
-                return (
-                  <div key={g.cle} className="rounded-xl border bg-white p-5">
-                    <p className="font-semibold">
-                      {sites.length > 1 ? `${g.site} · ` : ''}
-                      {g.machines.map((m) => libelleMachine(m, 'Machine')).join(', ')}
-                    </p>
-                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      {couleurs.map((c) => (
-                        <div key={c} className="rounded-lg bg-gray-50 p-3 text-center">
-                          <p className="text-sm text-gray-500">{NOM_COULEUR[c]}</p>
-                          <p className={`text-2xl font-bold ${stock[c] === 0 ? 'text-gray-400' : ''}`}>{stock[c]}</p>
-                          {g.gamme?.refs[c] && <p className="text-xs text-gray-500">{g.gamme.refs[c]}</p>}
-                        </div>
-                      ))}
+                // les machines compatibles se suivent, chacune sur sa ligne, avec la mention du partage
+                return g.machines.map((m) => {
+                  const autres = g.machines.filter((x) => x.id !== m.id).map((x) => libelleMachine(x, 'Machine').split(' / ').pop())
+                  return (
+                    <div key={m.id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2.5">
+                      <p className="min-w-[10rem] text-sm font-semibold">
+                        {sites.length > 1 ? `${g.site} · ` : ''}
+                        {libelleMachine(m, 'Machine')}
+                        {autres.length > 0 && <span className="font-normal text-gray-500"> (partagé avec {autres.join(' et ')})</span>}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {couleurs.map((c) =>
+                          stock[c] > 0 ? (
+                            <span key={c} className="rounded-md bg-gray-100 px-2 py-0.5 text-sm">
+                              {NOM_COULEUR[c]} <strong>{stock[c]}</strong>
+                            </span>
+                          ) : (
+                            <span key={c} className="px-1 text-xs text-gray-400">{NOM_COULEUR[c]} 0</span>
+                          ),
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )
+                  )
+                })
               })}
             </div>
           </section>
