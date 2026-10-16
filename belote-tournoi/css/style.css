@@ -125,7 +125,6 @@ input[type="number"] { -moz-appearance: textfield; }
 .standings tr.qual-2 td:first-child { box-shadow: inset 3px 0 0 var(--gold); }
 .standings tr.qual-3 td:first-child { box-shadow: inset 3px 0 0 #9aa5a0; }
 .standings tr.qual-in td:first-child { box-shadow: inset 3px 0 0 var(--green); }
-.standings tr.qual-in td.name { font-weight: 700; }
 .rankbadge { font-weight: 700; }
 .pts-col { font-weight: 700; }
 
@@ -193,7 +192,8 @@ input[type="number"] { -moz-appearance: textfield; }
 .mini-pool { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--panel-2); }
 .mini-pool h4 { margin: 2px 0 6px; font-size: .85rem; }
 .standings.compact th, .standings.compact td { padding: 6px 5px; font-size: .84rem; }
-.standings.compact td.name { font-size: .92rem; line-height: 1.4; }
+.standings.compact td.name { font-size: .92rem; line-height: 1.4; font-weight: 400; }
+.standings.compact td.name b { font-weight: 700; }
 .standings.compact th { font-size: .64rem; }
 
 /* Fenêtre modale (remplace prompt/confirm) */
