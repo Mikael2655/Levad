@@ -7,8 +7,8 @@
 (function (global) {
   'use strict';
 
-  var POOL_TARGET = 1500;   // tous les matchs… (poules, 1/8, 1/4, 1/2)
-  var KO_BIG_TARGET = 2000; // …sauf la finale et la petite finale
+  var POOL_TARGET = 1500;   // cible de tous les matchs (poules et phase finale)
+  var KO_BIG_TARGET = 2000; // (obsolète) ancienne cible finale ; conservé pour compat.
 
   /* ---- Poules ------------------------------------------------------ */
 
@@ -443,12 +443,92 @@
     return w === a ? b : a;
   }
 
-  // Cible d'un tour : 2000 pts pour la finale, 1500 pour tous les autres.
-  function roundTarget(key) { return key === 'final' ? KO_BIG_TARGET : POOL_TARGET; }
+  // Tous les matchs de phase finale se jouent en 1500 points (plus de 2000).
+  function roundTarget() { return POOL_TARGET; }
+
+  // Format d'un match de phase finale (nombre de manches + mode de départage) :
+  //   • 1/4 (qf) et 1/2 (sf) : 2 manches à 1500, départage à la DIFFÉRENCE de
+  //     points cumulée si 1 manche partout.
+  //   • Finale et petite finale : 2 manches à 1500 + « belle » si 1 partout.
+  //   • Tours précédents (1/8, 1/16, 1/32) : 1 seule manche sèche.
+  // Aucune notion de rubicon en phase finale (seule compte la victoire).
+  function koFormat(key) {
+    if (key === 'final' || key === 'p3') return { base: 2, belle: true, mode: 'belle' };
+    if (key === 'qf' || key === 'sf') return { base: 2, belle: false, mode: 'diff' };
+    return { base: 1, belle: false, mode: 'single' };
+  }
+  // Identifiant de la manche n (1..) d'un match de phase finale. Un match à une
+  // seule manche garde l'identifiant du match (compatibilité).
+  function mancheId(matchId, fmt, n) {
+    return (fmt.base === 1 && !fmt.belle) ? matchId : (matchId + '_m' + n);
+  }
+  // Décide un match de phase finale à partir des scores de ses manches.
+  // mancheScores : tableau de { a, b } (ou null) pour manche 1..N (belle en 3).
+  function decideKo(key, teamA, teamB, mancheScores) {
+    var fmt = koFormat(key);
+    function wi(sc) { return !sc ? 0 : (sc.a > sc.b ? 1 : (sc.b > sc.a ? 2 : 0)); } // 1=A,2=B
+    if (fmt.mode === 'single') {
+      var w = wi(mancheScores[0]);
+      return { fmt: fmt, winner: w === 1 ? teamA : (w === 2 ? teamB : null),
+               wonA: w === 1 ? 1 : 0, wonB: w === 2 ? 1 : 0, manchesActive: 1 };
+    }
+    var s1 = mancheScores[0], s2 = mancheScores[1];
+    var w1 = wi(s1), w2 = wi(s2);
+    var wonA = (w1 === 1 ? 1 : 0) + (w2 === 1 ? 1 : 0);
+    var wonB = (w1 === 2 ? 1 : 0) + (w2 === 2 ? 1 : 0);
+    var bothIn = !!(s1 && s2);
+    if (fmt.mode === 'diff') {
+      var winner = null;
+      if (bothIn) {
+        if (wonA > wonB) winner = teamA;
+        else if (wonB > wonA) winner = teamB;
+        else { // 1 manche partout → différence de points cumulée
+          var d = (s1.a + s2.a) - (s1.b + s2.b);
+          winner = d > 0 ? teamA : (d < 0 ? teamB : null);
+        }
+      }
+      return { fmt: fmt, winner: winner, wonA: wonA, wonB: wonB, manchesActive: 2 };
+    }
+    // belle (finale / petite finale) : au meilleur des 3
+    if (wonA === 2) return { fmt: fmt, winner: teamA, wonA: 2, wonB: 0, manchesActive: 2 };
+    if (wonB === 2) return { fmt: fmt, winner: teamB, wonA: 0, wonB: 2, manchesActive: 2 };
+    if (bothIn && wonA === 1 && wonB === 1) { // 1-1 → belle
+      var s3 = mancheScores[2], w3 = wi(s3);
+      return { fmt: fmt, winner: w3 === 1 ? teamA : (w3 === 2 ? teamB : null),
+               wonA: wonA + (w3 === 1 ? 1 : 0), wonB: wonB + (w3 === 2 ? 1 : 0), manchesActive: 3 };
+    }
+    return { fmt: fmt, winner: null, wonA: wonA, wonB: wonB, manchesActive: 2 };
+  }
+  // Construit un match de phase finale résolu (vainqueur + descripteurs de
+  // manches actives pour la saisie et l'affichage).
+  function buildKoMatch(id, key, ta, tb, bye, results) {
+    var fmt = koFormat(key);
+    var raw = [];
+    var maxN = fmt.base + (fmt.belle ? 1 : 0);
+    for (var i = 1; i <= maxN; i++) raw.push(scoreOf(results[mancheId(id, fmt, i)] || null));
+    var dec = decideKo(key, ta, tb, raw);
+    var winner = bye ? (ta || tb) : dec.winner;
+    var loser = (winner && ta && tb) ? (winner === ta ? tb : ta) : null;
+    var manches = [];
+    if (!bye && ta && tb) {
+      for (var j = 1; j <= dec.manchesActive; j++) {
+        manches.push({
+          id: mancheId(id, fmt, j), no: j,
+          single: fmt.mode === 'single', belle: (fmt.belle && j === 3),
+          target: POOL_TARGET, score: raw[j - 1] || null
+        });
+      }
+    }
+    return {
+      id: id, key: key, target: POOL_TARGET, teamA: ta, teamB: tb,
+      bye: bye, winner: winner, loser: loser, wonA: dec.wonA, wonB: dec.wonB,
+      decided: !!winner, fmt: fmt, manches: manches
+    };
+  }
 
   // Construit l'état complet du tableau à partir des scores enregistrés.
-  // results : map matchId -> matchDoc ({ proposal, validated, target, ... }).
-  // Tous les matchs sont des matchs secs (pas d'aller-retour).
+  // results : map matchId -> matchDoc. Les manches des matchs à partir des 1/4
+  // sont stockées sous des identifiants « <match>~<n> » (manches/belle).
   function resolveBracket(bracket, teams, results) {
     results = results || {};
     var size = bracket.size;
@@ -461,24 +541,19 @@
 
     while (teamsIn >= 2) {
       var key = ROUND_BY_TEAMS[teamsIn] || ('t' + teamsIn);
-      var target = roundTarget(key);
       var matches = [];
       var nextParticipants = [];
       for (var k = 0; k < teamsIn / 2; k++) {
         var ta = current[2 * k], tb = current[2 * k + 1];
         var id = key + '-' + k;
-        var res = results[id] || null;
         // Exempt (bye) au 1er tour : l'équipe présente passe d'office.
         var bye = (rIdx === 0) && ((ta && !tb) || (tb && !ta));
-        var w = bye ? (ta || tb) : winnerOf(res, ta, tb);
-        matches.push({
-          id: id, key: key, index: k, target: target, bestOf: 1,
-          teamA: ta, teamB: tb, result: res, winner: w, bye: bye,
-          loser: bye ? null : loserOf(res, ta, tb)
-        });
-        nextParticipants.push(w);
+        var mt = buildKoMatch(id, key, ta, tb, bye, results);
+        mt.index = k;
+        matches.push(mt);
+        nextParticipants.push(mt.winner);
       }
-      rounds.push({ key: key, teamsIn: teamsIn, target: target, bestOf: 1, matches: matches });
+      rounds.push({ key: key, teamsIn: teamsIn, target: POOL_TARGET, matches: matches });
       if (teamsIn === 4) sfLosers = matches.map(function (mm) { return mm.loser; });
       if (teamsIn === 2) { finalInfo = matches[0]; champion = matches[0].winner; }
       current = nextParticipants;
@@ -486,34 +561,28 @@
       rIdx++;
     }
 
-    // Petite finale (3e place) entre les 2 perdants de 1/2 : match sec en 2000.
+    // Petite finale (3e place) entre les 2 perdants de 1/2 : 2 manches + belle.
     var thirdPlace = null;
     if (sfLosers) {
-      var la = sfLosers[0], lb = sfLosers[1];
-      var res3 = results['p3'] || null;
-      thirdPlace = {
-        id: 'p3', key: 'p3', target: KO_BIG_TARGET, bestOf: 1,
-        teamA: la, teamB: lb, result: res3,
-        winner: winnerOf(res3, la, lb), loser: loserOf(res3, la, lb)
-      };
+      thirdPlace = buildKoMatch('p3', 'p3', sfLosers[0], sfLosers[1], false, results);
     }
     return { rounds: rounds, thirdPlace: thirdPlace, size: size,
              champion: champion, final: finalInfo };
   }
 
-  // Liste plate de tous les identifiants de matchs d'un tableau (pour la
-  // saisie / validation), avec leurs équipes courantes.
+  // Liste plate de toutes les MANCHES actives d'un tableau (pour la saisie /
+  // validation). Chaque manche est une entrée indépendante (identifiant propre),
+  // la « belle » n'apparaît que lorsqu'elle est nécessaire (1 manche partout).
   function bracketMatchList(resolved) {
     var list = [];
-    resolved.rounds.forEach(function (rd) {
-      rd.matches.forEach(function (m) {
-        list.push({ id: m.id, key: m.key, teamA: m.teamA, teamB: m.teamB, target: m.target });
+    function addFrom(m) {
+      m.manches.forEach(function (mm) {
+        list.push({ id: mm.id, key: m.key, teamA: m.teamA, teamB: m.teamB,
+          target: mm.target, manche: mm.single ? null : mm.no, belle: mm.belle });
       });
-    });
-    if (resolved.thirdPlace) {
-      var tp = resolved.thirdPlace;
-      list.push({ id: 'p3', key: 'p3', teamA: tp.teamA, teamB: tp.teamB, target: tp.target });
     }
+    resolved.rounds.forEach(function (rd) { rd.matches.forEach(addFrom); });
+    if (resolved.thirdPlace) addFrom(resolved.thirdPlace);
     return list;
   }
 
@@ -532,6 +601,7 @@
     allSeeds: allSeeds, qualifyFor: qualifyFor, validBracketSizes: validBracketSizes,
     standardSeedPositions: standardSeedPositions, seedBracket: seedBracket,
     resolveBracket: resolveBracket, bracketMatchList: bracketMatchList,
+    koFormat: koFormat, mancheId: mancheId, decideKo: decideKo,
     winnerOf: winnerOf, roundLabel: roundLabel
   };
 })(typeof window !== 'undefined' ? window : this);
