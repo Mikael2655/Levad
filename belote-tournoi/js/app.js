@@ -46,7 +46,8 @@
   }
   // Nom du tour pour une taille de tableau (2 → Finale, 4 → 1/2, 8 → 1/4…).
   function roundNameForSize(size) {
-    return L.roundLabel(L.resolveBracket({ size: size, slots: [] }, [], {}).rounds[0].key);
+    var r = L.resolveBracket({ size: size, slots: [] }, [], {}).rounds[0];
+    return r ? L.roundLabel(r.key) : '';
   }
   // Tour de départ choisi : config.bracketSize si valide pour `total` équipes,
   // sinon le plus grand tableau possible (« Auto »).
@@ -361,11 +362,12 @@
       '<span class="pill ' + (view === 'condense' ? 'active' : '') + '" data-act="stand-view" data-v="condense">Condensé (toutes poules)</span></div>';
 
     var qual = qualSet();
-    var qSize = chosenBracketSize(teamCount());
-    var qLabel = qSize === 2 ? 'la finale' : 'les ' + roundNameForSize(qSize);
-    var legend = qual
-      ? '<div class="legend"><span><i style="background:var(--green)"></i>Qualifié pour ' + qLabel + '</span></div>'
-      : '';
+    var legend = '';
+    if (qual) {
+      var qSize = chosenBracketSize(teamCount());
+      var qLabel = qSize === 2 ? 'la finale' : 'les ' + roundNameForSize(qSize);
+      legend = '<div class="legend"><span><i style="background:var(--green)"></i>Qualifié pour ' + qLabel + '</span></div>';
+    }
     var body;
     if (view === 'condense') {
       body = '<div class="standings-grid">' + pools.map(function (P) {
