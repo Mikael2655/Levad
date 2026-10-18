@@ -63,6 +63,23 @@ retaper de nom :
 ⚠️ Cette saisie multi-téléphone nécessite **Firebase** (voir ci-dessous). En
 mode local (un seul appareil), seul l'organisateur peut saisir.
 
+## Accès co-admin (saisie des scores)
+
+Pour déléguer **uniquement la saisie des scores** à une personne de confiance,
+sans lui donner accès aux réglages, au tirage ou à la suppression :
+
+- Dans l'administration, onglet **Réglages → Accès saisie (co-admin)**,
+  l'organisateur définit un **code de saisie** et récupère un **lien de
+  saisie** à partager.
+- Le co-admin ouvre ce lien, entre le code, et arrive sur un écran qui **ne
+  fait que saisir les scores**. Un **moteur de recherche** (par équipe,
+  étiquette `A1`, `poule B`, `finale`…) retrouve une rencontre si les matchs
+  ne se jouent pas dans l'ordre.
+- La liste ne montre **que les rencontres pas encore enregistrées** (poules
+  et phase finale). Dès qu'un score est saisi et enregistré, la rencontre
+  **disparaît** de la liste. Le code administrateur fonctionne aussi sur cet
+  écran.
+
 ## Règles du tournoi
 
 - **Poules de taille libre** (4, 5, 6… équipes), réparties au hasard et
