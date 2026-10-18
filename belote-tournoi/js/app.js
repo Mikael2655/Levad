@@ -18,7 +18,7 @@
   var subs = [];
   var ui = { poolTab: 'A', adminTab: 'equipes', lastDraw: null, draftTeam: '',
              newFormat: 'pools', newName: '', newPin: '', newPools: 6, newTeams: 16,
-             bracketChoice: null, tourList: null, poolSearch: '' };
+             bracketChoice: null, tourList: null, poolSearch: '', scoreSearch: '' };
   var screen = document.getElementById('screen');
   var pendingRender = false;
   var lastRenderRoute = null;
@@ -259,6 +259,7 @@
     if (!state.tid) { go('#/'); return; }
     if (state.tid && !store.config) { screen.innerHTML = backList() + '<div class="loading">Chargement…</div>'; return; }
     if (route === '#/equipe') return renderTeam();
+    if (route === '#/saisie') return renderScore();
     if (route === '#/classement') return renderStandings();
     if (route === '#/admin') return renderAdmin();
     renderList();
@@ -573,6 +574,118 @@
     if (e.key === 'final') return 'Finale';
     if (e.key === 'p3') return 'Petite finale (3e place)';
     return L.roundLabel(e.key);
+  }
+
+  /* ---- Saisie des scores (accès co-admin) -------------------------- *
+   * Un co-admin ne fait QUE saisir les scores des matchs. Il déverrouille
+   * avec un « code de saisie » (config.coadminHash) OU le code admin. L'écran
+   * liste uniquement les rencontres jouables NON encore enregistrées : dès
+   * qu'un score est validé, la rencontre disparaît de la liste.             */
+  function isCoadminUnlocked() {
+    return isAdminUnlocked() || sessionStorage.getItem('bt:coadmin:' + state.tid) === '1';
+  }
+  function coadminLink(tid) {
+    return location.origin + location.pathname + '?t=' + encodeURIComponent(tid) + '#/saisie';
+  }
+  // Toutes les rencontres jouables et NON encore enregistrées (poules + tableau),
+  // ordonnées : poules (par poule puis ordre de match) puis phase finale.
+  function pendingMatches() {
+    var out = [];
+    store.matches.filter(function (m) { return m.phase === 'pool' && m.teamA && m.teamB && !m.validated; })
+      .forEach(function (m) {
+        var order = L.poolMatchOrder(poolSizeOf(m.pool) || 4);
+        var rk = ('000' + (order[m.slotA + '-' + m.slotB] || 0)).slice(-3);
+        out.push({ m: m, title: null, sort: '1' + (m.pool || '') + rk });
+      });
+    var br = currentBracket();
+    if (br) {
+      var resolved = L.resolveBracket(br, store.teams, koResults());
+      L.bracketMatchList(resolved).forEach(function (e) {
+        if (!e.teamA || !e.teamB) return;
+        var existing = matchById(e.id);
+        if (existing && existing.validated) return;
+        var m = Object.assign({}, existing || {}, { id: e.id, teamA: e.teamA, teamB: e.teamB, target: e.target, phase: 'ko', roundKey: e.key });
+        out.push({ m: m, title: koTitle(e) + ' · ' + e.target + ' pts', sort: '2' + e.id });
+      });
+    }
+    out.sort(function (a, b) { return a.sort < b.sort ? -1 : (a.sort > b.sort ? 1 : 0); });
+    return out;
+  }
+  function renderScore() {
+    if (!isCoadminUnlocked()) return renderScoreLogin();
+    renderScoreDash();
+  }
+  function renderScoreLogin() {
+    var c = store.config;
+    screen.innerHTML = backList() +
+      '<div class="card"><h2>Saisie des scores — ' + esc(c.name) + '</h2>' +
+      '<p class="sub">Accès réservé à la saisie des scores. Entrez le code de saisie (ou le code administrateur).</p>' +
+      (c.coadminHash ? '' : '<div class="notice">L\'organisateur n\'a pas encore activé d\'accès saisie. Le code administrateur fonctionne néanmoins.</div>') +
+      '<label>Code</label><input id="sc-pin" type="password" placeholder="Code">' +
+      '<div style="height:10px"></div>' +
+      '<button class="btn primary block" data-act="score-unlock">Déverrouiller</button></div>';
+  }
+  function renderScoreDash() {
+    var pend = pendingMatches();
+    var search = '<div style="position:relative;margin-top:4px">' +
+      '<input id="score-search" placeholder="🔎 Rechercher une rencontre (équipe, A1, poule B, finale…)" autocomplete="off" value="' + esc(ui.scoreSearch || '') + '">' +
+      '<span id="score-count" class="sub" style="display:block;margin-top:6px"></span></div>';
+    var cards = pend.map(function (e) {
+      var m = e.m, ta = teamById(m.teamA), tb = teamById(m.teamB);
+      var hay = norm([(ta && ta.name) || '', (tb && tb.name) || '', teamTag(m.teamA), teamTag(m.teamB),
+        m.pool ? 'poule ' + m.pool : '', e.title || '', m.phase === 'ko' ? 'tableau finale' : ''].join(' '));
+      return '<div class="pool-match-row" data-search="' + esc(hay) + '">' + matchCard(m, e.title || undefined) + '</div>';
+    }).join('');
+    var empty = pend.length ? '' :
+      '<div class="card"><p class="sub">✅ Toutes les rencontres jouables sont enregistrées. Rien à saisir pour l\'instant.</p></div>';
+    screen.innerHTML = backList() +
+      '<div class="card"><h2>Saisie des scores — ' + esc(store.config.name) + '</h2>' +
+      '<p class="sub">Saisissez le score d\'une rencontre puis « Enregistrer » : elle disparaît aussitôt de la liste. ' +
+      'Seules les rencontres pas encore enregistrées apparaissent ici.</p>' +
+      search +
+      '<div id="score-list">' + cards + '</div>' +
+      '<p id="score-none" class="sub center hidden">Aucune rencontre ne correspond à « <span id="score-none-q"></span> ».</p>' +
+      '</div>' + empty +
+      '<a class="back" data-act="lock-score" style="margin-top:8px;cursor:pointer">🔒 Quitter la saisie</a>';
+    applyScoreFilter();
+  }
+  // Filtre la liste de saisie selon la recherche (sans re-rendu, focus conservé).
+  function applyScoreFilter() {
+    var list = document.getElementById('score-list');
+    if (!list) return;
+    var raw = (ui.scoreSearch || '').trim();
+    var nraw = norm(raw);
+    var poolOnly = nraw.match(/^poule\s+([a-z])$/);
+    var tokens = nraw.split(/\s+/).filter(Boolean);
+    var rows = list.querySelectorAll('.pool-match-row');
+    var shown = 0;
+    Array.prototype.forEach.call(rows, function (el) {
+      var hay = el.getAttribute('data-search');
+      var ok;
+      if (!tokens.length) ok = true;
+      else if (poolOnly) ok = hay.indexOf('poule ' + poolOnly[1]) >= 0;
+      else ok = tokens.every(function (tk) { return hay.indexOf(tk) >= 0; });
+      el.classList.toggle('hidden', !ok);
+      if (ok) shown++;
+    });
+    var none = document.getElementById('score-none');
+    if (none) {
+      none.classList.toggle('hidden', !(tokens.length && shown === 0));
+      var nq = document.getElementById('score-none-q'); if (nq) nq.textContent = raw;
+    }
+    var cnt = document.getElementById('score-count');
+    if (cnt) cnt.textContent = tokens.length
+      ? (shown + ' rencontre(s) trouvée(s) sur ' + rows.length)
+      : (rows.length + ' rencontre(s) à saisir');
+  }
+  function scoreUnlock() {
+    var el = document.getElementById('sc-pin'); if (!el) return;
+    sha256(el.value).then(function (hash) {
+      var c = store.config;
+      if (c && (hash === c.coadminHash || hash === c.adminHash)) {
+        sessionStorage.setItem('bt:coadmin:' + state.tid, '1'); render();
+      } else toast('Code incorrect.');
+    });
   }
 
   /* ---- Administration ---------------------------------------------- */
@@ -936,6 +1049,19 @@
       '<p class="sub">« ' + esc(c.name) + ' » — ' + formatLabel(fmt()) + '.</p>' +
       '<label>Phase</label><div class="btn-row">' + phases + '</div>' +
       resize +
+      '<div style="height:20px"></div><h3>Accès saisie (co-admin)</h3>' +
+      '<p class="sub">Donnez ce lien et ce code à une personne de confiance : elle pourra <b>uniquement saisir les scores</b> des matchs (aucun autre réglage, aucune suppression). ' +
+      (c.coadminHash ? 'Un code de saisie est actuellement défini.' : 'Aucun code de saisie n\'est défini pour l\'instant.') + '</p>' +
+      '<label>Code de saisie</label>' +
+      '<input id="rz-coadmin" type="text" autocomplete="off" placeholder="' +
+      (c.coadminHash ? 'Nouveau code (laisser vide = inchangé)' : 'Choisir un code (min. 3 caractères)') + '">' +
+      '<button class="btn small block" data-act="set-coadmin" style="margin-top:8px">' +
+      (c.coadminHash ? 'Modifier le code de saisie' : 'Activer l\'accès saisie') + '</button>' +
+      (c.coadminHash
+        ? '<div style="margin-top:12px"><label>Lien de saisie</label>' +
+          '<input readonly value="' + esc(coadminLink(state.tid)) + '" onclick="this.select()">' +
+          '<button class="btn small block" data-act="copy-link" data-link="' + esc(coadminLink(state.tid)) + '" style="margin-top:6px">Copier le lien de saisie</button></div>'
+        : '') +
       '<div style="height:16px"></div>' +
       '<button class="btn small block" data-act="lock-admin">Verrouiller l\'administration</button>' +
       '<div style="height:20px"></div><h3>Zone dangereuse</h3>' +
@@ -957,6 +1083,7 @@
     if (ev.target.id === 'new-team') ui.draftTeam = ev.target.value;
     if (ev.target.id === 'acces-q') { ui.accesQ = ev.target.value; applyAccesFilter(); }
     if (ev.target.id === 'pool-search') { ui.poolSearch = ev.target.value; applyPoolFilter(); }
+    if (ev.target.id === 'score-search') { ui.scoreSearch = ev.target.value; applyScoreFilter(); }
   });
   screen.addEventListener('keydown', function (ev) {
     if (ev.key === 'Enter' && ev.target.id === 'new-team') { ev.preventDefault(); handleAction('add-roster'); }
@@ -1106,6 +1233,18 @@
       runBusy('Mise à jour…', DB.setNumPools(tid, np), np + ' poule(s) — relancez le tirage').then(function () {
         ui.poolTab = 'A'; ui.adminTab = 'equipes'; render();
       }, function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
+      return;
+    }
+    if (act === 'score-unlock') return scoreUnlock();
+    if (act === 'lock-score') { sessionStorage.removeItem('bt:coadmin:' + tid); go('#/classement'); return; }
+    if (act === 'set-coadmin') {
+      var ci = document.getElementById('rz-coadmin');
+      var code = ((ci && ci.value) || '').trim();
+      if (!code) { toast(store.config && store.config.coadminHash ? 'Code inchangé.' : 'Choisissez un code d\'au moins 3 caractères.'); return; }
+      if (code.length < 3) { toast('Code trop court (min. 3 caractères).'); return; }
+      sha256(code).then(function (hash) {
+        return runBusy('Enregistrement…', DB.updateConfig(tid, { coadminHash: hash }), 'Accès saisie activé');
+      }).then(function () { render(); }).catch(function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
       return;
     }
     if (act === 'lock-admin') { sessionStorage.removeItem('bt:admin:' + tid); go('#/classement'); return; }
