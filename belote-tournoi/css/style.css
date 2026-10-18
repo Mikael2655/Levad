@@ -186,13 +186,16 @@ input[type="number"] { -moz-appearance: textfield; }
 /* Classement condensé : toutes les poules en grille.
    Téléphone : 1 poule par ligne (colonne équipe pleine largeur).
    Écran large : 2 poules par ligne (ex. 4 poules -> 2 + 2), ce qui laisse
-   une colonne « équipe » large (les noms ne débordent pas sur 3-4 lignes). */
+   une colonne « équipe » large (chaque équipe tient sur une seule ligne). */
 .standings-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media (min-width: 620px) { .standings-grid { grid-template-columns: 1fr 1fr; } }
+/* Vue condensée en PLEINE LARGEUR : on neutralise la colonne centrée de 760px
+   pour utiliser tout l'écran (plus de bandes beiges sur les côtés). */
+main.standings-full { max-width: 100%; padding-left: 12px; padding-right: 12px; }
 .mini-pool { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--panel-2); }
 .mini-pool h4 { margin: 2px 0 6px; font-size: .85rem; }
 .standings.compact th, .standings.compact td { padding: 6px 5px; font-size: .84rem; }
-.standings.compact td.name { font-size: .92rem; line-height: 1.4; font-weight: 400; }
+.standings.compact td.name { font-size: .92rem; line-height: 1.35; font-weight: 400; }
 .standings.compact td.name b { font-weight: 700; }
 .standings.compact th { font-size: .64rem; }
 

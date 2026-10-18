@@ -103,12 +103,12 @@
     if (parts.length < 2) return esc(s);
     return esc(parts[0]) + ' <b>' + esc(parts.slice(1).join(' ')) + '</b>';
   }
-  // Nom d'équipe sur plusieurs lignes : « / » sépare les 2 joueurs,
-  // chacun sur sa propre ligne (pour le classement condensé).
+  // Nom d'équipe sur UNE seule ligne : « / » sépare les 2 joueurs (prénom
+  // normal, nom de famille en gras) — pour le classement condensé.
   function teamNameLines(t) {
     if (!t) return '—';
     if (!t.name) return '<span class="muted">Équipe ' + slotNum(t) + ' (vide)</span>';
-    return t.name.split('/').map(playerNameHtml).join('<br>');
+    return t.name.split('/').map(playerNameHtml).join(' / ');
   }
   function teamTag(id) { var t = teamById(id); return (t && t.pool != null) ? (t.pool + t.slot) : ''; }
   // Liste des équipes saisies (avant/après tirage).
@@ -249,6 +249,7 @@
     // à jour temps réel d'un score) : sinon l'écran « remonte » tout seul.
     var keepScroll = (route === lastRenderRoute);
     var y = keepScroll ? (window.scrollY || window.pageYOffset || 0) : 0;
+    screen.classList.remove('standings-full'); // réactivé par le classement condensé
     renderRoute(route);
     lastRenderRoute = route;
     if (keepScroll && y) window.scrollTo(0, y);
@@ -371,6 +372,7 @@
     }
     var body;
     if (view === 'condense') {
+      screen.classList.add('standings-full'); // pleine largeur pour cette vue
       body = '<div class="standings-grid">' + pools.map(function (P) {
         return '<div class="mini-pool"><h4>Poule ' + P + '</h4>' + compactStandingsTable(standings[P], qual) + '</div>';
       }).join('') + '</div>' + legend;
