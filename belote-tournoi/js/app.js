@@ -441,24 +441,34 @@
     var resolved = L.resolveBracket(bracket, store.teams, koResults());
     var cols = resolved.rounds.map(function (rd) {
       var title = (rd.key === 'final' ? 'Finale' : L.roundLabel(rd.key)) + ' · ' + rd.target + ' pts';
-      var inner = rd.matches.map(function (m) { return bmatch(m.teamA, m.teamB, m.result, m.winner, m.bye); }).join('');
+      var inner = rd.matches.map(bmatch).join('');
       return '<div class="bround"><h4>' + title + '</h4>' + inner + '</div>';
     }).join('');
     var extra = '';
     if (resolved.thirdPlace) {
-      var tp = resolved.thirdPlace;
-      extra += '<h3>Petite finale (3e place) — ' + tp.target + ' pts</h3>' +
-        '<div class="bracket"><div class="bround">' + bmatch(tp.teamA, tp.teamB, tp.result, tp.winner) + '</div></div>';
+      extra += '<h3>Petite finale (3e place) — ' + resolved.thirdPlace.target + ' pts</h3>' +
+        '<div class="bracket"><div class="bround">' + bmatch(resolved.thirdPlace) + '</div></div>';
     }
     var champ = resolved.champion ? '<div class="champion">🏆 Vainqueur : ' + teamName(teamById(resolved.champion)) + '</div>' : '';
     return '<div class="bracket-scroll"><div class="bracket">' + cols + '</div></div>' + extra + champ;
   }
-  function bmatch(a, b, res, winner, bye) {
-    var sc = L.scoreOf(res);
-    var empty = bye ? 'Exempt' : 'à définir';
+  // Une rencontre du tableau : noms + (pour les matchs à manches) le détail des
+  // manches et le nombre de manches gagnées, vainqueur en surbrillance.
+  function bmatch(m) {
+    var multi = !!(m.manches && m.manches.length && !m.manches[0].single);
+    var detail = '';
+    if (m.teamA && m.teamB && m.manches && m.manches.length) {
+      var parts = m.manches.map(function (mm) {
+        var sc = mm.score;
+        var lbl = mm.belle ? 'Belle' : (mm.single ? '' : 'M' + mm.no + ' ');
+        return lbl + (sc ? (sc.a + '–' + sc.b) : '…');
+      });
+      if (parts.join('').replace(/[^0-9]/g, '')) detail = '<div class="bmanches">' + esc(parts.join(' · ')) + '</div>';
+    }
     return '<div class="bmatch">' +
-      bteamRow(a, bye ? null : (sc ? sc.a : null), winner === a && a, empty) +
-      bteamRow(b, bye ? null : (sc ? sc.b : null), winner === b && b, empty) + '</div>';
+      bteamRow(m.teamA, multi ? m.wonA : null, m.winner === m.teamA && m.teamA, m.bye ? 'Exempt' : 'à définir') +
+      bteamRow(m.teamB, multi ? m.wonB : null, m.winner === m.teamB && m.teamB, m.bye ? 'Exempt' : 'à définir') +
+      detail + '</div>';
   }
   function bteamRow(id, score, isWin, empty) {
     var t = id ? teamById(id) : null;
@@ -573,9 +583,11 @@
   }
   function labelName(t, id) { return (t && t.name) ? esc(t.name) : (id ? (esc(teamTag(id)) || 'Éq.') : '?'); }
   function koTitle(e) {
-    if (e.key === 'final') return 'Finale';
-    if (e.key === 'p3') return 'Petite finale (3e place)';
-    return L.roundLabel(e.key);
+    var base = e.key === 'final' ? 'Finale'
+      : (e.key === 'p3' ? 'Petite finale (3e place)' : L.roundLabel(e.key));
+    if (e.belle) return base + ' · Belle';
+    if (e.manche) return base + ' · Manche ' + e.manche;
+    return base;
   }
 
   /* ---- Saisie des scores (accès co-admin) -------------------------- *

@@ -103,10 +103,15 @@ sans lui donner accès aux réglages, au tirage ou à la suppression :
   dans le tableau. Ex. **4 poules, 2 qualifiés → 1/4** : le 1er et le 2e
   d'une même poule sont placés dans des **moitiés opposées** et ne peuvent se
   rejouer qu'**en finale** (jamais en 1/4 ni en 1/2).
-- **Tous les matchs se jouent en 1500 points** (1/8, 1/4, 1/2), **sauf la
-  finale et la petite finale** (3e place) en **2000 points**.
-- Tous les matchs du tableau sont des **matchs secs** (pas d'aller-retour) :
-  une seule rencontre, la victoire qualifie.
+- **Tous les matchs du tableau se jouent en 1500 points.** Aucune notion de
+  rubicon en phase finale (seule compte la victoire).
+- **Jusqu'aux 1/8 (inclus)** : **match sec** (une seule manche, la victoire
+  qualifie).
+- **À partir des 1/4, et en 1/2** : **2 manches** à 1500. Si chaque équipe
+  gagne une manche, on départage à la **différence de points cumulée** sur les
+  2 manches.
+- **Finale et petite finale** (3e place) : **2 manches** à 1500, avec une
+  **belle** (3e manche décisive) si chaque équipe en gagne une.
 
 ## Sauvegarde en ligne (optionnel : Firebase)
 
