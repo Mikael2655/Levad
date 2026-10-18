@@ -350,7 +350,7 @@
   function renderStandings() {
     var c = store.config;
     if (fmt() === 'ko') {
-      screen.innerHTML = backList() + '<div class="card"><h2>' + esc(c.name) + ' — Tableau</h2>' +
+      screen.innerHTML = backList() + '<div class="card bracket-card"><h2>' + esc(c.name) + ' — Tableau</h2>' +
         bracketView(currentBracket()) + '</div>' + adminLink();
       return;
     }
@@ -383,7 +383,7 @@
     var html = backList() + '<div class="card"><h2>' + esc(c.name) + ' — Classement</h2>' + viewToggle + body + '</div>';
 
     if (fmt() === 'pools') {
-      if (c.bracket) html += '<div class="card"><h2>Tableau final</h2>' + bracketView(c.bracket) + '</div>';
+      if (c.bracket) html += '<div class="card bracket-card"><h2>Tableau final</h2>' + bracketView(c.bracket) + '</div>';
       else {
         var prog = poolProg();
         html += '<div class="card"><h2>Tableau final</h2><p class="sub">Il s\'affichera après la clôture des poules (' +
@@ -442,15 +442,15 @@
     var cols = resolved.rounds.map(function (rd) {
       var title = (rd.key === 'final' ? 'Finale' : L.roundLabel(rd.key)) + ' · ' + rd.target + ' pts';
       var inner = rd.matches.map(bmatch).join('');
+      // La petite finale (3e place) se place sous la finale, dans la même colonne.
+      if (rd.key === 'final' && resolved.thirdPlace) {
+        inner += '<div class="bround-sub">Petite finale (3e place) · ' + resolved.thirdPlace.target + ' pts</div>' +
+          bmatch(resolved.thirdPlace);
+      }
       return '<div class="bround"><h4>' + title + '</h4>' + inner + '</div>';
     }).join('');
-    var extra = '';
-    if (resolved.thirdPlace) {
-      extra += '<h3>Petite finale (3e place) — ' + resolved.thirdPlace.target + ' pts</h3>' +
-        '<div class="bracket"><div class="bround">' + bmatch(resolved.thirdPlace) + '</div></div>';
-    }
     var champ = resolved.champion ? '<div class="champion">🏆 Vainqueur : ' + teamName(teamById(resolved.champion)) + '</div>' : '';
-    return '<div class="bracket-scroll"><div class="bracket">' + cols + '</div></div>' + extra + champ;
+    return '<div class="bracket-scroll"><div class="bracket">' + cols + '</div></div>' + champ;
   }
   // Une rencontre du tableau : noms + (pour les matchs à manches) le détail des
   // manches et le nombre de manches gagnées, vainqueur en surbrillance.
@@ -902,7 +902,7 @@
     if (fmt() === 'ko') {
       var assigned = store.teams.filter(function (t) { return t.assigned; }).length;
       var br = currentBracket();
-      var html = '<div class="card"><h2>Tableau</h2>' +
+      var html = '<div class="card bracket-card"><h2>Tableau</h2>' +
         (assigned < store.teams.length ? '<div class="notice">Le tableau se complète au fur et à mesure (' + assigned + '/' + store.teams.length + ' équipes).</div>' : '') +
         bracketView(br) + '</div>';
       return html + koScoreCard(br);
@@ -935,7 +935,7 @@
       ? '<div class="card"><p class="sub">Tableau généré. Tant qu\'aucun score de phase finale n\'est saisi, vous pouvez l\'annuler pour revenir aux poules (modifier les réglages, re-tirer, etc.).</p>' +
         '<button class="btn danger block" data-act="clear-bracket">↩️ Annuler le tableau</button></div>'
       : '';
-    return '<div class="card"><h2>Tableau final</h2>' + bracketView(c.bracket) + '</div>' + undo + koScoreCard(c.bracket);
+    return '<div class="card bracket-card"><h2>Tableau final</h2>' + bracketView(c.bracket) + '</div>' + undo + koScoreCard(c.bracket);
   }
   function koScoreCard(br) {
     var resolved = L.resolveBracket(br, store.teams, koResults());
