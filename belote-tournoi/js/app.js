@@ -32,17 +32,25 @@
   // Minuscule + sans accents, pour une recherche tolérante.
   function norm(s) { return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   function fmt() { return (store.config && store.config.format) || 'pools'; }
+  function rules() { return (store.config && store.config.rules) || null; }
   function poolSize() { return (store.config && store.config.poolSize) || 4; }
+  // Une phase a-t-elle démarré ? (au moins une manche validée)
+  // key : 'pool' pour les poules, sinon une clé de tour (qf, sf, final, p3, r16…).
+  function roundKeyOfId(id) { return String(id).replace(/_m\d+$/, '').split('-')[0]; }
+  function poolStarted() { return store.matches.some(function (m) { return m.validated && m.phase === 'pool'; }); }
+  function roundStarted(key) {
+    return store.matches.some(function (m) { return m.validated && m.phase === 'ko' && roundKeyOfId(m.id) === key; });
+  }
   function ordinalFr(n) { return n === 1 ? '1er' : (n + 'e'); } // 1er, 2e, 3e…
   // Nombre d'équipes placées dans une poule (tailles variables).
   function poolSizeOf(P) { return store.teams.filter(function (t) { return t.pool === P && t.assigned; }).length; }
   // Nombre total d'équipes placées (après tirage).
   function teamCount() { return store.teams.filter(function (t) { return t.assigned; }).length; }
-  // Avancement des poules (matchs validés / total), tailles variables.
+  // Avancement des poules (rencontres tranchées / total), selon la config.
   function poolProg() {
-    var pool = store.matches.filter(function (m) { return m.phase === 'pool'; });
-    var done = pool.filter(function (m) { return m.validated; }).length;
-    return { done: done, total: pool.length, complete: pool.length > 0 && done >= pool.length };
+    var c = store.config;
+    if (!c) return { done: 0, total: 0, complete: false };
+    return L.poolProgress(c.numPools, store.teams, store.matches, rules());
   }
   // Nom du tour pour une taille de tableau (2 → Finale, 4 → 1/2, 8 → 1/4…).
   function roundNameForSize(size) {
@@ -73,7 +81,7 @@
     if (!c || fmt() !== 'pools') return null;
     var size = chosenBracketSize(teamCount());
     if (!size) return null;
-    var standings = L.allStandings(c.numPools, store.teams, store.matches);
+    var standings = L.allStandings(c.numPools, store.teams, store.matches, rules());
     var set = {};
     L.qualifyFor(c.numPools, standings, size).seeds.forEach(function (r) { if (r) set[r.teamId] = true; });
     return set;
@@ -354,7 +362,7 @@
         bracketView(currentBracket()) + '</div>' + adminLink();
       return;
     }
-    var standings = L.allStandings(c.numPools, store.teams, store.matches);
+    var standings = L.allStandings(c.numPools, store.teams, store.matches, rules());
     var pools = poolList(c);
     if (pools.indexOf(ui.poolTab) < 0) ui.poolTab = pools[0];
     var view = ui.standView || 'detail';
@@ -438,7 +446,7 @@
   /* ---- Tableau (bracket) ------------------------------------------- */
   function bracketView(bracket) {
     if (!bracket) return '<p class="sub">Tableau indisponible.</p>';
-    var resolved = L.resolveBracket(bracket, store.teams, koResults());
+    var resolved = L.resolveBracket(bracket, store.teams, koResults(), rules());
     var cols = resolved.rounds.map(function (rd) {
       var title = (rd.key === 'final' ? 'Finale' : L.roundLabel(rd.key)) + ' · ' + rd.target + ' pts';
       var inner = rd.matches.map(bmatch).join('');
@@ -492,13 +500,18 @@
       '<p class="sub">Saisissez vos scores : l\'équipe adverse valide, et tout remonte à l\'organisateur.</p></div>';
 
     var mine = [];
-    var pOrder = L.poolMatchOrder(poolSizeOf(t.pool) || 4);
-    store.matches.filter(function (m) { return m.phase === 'pool' && (m.teamA === myId || m.teamB === myId); })
-      .sort(function (a, b) { return (pOrder[a.slotA + '-' + a.slotB] || 0) - (pOrder[b.slotA + '-' + b.slotB] || 0); })
-      .forEach(function (m) { mine.push({ m: m, title: null }); });
+    var c = store.config;
+    if (c && c.numPools) {
+      L.poolMatchList(c.numPools, store.teams, store.matches, rules()).forEach(function (e) {
+        if (!(e.teamA === myId || e.teamB === myId)) return;
+        var m = Object.assign({}, matchById(e.id) || {}, { id: e.id, teamA: e.teamA, teamB: e.teamB,
+          target: e.target, phase: 'pool', pool: e.pool, slotA: e.slotA, slotB: e.slotB });
+        mine.push({ m: m, title: poolEntryTitle(e) });
+      });
+    }
     var br = currentBracket();
     if (br) {
-      var resolved = L.resolveBracket(br, store.teams, koResults());
+      var resolved = L.resolveBracket(br, store.teams, koResults(), rules());
       L.bracketMatchList(resolved).forEach(function (e) {
         if (!(e.teamA === myId || e.teamB === myId) || !e.teamA || !e.teamB) return;
         var m = Object.assign({}, matchById(e.id) || {}, { id: e.id, teamA: e.teamA, teamB: e.teamB, target: e.target, phase: 'ko', roundKey: e.key });
@@ -589,6 +602,13 @@
     if (e.manche) return base + ' · Manche ' + e.manche;
     return base;
   }
+  // Titre d'une entrée de saisie de poule (avec manche/belle + points cible).
+  function poolEntryTitle(e) {
+    var base = 'Poule ' + e.pool;
+    if (e.belle) base += ' · Belle';
+    else if (e.manche) base += ' · Manche ' + e.manche;
+    return base + ' · ' + e.target + ' pts';
+  }
 
   /* ---- Saisie des scores (accès co-admin) -------------------------- *
    * Un co-admin ne fait QUE saisir les scores des matchs. Il déverrouille
@@ -605,15 +625,20 @@
   // ordonnées : poules (par poule puis ordre de match) puis phase finale.
   function pendingMatches() {
     var out = [];
-    store.matches.filter(function (m) { return m.phase === 'pool' && m.teamA && m.teamB && !m.validated; })
-      .forEach(function (m) {
-        var order = L.poolMatchOrder(poolSizeOf(m.pool) || 4);
-        var rk = ('000' + (order[m.slotA + '-' + m.slotB] || 0)).slice(-3);
-        out.push({ m: m, title: null, sort: '1' + (m.pool || '') + rk });
+    var c = store.config;
+    if (c && c.numPools) {
+      L.poolMatchList(c.numPools, store.teams, store.matches, rules()).forEach(function (e) {
+        if (!e.teamA || !e.teamB) return;
+        var existing = matchById(e.id);
+        if (existing && existing.validated) return;
+        var m = Object.assign({}, existing || {}, { id: e.id, teamA: e.teamA, teamB: e.teamB,
+          target: e.target, phase: 'pool', pool: e.pool, slotA: e.slotA, slotB: e.slotB });
+        out.push({ m: m, title: poolEntryTitle(e), sort: '1' + e.pool + e.slotA + e.slotB + (e.manche || 0) });
       });
+    }
     var br = currentBracket();
     if (br) {
-      var resolved = L.resolveBracket(br, store.teams, koResults());
+      var resolved = L.resolveBracket(br, store.teams, koResults(), rules());
       L.bracketMatchList(resolved).forEach(function (e) {
         if (!e.teamA || !e.teamB) return;
         var existing = matchById(e.id);
@@ -822,7 +847,7 @@
   }
 
   function adminPoules(c) {
-    var standings = L.allStandings(c.numPools, store.teams, store.matches);
+    var standings = L.allStandings(c.numPools, store.teams, store.matches, rules());
     var pools = poolList(c);
     if (pools.indexOf(ui.poolTab) < 0) ui.poolTab = pools[0];
     var tabs = '<div class="pool-tabs">' + pools.map(function (P) {
@@ -835,17 +860,19 @@
     // fois dans le DOM (identifiants de saisie uniques). Par défaut on n'affiche
     // que la poule sélectionnée ci-dessus ; la recherche permet de saisir dans
     // n'importe quel ordre, sur l'ensemble des poules.
+    var plist = L.poolMatchList(c.numPools, store.teams, store.matches, rules());
+    var byPool = {};
+    plist.forEach(function (e) { (byPool[e.pool] = byPool[e.pool] || []).push(e); });
     var cards = pools.map(function (PP) {
-      var order = L.poolMatchOrder(poolSizeOf(PP) || 4);
-      return store.matches.filter(function (m) { return m.phase === 'pool' && m.pool === PP; })
-        .sort(function (a, b) { return (order[a.slotA + '-' + a.slotB] || 0) - (order[b.slotA + '-' + b.slotB] || 0); })
-        .map(function (m) {
-          var ta = teamById(m.teamA), tb = teamById(m.teamB);
-          var hay = norm([(ta && ta.name) || '', (tb && tb.name) || '',
-            teamTag(m.teamA), teamTag(m.teamB), 'poule ' + m.pool].join(' '));
-          return '<div class="pool-match-row" data-search="' + esc(hay) + '" data-pool="' + esc(norm(m.pool)) + '">' +
-            matchCard(m) + '</div>';
-        }).join('');
+      return (byPool[PP] || []).map(function (e) {
+        var m = Object.assign({}, matchById(e.id) || {}, { id: e.id, teamA: e.teamA, teamB: e.teamB,
+          target: e.target, phase: 'pool', pool: e.pool, slotA: e.slotA, slotB: e.slotB });
+        var ta = teamById(e.teamA), tb = teamById(e.teamB);
+        var hay = norm([(ta && ta.name) || '', (tb && tb.name) || '',
+          teamTag(e.teamA), teamTag(e.teamB), 'poule ' + e.pool].join(' '));
+        return '<div class="pool-match-row" data-search="' + esc(hay) + '" data-pool="' + esc(norm(e.pool)) + '">' +
+          matchCard(m, poolEntryTitle(e)) + '</div>';
+      }).join('');
     }).join('');
 
     var search = '<div style="position:relative;margin-top:4px">' +
@@ -853,7 +880,7 @@
       '<span id="pool-search-count" class="sub" style="display:block;margin-top:6px"></span></div>';
 
     html += '<div class="card"><h2>Rencontres des poules</h2>' +
-      '<p class="sub">Saisissez le score de chaque rencontre (en ' + L.POOL_TARGET + ' points). ' +
+      '<p class="sub">Saisissez le score de chaque rencontre (en ' + L.targetFor(rules(), 'pool') + ' points). ' +
       'Par défaut : la poule sélectionnée ci-dessus. Si les matchs ne se jouent pas dans l\'ordre, ' +
       'cherchez une équipe pour saisir directement, toutes poules confondues.</p>' +
       search +
@@ -908,7 +935,7 @@
       return html + koScoreCard(br);
     }
     // Format « poules + tableau »
-    var standings = L.allStandings(c.numPools, store.teams, store.matches);
+    var standings = L.allStandings(c.numPools, store.teams, store.matches, rules());
     var prog = poolProg();
     if (!c.bracket) {
       var total = teamCount();
@@ -938,7 +965,7 @@
     return '<div class="card bracket-card"><h2>Tableau final</h2>' + bracketView(c.bracket) + '</div>' + undo + koScoreCard(c.bracket);
   }
   function koScoreCard(br) {
-    var resolved = L.resolveBracket(br, store.teams, koResults());
+    var resolved = L.resolveBracket(br, store.teams, koResults(), rules());
     var html = '<div class="card"><h2>Saisie des scores — phase finale</h2>';
     var list = L.bracketMatchList(resolved);
     var any = false;
@@ -1028,6 +1055,47 @@
     });
   }
 
+  // Libellé d'une phase pour l'éditeur de règles.
+  function phaseLabel(key) {
+    if (key === 'pool') return 'Poules';
+    if (key === 'final') return 'Finale';
+    if (key === 'p3') return 'Petite finale';
+    return L.roundLabel(key);
+  }
+  function ruleRow(key, locked) {
+    var r = L.ruleFor(rules(), key);
+    var fmtOpts = Object.keys(L.FORMATS).map(function (fk) {
+      return '<option value="' + fk + '"' + (r.format === fk ? ' selected' : '') + '>' + esc(L.FORMATS[fk].label) + '</option>';
+    }).join('');
+    var dis = locked ? ' disabled' : '';
+    return '<div class="rule-row">' +
+      '<div class="rule-name">' + phaseLabel(key) + (locked ? ' <span class="sub">· démarré</span>' : '') + '</div>' +
+      '<div class="rule-fields">' +
+      '<input class="rule-pts" type="number" min="100" step="10" id="rz-pts-' + key + '" value="' + r.target + '"' + dis + ' aria-label="Points ' + esc(phaseLabel(key)) + '">' +
+      '<select class="rule-fmt" id="rz-fmt-' + key + '"' + dis + ' aria-label="Format ' + esc(phaseLabel(key)) + '">' + fmtOpts + '</select>' +
+      '</div></div>';
+  }
+  // Éditeur « points & format » par phase (poule + chaque tour du tableau).
+  function rulesEditor(c) {
+    var keys = [];
+    if (fmt() === 'pools' || fmt() === 'poolsonly') keys.push('pool');
+    if (fmt() === 'pools') {
+      var size = chosenBracketSize(teamCount());
+      if (size >= 2) keys = keys.concat(L.roundKeysForSize(size));
+    } else if (fmt() === 'ko') {
+      keys = keys.concat(L.roundKeysForSize(c.numTeams || teamCount()));
+    }
+    if (!keys.length) return '';
+    var rowsHtml = keys.map(function (k) {
+      return ruleRow(k, (k === 'pool') ? poolStarted() : roundStarted(k));
+    }).join('');
+    return '<div style="height:20px"></div><h3>Points &amp; format des rencontres</h3>' +
+      '<p class="sub">Réglez les <b>points par match</b> et le <b>nombre de manches</b>, phase par phase. ' +
+      'Modifiable tant que la phase n\'a pas démarré (dès qu\'un score y est saisi, elle se verrouille).</p>' +
+      '<div class="rule-row rule-head"><div class="rule-name">Phase</div><div class="rule-fields"><span>Points</span><span>Format</span></div></div>' +
+      rowsHtml;
+  }
+
   function adminReglages(c) {
     var phases = fmt() === 'ko'
       ? '<button class="btn small" data-act="set-phase" data-phase="ko">En cours</button><button class="btn small" data-act="set-phase" data-phase="done">Terminé</button>'
@@ -1063,6 +1131,7 @@
       '<p class="sub">« ' + esc(c.name) + ' » — ' + formatLabel(fmt()) + '.</p>' +
       '<label>Phase</label><div class="btn-row">' + phases + '</div>' +
       resize +
+      rulesEditor(c) +
       '<div style="height:20px"></div><h3>Accès saisie (co-admin)</h3>' +
       '<p class="sub">Donnez ce lien et ce code à une personne de confiance : elle pourra <b>uniquement saisir les scores</b> des matchs (aucun autre réglage, aucune suppression). ' +
       (c.coadminHash ? 'Un code de saisie est actuellement défini.' : 'Aucun code de saisie n\'est défini pour l\'instant.') + '</p>' +
@@ -1108,7 +1177,21 @@
       DB.updateConfig(state.tid, { bracketSize: parseInt(ev.target.value, 10) || 0 })
         .then(function () { if (ev.target.id === 'rz-bracket') toast('Tour de départ enregistré.'); });
     }
+    if (/^rz-(pts|fmt)-/.test(ev.target.id)) onRuleChange(ev.target);
   });
+  // Enregistre un réglage points/format d'une phase, en préservant les autres.
+  function onRuleChange(el) {
+    var m = el.id.match(/^rz-(pts|fmt)-(.+)$/);
+    if (!m) return;
+    var field = m[1] === 'pts' ? 'target' : 'format', key = m[2];
+    var val = field === 'target' ? Math.max(100, parseInt(el.value, 10) || L.POOL_TARGET) : el.value;
+    var cur = (store.config && store.config.rules) || {};
+    var next = {};
+    Object.keys(cur).forEach(function (k) { next[k] = Object.assign({}, cur[k]); });
+    next[key] = Object.assign({}, next[key]); next[key][field] = val;
+    runBusy('Enregistrement…', DB.updateConfig(state.tid, { rules: next }), 'Réglage enregistré')
+      .then(function () { render(); }, function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
+  }
   screen.addEventListener('focusout', function () {
     setTimeout(function () {
       if (!pendingRender) return;
@@ -1125,9 +1208,12 @@
              sb: parseInt((document.getElementById('sb-' + mid) || {}).value, 10) };
   }
   function matchBase(mid) {
-    var m = matchById(mid);
-    if (m && m.phase === 'pool') return { phase: 'pool', pool: m.pool, slotA: m.slotA, slotB: m.slotB, teamA: m.teamA, teamB: m.teamB, target: m.target };
-    var resolved = L.resolveBracket(currentBracket(), store.teams, koResults());
+    var c = store.config;
+    if (c && c.numPools) {
+      var pe = L.poolMatchList(c.numPools, store.teams, store.matches, rules()).filter(function (x) { return x.id === mid; })[0];
+      if (pe) return { phase: 'pool', pool: pe.pool, slotA: pe.slotA, slotB: pe.slotB, teamA: pe.teamA, teamB: pe.teamB, target: pe.target };
+    }
+    var resolved = L.resolveBracket(currentBracket(), store.teams, koResults(), rules());
     var e = L.bracketMatchList(resolved).filter(function (x) { return x.id === mid; })[0];
     return e ? { phase: 'ko', teamA: e.teamA, teamB: e.teamB, target: e.target, roundKey: e.key } : { phase: 'ko' };
   }
@@ -1327,7 +1413,7 @@
     var total = teamCount();
     var size = chosenBracketSize(total);
     if (!size) { toast('Pas assez d\'équipes réparties pour un tableau.'); return; }
-    var standings = L.allStandings(c.numPools, store.teams, store.matches);
+    var standings = L.allStandings(c.numPools, store.teams, store.matches, rules());
     var prog = poolProg();
     var ask = prog.complete ? Promise.resolve(true)
       : modalConfirm('Toutes les rencontres de poule ne sont pas terminées. Générer le tableau quand même ?', 'Générer');

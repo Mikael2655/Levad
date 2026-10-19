@@ -175,6 +175,24 @@ input[type="number"] { -moz-appearance: textfield; }
    l'intérieur de la colonne centrée de 760px : plus de bandes beiges sur les
    côtés, la grille des tours respire. */
 .bracket-card { width: 100vw; max-width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); border-radius: 0; border-left: 0; border-right: 0; }
+/* Éditeur « points & format » par phase (Réglages) */
+.rule-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+.rule-row:first-of-type { border-top: 0; }
+.rule-head { font-size: .72rem; text-transform: uppercase; letter-spacing: .3px; color: var(--muted); font-weight: 700; }
+.rule-name { flex: 1; font-weight: 600; font-size: .9rem; }
+.rule-head .rule-name { font-weight: 700; }
+.rule-fields { display: flex; gap: 8px; align-items: center; }
+.rule-head .rule-fields { gap: 8px; }
+.rule-head .rule-fields span { display: inline-block; text-align: center; }
+.rule-head .rule-fields span:first-child { width: 80px; }
+.rule-head .rule-fields span:last-child { width: 150px; }
+.rule-pts { width: 80px; margin: 0; padding: 7px 8px; text-align: center; }
+.rule-fmt { width: 150px; margin: 0; padding: 7px 8px; }
+.rule-row input:disabled, .rule-row select:disabled { opacity: .55; }
+@media (max-width: 430px) {
+  .rule-row { flex-wrap: wrap; }
+  .rule-fmt { width: 100%; }
+}
 .champion { text-align: center; margin-top: 6px; padding: 14px; border-radius: 12px;
   background: linear-gradient(120deg, var(--gold), #e9c96a); color: #3a2b00; font-weight: 800; }
 
