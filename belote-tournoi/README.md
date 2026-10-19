@@ -103,15 +103,25 @@ sans lui donner accès aux réglages, au tirage ou à la suppression :
   dans le tableau. Ex. **4 poules, 2 qualifiés → 1/4** : le 1er et le 2e
   d'une même poule sont placés dans des **moitiés opposées** et ne peuvent se
   rejouer qu'**en finale** (jamais en 1/4 ni en 1/2).
-- **Tous les matchs du tableau se jouent en 1500 points.** Aucune notion de
-  rubicon en phase finale (seule compte la victoire).
-- **Jusqu'aux 1/8 (inclus)** : **match sec** (une seule manche, la victoire
-  qualifie).
-- **À partir des 1/4, et en 1/2** : **2 manches** à 1500. Si chaque équipe
-  gagne une manche, on départage à la **différence de points cumulée** sur les
-  2 manches.
-- **Finale et petite finale** (3e place) : **2 manches** à 1500, avec une
-  **belle** (3e manche décisive) si chaque équipe en gagne une.
+### Points & format configurables (par phase)
+
+Dans **Administration → Réglages → « Points & format des rencontres »**,
+l'organisateur règle, **phase par phase** (poules, 1/8, 1/4, 1/2, finale,
+petite finale), **les points par match** et le **format** parmi :
+
+- **Match sec** : une seule manche. En poule, barème avec **rubicon**
+  (gagnant ≥ double des points = 2 pts, sinon 1 pt).
+- **2 manches (différence de points)** : 2 manches ; si chaque équipe en gagne
+  une, on départage à la **différence de points cumulée**.
+- **Aller-retour + belle si nécessaire** : 2 manches + une **belle** (3e manche
+  décisive) si 1 manche partout.
+
+Chaque phase se **verrouille** dès qu'un score y est saisi ; tant qu'elle n'a
+pas démarré, points et format restent modifiables.
+
+**Valeurs par défaut** : poules et 1/8 en **match sec à 1500** ; 1/4 et 1/2 en
+**2 manches (différence) à 1500** ; finale et petite finale en **aller-retour +
+belle à 1500**. Aucun rubicon en phase finale.
 
 ## Sauvegarde en ligne (optionnel : Firebase)
 
