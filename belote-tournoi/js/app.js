@@ -1080,7 +1080,9 @@
     var keys = [];
     if (fmt() === 'pools' || fmt() === 'poolsonly') keys.push('pool');
     if (fmt() === 'pools') {
-      var size = chosenBracketSize(teamCount());
+      // Affiche directement les tours du tableau, même avant le tirage : taille
+      // réelle selon les équipes placées, sinon le réglage (défaut 1/4 = 8).
+      var size = chosenBracketSize(teamCount()) || c.bracketSize || 8;
       if (size >= 2) keys = keys.concat(L.roundKeysForSize(size));
     } else if (fmt() === 'ko') {
       keys = keys.concat(L.roundKeysForSize(c.numTeams || teamCount()));
@@ -1175,7 +1177,7 @@
     // Les deux sélecteurs (Réglages / clôture) écrivent le même réglage persistant.
     if (ev.target.id === 'bracket-size' || ev.target.id === 'rz-bracket') {
       DB.updateConfig(state.tid, { bracketSize: parseInt(ev.target.value, 10) || 0 })
-        .then(function () { if (ev.target.id === 'rz-bracket') toast('Tour de départ enregistré.'); });
+        .then(function () { if (ev.target.id === 'rz-bracket') { toast('Tour de départ enregistré.'); render(); } });
     }
     if (/^rz-(pts|fmt)-/.test(ev.target.id)) onRuleChange(ev.target);
   });
@@ -1362,7 +1364,7 @@
     var f = ui.newFormat;
     var config = { name: name, format: f };
     if (f === 'ko') { config.numTeams = ui.newTeams; config.phase = 'ko'; }
-    else { config.numPools = ui.newPools; config.phase = 'setup'; }
+    else { config.numPools = ui.newPools; config.phase = 'setup'; config.bracketSize = 8; } // défaut : départ en 1/4
     var tid = newTid(name);
     sha256(pin).then(function (hash) {
       config.adminHash = hash;
