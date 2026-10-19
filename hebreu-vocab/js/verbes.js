@@ -4073,7 +4073,7 @@ const VERBES = [
     },
   },
   {
-    inf: "לוותר", translit: "Levater", fr: "Abandonner",
+    inf: "לוותר", translit: "Levater", fr: "Abandonner/renoncer/céder",
     racine: "ותר", binyan: "פיעל",
     temps: {
       "Présent": [
@@ -4748,7 +4748,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להתפשר", translit: "Lehipacher", fr: "Faire des compromis",
+    inf: "להתפשר", translit: "Lehitpacher", fr: "Faire des compromis",
     racine: "פשר", binyan: "התפעל",
     temps: {
       "Présent": [
@@ -5509,6 +5509,246 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "ייהרס", t: "Yehares" },
+      ],
+    },
+  },
+  {
+    inf: "לתחזק", translit: "Letakhzek", fr: "Entretenir",
+    racine: "תחזק", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתחזק", t: "Metakhzek" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "תחזק", t: "Tikhzek" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתחזק", t: "Yetakhzek" },
+      ],
+    },
+  },
+  {
+    inf: "לכפכף", translit: "Lekafkef", fr: "Gifler",
+    racine: "כפכף", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מכפכף", t: "Mekhapkef" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "כפכף", t: "Kipkef" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכפכף", t: "Yekhapkef" },
+      ],
+    },
+  },
+  {
+    inf: "לכבות", translit: "Lekhabot", fr: "Eteindre",
+    racine: "כבה", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מכבה", t: "Mekhabe" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "כיבה", t: "Kiba" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכבה", t: "Yekhabe" },
+      ],
+    },
+  },
+  {
+    inf: "לבלוע", translit: "Livloa", fr: "Avaler",
+    racine: "בלע", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "בולע", t: "Bolea" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "בלע", t: "Bala" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבלע", t: "Yivla" },
+      ],
+    },
+  },
+  {
+    inf: "לרחם", translit: "Lerakhem", fr: "Avoir pitié",
+    racine: "רחם", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מרחם", t: "Merakhem" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "ריחם", t: "Rikhem" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירחם", t: "Yerakhem" },
+      ],
+    },
+  },
+  {
+    inf: "לכסח", translit: "Lekaseah", fr: "Défoncer/tondre/battre",
+    racine: "כסח", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מכסח", t: "Mekhase'akh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "כיסח", t: "Kise'akh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכסח", t: "Yekhase'akh" },
+      ],
+    },
+  },
+  {
+    inf: "לדרוש", translit: "Lidroch", fr: "Demander/commander/exiger",
+    racine: "דרש", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "דורש", t: "Doresh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "דרש", t: "Darash" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידרוש", t: "Yidrosh" },
+      ],
+    },
+  },
+  {
+    inf: "להפקיר", translit: "Lehakfkir", fr: "Abandonner/laisser sans propriétaire",
+    racine: "פקר", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מפקיר", t: "Mafkir" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הפקיר", t: "Hifkir" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפקיר", t: "Yafkir" },
+      ],
+    },
+  },
+  {
+    inf: "להאזין", translit: "Leha'azin (le)", fr: "Ecouter",
+    racine: "אזן", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מאזין", t: "Ma'azin" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "האזין", t: "He'ezin" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאזין", t: "Ya'azin" },
+      ],
+    },
+  },
+  {
+    inf: "לצפות", translit: "Litspot (be)", fr: "Regarder",
+    racine: "צפה", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "צופה", t: "Tsofe" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "צפה", t: "Tsafa" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יצפה", t: "Yitspe" },
+      ],
+    },
+  },
+  {
+    inf: "לקלל", translit: "Lekalel", fr: "Insulter",
+    racine: "קלל", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מקלל", t: "Mekalel" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "קילל", t: "Kilel" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יקלל", t: "Yekalel" },
+      ],
+    },
+  },
+  {
+    inf: "להדביק", translit: "Lehadbik", fr: "Coller",
+    racine: "דבק", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מדביק", t: "Madbik" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הדביק", t: "Hidbik" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידביק", t: "Yadbik" },
+      ],
+    },
+  },
+  {
+    inf: "לגרד", translit: "Legared", fr: "Gratter",
+    racine: "גרד", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מגרד", t: "Megared" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "גירד", t: "Gired" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יגרד", t: "Yegared" },
+      ],
+    },
+  },
+  {
+    inf: "להתגרד", translit: "Lehitgared", fr: "Se gratter",
+    racine: "גרד", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתגרד", t: "Mitgared" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התגרד", t: "Hitgared" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתגרד", t: "Yitgared" },
+      ],
+    },
+  },
+  {
+    inf: "לרצוח", translit: "Lirtsoakh", fr: "Assassiner",
+    racine: "רצח", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "רוצח", t: "Rotseakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "רצח", t: "Ratsakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירצח", t: "Yirtsakh" },
+      ],
+    },
+  },
+  {
+    inf: "להסית", translit: "Lehasit", fr: "Inciter (propagande)",
+    racine: "סות", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מסית", t: "Mesit" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הסית", t: "Hesit" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יסית", t: "Yasit" },
       ],
     },
   },
