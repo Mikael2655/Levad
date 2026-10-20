@@ -66,7 +66,7 @@ export default async function AlertesPage() {
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-lg font-bold">{c.nom}</h2>
                   <div className="flex flex-wrap items-center gap-3 text-sm">
-                    <Link href={`/parc/stocks/${c.id}`} className="rounded-lg bg-gray-900 px-3 py-1.5 font-semibold text-white">
+                    <Link href={`/parc/stocks/${c.id}#envoi`} className="rounded-lg bg-gray-900 px-3 py-1.5 font-semibold text-white">
                       Saisir un envoi
                     </Link>
                   </div>

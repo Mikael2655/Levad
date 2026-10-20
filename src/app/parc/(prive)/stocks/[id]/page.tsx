@@ -4,10 +4,11 @@ import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { avecEncres } from '@/lib/connect/releves'
+import { PreparationEnvoi, type PlanEnvoi } from '@/components/connect/PreparationEnvoi'
 import { Encres, VERT, formaterDate, depuis, type Encre } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR, detailsParGroupe, etatsParMachine, minimumDuGroupe, minimumsParGroupe, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
 import { FAMILLES, GAMME_AUTRES, familleDe, grouper } from '@/lib/connect/gammes'
-import { ajouterEnvoi, choisirGamme, corrigerStock, definirStockMinimum, supprimerMouvement } from '../../actions'
+import { ajouterEnvoi, choisirGamme, corrigerStock, definirStockMinimum, supprimerEnvoi, supprimerMouvement } from '../../actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +31,49 @@ export default async function StockClientPage({ params }: { params: { id: string
   const details = await detailsParGroupe()
   const minimums = await minimumsParGroupe()
   const groupes = grouper(client.machines)
-  const mouvements = await prisma.connectStockMouvement.findMany({ where: { clientId: client.id }, orderBy: { date: 'desc' }, take: 30 })
+  const mouvements = await prisma.connectStockMouvement.findMany({ where: { clientId: client.id }, orderBy: { date: 'desc' }, take: 120 })
+
+  // Plans d'envoi d'après les alertes : une cartouche par machine concernée et par couleur.
+  // « Avec optimisation » ajoute les couleurs sans stock à moins de 10 points au-dessus de leur seuil.
+  function plan(avec: boolean): PlanEnvoi {
+    const valeurs: Record<string, number> = {}
+    const aChoisir: string[] = []
+    groupes.forEach((g, i) => {
+      const variantes = g.gamme ? familleDe(g.gamme).variantes : [null]
+      for (const c of COULEURS) {
+        const concernees = g.machines.filter((m) => {
+          const e = (etats.get(m.id) ?? []).find((x) => x.couleur === c)
+          if (!e) return false
+          return e.alerte || (avec && e.pourcent !== null && e.pourcent <= e.seuil + 10 && e.stock <= e.minimum)
+        })
+        if (concernees.length === 0) continue
+        const possibles = variantes.map((v, vi) => (v === null || v.refs[c] ? vi : -1)).filter((vi) => vi >= 0)
+        if (possibles.length === 0) continue
+        if (possibles.length === 1) {
+          valeurs[`qte_${i}_${c}_${possibles[0]}`] = concernees.length
+        } else {
+          aChoisir.push(`${NOM_COULEUR[c]} · ${g.site} · ${concernees.map((m) => libelleMachine(m, 'machine').split(' / ').pop()).join(' + ')} : ${possibles.map((vi) => variantes[vi]!.code).join(' ou ')}`)
+        }
+      }
+    })
+    return { valeurs, nb: Object.values(valeurs).reduce((n, q) => n + q, 0), aChoisir }
+  }
+  const planSans = plan(false)
+  const planAvec = plan(true)
+
+  // Derniers mouvements : les lignes d'un même envoi (même instant) sont regroupées en un seul envoi.
+  type Mouvement = (typeof mouvements)[number]
+  const evenements: { cle: string; date: Date; motif: string; lignes: Mouvement[] }[] = []
+  for (const m of mouvements) {
+    const cle = m.motif === 'envoi' ? `envoi|${m.date.getTime()}` : `m${m.id}`
+    const existant = evenements.find((e) => e.cle === cle)
+    if (existant) existant.lignes.push(m)
+    else evenements.push({ cle, date: m.date, motif: m.motif, lignes: [m] })
+  }
+  const nomGroupe = (g: string) => (g ? g.replace('|', ' · ').replace(/machine-\d+/, 'machine seule') : 'Ancien stock')
+  const libLigne = (m: Mouvement) => `${NOM_COULEUR[m.couleur as keyof typeof NOM_COULEUR] ?? m.couleur} ${m.delta > 0 && m.motif !== 'envoi' ? `+${m.delta}` : m.delta}${m.variante ? ` (${m.variante})` : ''}`
+  const noteDe = (lignes: Mouvement[]) =>
+    Array.from(new Set(lignes.map((m) => (m.note ?? '').replace(/ ?\(jeu complet\)$/, '').replace(/^Jeu complet$/, '').trim()).filter(Boolean))).join(' — ')
 
   return (
     <>
@@ -136,11 +179,12 @@ export default async function StockClientPage({ params }: { params: { id: string
       })}
 
       {groupes.length > 0 && (
-        <section className="mt-6 rounded-xl border bg-white p-6">
+        <section id="envoi" className="mt-6 scroll-mt-4 rounded-xl border bg-white p-6">
           <h2 className="text-lg font-bold">Saisir un envoi de cartouches</h2>
           <p className="text-sm text-gray-500">Indiquez la quantité de chaque couleur envoyée (0 ou vide = aucune). « Jeu complet » compte une cartouche de chaque couleur ; pour une version L ou H dont le noir n'existe pas, le noir est celui de la version standard.</p>
           <Formulaire action={ajouterEnvoi} message="Envoi enregistré" reinitialiser className="mt-4 space-y-5">
             <input type="hidden" name="clientId" value={client.id} />
+            <PreparationEnvoi sans={planSans} avec={planAvec} />
             {groupes.map((g, i) => (
               <div key={g.cle}>
                 <input type="hidden" name={`groupe_${i}`} value={g.cle} />
@@ -252,34 +296,44 @@ export default async function StockClientPage({ params }: { params: { id: string
               <thead>
                 <tr className="border-b text-left text-gray-500">
                   <th className="py-2 pr-4">Date</th>
-                  <th className="py-2 pr-4">Site · gamme</th>
-                  <th className="py-2 pr-4">Couleur</th>
-                  <th className="py-2 pr-4 text-right">Quantité</th>
-                  <th className="py-2 pr-4">Détail</th>
+                  <th className="py-2 pr-4">Mouvement</th>
                   <th className="py-2"></th>
                 </tr>
               </thead>
               <tbody>
-                {mouvements.map((m) => (
-                  <tr key={m.id} className="border-b last:border-0">
-                    <td className="py-1.5 pr-4">{formaterDate(m.date)}</td>
-                    <td className="py-1.5 pr-4 text-gray-600">{m.groupe ? m.groupe.replace('|', ' · ').replace(/machine-\d+/, 'machine seule') : 'Ancien stock'}</td>
-                    <td className="py-1.5 pr-4">{NOM_COULEUR[m.couleur as keyof typeof NOM_COULEUR] ?? m.couleur}{m.variante ? ` (${m.variante})` : ''}</td>
-                    <td className={`py-1.5 pr-4 text-right tabular-nums ${m.delta > 0 ? 'text-green-700' : 'text-red-600'}`}>
-                      {m.delta > 0 ? `+${m.delta}` : m.delta}
-                    </td>
-                    <td className="py-1.5 pr-4 text-gray-600">
-                      {{ envoi: 'Envoi', correction: 'Correction', changement: 'Cartouche changée' }[m.motif] ?? m.motif}
-                      {m.note ? ` — ${m.note}` : ''}
-                    </td>
-                    <td className="py-1.5 text-right">
-                      <Formulaire action={supprimerMouvement} message="Ligne supprimée" confirmation="Supprimer cette ligne ? Le stock sera recalculé.">
-                        <input type="hidden" name="id" value={m.id} />
-                        <Bouton className="text-sm text-red-600 underline">Supprimer</Bouton>
-                      </Formulaire>
-                    </td>
-                  </tr>
-                ))}
+                {evenements.slice(0, 25).map((e) => {
+                  const note = noteDe(e.lignes)
+                  const parGroupe = new Map<string, Mouvement[]>()
+                  for (const l of e.lignes) parGroupe.set(l.groupe, [...(parGroupe.get(l.groupe) ?? []), l])
+                  const total = e.lignes.reduce((n, l) => n + l.delta, 0)
+                  const titre = e.motif === 'envoi' ? `Envoi de ${total} cartouche${total > 1 ? 's' : ''}` : ({ correction: 'Correction', changement: 'Cartouche changée' }[e.motif] ?? e.motif)
+                  return (
+                    <tr key={e.cle} className="border-b align-top last:border-0">
+                      <td className="whitespace-nowrap py-1.5 pr-4">{formaterDate(e.date)}</td>
+                      <td className="py-1.5 pr-4">
+                        <span className={`font-semibold ${e.motif === 'envoi' ? 'text-green-700' : ''}`}>{titre}</span>
+                        {note && <span className="text-gray-600"> — {note}</span>}
+                        <ul className="mt-0.5 text-gray-600">
+                          {Array.from(parGroupe.entries()).map(([groupe, lignes]) => (
+                            <li key={groupe}>
+                              {nomGroupe(groupe)} : {lignes.map(libLigne).join(' · ')}
+                            </li>
+                          ))}
+                        </ul>
+                      </td>
+                      <td className="py-1.5 text-right">
+                        <Formulaire
+                          action={e.lignes.length > 1 ? supprimerEnvoi : supprimerMouvement}
+                          message="Supprimé"
+                          confirmation={e.lignes.length > 1 ? 'Supprimer cet envoi entier ? Le stock sera recalculé.' : 'Supprimer cette ligne ? Le stock sera recalculé.'}
+                        >
+                          {e.lignes.length > 1 ? <input type="hidden" name="ids" value={e.lignes.map((l) => l.id).join(',')} /> : <input type="hidden" name="id" value={e.lignes[0].id} />}
+                          <Bouton className="text-sm text-red-600 underline">Supprimer</Bouton>
+                        </Formulaire>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

@@ -199,6 +199,16 @@ export async function supprimerMouvement(formData: FormData): Promise<string | v
   return 'Ligne supprimée'
 }
 
+// Suppression d'un envoi entier (toutes ses lignes d'un coup) ; le stock est recalculé.
+export async function supprimerEnvoi(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const ids = String(formData.get('ids') ?? '').split(',').map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 200)
+  if (!ids.length) return '!Rien à supprimer'
+  await prisma.connectStockMouvement.deleteMany({ where: { id: { in: ids } } })
+  revalidatePath('/parc', 'layout')
+  return 'Envoi supprimé'
+}
+
 // Les groupes de stock d'un client = un par (site + gamme compatible) ; une machine à la gamme inconnue a le sien.
 async function groupesValides(clientId: number): Promise<Set<string>> {
   const machines = await prisma.connectMachine.findMany({ where: { clientId } })
