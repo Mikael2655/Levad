@@ -1,11 +1,14 @@
 import { prisma } from '@/lib/db'
-import { generateSocialPosts, NEWS_THEMES, selectTopic, type SelectedTopic } from '@/lib/claude-ai'
+import { generatePersonalPost, generateSocialPosts, NEWS_THEMES, selectTopic, type PersonalKind, type SelectedTopic } from '@/lib/claude-ai'
 
 export const SLOT_HOUR_PARIS = 18
 const SLOT_WEEKDAYS = [2, 4] // mardi, jeudi
 export const QUEUE_STATUSES = ['draft', 'scheduled'] // draft = à valider, scheduled = validé
 const HOLD_STATUS = 'hold' // ligne technique : « ne rien publier avant scheduledAt »
 const CURSOR_STATUS = 'themecursor' // ligne technique : ordre des thèmes (contentLI = JSON)
+const PERSONA_STATUS = 'persona' // ligne technique : « mon histoire » + rythme (contentLI = JSON)
+export const TECH_STATUSES = [HOLD_STATUS, CURSOR_STATUS, PERSONA_STATUS]
+export const PERSONAL_PREFIX = 'En mon nom · '
 
 export function queueTarget(): number {
   const n = parseInt(process.env.QUEUE_TARGET ?? '10', 10)
@@ -138,15 +141,55 @@ function shuffle<T>(arr: T[]): T[] {
   return copy
 }
 
-// Thème suivant : l'ordre est tiré au sort une fois par cycle, puis suivi dans l'ordre.
-// Tous les thèmes passent une fois avant qu'un thème ne revienne. L'état est gardé dans une ligne technique.
-async function nextTheme(configTopics: string[]): Promise<string> {
-  const pool = Array.from(new Set([...configTopics, ...NEWS_THEMES]))
-  const row = await prisma.socialPost.findFirst({ where: { status: CURSOR_STATUS } })
-  let state: { bag: string[]; known: string[] } = { bag: [], known: [] }
+export interface Persona { bio: string; rhythm: number }
+
+export async function getPersona(): Promise<Persona> {
+  const row = await prisma.socialPost.findFirst({ where: { status: PERSONA_STATUS } })
   try {
-    if (row?.contentLI) state = JSON.parse(row.contentLI)
+    const p = row?.contentLI ? JSON.parse(row.contentLI) : {}
+    return { bio: String(p.bio ?? ''), rhythm: Number.isFinite(p.rhythm) ? p.rhythm : 4 }
+  } catch {
+    return { bio: '', rhythm: 4 }
+  }
+}
+
+export async function setPersona(p: Persona): Promise<void> {
+  const data = { contentLI: JSON.stringify(p) }
+  const row = await prisma.socialPost.findFirst({ where: { status: PERSONA_STATUS } })
+  if (row) await prisma.socialPost.update({ where: { id: row.id }, data })
+  else await prisma.socialPost.create({ data: { topic: '__persona__', status: PERSONA_STATUS, ...data } })
+}
+
+interface CursorState { bag: string[]; known: string[]; since: number; lastKind: PersonalKind }
+
+async function loadCursor() {
+  const row = await prisma.socialPost.findFirst({ where: { status: CURSOR_STATUS } })
+  let state: CursorState = { bag: [], known: [], since: 0, lastKind: 'parcours' }
+  try {
+    if (row?.contentLI) state = { ...state, ...JSON.parse(row.contentLI) }
   } catch { /* état illisible : on repart d'un nouveau cycle */ }
+  return { row, state }
+}
+
+async function saveCursor(row: { id: number } | null, state: CursorState) {
+  const data = { contentLI: JSON.stringify(state) }
+  if (row) await prisma.socialPost.update({ where: { id: row.id }, data })
+  else await prisma.socialPost.create({ data: { topic: '__themes__', status: CURSOR_STATUS, ...data } })
+}
+
+// Prochain post : soit un post « en mon nom » (tous les N posts, si « Mon histoire » est renseignée),
+// soit le thème suivant. Pour les thèmes, l'ordre est tiré au sort une fois par cycle puis suivi dans l'ordre :
+// tous les thèmes passent une fois avant qu'un thème ne revienne.
+async function nextSlotKind(configTopics: string[]): Promise<{ theme?: string; personal?: PersonalKind }> {
+  const pool = Array.from(new Set([...configTopics, ...NEWS_THEMES]))
+  const { row, state } = await loadCursor()
+  const persona = await getPersona()
+
+  if (persona.bio.trim() && persona.rhythm > 0 && state.since + 1 >= persona.rhythm) {
+    const kind: PersonalKind = state.lastKind === 'metier' ? 'parcours' : 'metier'
+    await saveCursor(row, { ...state, known: pool, since: 0, lastKind: kind })
+    return { personal: kind }
+  }
 
   const added = pool.filter(t => !state.known.includes(t))
   let bag = state.bag.filter(t => pool.includes(t))
@@ -154,13 +197,8 @@ async function nextTheme(configTopics: string[]): Promise<string> {
   if (bag.length === 0) bag = shuffle(pool)
 
   const theme = bag.shift() as string
-  const data = { contentLI: JSON.stringify({ bag, known: pool }) }
-  if (row) {
-    await prisma.socialPost.update({ where: { id: row.id }, data })
-  } else {
-    await prisma.socialPost.create({ data: { topic: '__themes__', status: CURSOR_STATUS, ...data } })
-  }
-  return theme
+  await saveCursor(row, { ...state, bag, known: pool, since: state.since + 1 })
+  return { theme }
 }
 
 // Étape 1 : choisir le sujet (avec recherche web), sans rien écrire en base.
@@ -168,7 +206,7 @@ export async function pickTopic(): Promise<SelectedTopic> {
   const config = await loadConfig()
   const recent = await prisma.socialPost.findMany({
     where: {
-      status: { notIn: [HOLD_STATUS, CURSOR_STATUS] },
+      status: { notIn: TECH_STATUSES },
       OR: [
         { status: { in: QUEUE_STATUSES } },
         { createdAt: { gte: new Date(Date.now() - 60 * 86400000) } },
@@ -180,12 +218,50 @@ export async function pickTopic(): Promise<SelectedTopic> {
   })
   const recentTopics = recent.map(p => p.topic.slice(0, 120))
   const configTopics = config.topics.split(',').map(t => t.trim()).filter(Boolean)
-  return selectTopic(recentTopics, await nextTheme(configTopics))
+  const next = await nextSlotKind(configTopics)
+  if (next.personal) return { topic: '', angle: '', personal: next.personal }
+  return selectTopic(recentTopics, next.theme as string)
 }
 
 // Étape 2 : rédiger le post pour ce sujet et l'ajouter à la file.
 export async function writeQueuedPost(picked: SelectedTopic) {
   const config = await loadConfig()
+
+  if (picked.personal) {
+    const persona = await getPersona()
+    if (!persona.bio.trim()) throw new Error("Renseignez d'abord « Mon histoire » dans l'onglet Configuration")
+    const recentPersonal = (await prisma.socialPost.findMany({
+      where: { topic: { startsWith: PERSONAL_PREFIX } },
+      select: { topic: true },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    })).map(p => p.topic.replace(PERSONAL_PREFIX, ''))
+
+    const generated = await generatePersonalPost({
+      kind: picked.personal,
+      bio: persona.bio,
+      hint: picked.hint,
+      companyName: config.companyName,
+      companyDesc: config.companyDesc,
+      tone: config.tone,
+      recentPersonal,
+    })
+    const { row, state } = await loadCursor()
+    await saveCursor(row, { ...state, since: 0, lastKind: picked.personal })
+
+    const post = await prisma.socialPost.create({
+      data: {
+        topic: `${PERSONAL_PREFIX}${generated.topic}`,
+        contentLI: generated.linkedin,
+        contentIG: generated.instagram,
+        imagePrompt: generated.imagePrompt,
+        status: 'draft',
+      },
+    })
+    await rebuildSlots()
+    return post
+  }
+
   const fullTopic = picked.angle ? `${picked.topic} — ${picked.angle}` : picked.topic
 
   const generated = await generateSocialPosts({

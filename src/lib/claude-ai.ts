@@ -25,10 +25,14 @@ function extractJson<T>(text: string): T {
   return JSON.parse(match[0]) as T
 }
 
+export type PersonalKind = 'metier' | 'parcours'
+
 export interface SelectedTopic {
   topic: string
   angle: string
   facts?: string
+  personal?: PersonalKind
+  hint?: string
 }
 
 export const NEWS_THEMES = [
@@ -119,4 +123,58 @@ Génère exactement ce JSON (sans markdown ni backticks):
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
   return extractJson<GeneratedContent>(text)
+}
+
+export async function generatePersonalPost(params: {
+  kind: PersonalKind
+  bio: string
+  hint?: string
+  companyName: string
+  companyDesc: string
+  tone: string
+  recentPersonal: string[]
+}): Promise<GeneratedContent & { topic: string }> {
+  const { kind, bio, hint, companyName, companyDesc, tone, recentPersonal } = params
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+  const subject = kind === 'metier'
+    ? "le métier : pourquoi le dirigeant a choisi de vendre des solutions d'impression, de téléphonie, d'informatique et de GED, ce qui lui plaît dans ce métier, ce qu'il veut apporter à ses clients, une conviction professionnelle"
+    : "le parcours personnel : son histoire, ce qui l'anime, les étapes et les rencontres qui l'ont construit, ce en quoi il croit"
+
+  const message = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1800,
+    messages: [{
+      role: 'user',
+      content: `Tu écris un post LinkedIn et Instagram À LA PREMIÈRE PERSONNE (« je »), au nom du dirigeant de ${companyName}. Ce n'est pas un post d'entreprise : c'est lui qui parle.
+
+Entreprise : ${companyName} — ${companyDesc}
+Ton : ${tone}, mais humain et direct, comme quand il raconte les choses à un client qu'il apprécie.
+Date du jour : ${todayFr()}
+
+SUJET DE CE POST : ${subject}.
+${hint ? `PRÉCISION DEMANDÉE PAR LE DIRIGEANT (à traiter en priorité) : ${hint}
+` : ''}
+MATIÈRE FOURNIE PAR LE DIRIGEANT (c'est la SEULE source de faits) :
+"""
+${bio}
+"""
+
+Posts personnels déjà écrits (ne pas répéter le même angle ni la même anecdote) : ${recentPersonal.join(' | ') || 'aucun'}
+
+RÈGLES ABSOLUES :
+- N'utilise QUE les éléments de la matière fournie. N'invente AUCUN fait, date, chiffre, nom, lieu, anecdote, citation ni émotion précise qui n'y figure pas. Si la matière est mince sur ce sujet, reste sur ce qui est dit, avec sincérité, sans broder.
+- Choisis UN seul angle précis dans la matière (une anecdote, une conviction, un moment), pas un résumé de toute la vie.
+- Style : phrases courtes, mots simples, concret. Pas de jargon d'entreprise, pas de formules creuses (« dans un monde en constante évolution », « passionné par l'innovation »…). Pas de leçon de morale.
+- Première ligne : une accroche vraie qui donne envie de lire la suite.
+- Termine par une phrase ouverte ou une question simple pour inviter à réagir.
+- LinkedIn : 120 à 220 mots, sauts de ligne, au plus 1 emoji, 3 hashtags maximum à la fin. Instagram : 80 à 120 mots, 6 à 8 hashtags.
+
+Réponds uniquement avec ce JSON (sans markdown) :
+{"topic": "titre court et concret du post (max 90 caractères)", "linkedin": "...", "instagram": "...", "imagePrompt": "Description en français d'une photo réaliste, naturelle, prise en France, en lien avec le sujet (lieu de travail, objet, moment), sans visage reconnaissable imposé, lumière naturelle, pas trop lisse."}`,
+    }],
+  })
+
+  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  return extractJson<GeneratedContent & { topic: string }>(text)
 }

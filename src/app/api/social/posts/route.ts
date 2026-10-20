@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { getHold, rebuildSlots } from '@/lib/queue'
+import { getHold, rebuildSlots, TECH_STATUSES } from '@/lib/queue'
 
 export async function GET(req: NextRequest) {
   const id = new URL(req.url).searchParams.get('id')
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ post })
   }
   const posts = await prisma.socialPost.findMany({
-    where: { status: { notIn: ['hold', 'themecursor'] } },
+    where: { status: { notIn: TECH_STATUSES } },
     orderBy: { createdAt: 'desc' },
     take: 100,
     omit: { imageUrl: true },

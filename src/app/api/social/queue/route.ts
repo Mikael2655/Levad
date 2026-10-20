@@ -19,14 +19,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    if (body.action === 'personal') {
+      const kind = body.kind === 'parcours' ? 'parcours' : 'metier'
+      const post = await writeQueuedPost({ topic: '', angle: '', personal: kind, hint: String(body.hint ?? '').slice(0, 500) || undefined })
+      return NextResponse.json({ post })
+    }
+
     if (body.action === 'pick') {
       return NextResponse.json({ picked: await pickTopic() })
     }
 
     if (body.action === 'write') {
-      const { topic, angle, facts } = body.picked ?? {}
-      if (!topic) return NextResponse.json({ error: 'sujet manquant' }, { status: 400 })
-      const post = await writeQueuedPost({ topic, angle: angle ?? '', facts })
+      const { topic, angle, facts, personal, hint } = body.picked ?? {}
+      if (!topic && !personal) return NextResponse.json({ error: 'sujet manquant' }, { status: 400 })
+      const post = await writeQueuedPost({ topic: topic ?? '', angle: angle ?? '', facts, personal, hint })
       return NextResponse.json({ post })
     }
 

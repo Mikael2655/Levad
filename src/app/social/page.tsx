@@ -65,6 +65,11 @@ function SocialPageInner() {
   const [fillProgress, setFillProgress] = useState<string | null>(null)
   const [fillError, setFillError] = useState<string | null>(null)
   const [hold, setHold] = useState<string | null>(null)
+  const [persona, setPersona] = useState<{ bio: string; rhythm: number }>({ bio: '', rhythm: 4 })
+  const [savingPersona, setSavingPersona] = useState(false)
+  const [personalKind, setPersonalKind] = useState<'metier' | 'parcours'>('metier')
+  const [personalHint, setPersonalHint] = useState('')
+  const [generatingPersonal, setGeneratingPersonal] = useState(false)
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -88,6 +93,10 @@ function SocialPageInner() {
     const res = await fetch('/api/social/config')
     const data = await res.json()
     setConfig(data.config)
+    try {
+      const pr = await fetch('/api/social/persona')
+      if (pr.ok) setPersona(await pr.json())
+    } catch { /* section facultative */ }
   }, [])
 
   useEffect(() => {
@@ -227,6 +236,45 @@ function SocialPageInner() {
       body: JSON.stringify({ action: 'move', id, direction }),
     })
     await loadPosts()
+  }
+
+  async function handleSavePersona() {
+    setSavingPersona(true)
+    try {
+      const res = await fetch('/api/social/persona', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(persona),
+      })
+      showToast(res.ok ? 'Mon histoire sauvegardée' : 'Erreur de sauvegarde', res.ok)
+    } finally {
+      setSavingPersona(false)
+    }
+  }
+
+  async function handleGeneratePersonal() {
+    setGeneratingPersonal(true)
+    try {
+      const res = await fetch('/api/social/queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'personal', kind: personalKind, hint: personalHint }),
+      })
+      const text = await res.text()
+      let data: { post?: SocialPost; error?: string } = {}
+      try { data = JSON.parse(text) } catch { /* réponse non JSON */ }
+      if (data.post) {
+        setPersonalHint('')
+        await loadPosts()
+        setListFilter('queue')
+        selectPost(data.post)
+        showToast('Post en votre nom ajouté à la file : relisez-le avec soin')
+      } else {
+        showToast(data.error ?? `Erreur de génération (${res.status})`, false)
+      }
+    } finally {
+      setGeneratingPersonal(false)
+    }
   }
 
   async function handleShift() {
@@ -503,6 +551,26 @@ function SocialPageInner() {
                   </div>
                   {fillError && <p className="text-xs text-red-600 mt-2 break-words">{fillError}</p>}
                 </div>
+                <div className="mt-4 pt-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-400 mb-2">
+                    Ou écrire <strong className="text-gray-600">en votre nom</strong> (« je ») à partir de votre histoire.
+                    {!persona.bio.trim() && <span className="text-amber-600"> Renseignez d&apos;abord « Mon histoire » dans l&apos;onglet Configuration.</span>}
+                  </p>
+                  <div className="flex gap-2 mb-2">
+                    <select value={personalKind} onChange={e => setPersonalKind(e.target.value as 'metier' | 'parcours')}
+                      className="border border-gray-300 rounded-xl px-3 py-2 text-sm bg-white">
+                      <option value="metier">Mon métier</option>
+                      <option value="parcours">Mon parcours</option>
+                    </select>
+                    <input value={personalHint} onChange={e => setPersonalHint(e.target.value)} maxLength={500}
+                      placeholder="Précision (facultatif) : un épisode, une idée…"
+                      className="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800" />
+                  </div>
+                  <button onClick={handleGeneratePersonal} disabled={generatingPersonal || !persona.bio.trim()}
+                    className="w-full bg-white border border-brand-800 text-brand-800 py-2 rounded-xl text-sm font-semibold hover:bg-brand-800 hover:text-white transition disabled:opacity-50">
+                    {generatingPersonal ? 'Rédaction en cours…' : '👤 Écrire un post en mon nom'}
+                  </button>
+                </div>
                 {config && (
                   <div className="mt-4 pt-3 border-t border-gray-100">
                     <p className="text-xs text-gray-400 mb-2">Suggestions rapides</p>
@@ -598,7 +666,7 @@ function SocialPageInner() {
                           )}
                           <button onClick={() => selectPost(post)} className="flex-1 min-w-0 text-left p-4 hover:bg-gray-50 transition">
                             <div className="flex items-start justify-between gap-2">
-                              <p className="text-sm font-medium text-gray-900 line-clamp-1">{post.topic}</p>
+                              <p className="text-sm font-medium text-gray-900 line-clamp-1">{post.topic.startsWith('En mon nom · ') ? <><span className="text-brand-800">👤 </span>{post.topic.replace('En mon nom · ', '')}</> : post.topic}</p>
                               <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full shrink-0 ${s.color}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`}></span>
                                 {s.label}
@@ -908,6 +976,36 @@ function SocialPageInner() {
                   type="email" className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800" />
                 <p className="text-xs text-gray-400 mt-1">Reçoit un email dès qu&apos;un post est prêt à valider</p>
               </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+              <div>
+                <h2 className="font-semibold text-gray-900">Mon histoire (posts en mon nom)</h2>
+                <p className="text-xs text-gray-400 mt-1">
+                  Écrivez ici, avec vos mots, la matière vraie : votre parcours, pourquoi vous avez choisi ce métier
+                  (impression, téléphonie, informatique, GED), ce qui vous anime, vos convictions, des épisodes marquants, des rencontres.
+                  Claude écrit à la première personne <strong>uniquement</strong> à partir de ce texte et n&apos;invente rien.
+                  Plus il est précis, plus les posts sonnent juste. Vous relisez toujours avant de valider.
+                </p>
+              </div>
+              <textarea value={persona.bio} onChange={e => setPersona({ ...persona, bio: e.target.value })}
+                rows={Math.max(8, Math.ceil(persona.bio.length / 70) + 2)} maxLength={8000}
+                placeholder="Ex. : J'ai commencé en… Ce qui m'a fait choisir la téléphonie, c'est… Un client m'a dit un jour… Ce qui m'anime, c'est…"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-brand-800" />
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <label className="text-sm text-gray-700 flex items-center gap-2">
+                  Un post en mon nom tous les
+                  <input type="number" min={0} max={20} value={persona.rhythm}
+                    onChange={e => setPersona({ ...persona, rhythm: parseInt(e.target.value || '0', 10) })}
+                    className="w-16 border border-gray-300 rounded-lg px-2 py-1 text-sm text-center" />
+                  posts <span className="text-xs text-gray-400">(0 = jamais automatiquement)</span>
+                </label>
+                <button onClick={handleSavePersona} disabled={savingPersona}
+                  className="px-4 py-2 bg-brand-800 text-white rounded-xl text-sm font-semibold hover:bg-brand-700 transition disabled:opacity-50">
+                  {savingPersona ? 'Sauvegarde...' : 'Sauvegarder mon histoire'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400">{persona.bio.length} / 8000 caractères</p>
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
