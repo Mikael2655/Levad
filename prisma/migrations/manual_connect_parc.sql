@@ -184,3 +184,6 @@ DO $$ BEGIN
     UPDATE "connect_machine" SET "vueLe" = now();
   END IF;
 END $$;
+
+-- v18 : chez qui l'envoi de cartouches a été commandé (Carol, Copyclic, ou les deux)
+ALTER TABLE "connect_stock_mouvement" ADD COLUMN IF NOT EXISTS "fournisseurs" TEXT;

@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { avecEncres } from '@/lib/connect/releves'
 import { PreparationEnvoi, type PlanEnvoi } from '@/components/connect/PreparationEnvoi'
+import { MinimumEdition } from '@/components/connect/MinimumEdition'
 import { Encres, VERT, formaterDate, depuis, type Encre } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR, detailsParGroupe, etatsParMachine, minimumDuGroupe, minimumsParGroupe, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
 import { FAMILLES, GAMME_AUTRES, familleDe, grouper } from '@/lib/connect/gammes'
@@ -36,27 +37,31 @@ export default async function StockClientPage({ params }: { params: { id: string
   // Plans d'envoi d'après les alertes : une cartouche par machine concernée et par couleur.
   // « Avec optimisation » ajoute les couleurs sans stock à moins de 10 points au-dessus de leur seuil.
   function plan(avec: boolean): PlanEnvoi {
-    const valeurs: Record<string, number> = {}
+    const valeurs: PlanEnvoi['valeurs'] = {}
     const aChoisir: string[] = []
     groupes.forEach((g, i) => {
       const variantes = g.gamme ? familleDe(g.gamme).variantes : [null]
       for (const c of COULEURS) {
-        const concernees = g.machines.filter((m) => {
-          const e = (etats.get(m.id) ?? []).find((x) => x.couleur === c)
-          if (!e) return false
-          return e.alerte || (avec && e.pourcent !== null && e.pourcent <= e.seuil + 10 && e.stock <= e.minimum)
-        })
+        const etat = (m: (typeof g.machines)[number]) => (etats.get(m.id) ?? []).find((x) => x.couleur === c)
+        const enAlerte = g.machines.filter((m) => etat(m)?.alerte)
+        const anticipees = avec
+          ? g.machines.filter((m) => {
+              const e = etat(m)
+              return Boolean(e) && !e!.alerte && e!.pourcent !== null && e!.pourcent <= e!.seuil + 10 && e!.stock <= e!.minimum
+            })
+          : []
+        const concernees = [...enAlerte, ...anticipees]
         if (concernees.length === 0) continue
         const possibles = variantes.map((v, vi) => (v === null || v.refs[c] ? vi : -1)).filter((vi) => vi >= 0)
         if (possibles.length === 0) continue
         if (possibles.length === 1) {
-          valeurs[`qte_${i}_${c}_${possibles[0]}`] = concernees.length
+          valeurs[`qte_${i}_${c}_${possibles[0]}`] = { q: concernees.length, type: enAlerte.length > 0 ? 'alerte' : 'anticipation' }
         } else {
           aChoisir.push(`${NOM_COULEUR[c]} · ${g.site} · ${concernees.map((m) => libelleMachine(m, 'machine').split(' / ').pop()).join(' + ')} : ${possibles.map((vi) => variantes[vi]!.code).join(' ou ')}`)
         }
       }
     })
-    return { valeurs, nb: Object.values(valeurs).reduce((n, q) => n + q, 0), aChoisir }
+    return { valeurs, nb: Object.values(valeurs).reduce((n, v) => n + v.q, 0), aChoisir }
   }
   const planSans = plan(false)
   const planAvec = plan(true)
@@ -81,167 +86,133 @@ export default async function StockClientPage({ params }: { params: { id: string
       <h1 className="mt-3 text-2xl font-bold">{client.nom}</h1>
       
       {groupes.length === 0 && <p className="mt-6 rounded-xl border bg-white p-6 text-gray-600">Aucune machine suivie pour ce client.</p>}
-      {groupes.map((g) => {
-        const stock = stockDuGroupe(stocks, client.id, g.cle)
-        const minimum = minimumDuGroupe(minimums, client.id, g.cle)
-        const variantes = g.gamme ? familleDe(g.gamme).variantes : []
-        const detail = details.get(`${client.id}#${g.cle}`) ?? {}
-        const couleursDuGroupe = variantes.length ? COULEURS.filter((c) => variantes.some((v) => v.refs[c])) : COULEURS
-        return (
-          <section key={g.cle} className="mt-6 rounded-xl border bg-white p-6">
-            <h2 className="text-lg font-bold">
-              {g.site} · {g.gamme ? `${variantes.map((v) => v.code).join(' / ')} (${g.gamme.modeles})` : g.machines.every((m) => m.gamme === GAMME_AUTRES) ? 'Autres' : 'gamme non reconnue'}
-            </h2>
-            {!g.gamme && !g.machines.every((m) => m.gamme === GAMME_AUTRES) && (
-              <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
-                <p className="text-sm text-amber-900">
-                  Gamme d&apos;encre non reconnue : ce stock est propre à cette machine. Choisissez sa gamme pour le partager avec les machines compatibles du site.
-                </p>
-                {g.machines.map((m) => (
-                  <Formulaire key={m.id} action={choisirGamme} message="Gamme enregistrée" className="mt-2 flex flex-wrap items-end gap-3">
-                    <input type="hidden" name="id" value={m.id} />
-                    <label className="grow text-sm font-medium text-gray-700">
-                      Gamme de {libelleMachine(m, 'la machine')}
-                      <select name="gamme" defaultValue="" required className={champ}>
-                        <option value="" disabled>Choisir la gamme (ex. C-EXV 49)…</option>
-                        {FAMILLES.map((x) => (
-                          <option key={x.cle} value={x.cle}>{x.cle} — {x.modeles}</option>
-                        ))}
-                        <option value={GAMME_AUTRES}>Autres (cartouches non listées)</option>
-                      </select>
-                    </label>
-                    <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Valider</Bouton>
-                  </Formulaire>
-                ))}
-              </div>
-            )}
-            <div className="mt-3 divide-y">
-              {g.machines.map((m) => {
-                const r = m.releves[0]
-                const re = avecEncres(m.releves)
+
+      {groupes.filter((g) => !g.gamme && !g.machines.every((m) => m.gamme === GAMME_AUTRES)).map((g) => (
+        <div key={g.cle} className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3">
+          <p className="text-sm text-amber-900">
+            {g.site} : gamme d&apos;encre non reconnue, ce stock est propre à la machine. Choisissez sa gamme pour le partager avec les machines compatibles du site.
+          </p>
+          {g.machines.map((m) => (
+            <Formulaire key={m.id} action={choisirGamme} message="Gamme enregistrée" className="mt-2 flex flex-wrap items-end gap-3">
+              <input type="hidden" name="id" value={m.id} />
+              <label className="grow text-sm font-medium text-gray-700">
+                Gamme de {libelleMachine(m, 'la machine')}
+                <select name="gamme" defaultValue="" required className={champ}>
+                  <option value="" disabled>Choisir la gamme (ex. C-EXV 49)…</option>
+                  {FAMILLES.map((x) => (
+                    <option key={x.cle} value={x.cle}>{x.cle} — {x.modeles}</option>
+                  ))}
+                  <option value={GAMME_AUTRES}>Autres (cartouches non listées)</option>
+                </select>
+              </label>
+              <Bouton className="rounded-lg px-4 py-2 font-semibold text-white" style={{ backgroundColor: VERT }}>Valider</Bouton>
+            </Formulaire>
+          ))}
+        </div>
+      ))}
+
+      {groupes.length > 0 && (
+        <div id="envoi" className="scroll-mt-4">
+          <Formulaire action={ajouterEnvoi} message="Envoi enregistré" reinitialiser className="mt-4">
+            <input type="hidden" name="clientId" value={client.id} />
+            <PreparationEnvoi sans={planSans} avec={planAvec} />
+            <div className="mt-3 space-y-3 overflow-x-auto">
+              {groupes.map((g, i) => {
+                const variantes = g.gamme ? familleDe(g.gamme).variantes : []
+                const varsEnvoi = g.gamme ? variantes : [null]
+                const couleurs: string[] = variantes.length ? COULEURS.filter((c) => variantes.some((v) => v.refs[c])) : [...COULEURS]
+                const stock = stockDuGroupe(stocks, client.id, g.cle)
+                const minimum = minimumDuGroupe(minimums, client.id, g.cle)
+                // cases aussi larges que leur texte de référence (« C-EXV 49 - 8524B002 »)
+                const laCase = 'mt-0.5 block w-0 min-w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-sm'
+                const ligne = 'grid grid-cols-[minmax(9rem,1.1fr)_minmax(0,4fr)] items-center gap-3 px-4'
                 return (
-                  <Link key={m.id} href={`/parc/machine/${m.id}`} className="grid items-center gap-3 py-3 hover:bg-gray-50 md:grid-cols-[1.2fr_2fr_1fr]">
-                    <p className="font-semibold">{libelleMachine(m, 'Machine inconnue')}</p>
-                    <Encres
-                      encres={(re?.encres ?? []) as unknown as Encre[]}
-                      seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
-                      etats={Object.fromEntries((etats.get(m.id) ?? []).map((x) => [x.couleur, { bas: x.bas, jours: x.jours, mode: x.mode, alerte: x.alerte }]))}
-                      stock={stock}
-                    />
-                    <p className="text-sm text-gray-500 md:text-right">{r ? `Relevé ${depuis(r.date)}` : 'Jamais lu'}</p>
-                  </Link>
+                  <section key={g.cle} className="min-w-[44rem] overflow-hidden rounded-xl border bg-white">
+                    <input type="hidden" name={`groupe_${i}`} value={g.cle} />
+                    <div className="border-b bg-gray-50 px-4 py-1.5 text-sm font-bold">
+                      {g.site} · {g.gamme ? `${variantes.map((v) => v.code).join(' / ')} (${g.gamme.modeles})` : g.machines.every((m) => m.gamme === GAMME_AUTRES) ? 'Autres' : 'gamme non reconnue'}
+                    </div>
+                    <div className="divide-y">
+                      {g.machines.map((m) => {
+                        const r = m.releves[0]
+                        const re = avecEncres(m.releves)
+                        const autres = g.machines.filter((x) => x.id !== m.id)
+                        return (
+                          <div key={m.id} className={`${ligne} py-2`}>
+                            <div>
+                              <Link href={`/parc/machine/${m.id}`} className="text-sm font-semibold hover:underline">{libelleMachine(m, 'Machine inconnue')}</Link>
+                              <p className="text-xs text-gray-500">{r ? `Relevé ${depuis(r.date)}` : 'Jamais lu'}</p>
+                              {autres.length > 0 && <p className="text-xs text-gray-500">Stock partagé avec {autres.map((x) => libelleMachine(x, 'machine').split(' / ').pop()).join(' et ')}</p>}
+                            </div>
+                            <Encres
+                              encres={(re?.encres ?? []) as unknown as Encre[]}
+                              seuils={Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)]))}
+                              etats={Object.fromEntries((etats.get(m.id) ?? []).map((x) => [x.couleur, { bas: x.bas, jours: x.jours, mode: x.mode, alerte: x.alerte }]))}
+                              stock={stock}
+                              afficherStock
+                            />
+                          </div>
+                        )
+                      })}
+                      <div className={`${ligne} py-1.5`}>
+                        <MinimumEdition clientId={client.id} groupe={g.cle} valeurs={minimum} couleurs={couleurs} />
+                      </div>
+                      <div className={`${ligne} bg-gray-50 py-2`}>
+                        <div className="w-fit text-xs text-gray-600">
+                          <p className="font-semibold">Envoi</p>
+                          {couleurs.length > 1 &&
+                            varsEnvoi.map((v, vi) => (
+                              <label key={vi} className="mt-0.5 block w-fit whitespace-nowrap">
+                                {v ? `Jeu complet ${v.code}` : 'Jeu complet'}
+                                <input type="number" inputMode="numeric" name={`jeu_${i}_${vi}`} min={0} defaultValue={0} className={laCase} />
+                              </label>
+                            ))}
+                        </div>
+                        <div className="grid grid-cols-4 items-start gap-2">
+                          {COULEURS.map((c) =>
+                            couleurs.includes(c) ? (
+                              <div key={c} className="w-fit text-xs text-gray-500">
+                                {varsEnvoi.map((v, vi) =>
+                                  v && !v.refs[c] ? null : (
+                                    <label key={vi} className="mb-1 block w-fit whitespace-nowrap">
+                                      {v ? `${v.code} - ${v.refs[c]}` : `${NOM_COULEUR[c]} (quantité)`}
+                                      <input type="number" inputMode="numeric" name={`qte_${i}_${c}_${vi}`} min={0} defaultValue={0} className={laCase} />
+                                    </label>
+                                  ),
+                                )}
+                              </div>
+                            ) : (
+                              <div key={c} />
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
                 )
               })}
             </div>
-            <h3 className="mt-4 text-sm font-semibold text-gray-700">Stock actuel</h3>
-            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {couleursDuGroupe.map((c) => (
-                <div key={c} className="rounded-lg bg-gray-50 p-3 text-center">
-                  <p className="text-sm text-gray-500">{NOM_COULEUR[c]}</p>
-                  <p className={`text-2xl font-bold ${stock[c] === 0 ? 'text-gray-400' : ''}`}>{stock[c]}</p>
-                  {minimum[c] > 0 && <p className="text-xs text-gray-500">minimum {minimum[c]}</p>}
-                  {variantes.length === 1 && g.gamme?.refs[c] && <p className="text-xs text-gray-500">{g.gamme.refs[c]}</p>}
-                  {variantes.length > 1 && (
-                    <ul className="mt-1 space-y-0.5 text-left text-xs text-gray-500">
-                      {variantes.filter((v) => v.refs[c]).map((v) => {
-                        const n = detail[c]?.[variantes.indexOf(v) === 0 ? '' : v.code] ?? 0
-                        return (
-                        <li key={v.code} className="flex justify-between gap-2">
-                          <span title={v.refs[c] ?? ''}>{v.code}</span>
-                          <strong className={n > 0 ? 'text-gray-900' : 'text-gray-400'}>{n}</strong>
-                        </li>
-                        )
-                      })}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </div>
-            <Formulaire action={definirStockMinimum} message="Stock minimum enregistré" className="mt-4 rounded-lg border border-dashed border-gray-300 p-3">
-              <input type="hidden" name="clientId" value={client.id} />
-              <input type="hidden" name="groupe" value={g.cle} />
-              <p className="text-sm font-semibold text-gray-700">Stock minimum à garder d&apos;avance</p>
-              <p className="text-xs text-gray-500">
-                Quand le stock descend à ce nombre (ou en dessous), l&apos;alerte se déclenche comme si le client n&apos;en avait plus. 0 = pas de minimum.
-              </p>
-              <div className="mt-2 flex flex-wrap items-end gap-3">
-                {couleursDuGroupe.map((c) => (
-                  <label key={c} className="text-sm font-medium text-gray-700">
-                    {NOM_COULEUR[c]}
-                    <input type="number" inputMode="numeric" name={`min_${c}`} min={0} max={99} defaultValue={minimum[c]} className="mt-1 block w-20 rounded-lg border border-gray-300 px-3 py-2" />
-                  </label>
-                ))}
-                <Bouton className="rounded-lg border border-gray-300 px-4 py-2 font-semibold">Enregistrer</Bouton>
-              </div>
-            </Formulaire>
-          </section>
-        )
-      })}
-
-      {groupes.length > 0 && (
-        <section id="envoi" className="mt-6 scroll-mt-4 rounded-xl border bg-white p-6">
-          <h2 className="text-lg font-bold">Saisir un envoi de cartouches</h2>
-          <p className="text-sm text-gray-500">Indiquez la quantité de chaque couleur envoyée (0 ou vide = aucune). « Jeu complet » compte une cartouche de chaque couleur ; pour une version L ou H dont le noir n'existe pas, le noir est celui de la version standard.</p>
-          <Formulaire action={ajouterEnvoi} message="Envoi enregistré" reinitialiser className="mt-4 space-y-5">
-            <input type="hidden" name="clientId" value={client.id} />
-            <PreparationEnvoi sans={planSans} avec={planAvec} />
-            {groupes.map((g, i) => (
-              <div key={g.cle}>
-                <input type="hidden" name={`groupe_${i}`} value={g.cle} />
-                <p className="text-sm font-semibold text-gray-700">
-                  {g.site} · {g.gamme ? familleDe(g.gamme).variantes.map((v) => v.code).join(' / ') : g.machines.map((m) => libelleMachine(m, '')).join(', ')}
-                </p>
-                {(() => {
-                  const variantes = g.gamme ? familleDe(g.gamme).variantes : [null]
-                  const couleurs = g.gamme ? COULEURS.filter((c) => familleDe(g.gamme!).variantes.some((v) => v.refs[c])) : COULEURS
-                  // cases aussi larges que leur texte de référence (« C-EXV 49 - 8524B002 »)
-                  const case_ = 'mt-1 block w-0 min-w-full rounded-lg border border-gray-300 px-3 py-2'
-                  return (
-                    <div className="mt-1 flex flex-wrap items-start gap-x-5 gap-y-3">
-                      {couleurs.length > 1 && (
-                        <div className="w-fit text-sm font-semibold text-gray-700">
-                          Jeu complet
-                          {variantes.map((v, vi) => (
-                            <label key={vi} className="mt-1 block w-fit whitespace-nowrap text-xs font-normal text-gray-500">
-                              {v ? `${v.code} - ${couleurs.length} cartouches` : `${couleurs.length} cartouches`}
-                              <input type="number" inputMode="numeric" name={`jeu_${i}_${vi}`} min={0} defaultValue={0} className={case_} />
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                      {couleurs.map((c) => (
-                        <div key={c} className="w-fit text-sm font-medium text-gray-700">
-                          {NOM_COULEUR[c]}
-                          {variantes.map((v, vi) =>
-                            v && !v.refs[c] ? null : (
-                              <label key={vi} className="mt-1 block w-fit whitespace-nowrap text-xs font-normal text-gray-500">
-                                {v ? `${v.code} - ${v.refs[c]}` : 'quantité'}
-                                <input type="number" inputMode="numeric" name={`qte_${i}_${c}_${vi}`} min={0} defaultValue={0} className={case_} />
-                              </label>
-                            )
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })()}
-              </div>
-            ))}
-            <div className="grid gap-4 md:grid-cols-3">
-              <label className="text-sm font-medium text-gray-700 md:col-span-2">
-                Remarque (facultatif)
-                <input name="note" placeholder="ex. commande du 12/10" className={champ} />
+            <div className="sticky bottom-0 z-10 mt-3 flex flex-wrap items-end gap-x-4 gap-y-2 rounded-xl border bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur">
+              <label className="text-xs font-medium text-gray-600">
+                Remarque
+                <input name="note" placeholder="ex. commande du 12/10" className="mt-0.5 block w-52 rounded-md border border-gray-300 px-2 py-1 text-sm" />
               </label>
-              <label className="text-sm font-medium text-gray-700">
-                Date (facultatif)
-                <input type="date" name="date" className={champ} />
+              <label className="text-xs font-medium text-gray-600">
+                Date
+                <input type="date" name="date" className="mt-0.5 block rounded-md border border-gray-300 px-2 py-1 text-sm" />
               </label>
+              <label className="flex items-center gap-1.5 pb-1.5 text-sm text-gray-700">
+                <input type="checkbox" name="carol" className="h-4 w-4" /> Carol
+              </label>
+              <label className="flex items-center gap-1.5 pb-1.5 text-sm text-gray-700">
+                <input type="checkbox" name="copyclic" className="h-4 w-4" /> Copyclic
+              </label>
+              <Bouton className="rounded-lg px-5 py-2 text-sm font-semibold text-white" style={{ backgroundColor: VERT }}>
+                Enregistrer l&apos;envoi
+              </Bouton>
             </div>
-            <Bouton className="rounded-lg px-5 py-2.5 font-semibold text-white" style={{ backgroundColor: VERT }}>
-              Enregistrer l&apos;envoi
-            </Bouton>
           </Formulaire>
-        </section>
+        </div>
       )}
 
       {groupes.length > 0 && (
@@ -312,6 +283,7 @@ export default async function StockClientPage({ params }: { params: { id: string
                       <td className="whitespace-nowrap py-1.5 pr-4">{formaterDate(e.date)}</td>
                       <td className="py-1.5 pr-4">
                         <span className={`font-semibold ${e.motif === 'envoi' ? 'text-green-700' : ''}`}>{titre}</span>
+                        {e.lignes[0].fournisseurs && <span className="text-gray-700"> — {e.lignes[0].fournisseurs}</span>}
                         {note && <span className="text-gray-600"> — {note}</span>}
                         <ul className="mt-0.5 text-gray-600">
                           {Array.from(parGroupe.entries()).map(([groupe, lignes]) => (
