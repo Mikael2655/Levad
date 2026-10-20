@@ -25,6 +25,16 @@ function extractJson<T>(text: string): T {
   return JSON.parse(match[0]) as T
 }
 
+// Règles de rédaction communes : posts courts, percutants, qui donnent envie de répondre.
+const COPY_RULES = `STYLE : PUNCHY ET COMMERCIAL (c'est la priorité n°1, un texte sage et générique est un échec)
+- ACCROCHE (1re ligne, 12 mots maximum) : elle doit arrêter le défilement. Utilise l'une de ces formes : une vérité qui pique, un constat contre-intuitif, une question que le dirigeant se pose la nuit, un coût caché, une scène vécue en PME. Jamais de titre mou du type « Zoom sur… », « Tout savoir sur… » ou « Et si on parlait de… ».
+- CORPS : une idée par ligne, phrases de 4 à 14 mots, lignes blanches entre les blocs, rythme saccadé. Du concret : une situation que le dirigeant reconnaît (la facture qui n'arrive pas, le standard qui sonne dans le vide, l'imprimante en panne le jour de la clôture, le mot de passe collé sur un post-it).
+- BÉNÉFICE : parle de ce que le client GAGNE ou ÉVITE (temps, argent, sérénité, risque, clients qui rappellent), pas de ce que l'entreprise « propose » ou « accompagne ». Montre la différence entre avant et après.
+- PREUVE : uniquement des faits fournis ou vérifiés. Aucun chiffre, résultat, témoignage ou référence client inventé.
+- APPEL À L'ACTION (dernière ligne) : une seule action, directe et facile (écrire un message, appeler, demander un rendez-vous). N'invente aucune offre : pas de « gratuit », de remise ni de délai sauf s'ils figurent dans la description de l'entreprise.
+- VOCABULAIRE INTERDIT : « solutions innovantes », « accompagner votre transformation », « dans un monde en constante évolution », « n'hésitez pas à », « notre expertise », « à la pointe », « enjeux majeurs », « il est essentiel de ». Pas de jargon technique sans le traduire en effet concret.
+- Vouvoiement du lecteur quand tu t'adresses à lui. Voix active. Emojis : 0 à 2, jamais décoratifs. Hashtags : 3 à 4, à la fin seulement.`
+
 export type PersonalKind = 'metier' | 'parcours'
 
 export interface SelectedTopic {
@@ -98,24 +108,28 @@ export async function generateSocialPosts(params: GenerateParams): Promise<Gener
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    max_tokens: 1500,
     messages: [{
       role: 'user',
-      content: `Tu es un expert en marketing digital B2B. Génère du contenu pour les réseaux sociaux.
+      content: `Tu es un copywriter B2B redoutable, spécialiste des posts LinkedIn qui font réagir des dirigeants de PME. Tu écris pour vendre sans en avoir l'air : le lecteur doit se dire « c'est exactement mon problème » puis « je veux en parler ».
 
 Entreprise: ${companyName}
 Description: ${companyDesc}
-Ton: ${tone}
 Audience cible: ${targetAudience}
+Ton de fond: ${tone} (mais énergique et direct)
 Sujet: ${topic}
 Date du jour: ${todayFr()}
 ${context ? `Faits vérifiés à utiliser (ne rien inventer d'autre) :\n${context}\n` : ''}
-Règles : le post doit être cohérent avec la date du jour. N'écris jamais une année passée ou en cours comme si elle était à venir, parle en mois ou en jours restants. Ne cite aucun chiffre ou date dont tu n'es pas certain.
+${COPY_RULES}
+
+COHÉRENCE AVEC LA DATE : n'écris jamais une année passée ou en cours comme si elle était à venir, parle en mois ou en jours restants. Ne cite aucun chiffre ou date dont tu n'es pas certain.
+
+LONGUEUR : LinkedIn 90 à 150 mots. Instagram 60 à 100 mots, encore plus court et visuel, 6 à 8 hashtags.
 
 Génère exactement ce JSON (sans markdown ni backticks):
 {
-  "linkedin": "Post LinkedIn professionnel de 150-200 mots, avec sauts de ligne, emojis pertinents, et 3-5 hashtags à la fin",
-  "instagram": "Post Instagram de 100-150 mots, accrocheur, emojis, 8-10 hashtags",
+  "linkedin": "Post LinkedIn percutant, accroche en 1re ligne, appel à l'action en dernière ligne avant les hashtags",
+  "instagram": "Post Instagram court et accrocheur avec appel à l'action",
   "imagePrompt": "Description en français d'une image pour illustrer ce post. Style: photographie réaliste prise en France, ambiance PME française authentique, éclairage naturel, pas trop parfait ni trop corporate. Éviter: décors américains, costumes trop impeccables, aspect trop lisse ou artificiel. Privilégier: bureau ou environnement de travail français ordinaire, personnes naturelles et crédibles, lumière douce et réaliste."
 }`,
     }],
@@ -162,13 +176,15 @@ ${bio}
 
 Posts personnels déjà écrits (ne pas répéter le même angle ni la même anecdote) : ${recentPersonal.join(' | ') || 'aucun'}
 
-RÈGLES ABSOLUES :
+RÈGLES ABSOLUES SUR LES FAITS :
 - N'utilise QUE les éléments de la matière fournie. N'invente AUCUN fait, date, chiffre, nom, lieu, anecdote, citation ni émotion précise qui n'y figure pas. Si la matière est mince sur ce sujet, reste sur ce qui est dit, avec sincérité, sans broder.
-- Choisis UN seul angle précis dans la matière (une anecdote, une conviction, un moment), pas un résumé de toute la vie.
-- Style : phrases courtes, mots simples, concret. Pas de jargon d'entreprise, pas de formules creuses (« dans un monde en constante évolution », « passionné par l'innovation »…). Pas de leçon de morale.
-- Première ligne : une accroche vraie qui donne envie de lire la suite.
-- Termine par une phrase ouverte ou une question simple pour inviter à réagir.
-- LinkedIn : 120 à 220 mots, sauts de ligne, au plus 1 emoji, 3 hashtags maximum à la fin. Instagram : 80 à 120 mots, 6 à 8 hashtags.
+- Choisis UN seul angle précis dans la matière (une scène, une conviction, un moment), pas un résumé de toute la vie.
+
+STRUCTURE QUI DONNE ENVIE : scène ou aveu qui accroche, puis tension (ce qui n'allait pas, ce qui m'a énervé, ce que j'ai refusé), puis bascule (ce que j'ai décidé), puis ce que ça change concrètement pour mes clients aujourd'hui. L'histoire personnelle doit déboucher sur une raison de travailler avec moi, sans slogan.
+
+${COPY_RULES}
+
+LONGUEUR : LinkedIn 110 à 180 mots. Instagram 70 à 110 mots, 6 à 8 hashtags. Termine par une phrase d'invitation directe (écrire, appeler, venir en parler).
 
 Réponds uniquement avec ce JSON (sans markdown) :
 {"topic": "titre court et concret du post (max 90 caractères)", "linkedin": "...", "instagram": "...", "imagePrompt": "Description en français d'une photo réaliste, naturelle, prise en France, en lien avec le sujet (lieu de travail, objet, moment), sans visage reconnaissable imposé, lumière naturelle, pas trop lisse."}`,
@@ -177,4 +193,53 @@ Réponds uniquement avec ce JSON (sans markdown) :
 
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
   return extractJson<GeneratedContent & { topic: string }>(text)
+}
+
+export async function rewritePunchy(params: {
+  topic: string
+  contentLI: string
+  contentIG: string
+  companyName: string
+  companyDesc: string
+  targetAudience: string
+  firstPerson: boolean
+}): Promise<{ linkedin: string; instagram: string }> {
+  const { topic, contentLI, contentIG, companyName, companyDesc, targetAudience, firstPerson } = params
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+  const message = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1500,
+    messages: [{
+      role: 'user',
+      content: `Tu es un copywriter B2B redoutable. Réécris ces deux textes pour qu'ils soient bien plus percutants et commerciaux, qu'ils donnent envie de répondre.
+
+Entreprise: ${companyName} — ${companyDesc}
+Audience: ${targetAudience}
+Sujet: ${topic}
+Date du jour: ${todayFr()}
+${firstPerson ? "Ce post est écrit à la première personne (« je »), au nom du dirigeant : garde cette voix.\n" : ''}
+TEXTE LINKEDIN ACTUEL :
+"""
+${contentLI}
+"""
+
+TEXTE INSTAGRAM ACTUEL :
+"""
+${contentIG}
+"""
+
+À CONSERVER : le sujet, et TOUS les faits, chiffres, dates et noms présents dans les textes. N'en ajoute aucun nouveau, n'invente rien. Si une année ou une date est présente, garde-la telle quelle.
+
+${COPY_RULES}
+
+LONGUEUR : LinkedIn 90 à 160 mots, Instagram 60 à 110 mots.
+
+Réponds uniquement avec ce JSON (sans markdown) :
+{"linkedin": "...", "instagram": "..."}`,
+    }],
+  })
+
+  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  return extractJson<{ linkedin: string; instagram: string }>(text)
 }

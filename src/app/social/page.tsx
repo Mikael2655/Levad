@@ -70,6 +70,9 @@ function SocialPageInner() {
   const [personalKind, setPersonalKind] = useState<'metier' | 'parcours'>('metier')
   const [personalHint, setPersonalHint] = useState('')
   const [generatingPersonal, setGeneratingPersonal] = useState(false)
+  const [rewriting, setRewriting] = useState(false)
+  const [rewriteAllProgress, setRewriteAllProgress] = useState<string | null>(null)
+  const [previousText, setPreviousText] = useState<{ id: number; li: string | null; ig: string | null } | null>(null)
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -275,6 +278,70 @@ function SocialPageInner() {
     } finally {
       setGeneratingPersonal(false)
     }
+  }
+
+  async function rewriteCall(body: object): Promise<SocialPost> {
+    const res = await fetch('/api/social/queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'rewrite', ...body }),
+    })
+    const text = await res.text()
+    let data: { post?: SocialPost; error?: string } = {}
+    try { data = JSON.parse(text) } catch { /* réponse non JSON */ }
+    if (!data.post) throw new Error(data.error ?? `Erreur serveur ${res.status}`)
+    return data.post
+  }
+
+  async function handleRewrite() {
+    if (!selected) return
+    setRewriting(true)
+    try {
+      const before = { id: selected.id, li: selected.contentLI, ig: selected.contentIG }
+      const post = await rewriteCall({ id: selected.id, contentLI: selected.contentLI ?? '', contentIG: selected.contentIG ?? '' })
+      setPreviousText(before)
+      setSelected(prev => prev && prev.id === post.id ? { ...prev, contentLI: post.contentLI, contentIG: post.contentIG } : prev)
+      await loadPosts()
+      showToast('Texte réécrit, plus percutant : relisez-le')
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Erreur de réécriture', false)
+    } finally {
+      setRewriting(false)
+    }
+  }
+
+  async function handleUndoRewrite() {
+    if (!previousText || !selected || selected.id !== previousText.id) return
+    const restored = { ...selected, contentLI: previousText.li, contentIG: previousText.ig }
+    setSelected(restored)
+    await saveContent(restored)
+    setPreviousText(null)
+    await loadPosts()
+    showToast('Version précédente rétablie')
+  }
+
+  async function handleRewriteAll() {
+    const targets = drafts
+    if (targets.length === 0) return
+    if (!confirm(`Réécrire ${targets.length} post${targets.length > 1 ? 's' : ''} « à valider » de façon plus percutante ? Les textes actuels seront remplacés (les posts validés ne sont pas touchés).`)) return
+    let done = 0
+    for (let i = 0; i < targets.length; i++) {
+      setRewriteAllProgress(`Réécriture ${i + 1}/${targets.length}…`)
+      try {
+        await rewriteCall({ id: targets[i].id })
+        done++
+      } catch (e) {
+        showToast(`Arrêt après ${done} : ${e instanceof Error ? e.message : String(e)}`, false)
+        break
+      }
+    }
+    setRewriteAllProgress(null)
+    await loadPosts()
+    if (selected && targets.some(p => p.id === selected.id)) {
+      const fresh = await fetch(`/api/social/posts?id=${selected.id}`).then(r => r.json()).catch(() => null)
+      if (fresh?.post) setSelected(fresh.post)
+    }
+    if (done > 0) showToast(`${done} post${done > 1 ? 's' : ''} réécrit${done > 1 ? 's' : ''}`)
   }
 
   async function handleShift() {
@@ -630,6 +697,12 @@ function SocialPageInner() {
                         <input type="date" onChange={e => e.target.value && handleHold(e.target.value)}
                           className="border border-gray-300 rounded-lg px-2 py-1 text-xs bg-white" />
                       </label>
+                      {drafts.length > 0 && (
+                        <button onClick={handleRewriteAll} disabled={!!rewriteAllProgress}
+                          className="px-3 py-1.5 text-xs border border-amber-300 text-amber-800 bg-amber-50 rounded-lg hover:bg-amber-100 font-medium disabled:opacity-60">
+                          {rewriteAllProgress ?? `✨ Rendre punchy les ${drafts.length} à valider`}
+                        </button>
+                      )}
                       {hold && (
                         <button onClick={() => handleHold(null)}
                           className="px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-100 rounded-lg font-medium">
@@ -714,6 +787,16 @@ function SocialPageInner() {
                               className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-40 font-medium">
                               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
                             </button>
+                            <button onClick={handleRewrite} disabled={rewriting}
+                              className="px-3 py-1.5 text-sm border border-amber-300 text-amber-800 bg-amber-50 rounded-lg hover:bg-amber-100 transition disabled:opacity-50 font-medium">
+                              {rewriting ? 'Réécriture…' : '✨ Rendre plus punchy'}
+                            </button>
+                            {previousText && previousText.id === selected.id && (
+                              <button onClick={handleUndoRewrite}
+                                className="px-2 py-1.5 text-xs text-gray-500 hover:text-gray-800 underline underline-offset-2">
+                                ↩ Version précédente
+                              </button>
+                            )}
                             <button onClick={() => setShowPreview(true)}
                               className="px-4 py-1.5 text-sm bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition font-semibold">
                               Prévisualiser →

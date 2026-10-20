@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db'
-import { generatePersonalPost, generateSocialPosts, NEWS_THEMES, selectTopic, type PersonalKind, type SelectedTopic } from '@/lib/claude-ai'
+import { generatePersonalPost, generateSocialPosts, NEWS_THEMES, rewritePunchy, selectTopic, type PersonalKind, type SelectedTopic } from '@/lib/claude-ai'
 
 export const SLOT_HOUR_PARIS = 18
 const SLOT_WEEKDAYS = [2, 4] // mardi, jeudi
@@ -310,4 +310,26 @@ export async function holdUntilDay(day: string | null): Promise<void> {
     await setHold(new Date(parisToUtc(+m[1], +m[2] - 1, +m[3], 0).getTime() - 1))
   }
   await rebuildSlots()
+}
+
+// Réécrit le texte d'un post de façon plus percutante (texte fourni, sinon celui enregistré).
+export async function rewritePost(id: number, current?: { contentLI?: string | null; contentIG?: string | null }) {
+  const [config, post] = await Promise.all([
+    loadConfig(),
+    prisma.socialPost.findUniqueOrThrow({ where: { id }, omit: { imageUrl: true } }),
+  ])
+  const rewritten = await rewritePunchy({
+    topic: post.topic,
+    contentLI: current?.contentLI ?? post.contentLI ?? '',
+    contentIG: current?.contentIG ?? post.contentIG ?? '',
+    companyName: config.companyName,
+    companyDesc: config.companyDesc,
+    targetAudience: config.targetAudience,
+    firstPerson: post.topic.startsWith(PERSONAL_PREFIX),
+  })
+  return prisma.socialPost.update({
+    where: { id },
+    data: { contentLI: rewritten.linkedin, contentIG: rewritten.instagram },
+    omit: { imageUrl: true },
+  })
 }

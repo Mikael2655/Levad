@@ -3,7 +3,7 @@ export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { generateQueuedPost, holdUntilDay, movePost, pickTopic, rebuildSlots, shiftOneSlot, writeQueuedPost } from '@/lib/queue'
+import { generateQueuedPost, holdUntilDay, movePost, pickTopic, rebuildSlots, rewritePost, shiftOneSlot, writeQueuedPost } from '@/lib/queue'
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +17,12 @@ export async function POST(req: NextRequest) {
     if (body.action === 'hold') {
       await holdUntilDay(body.day ?? null)
       return NextResponse.json({ ok: true })
+    }
+
+    if (body.action === 'rewrite') {
+      const current = body.contentLI !== undefined ? { contentLI: body.contentLI, contentIG: body.contentIG } : undefined
+      const post = await rewritePost(Number(body.id), current)
+      return NextResponse.json({ post })
     }
 
     if (body.action === 'personal') {
