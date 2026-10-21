@@ -256,7 +256,8 @@ export async function ajouterEnvoi(formData: FormData): Promise<string | void> {
     }
   }
   if (!data.length) return '!Aucune quantité saisie'
-  await prisma.connectStockMouvement.createMany({ data })
+  const fournisseurs = [formData.get('carol') ? 'Carol' : null, formData.get('copyclic') ? 'Copyclic' : null].filter(Boolean).join(' + ') || null
+  await prisma.connectStockMouvement.createMany({ data: data.map((d) => ({ ...d, fournisseurs })) })
   revalidatePath('/parc', 'layout')
   return `Envoi enregistré (${data.reduce((n, l) => n + l.delta, 0)} cartouche${data.reduce((n, l) => n + l.delta, 0) > 1 ? 's' : ''})`
 }
