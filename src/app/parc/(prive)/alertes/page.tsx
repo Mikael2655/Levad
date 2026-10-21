@@ -6,6 +6,7 @@ import { COULEURS, NOM_COULEUR, clientsEnAlerte, type ClientEtat, type MachineEt
 export const dynamic = 'force-dynamic'
 
 function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
+  const partage = client.machines.filter((x) => x.id !== m.id && x.groupe === m.groupe)
   const encres = m.couleurs.map((c) => ({ couleur: c.couleur, pourcent: c.pourcent }))
   const seuils = Object.fromEntries(m.couleurs.map((c) => [c.couleur, c.seuil]))
   const etats = Object.fromEntries(m.couleurs.map((c) => [c.couleur, { bas: c.bas, jours: c.jours, mode: c.mode, alerte: c.alerte }]))
@@ -13,6 +14,7 @@ function LigneMachine({ m, client }: { m: MachineEtat; client: ClientEtat }) {
     <Link href={`/parc/machine/${m.id}`} className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.2fr_2fr_1fr]">
       <div>
         <p className="font-semibold">{m.nom}</p>
+        {partage.length > 0 && <p className="text-xs text-gray-500">Stock partagé avec {partage.map((x) => x.nom.split(' / ').pop()).join(' et ')}</p>}
         {m.enAlerte ? (
           <p className="mt-1 text-sm font-semibold text-red-600">
             {m.couleurs
