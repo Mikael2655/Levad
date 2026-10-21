@@ -59,7 +59,7 @@ export function Encres({
   seuils?: Record<string, number>
   stock?: Record<string, number>
   /** Règle de durée restante (prioritaire sur les seuils en %) : « bas » et jours estimés par couleur. */
-  etats?: Record<string, { bas: boolean; jours: number | null; mode: 'duree' | 'pourcent'; alerte?: boolean } | undefined>
+  etats?: Record<string, { bas: boolean; jours: number | null; mode: 'duree' | 'pourcent'; alerte?: boolean; minimum?: number } | undefined>
   grand?: boolean
   /** Affiche le stock de cartouches de chaque couleur, aligné sous le pourcentage restant. */
   afficherStock?: boolean
@@ -97,6 +97,7 @@ export function Encres({
             {afficherStock && stock && (
               <p className="text-xs text-gray-500">
                 stock <strong className={(stock[c.cle] ?? 0) > 0 ? 'text-gray-800' : 'text-gray-400'}>{stock[c.cle] ?? 0}</strong>
+                {!!et?.minimum && <span> · min <strong className="text-gray-700">{et.minimum}</strong></span>}
               </p>
             )}
           </div>
