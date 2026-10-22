@@ -115,6 +115,22 @@ export default async function MachinePage({ params }: { params: { id: string } }
               <div className="mt-4">
                 <Encres encres={encres} seuils={suivie && !machine.horsContrat ? seuils : undefined} stock={suivie && !machine.horsContrat ? stock : undefined} etats={suivie && !machine.horsContrat ? etats : undefined} grand />
               </div>
+              {encres.length > 0 && COULEURS.some((c) => !encres.find((e) => e.couleur === c && e.pourcent !== null)) && (
+                <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+                  <p className="font-semibold text-gray-700">Niveaux que la machine ne communique pas</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {COULEURS.filter((c) => !encres.find((e) => e.couleur === c && e.pourcent !== null)).map((c) => {
+                      const e = encres.find((x) => x.couleur === c)
+                      return (
+                        <li key={c}>
+                          <strong>{NOM_COULEUR[c]}</strong> :{' '}
+                          {e ? `${e.note ?? 'niveau non communiqué'}${e.description ? ` (« ${e.description} »)` : ''}` : 'la machine ne déclare pas cette cartouche'}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
               <p className="mt-3 text-xs text-gray-500">
                 {suivie && !machine.horsContrat ? (
                   <>
