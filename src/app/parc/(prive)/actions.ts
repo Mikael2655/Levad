@@ -531,6 +531,17 @@ export type ElementImport = {
   compteurs: Record<string, { v: number; nom?: string }>
 }
 
+// Supprime un relevé importé par erreur (seuls les relevés importés à la main peuvent l'être).
+export async function supprimerReleveImporte(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  const r = await prisma.connectReleve.findUnique({ where: { id }, select: { source: true } })
+  if (!r || r.source !== 'import') return '!Ce relevé ne peut pas être supprimé ici'
+  await prisma.connectReleve.delete({ where: { id } })
+  revalidatePath('/parc', 'layout')
+  return 'Relevé supprimé'
+}
+
 export async function enregistrerImport(json: string): Promise<string> {
   if (!connecte()) throw new Error('Non connecté')
   const { jour, elements } = JSON.parse(json) as { jour: string; elements: ElementImport[] }
