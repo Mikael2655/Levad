@@ -11,8 +11,8 @@ navigateur (localStorage) ; en mode synchronisé (Firebase configuré),
 les données transitent uniquement par votre projet Firestore.
 
 ## Démarrage
-
-Ouvrez `index.html` dans un navigateur. Premier accès : identifiant **admin**,
+Ouvrez `index.html` dans un navigateur. Premier accès : identifiant **admin** et
+mot de passe initial communiqué séparément (à changer immédiatement dans *Utilisateurs*).
 mot de passe **levad2026** (à changer immédiatement dans *Utilisateurs*).
 
 Par défaut, l'outil réutilise le projet Firebase déjà configuré pour

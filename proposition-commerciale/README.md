@@ -15,7 +15,7 @@ Aucune donnée n'est envoyée : tout reste dans le navigateur (localStorage).
 ## Comptes & connexion
 
 L'accès est protégé par **identifiant + mot de passe**. **Mikael** est
-l'**administrateur** (mot de passe initial `231912`) : il crée / supprime les
+l'**administrateur** (mot de passe initial communiqué séparément) : il crée / supprime les
 utilisateurs, réinitialise leurs mots de passe, et **voit toutes les
 simulations** (triées par personne puis par client). Chaque utilisateur ne voit
 que **ses** simulations, peut les **archiver** (mais pas les supprimer) et ne
