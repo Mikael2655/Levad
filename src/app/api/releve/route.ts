@@ -3,9 +3,9 @@ import { Resend } from 'resend'
 import { timingSafeEqual } from 'crypto'
 import { enregistrerReleve } from '@/lib/connect/ingestion'
 
-// Réception des relevés envoyés par le programme de relevé LEVAD (dossier releve-snmp/).
+// Réception des relevés envoyés par le programme de relevé LEVAD (dossier levad-connect/).
 // Le programme poste un JSON ; on le transmet par mail (en pièce jointe, avec un résumé lisible).
-// Variables Vercel : RELEVE_TOKEN (obligatoire, même valeur que dans releve-snmp/config_envoi.py),
+// Variables Vercel : RELEVE_TOKEN (obligatoire, même valeur que dans levad-connect/config_envoi.py),
 // RELEVE_EMAIL_TO et RELEVE_EMAIL_FROM (facultatifs), RESEND_API_KEY (obligatoire).
 
 export const runtime = 'nodejs'

@@ -146,7 +146,7 @@ conditionnelles.
 ## Structure
 
 ```
-gestion/
+crm-erp/
   index.html
   css/style.css
   js/config.js        rôles, activités, constantes, paramètres société par défaut

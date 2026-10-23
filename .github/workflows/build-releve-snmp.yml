@@ -1,13 +1,13 @@
-# Fabrique les programmes "double-clic" pour Windows et Mac à partir de releve-snmp/.
-# Se lance tout seul à chaque modification du dossier releve-snmp, ou à la main
+# Fabrique les programmes "double-clic" pour Windows et Mac à partir de levad-connect/.
+# Se lance tout seul à chaque modification du dossier levad-connect, ou à la main
 # (onglet Actions > "Levad Connect (programme de relevé)" > Run workflow).
 name: Levad Connect (programme de relevé)
 
 on:
   push:
     paths:
-      - "releve-snmp/**"
-      - ".github/workflows/build-releve-snmp.yml"
+      - "levad-connect/**"
+      - ".github/workflows/build-levad-connect.yml"
   workflow_dispatch:
 
 # Signature Windows (Azure Artifact Signing) : s'active toute seule quand la variable de dépôt SIGNATURE_WINDOWS vaut « oui »
@@ -37,13 +37,13 @@ jobs:
       - name: Installer l'outil d'emballage
         run: python -m pip install pyinstaller certifi pillow
       - name: Fabriquer les icônes (logo LEVAD)
-        run: python releve-snmp/fabriquer_icones.py
+        run: python levad-connect/fabriquer_icones.py
       - name: "Fabriquer le programme (Windows : un seul .exe sans fenêtre noire)"
         if: matrix.nom == 'Windows'
-        run: python -m PyInstaller --onefile --windowed --icon icone.ico --name Levad-Connect --paths releve-snmp --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi releve-snmp/levad_connect_gui.py
+        run: python -m PyInstaller --onefile --windowed --icon icone.ico --name Levad-Connect --paths levad-connect --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi levad-connect/levad_connect_gui.py
       - name: "Fabriquer le programme (Mac : une application)"
         if: matrix.nom == 'Mac'
-        run: python -m PyInstaller --windowed --icon icone.icns --name "Levad Connect" --osx-bundle-identifier fr.levad.connect --paths releve-snmp --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi releve-snmp/levad_connect_gui.py
+        run: python -m PyInstaller --windowed --icon icone.icns --name "Levad Connect" --osx-bundle-identifier fr.levad.connect --paths levad-connect --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi levad-connect/levad_connect_gui.py
       - name: Windows - connexion à Azure (signature)
         if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui' && github.ref == 'refs/heads/main'
         uses: azure/login@v3
@@ -138,7 +138,7 @@ jobs:
           cp programmes-fabriques/Levad-Connect-Mac/Levad-Connect-Mac.zip public/telechargements/
       - name: Informations de mise à jour automatique (version, empreinte)
         run: |
-          VERSION=$(grep -oP 'VERSION_AGENT = "\K[^"]+' releve-snmp/levad_agent.py)
+          VERSION=$(grep -oP 'VERSION_AGENT = "\K[^"]+' levad-connect/levad_agent.py)
           SHA=$(sha256sum public/telechargements/Levad-Connect.exe | cut -d' ' -f1)
           TAILLE=$(stat -c%s public/telechargements/Levad-Connect.exe)
           SHA_MAC=$(sha256sum public/telechargements/Levad-Connect-Mac.zip | cut -d' ' -f1)

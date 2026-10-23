@@ -26,10 +26,10 @@ installation : l'outil est un seul fichier, `releve_snmp.py`.
 ## 2. Lancer l'outil
 
 Dans la fenêtre noire (Invite de commandes / Terminal), placez-vous dans le
-dossier `releve-snmp` de ce projet. Exemple si le dossier est sur le Bureau :
+dossier `levad-connect` de ce projet. Exemple si le dossier est sur le Bureau :
 
-- Windows : `cd %USERPROFILE%\Desktop\releve-snmp`
-- Mac : `cd ~/Desktop/releve-snmp`
+- Windows : `cd %USERPROFILE%\Desktop\levad-connect`
+- Mac : `cd ~/Desktop/levad-connect`
 
 Puis (remplacez l'adresse par celle de votre copieur ; sous Mac tapez `python3`
 à la place de `python`) :
