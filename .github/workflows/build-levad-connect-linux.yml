@@ -1,0 +1,50 @@
+# Fabrique le programme Levad Connect pour Linux (sans fenêtre) à partir de levad-connect-linux/.
+# Indépendant des versions Windows et Mac : il ne touche ni à leur fabrication, ni à leur numéro de version,
+# ni au fichier version.json : les clients déjà installés ne sont donc pas concernés.
+# Se lance tout seul à chaque modification du dossier levad-connect-linux, ou à la main (onglet Actions > Run workflow).
+name: Levad Connect (programme Linux)
+
+on:
+  push:
+    paths:
+      - "levad-connect-linux/**"
+      - ".github/workflows/build-levad-connect-linux.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fabriquer:
+    # Ubuntu 22.04 : le programme fonctionne ainsi sur la plupart des Linux récents (il exige la même version de la bibliothèque système, ou plus récente)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer l'outil d'emballage
+        run: python -m pip install pyinstaller certifi
+      - name: Fabriquer le programme (un seul fichier)
+        run: python -m PyInstaller --onefile --name Levad-Connect-Linux --paths levad-connect --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi levad-connect-linux/levad_connect_linux.py
+      - name: Essai (démarrage, installation avec un code d'essai, désinstallation)
+        run: |
+          cp dist/Levad-Connect-Linux /tmp/Levad-Connect-abcdefghjkmnpqrs
+          export LEVAD_DONNEES=$(mktemp -d) LEVAD_SANS_LANCEMENT=1 LEVAD_SANS_AUTODEMARRAGE=1
+          /tmp/Levad-Connect-abcdefghjkmnpqrs --verifier
+          /tmp/Levad-Connect-abcdefghjkmnpqrs
+          grep -q abcdefghjkmnpqrs "$LEVAD_DONNEES/config.json"
+          test -x "$LEVAD_DONNEES/levad-connect"
+          /tmp/Levad-Connect-abcdefghjkmnpqrs --desinstaller
+      - name: Publier dans le dépôt (seulement sur la branche principale)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p public/telechargements
+          cp dist/Levad-Connect-Linux public/telechargements/Levad-Connect-Linux
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/telechargements/Levad-Connect-Linux
+          if git diff --cached --quiet; then echo "Rien de nouveau à publier"; exit 0; fi
+          git commit -m "Publication du programme Levad Connect pour Linux"
+          git pull --rebase origin main
+          git push origin HEAD:main

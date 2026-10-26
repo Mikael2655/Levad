@@ -97,6 +97,18 @@ export default async function ClientPage({ params }: { params: { id: string } })
               <br />
               Mac : {urlsTelechargement(client.codeLien).mac}
             </p>
+            <details className="mt-3 rounded-lg border border-gray-200 p-3 text-sm">
+              <summary className="cursor-pointer font-semibold text-gray-700">Linux (sans fenêtre, pour un serveur ou une machine virtuelle)</summary>
+              <p className="mt-2 break-all rounded-lg bg-gray-50 p-3 font-mono text-xs">{urlsTelechargement(client.codeLien).linux}</p>
+              <p className="mt-2 text-gray-600">À transmettre à part (pas dans le mail). Dans un terminal, sur la machine du client :</p>
+              <pre className="mt-1 overflow-x-auto rounded-lg bg-gray-50 p-3 text-xs">{`curl -L -o Levad-Connect-${client.codeLien} ${urlsTelechargement(client.codeLien).linux}
+chmod +x Levad-Connect-${client.codeLien}
+./Levad-Connect-${client.codeLien}`}</pre>
+              <p className="mt-2 text-xs text-gray-500">
+                Le programme s&apos;installe dans ~/.levad-connect, sans droit administrateur, et redémarre avec la machine (cron). Pas de mise à jour automatique sous
+                Linux : pour changer de version, retélécharger avec ce même lien et relancer. Désinstaller : ajouter l&apos;option --desinstaller.
+              </p>
+            </details>
             <Formulaire action={envoyerLien} message="Lien envoyé" className="mt-4 flex flex-wrap items-end gap-3">
               <input type="hidden" name="id" value={client.id} />
               <label className="grow text-sm font-medium text-gray-700">
