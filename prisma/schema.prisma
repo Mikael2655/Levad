@@ -227,6 +227,7 @@ model FinUtilisateur {
   role                String // ADMIN | ASSISTANTE | COMMERCIAL
   actif               Boolean  @default(true)
   doitChangerMotDePasse Boolean @default(true)
+  motDePasseChangeLe  DateTime @default(now()) // les sessions ouvertes avant cette date sont refusées
   creeLe              DateTime @default(now())
 
   demandesCommercial FinDemande[]    @relation("DemandeCommercial")
