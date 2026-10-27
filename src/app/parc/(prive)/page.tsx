@@ -8,7 +8,7 @@ import { avecEncres } from '@/lib/connect/releves'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { VERT, Badge, Encres, depuis, jour, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
 import { statutConnexion } from '@/lib/connect/agent'
-import { creerClient, marquerMachinesVues, preparerLien } from './actions'
+import { creerClient, marquerMachinesVues } from './actions'
 import { clientsEnAlerte, etatsParMachine, NOM_COULEUR, stocksParGroupe, stockDuGroupe, seuilDe, COULEURS } from '@/lib/connect/alertes'
 import { cleGroupe, gammeADefinir, grouper } from '@/lib/connect/gammes'
 
@@ -123,30 +123,16 @@ export default async function ParcPage() {
           <section key={c.id} data-client data-nom={c.nom}>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg font-bold">{c.nom}</h2>
-                <Link href={`/parc/client/${c.id}`} title="Modifier le nom" aria-label={`Modifier le nom de ${c.nom}`} className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-900">
-                  <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-                    <path d="M13.6 2.6a2 2 0 0 1 2.8 2.8l-9.2 9.2-3.7.9.9-3.7 9.2-9.2zM12.5 5.4l2.1 2.1" />
-                  </svg>
-                </Link>
+                <h2 className="text-lg font-bold"><Link href={`/parc/client/${c.id}`} className="hover:underline" title="Ouvrir la fiche complète du client">{c.nom}</Link></h2>
                 {sitesDeconnectes(c).length > 0 && (
                   <Link href="/parc/deconnexions"><Badge ton="rouge">Connexion perdue · {sitesDeconnectes(c).join(', ')}</Badge></Link>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <Link href={`/parc/stocks/${c.id}`} className="text-gray-600 hover:text-gray-900" title="Voir et modifier le stock de ce client">
-                  <span className="underline">Stock</span>
-                </Link>
                 <span className="text-xs text-gray-500">
                   {c.lienEnvoyeLe ? `Lien envoyé le ${jour(c.lienEnvoyeLe)}` : 'Lien non envoyé'}
                   {c.postes.length > 0 && ` · installé le ${jour(c.postes.reduce((a, p) => (p.premiereConnexion < a ? p.premiereConnexion : a), c.postes[0].premiereConnexion))}`}
                 </span>
-                <form action={preparerLien}>
-                  <input type="hidden" name="id" value={c.id} />
-                  <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-semibold hover:bg-gray-50">
-                    {c.codeLien ? 'Lien à envoyer' : 'Générer le lien'}
-                  </Bouton>
-                </form>
               </div>
             </div>
             {c.machines.length === 0 && (

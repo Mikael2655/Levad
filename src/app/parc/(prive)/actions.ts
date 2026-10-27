@@ -99,6 +99,13 @@ export async function definirHorsContratClient(formData: FormData) {
   revalidatePath('/parc', 'layout')
 }
 
+export async function definirHorsContratMachine(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await prisma.connectMachine.update({ where: { id }, data: { horsContrat: String(formData.get('valeur')) === 'oui' } })
+  revalidatePath('/parc', 'layout')
+}
+
 // Cherche la référence (modèle) d'une machine d'après sa marque et son numéro de série, avec l'IA et une recherche web.
 export async function chercherReference(formData: FormData): Promise<string> {
   if (!connecte()) throw new Error('Non connecté')

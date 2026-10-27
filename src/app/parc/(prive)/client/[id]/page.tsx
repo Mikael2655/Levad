@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, demanderLectureClient, enregistrerIps, genererEspace, regenererEspace, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient } from '../../actions'
+import { appliquerSeuilsClient, definirSitePoste, envoyerLien, marquerLienEnvoye, demanderLectureClient, enregistrerIps, genererEspace, regenererEspace, genererLien, majClient, regenererLien, renommerClient, retirerPoste, supprimerClient, definirHorsContratClient, definirHorsContratMachine } from '../../actions'
+import { StockClient } from './StockClient'
 import { erreurEnCours, statutConnexion, urlEspace, urlLien, urlsTelechargement } from '@/lib/connect/agent'
 import { Badge, formaterDate, depuis, jour } from '@/components/connect/affichage'
 import { COULEURS, NOM_COULEUR } from '@/lib/connect/alertes'
@@ -31,7 +32,9 @@ export default async function ClientPage({ params }: { params: { id: string } })
     <>
       <Link href="/parc" className="text-sm text-gray-500 hover:text-gray-900">← Retour à la synthèse</Link>
       <h1 className="mt-3 text-2xl font-bold">{client.nom}</h1>
-      <Formulaire action={renommerClient} message="Nom enregistré" className="mt-6 max-w-md space-y-3 rounded-xl border bg-white p-6">
+      <details className="mt-2 text-sm">
+        <summary className="cursor-pointer text-gray-500 hover:text-gray-900">Renommer ce client</summary>
+      <Formulaire action={renommerClient} message="Nom enregistré" className="mt-3 max-w-md space-y-3 rounded-xl border bg-white p-4">
         <input type="hidden" name="id" value={client.id} />
         <label className="block text-sm font-medium text-gray-700">
           Nom affiché (raison sociale, nom commercial…)
@@ -41,6 +44,50 @@ export default async function ClientPage({ params }: { params: { id: string } })
           Enregistrer
         </Bouton>
       </Formulaire>
+      </details>
+      <nav className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+        <a href="#stock" className="underline">Parc et stock</a>
+        <a href="#machines" className="underline">Hors contrat</a>
+        <a href="#lien" className="underline">Lien et historique</a>
+        <a href="#espace" className="underline">Espace client</a>
+        <a href="#ips" className="underline">Adresses IP</a>
+        <a href="#seuils" className="underline">Seuils</a>
+      </nav>
+      <div id="stock" className="scroll-mt-4">
+        <StockClient clientId={client.id} />
+      </div>
+      <section id="machines" className="mt-8 scroll-mt-4 rounded-xl border bg-white p-6">
+        <h2 className="text-lg font-bold">Toutes les machines ({client.machines.length})</h2>
+        <p className="mt-1 text-sm text-gray-600">Une machine hors contrat n&apos;a plus d&apos;alerte d&apos;encre ni de stock.</p>
+        <div className="mt-2 flex flex-wrap gap-3">
+          <Formulaire action={definirHorsContratClient} message="Machines mises hors contrat" confirmation={`Mettre toutes les machines de ${client.nom} hors contrat (plus aucune alerte d'encre) ?`}>
+            <input type="hidden" name="id" value={client.id} />
+            <input type="hidden" name="valeur" value="oui" />
+            <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold">Tout mettre hors contrat</Bouton>
+          </Formulaire>
+          <Formulaire action={definirHorsContratClient} message="Machines remises sous contrat">
+            <input type="hidden" name="id" value={client.id} />
+            <input type="hidden" name="valeur" value="non" />
+            <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold">Tout remettre sous contrat</Bouton>
+          </Formulaire>
+        </div>
+        <ul className="mt-3 divide-y">
+          {client.machines.map((m) => (
+            <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+              <span>
+                <Link href={`/parc/machine/${m.id}`} className="font-semibold hover:underline">{libelleMachine(m, 'Machine inconnue')}</Link>
+                <span className="text-gray-500"> — {m.site} — n° {m.numeroSerie ?? '—'}</span>
+                {m.horsContrat && <span className="ml-2"><Badge ton="gris">hors contrat</Badge></span>}
+              </span>
+              <Formulaire action={definirHorsContratMachine} message={m.horsContrat ? 'Remise sous contrat' : 'Mise hors contrat'}>
+                <input type="hidden" name="id" value={m.id} />
+                <input type="hidden" name="valeur" value={m.horsContrat ? 'non' : 'oui'} />
+                <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs font-semibold">{m.horsContrat ? 'Remettre sous contrat' : 'Mettre hors contrat'}</Bouton>
+              </Formulaire>
+            </li>
+          ))}
+        </ul>
+      </section>
       <section id="ips" className="mt-6 max-w-3xl rounded-xl border bg-white p-6">
         <h2 className="text-lg font-bold">Machines non trouvées par la recherche automatique</h2>
         <p className="mt-1 text-sm text-gray-600">
@@ -219,6 +266,7 @@ chmod +x Levad-Connect-${client.codeLien}
         )}
       </section>
 
+      <div id="seuils" className="scroll-mt-4" />
       <Formulaire action={appliquerSeuilsClient} message="Seuils appliqués à toutes les machines" className="mt-6 max-w-2xl space-y-3 rounded-xl border bg-white p-6">
         <input type="hidden" name="id" value={client.id} />
         <h2 className="font-bold">Seuils d&apos;alerte de toutes les machines de ce client (%)</h2>
@@ -239,29 +287,6 @@ chmod +x Levad-Connect-${client.codeLien}
         Les relevés futurs de ce client continueront d&apos;être reconnus même si vous changez le nom affiché. Pour
         regrouper deux noms qui désignent la même société, ouvrez une machine et changez son « Client ».
       </p>
-      <h2 className="mt-8 text-lg font-bold">Machines</h2>
-      <div className="mt-2 flex flex-wrap gap-3">
-        <Formulaire action={definirHorsContratClient} message="Machines mises hors contrat" confirmation={`Mettre toutes les machines de ${client.nom} hors contrat (plus aucune alerte d'encre) ?`}>
-          <input type="hidden" name="id" value={client.id} />
-          <input type="hidden" name="valeur" value="oui" />
-          <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold">Tout mettre hors contrat</Bouton>
-        </Formulaire>
-        <Formulaire action={definirHorsContratClient} message="Machines remises sous contrat">
-          <input type="hidden" name="id" value={client.id} />
-          <input type="hidden" name="valeur" value="non" />
-          <Bouton className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold">Tout remettre sous contrat</Bouton>
-        </Formulaire>
-      </div>
-      <ul className="mt-2 list-disc pl-6 text-gray-700">
-        {client.machines.map((m) => (
-          <li key={m.id}>
-            <Link href={`/parc/machine/${m.id}`} className="underline">
-              {libelleMachine(m, 'Machine inconnue')}
-            </Link>{' '}
-            — n° {m.numeroSerie ?? '—'}
-          </li>
-        ))}
-      </ul>
       <section className="mt-10 rounded-xl border border-red-200 bg-white p-6">
         <h2 className="text-lg font-bold text-red-700">Supprimer ce client</h2>
         <p className="mt-1 text-sm text-gray-600">

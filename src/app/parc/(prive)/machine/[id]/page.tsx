@@ -136,7 +136,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
                   <>
                     Stock de cartouches chez ce client :{' '}
                     {COULEURS.map((c) => `${NOM_COULEUR[c]} ${stock[c]}`).join(' · ')}.{' '}
-                    <Link href={`/parc/stocks/${machine.clientId}`} className="underline">Gérer le stock</Link>
+                    <Link href={`/parc/client/${machine.clientId}#stock`} className="underline">Gérer le stock</Link>
                   </>
                 ) : machine.horsContrat ? (
                   'Hors contrat : niveaux affichés à titre indicatif, aucune alerte.'
