@@ -9,7 +9,7 @@ import { grouper } from '@/lib/connect/gammes'
 export const dynamic = 'force-dynamic'
 
 export default async function StocksPage({ searchParams }: { searchParams: { client?: string } }) {
-  if (Number(searchParams.client)) redirect(`/parc/stocks/${Number(searchParams.client)}`)
+  if (Number(searchParams.client)) redirect(`/parc/client/${Number(searchParams.client)}#stock`)
   let clients, stocks
   try {
     clients = trierParNom(await prisma.connectClient.findMany({
@@ -51,7 +51,7 @@ export default async function StocksPage({ searchParams }: { searchParams: { cli
                 return (
                   <tr key={`${c.id}-${g.cle}`} className="border-b last:border-0">
                     <td className="py-2 pr-4 font-medium">
-                      {i === 0 && <Link href={`/parc/stocks/${c.id}`} className="underline">{c.nom}</Link>}
+                      {i === 0 && <Link href={`/parc/client/${c.id}#stock`} className="underline">{c.nom}</Link>}
                     </td>
                     <td className="py-2 pr-4 text-gray-600">
                       {g.site} · {g.gamme ? g.gamme.code : g.machines.map((m) => libelleMachine(m, 'machine')).join(', ')}
