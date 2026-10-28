@@ -10,6 +10,9 @@ function secret(): string {
   return process.env.AUTH_SECRET || process.env.APP_PASSWORD || ''
 }
 
+// Faux si ni AUTH_SECRET ni APP_PASSWORD n'est défini pour cet environnement : aucune session ne peut alors être signée.
+export const secretConfigure = () => secret().length > 0
+
 async function hmac(message: string): Promise<string> {
   const key = await crypto.subtle.importKey('raw', encoder.encode(secret()), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
   const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(message))

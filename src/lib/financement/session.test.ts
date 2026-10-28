@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { creerJeton, verifierJeton } from './session'
+import { creerJeton, secretConfigure, verifierJeton } from './session'
 import { hasher, verifier } from './motdepasse'
 
 beforeAll(() => { process.env.AUTH_SECRET = 'secret-de-test' })
@@ -21,6 +21,26 @@ describe('jeton de session', () => {
     delete process.env.APP_PASSWORD
     expect(await verifierJeton(j)).toBeNull()
     process.env.AUTH_SECRET = 'secret-de-test'
+  })
+})
+
+describe('secret de signature', () => {
+  it('détecte l’absence de secret ; la route de connexion répond alors clairement au lieu de planter', async () => {
+    const [auth, app] = [process.env.AUTH_SECRET, process.env.APP_PASSWORD]
+    delete process.env.AUTH_SECRET
+    delete process.env.APP_PASSWORD
+    try {
+      expect(secretConfigure()).toBe(false)
+      process.env.DATABASE_URL ||= 'postgresql://x:x@localhost/x' // jamais interrogée : le secret est contrôlé avant
+      const { POST } = await import('@/app/api/financement/connexion/route')
+      const res = await POST(new Request('http://x/api/financement/connexion', { method: 'POST', body: JSON.stringify({ email: 'a@b.fr', motDePasse: 'x' }) }))
+      expect(res.status).toBe(503)
+      expect((await res.json()).error).toContain('AUTH_SECRET')
+    } finally {
+      process.env.AUTH_SECRET = auth
+      if (app !== undefined) process.env.APP_PASSWORD = app
+    }
+    expect(secretConfigure()).toBe(true)
   })
 })
 

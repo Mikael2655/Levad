@@ -1,9 +1,21 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { HASH_FACTICE, verifier } from '@/lib/financement/motdepasse'
-import { SESSION_FIN_COOKIE, creerJeton, optionsCookieFin } from '@/lib/financement/session'
+import { SESSION_FIN_COOKIE, creerJeton, optionsCookieFin, secretConfigure } from '@/lib/financement/session'
 
 export async function POST(req: Request) {
+  if (!secretConfigure()) {
+    return NextResponse.json({ error: 'Configuration incomplète : la variable AUTH_SECRET est absente de cet environnement Vercel (ajoutez-la puis relancez le déploiement).' }, { status: 503 })
+  }
+  try {
+    return await connecter(req)
+  } catch (e) {
+    console.error('Connexion : erreur serveur', e)
+    return NextResponse.json({ error: 'Erreur du serveur pendant la connexion (voir les journaux Vercel).' }, { status: 500 })
+  }
+}
+
+async function connecter(req: Request) {
   const corps = await req.json().catch(() => ({}))
   const email = String(corps.email ?? '').trim().toLowerCase()
   const motDePasse = String(corps.motDePasse ?? '')
