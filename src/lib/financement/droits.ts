@@ -73,6 +73,7 @@ export interface DemandeBase {
   statut: string
   archivee: boolean
   infosManquantes: string | null
+  etapeSignature: string | null
   refFinanceur: string | null
   financeurId: number
   commercialId: number
@@ -109,6 +110,7 @@ export function vueCommerciale(d: DemandeBase) {
     statut: d.statut,
     archivee: d.archivee,
     infosManquantes: d.infosManquantes,
+    etapeSignature: d.etapeSignature,
     financeurId: d.financeurId,
     commercialId: d.commercialId,
     saisiParId: d.saisiParId,

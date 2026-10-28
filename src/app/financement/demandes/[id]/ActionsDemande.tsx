@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { ETAPES_SIGNATURE, LIBELLES_ETAPE } from '@/lib/financement/etapes'
 import { appel } from '../../appel'
 
 interface Sig { prenom: string; nom: string; email: string }
@@ -18,6 +19,7 @@ export default function ActionsDemande(p: {
   peutSupprimer: boolean
   peutAnnuler: boolean
   peutSignature: boolean
+  etapeSignature: string | null // non nul seulement quand la demande est « En signature »
   signataires: { client: Sig; fournisseur: Sig }
 }) {
   const router = useRouter()
@@ -28,6 +30,7 @@ export default function ActionsDemande(p: {
   const [client, setClient] = useState(p.signataires.client)
   const [fournisseur, setFournisseur] = useState(p.signataires.fournisseur)
   const [ouvertSignature, setOuvertSignature] = useState(false)
+  const [etape, setEtape] = useState(p.etapeSignature ?? 'DEMARRAGE')
 
   async function agir(fn: () => Promise<unknown>) {
     setErreur(null)
@@ -62,6 +65,18 @@ export default function ActionsDemande(p: {
                 setCommentaire(''); setInfos('')
               })}>→ {s.libelle}</button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {p.etapeSignature !== null && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">Où en est la signature ?</p>
+          <div className="flex flex-wrap gap-2 items-center">
+            <select className={champ} value={etape} onChange={e => setEtape(e.target.value)}>
+              {ETAPES_SIGNATURE.map(e => <option key={e} value={e}>{LIBELLES_ETAPE[e]}</option>)}
+            </select>
+            <button className="bg-violet-700 text-white rounded-lg px-3 py-1.5 text-sm" onClick={() => agir(() => appel(`${url}/etape`, 'POST', { etape }))}>Mettre à jour l’étape</button>
           </div>
         </div>
       )}

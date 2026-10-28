@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { lireDemande } from '@/lib/financement/acces'
 import { peutAnnuler, peutArchiver, peutModifier, peutSupprimer, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
+import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT, peutEnvoyerEnSignature, statutsAccessibles } from '@/lib/financement/statuts'
 import BadgeStatut from '../../BadgeStatut'
 import { dateHeureFr, dureeLibelle, euros, libellePeriodicite, pourcentCoef } from '../../format'
@@ -27,6 +28,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         <Link href="/financement" className="text-sm text-gray-500 underline">← Demandes</Link>
         <h1 className="text-xl font-bold text-gray-900">{d.reference} · {d.raisonSociale}</h1>
         <BadgeStatut statut={d.statut} />
+        {d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="text-sm text-violet-800">{libelleEtape(d.etapeSignature)}</span>}
         {d.archivee && <span className="text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5">Archivée</span>}
       </div>
       {d.statut === 'INFOS_MANQUANTES' && d.infosManquantes && (
@@ -43,6 +45,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         peutSupprimer={peutSupprimer(u)}
         peutAnnuler={peutAnnuler(u, d)}
         peutSignature={peutEnvoyerEnSignature(u, d)}
+        etapeSignature={d.statut === 'EN_SIGNATURE' ? d.etapeSignature ?? '' : null}
         signataires={{
           client: { prenom: d.contactPrenom, nom: d.contactNom, email: d.contactEmail },
           fournisseur: { prenom: u.prenom, nom: u.nom, email: u.email },

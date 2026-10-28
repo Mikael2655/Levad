@@ -8,7 +8,7 @@ const comB = { id: 4, role: 'COMMERCIAL' as const }
 
 const demande: DemandeBase = {
   id: 1, reference: 'LEV-2026-0001', creeLe: new Date(), majLe: new Date(), statut: 'BROUILLON', archivee: false,
-  infosManquantes: null, refFinanceur: 'GRK-SECRET', financeurId: 1, commercialId: 3, saisiParId: 3,
+  infosManquantes: null, etapeSignature: null, refFinanceur: 'GRK-SECRET', financeurId: 1, commercialId: 3, saisiParId: 3,
   raisonSociale: 'ACME', siret: '12345678900011', formeJuridique: 'SAS', adresse: '1 rue X', codePostal: null, ville: null, pays: 'France',
   contactPrenom: 'A', contactNom: 'B', contactEmail: 'a@b.fr', contactTel: null,
   dureeMois: 63, periodicite: 'TRIMESTRIELLE', loyerCentimes: 72300,

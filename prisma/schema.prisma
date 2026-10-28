@@ -307,6 +307,7 @@ model FinDemande {
   statut        String   @default("BROUILLON")
   archivee      Boolean  @default(false)
   infosManquantes String? // pièces demandées par le financeur
+  etapeSignature String? // étape précise quand le statut est « En signature » (voir lib/financement/etapes.ts)
   refFinanceur  String? // numéro de dossier chez le financeur
 
   financeurId   Int

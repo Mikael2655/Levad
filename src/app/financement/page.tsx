@@ -4,6 +4,7 @@ import { compterEcheancesProches } from '@/lib/financement/contrats'
 import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import { STATUTS, estInterne, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
+import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT } from '@/lib/financement/statuts'
 import BadgeStatut from './BadgeStatut'
 import { dateFr, dureeLibelle, euros } from './format'
@@ -105,7 +106,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
                 <td className="px-2.5 py-3 text-right whitespace-nowrap">{euros(d.montantCommercialCentimes)}</td>
                 {reel && <td className="px-2.5 py-3 text-right whitespace-nowrap">{'montantReelCentimes' in d ? euros(d.montantReelCentimes) : ''}</td>}
                 {reel && <td className="px-2.5 py-3 text-right whitespace-nowrap text-emerald-700">{'margeCentimes' in d ? euros(d.margeCentimes) : ''}</td>}
-                <td className="px-2.5 py-3"><BadgeStatut statut={d.statut} /></td>
+                <td className="px-2.5 py-3"><BadgeStatut statut={d.statut} />{d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="block text-xs text-violet-800 mt-0.5">{libelleEtape(d.etapeSignature)}</span>}</td>
                 <td className="px-2.5 py-3 whitespace-nowrap text-gray-500">{dateFr(d.creeLe)}</td>
               </tr>
             ))}

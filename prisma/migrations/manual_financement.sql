@@ -1,8 +1,9 @@
 -- Financement : demandes de location financière et contrats (tables « fin_* »).
 -- À coller UNE FOIS dans la console SQL de la base de données (Vercel > Storage > votre base > Open in Neon > SQL Editor).
 -- Ce script ne crée que des tables nouvelles « fin_* » : il ne touche à aucune table existante (publications, parc...)
--- et peut être relancé sans danger. Il est généré à partir de prisma/schema.prisma : en cas d'évolution du schéma,
--- les colonnes ajoutées ensuite sont décrites dans les notes de livraison (ou régénérez ce fichier).
+-- et peut être relancé sans danger. Il est généré à partir de prisma/schema.prisma.
+-- Si vous avez DÉJÀ exécuté une version précédente de ce script, exécutez seulement les fichiers
+-- manual_financement_2.sql (et suivants) : ils ajoutent les colonnes apparues depuis.
 
 CREATE TABLE IF NOT EXISTS "fin_utilisateur" (
     "id" SERIAL NOT NULL,
@@ -68,6 +69,7 @@ CREATE TABLE IF NOT EXISTS "fin_demande" (
     "statut" TEXT NOT NULL DEFAULT 'BROUILLON',
     "archivee" BOOLEAN NOT NULL DEFAULT false,
     "infosManquantes" TEXT,
+    "etapeSignature" TEXT,
     "refFinanceur" TEXT,
     "financeurId" INTEGER NOT NULL,
     "commercialId" INTEGER NOT NULL,

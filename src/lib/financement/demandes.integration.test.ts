@@ -82,6 +82,22 @@ d('demandes (base réelle)', () => {
     await dem.envoyerEnSignature(CA(), id, { prenom: 'Jeanne', nom: 'Martin', email: 'jeanne@acme.fr' }, { prenom: 'Marie', nom: 'D', email: 'm@levad.fr' })
     expect(await prisma.finDemande.findUniqueOrThrow({ where: { id } })).toMatchObject({ statut: 'EN_SIGNATURE', contactPrenom: 'Jeanne', contactNom: 'Martin', contactEmail: 'jeanne@acme.fr' })
   })
+  it('étape de signature : démarre à « Démarrage », se précise à la main, s’efface quand le statut change, visible du commercial', async () => {
+    const { id } = await dem.creerDemande(CA(), entree())
+    await dem.changerStatut(CA(), id, { statut: 'ENVOYEE' })
+    await dem.changerStatut(CA(), id, { statut: 'PRETE_A_SIGNER' })
+    await expect(dem.changerEtapeSignature(CA(), id, 'ATTENTE_CLIENT')).rejects.toThrow('En signature')
+    await dem.envoyerEnSignature(CA(), id, { prenom: 'J', nom: 'D', email: 'j@acme.fr' }, { prenom: 'M', nom: 'D', email: 'm@levad.fr' })
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id } })).etapeSignature).toBe('DEMARRAGE')
+    await expect(dem.changerEtapeSignature(CA(), id, 'n_importe_quoi')).rejects.toThrow('inconnue')
+    await expect(dem.changerEtapeSignature(CB(), id, 'ATTENTE_CLIENT')).rejects.toThrow('introuvable')
+    await dem.changerEtapeSignature(CA(), id, 'ATTENTE_LEVAD')
+    const fiche = await acces.lireDemande(CA(), id)
+    expect(fiche).toMatchObject({ statut: 'EN_SIGNATURE', etapeSignature: 'ATTENTE_LEVAD' })
+    expect(fiche!.historique.at(-1)!.commentaire).toBe('Signature : En attente de la signature de LEVAD')
+    await dem.changerStatut(CA(), id, { statut: 'PRETE_A_SIGNER' }) // signature annulée : retour en arrière
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id } })).etapeSignature).toBeNull()
+  })
   it('un e-mail de contact, s’il est donné, doit rester valide', async () => {
     await expect(dem.creerDemande(CA(), entree({ contactEmail: 'pasunmail' }))).rejects.toThrow('e-mail du contact')
   })

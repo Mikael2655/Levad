@@ -7,6 +7,7 @@ import { grilleCommercialePour, grilleReelle } from './admin'
 import { calculerDemande, dureesDisponibles, loyerDepuisMontant, type Periodicite } from './calcul'
 import { estInterne, peutArchiver, peutChangerStatut, peutModifier, peutSupprimer, type Acteur, type ResultatCalcul } from './droits'
 import { ErreurMetier } from './erreurs'
+import { ETAPES_SIGNATURE, libelleEtape } from './etapes'
 import { numeroEntrepriseValide, chiffres } from './siren'
 import { peutEnvoyerEnSignature, statutsAccessibles } from './statuts'
 
@@ -236,7 +237,7 @@ export async function changerStatut(a: Acteur, id: number, p: { statut: string; 
   const commentaire = [p.commentaire?.trim(), p.statut === 'INFOS_MANQUANTES' ? `Demandé : ${infos}` : ''].filter(Boolean).join(' — ') || null
   const ref = peutChangerStatut(a) ? p.refFinanceur?.trim() : undefined
   const operations: Prisma.PrismaPromise<unknown>[] = [
-    prisma.finDemande.update({ where: { id }, data: { statut: p.statut, infosManquantes: p.statut === 'INFOS_MANQUANTES' ? infos : null, ...(ref ? { refFinanceur: ref } : {}) } }),
+    prisma.finDemande.update({ where: { id }, data: { statut: p.statut, infosManquantes: p.statut === 'INFOS_MANQUANTES' ? infos : null, etapeSignature: null, ...(ref ? { refFinanceur: ref } : {}) } }),
     prisma.finHistorique.create({ data: { demandeId: id, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: p.statut, commentaire } }),
   ]
   // Une demande signée devient un contrat en cours (la date du 1er loyer sera renseignée ensuite).
@@ -274,8 +275,20 @@ export async function envoyerEnSignature(a: Acteur, id: number, client: Signatai
   }
   await prisma.$transaction([
     prisma.finSignature.upsert({ where: { demandeId: id }, create: { demandeId: id, ...sig }, update: { ...sig, demandeeLe: new Date(), signeeLe: null } }),
-    prisma.finDemande.update({ where: { id }, data: { statut: 'EN_SIGNATURE', infosManquantes: null, contactPrenom: sig.clientPrenom, contactNom: sig.clientNom, contactEmail: sig.clientEmail } }),
+    prisma.finDemande.update({ where: { id }, data: { statut: 'EN_SIGNATURE', infosManquantes: null, etapeSignature: 'DEMARRAGE', contactPrenom: sig.clientPrenom, contactNom: sig.clientNom, contactEmail: sig.clientEmail } }),
     prisma.finHistorique.create({ data: { demandeId: id, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: 'EN_SIGNATURE', commentaire: `Signataires : ${sig.clientPrenom} ${sig.clientNom} (client), ${sig.fournisseurPrenom} ${sig.fournisseurNom} (LEVAD)` } }),
+  ])
+  return { ok: true }
+}
+
+// Précise où en est la signature (statut « En signature » uniquement).
+export async function changerEtapeSignature(a: Acteur, id: number, etape: string) {
+  const d = await trouverAccessible(a, id)
+  if (d.statut !== 'EN_SIGNATURE') throw new ErreurMetier('L’étape de signature ne se renseigne que pour une demande « En signature ».', 403)
+  if (!(ETAPES_SIGNATURE as readonly string[]).includes(etape)) throw new ErreurMetier('Étape inconnue.')
+  await prisma.$transaction([
+    prisma.finDemande.update({ where: { id }, data: { etapeSignature: etape } }),
+    prisma.finHistorique.create({ data: { demandeId: id, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: d.statut, commentaire: `Signature : ${libelleEtape(etape)}` } }),
   ])
   return { ok: true }
 }
