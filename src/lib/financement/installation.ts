@@ -8,12 +8,18 @@ import { COMMERCIAL_LIGNES, GRENKE_REEL_LIGNES } from './baremes'
 import { ErreurMetier } from './erreurs'
 import { lignesVersMatrice } from './grilles'
 
-export type EtatInstallation = 'DESACTIVEE' | 'DEJA_INSTALLEE' | 'POSSIBLE'
+export type EtatInstallation = 'DESACTIVEE' | 'DEJA_INSTALLEE' | 'POSSIBLE' | 'BASE_NON_PRETE'
 
 export async function etatInstallation(): Promise<EtatInstallation> {
   const code = process.env.FIN_INSTALL_CODE
   if (!code || code.length < 20) return 'DESACTIVEE'
-  return (await prisma.finUtilisateur.count({ where: { role: 'ADMIN' } })) > 0 ? 'DEJA_INSTALLEE' : 'POSSIBLE'
+  try {
+    return (await prisma.finUtilisateur.count({ where: { role: 'ADMIN' } })) > 0 ? 'DEJA_INSTALLEE' : 'POSSIBLE'
+  } catch (e) {
+    // le plus fréquent : le script SQL des tables « fin_* » n'a pas encore été exécuté (code Prisma P2021)
+    console.error('Installation : base de données inutilisable', e)
+    return 'BASE_NON_PRETE'
+  }
 }
 
 // Aide au dépannage affichée sur la page d'installation quand elle est désactivée : jamais la valeur du code.
@@ -34,6 +40,7 @@ const empreinte = (s: string) => createHash('sha256').update(s).digest()
 export async function installer(d: { code: string; email: string; prenom: string; nom: string }) {
   const etat = await etatInstallation()
   if (etat === 'DESACTIVEE') throw new ErreurMetier('Installation indisponible.', 404)
+  if (etat === 'BASE_NON_PRETE') throw new ErreurMetier('La base de données n’est pas prête : exécutez d’abord le script SQL des tables.', 503)
   if (etat === 'DEJA_INSTALLEE') throw new ErreurMetier('L’outil est déjà installé.', 410)
   if (!timingSafeEqual(empreinte(d.code), empreinte(process.env.FIN_INSTALL_CODE!))) throw new ErreurMetier('Code d’installation incorrect.', 403)
 

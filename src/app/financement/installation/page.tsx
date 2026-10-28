@@ -14,6 +14,12 @@ export default async function PageInstallation() {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 text-sm text-gray-600 space-y-2">
           {etat === 'DEJA_INSTALLEE' ? (
             <p>L’outil est déjà installé. Connectez-vous avec votre compte administrateur.</p>
+          ) : etat === 'BASE_NON_PRETE' ? (
+            <>
+              <p className="font-semibold text-gray-900">La base de données n’est pas prête.</p>
+              <p>Le code d’installation est bien reçu, mais les tables du financement n’existent pas encore (ou la base est inaccessible).</p>
+              <p>Exécutez une fois le script <b>prisma/migrations/manual_financement.sql</b> dans la console SQL de Neon (Vercel → Storage → votre base → Open in Neon → SQL Editor), puis rechargez cette page.</p>
+            </>
           ) : (
             <>
               <p>L’installation n’est pas activée.</p>

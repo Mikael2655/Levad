@@ -44,6 +44,15 @@ d('installation (base réelle)', () => {
     expect(await prisma.finFinanceur.count({ where: { nom: 'Grenke' } })).toBe(1)
     expect(await prisma.finGrille.count()).toBe(2)
   })
+  it('tables absentes : état « base non prête » au lieu d’une erreur, et installation refusée', async () => {
+    await prisma.$executeRawUnsafe('ALTER TABLE "fin_utilisateur" RENAME TO "fin_utilisateur_masquee"')
+    try {
+      expect(await inst.etatInstallation()).toBe('BASE_NON_PRETE')
+      await expect(inst.installer({ code: CODE, ...infos })).rejects.toThrow('pas prête')
+    } finally {
+      await prisma.$executeRawUnsafe('ALTER TABLE "fin_utilisateur_masquee" RENAME TO "fin_utilisateur"')
+    }
+  })
   it('se verrouille ensuite, même avec le bon code', async () => {
     expect(await inst.etatInstallation()).toBe('DEJA_INSTALLEE')
     await expect(inst.installer({ code: CODE, ...infos, email: 'autre@levad.fr' })).rejects.toThrow('déjà installé')
