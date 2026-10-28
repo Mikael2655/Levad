@@ -6,11 +6,8 @@ import type { Role } from './droits'
 import { lignesVersMatrice, matriceVersLignes, validerMatrice, type Matrice } from './grilles'
 import { genererMotDePasseProvisoire, hasher, motDePasseValide, verifier } from './motdepasse'
 
-export class ErreurMetier extends Error {
-  constructor(message: string, public status = 400) {
-    super(message)
-  }
-}
+import { ErreurMetier } from './erreurs'
+export { ErreurMetier }
 
 const ROLES: Role[] = ['ADMIN', 'ASSISTANTE', 'COMMERCIAL']
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

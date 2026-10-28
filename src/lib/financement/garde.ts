@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server'
 import { notFound, redirect } from 'next/navigation'
 import { utilisateurCourant, type Utilisateur } from './auth'
-import { ErreurMetier } from './admin'
+import { ErreurMetier } from './erreurs'
 import type { Role } from './droits'
 
 interface Options {

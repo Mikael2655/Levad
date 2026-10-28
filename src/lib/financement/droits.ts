@@ -75,9 +75,11 @@ export interface DemandeBase {
   saisiParId: number
   raisonSociale: string
   siret: string
+  formeJuridique: string | null
   adresse: string
   codePostal: string | null
   ville: string | null
+  pays: string
   contactPrenom: string
   contactNom: string
   contactEmail: string
@@ -108,9 +110,11 @@ export function vueCommerciale(d: DemandeBase) {
     saisiParId: d.saisiParId,
     raisonSociale: d.raisonSociale,
     siret: d.siret,
+    formeJuridique: d.formeJuridique,
     adresse: d.adresse,
     codePostal: d.codePostal,
     ville: d.ville,
+    pays: d.pays,
     contactPrenom: d.contactPrenom,
     contactNom: d.contactNom,
     contactEmail: d.contactEmail,
@@ -169,5 +173,29 @@ export function vueContrat(a: Acteur, c: ContratBase) {
     dateDebut: c.dateDebut,
     dateFin: c.dateFin,
     montantCommercialCentimes: c.montantCommercialCentimes,
+  }
+}
+
+// --- Vue d'un calcul (aperçu du loyer dans le formulaire) ---------------------------------------------------------------
+
+export interface ResultatCalcul {
+  dureesDisponibles: number[]
+  resultat: {
+    loyerCentimes: number
+    commercial: { montantCentimes: number; coefficientPpm: number; horsTranche: boolean }
+    reel: { montantCentimes: number; coefficientPpm: number; horsTranche: boolean }
+    margeCentimes: number
+  } | null
+}
+
+// Le commercial ne reçoit que son calcul ; l'interne reçoit les deux et la marge.
+export function vueCalcul(a: Acteur, c: ResultatCalcul) {
+  if (peutVoirBaremeReel(a)) return c
+  return {
+    dureesDisponibles: c.dureesDisponibles,
+    resultat: c.resultat && {
+      loyerCentimes: c.resultat.loyerCentimes,
+      commercial: { montantCentimes: c.resultat.commercial.montantCentimes, coefficientPpm: c.resultat.commercial.coefficientPpm },
+    },
   }
 }

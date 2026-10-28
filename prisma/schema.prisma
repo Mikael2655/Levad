@@ -318,10 +318,12 @@ model FinDemande {
 
   // client
   raisonSociale String
-  siret         String
+  siret         String   @default("") // vide tant qu'il n'est pas connu (obligatoire pour passer en « envoyée »)
+  formeJuridique String? // SAS, SARL... (libellé libre, repris de la recherche d'entreprise)
   adresse       String
   codePostal    String?
   ville         String?
+  pays          String   @default("France")
   contactPrenom String
   contactNom    String
   contactEmail  String
@@ -357,6 +359,8 @@ model FinDemandeLigne {
   designation   String
   quantite      Int        @default(1)
   montantHtCentimes Int? // optionnel : le montant à financer est déduit du loyer
+  typeBien      String? // exigé par certains financeurs (ex. matériel informatique)
+  constructeur  String?
 
   @@map("fin_demande_ligne")
 }

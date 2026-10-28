@@ -1,5 +1,6 @@
 // Couche d'accès aux demandes : les pages et routes passent TOUJOURS par ici, jamais par prisma directement.
 // Le filtre « un commercial ne voit que ses demandes » est dans la requête SQL, et la réponse passe par vueDemande.
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { estInterne, vueDemande, type Acteur } from './droits'
 
@@ -12,27 +13,57 @@ export interface FiltresDemandes {
   archivees?: boolean
 }
 
+function conditions(acteur: Acteur, f: FiltresDemandes): Prisma.FinDemandeWhereInput {
+  return {
+    ...(estInterne(acteur) ? (f.commercialId ? { commercialId: f.commercialId } : {}) : { commercialId: acteur.id }),
+    archivee: f.archivees ?? false,
+    ...(f.statut ? { statut: f.statut } : {}),
+    ...(f.financeurId ? { financeurId: f.financeurId } : {}),
+    ...(f.du || f.au ? { creeLe: { ...(f.du ? { gte: f.du } : {}), ...(f.au ? { lte: f.au } : {}) } } : {}),
+  }
+}
+
+const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: { select: { nom: true } } } as const
+
 export async function listerDemandes(acteur: Acteur, f: FiltresDemandes = {}) {
-  const lignes = await prisma.finDemande.findMany({
-    where: {
-      ...(estInterne(acteur) ? (f.commercialId ? { commercialId: f.commercialId } : {}) : { commercialId: acteur.id }),
-      archivee: f.archivees ?? false,
-      ...(f.statut ? { statut: f.statut } : {}),
-      ...(f.financeurId ? { financeurId: f.financeurId } : {}),
-      ...(f.du || f.au ? { creeLe: { ...(f.du ? { gte: f.du } : {}), ...(f.au ? { lte: f.au } : {}) } } : {}),
-    },
-    orderBy: { creeLe: 'desc' },
-  })
-  return lignes.map(d => vueDemande(acteur, d))
+  const lignes = await prisma.finDemande.findMany({ where: conditions(acteur, f), orderBy: { creeLe: 'desc' }, include: NOMS })
+  return lignes.map(({ commercial, financeur, ...d }) => ({
+    ...vueDemande(acteur, d),
+    commercialNom: `${commercial.prenom} ${commercial.nom}`,
+    financeurNom: financeur.nom,
+  }))
+}
+
+// Compteurs du tableau de bord : mêmes filtres que la liste, sauf le statut.
+export async function compterParStatut(acteur: Acteur, f: FiltresDemandes = {}): Promise<Record<string, number>> {
+  const groupes = await prisma.finDemande.groupBy({ by: ['statut'], where: conditions(acteur, { ...f, statut: undefined }), _count: { _all: true } })
+  return Object.fromEntries(groupes.map(g => [g.statut, g._count._all]))
 }
 
 // null si la demande n'existe pas OU si l'acteur n'a pas le droit de la voir (même réponse : on ne révèle rien).
 export async function lireDemande(acteur: Acteur, id: number) {
   const d = await prisma.finDemande.findFirst({
     where: { id, ...(estInterne(acteur) ? {} : { commercialId: acteur.id }) },
-    include: { lignes: true, pieces: true, historique: { orderBy: { date: 'asc' } }, signature: true },
+    include: {
+      ...NOMS,
+      saisiPar: { select: { prenom: true, nom: true } },
+      lignes: { orderBy: { id: 'asc' } },
+      pieces: { orderBy: { id: 'asc' } },
+      historique: { orderBy: { date: 'asc' }, include: { auteur: { select: { prenom: true, nom: true } } } },
+      signature: true,
+    },
   })
   if (!d) return null
-  const { lignes, pieces, historique, signature, ...base } = d
-  return { ...vueDemande(acteur, base), lignes, pieces, historique, signature }
+  const { commercial, financeur, saisiPar, lignes, pieces, historique, signature, ...base } = d
+  return {
+    ...vueDemande(acteur, base),
+    commercialNom: `${commercial.prenom} ${commercial.nom}`,
+    financeurNom: financeur.nom,
+    saisiParNom: `${saisiPar.prenom} ${saisiPar.nom}`,
+    lignes: lignes.map(l => ({ id: l.id, designation: l.designation, quantite: l.quantite, montantHtCentimes: l.montantHtCentimes, typeBien: l.typeBien, constructeur: l.constructeur })),
+    pieces: pieces.map(p => ({ id: p.id, type: p.type, nomFichier: p.nomFichier, taille: p.taille, ajouteLe: p.ajouteLe })),
+    // historique : on n'expose que le nom de l'auteur (jamais son adresse e-mail)
+    historique: historique.map(h => ({ id: h.id, date: h.date, ancienStatut: h.ancienStatut, nouveauStatut: h.nouveauStatut, commentaire: h.commentaire, auteurNom: `${h.auteur.prenom} ${h.auteur.nom}` })),
+    signature,
+  }
 }
