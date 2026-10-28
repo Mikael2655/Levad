@@ -87,6 +87,11 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
     for (const [n, c] of Object.entries<Json>(m.compteurs_canon ?? {})) {
       if (c && typeof c.valeur === 'number') compteurs[n] = { v: c.valeur, nom: texte(c.nom, 120) ?? undefined }
     }
+    // autres marques : compteurs de pages du moteur d'impression (noir et blanc / couleur / total), enregistrés sous « std:… »
+    for (const e of Array.isArray(m.compteurs_standard) ? m.compteurs_standard : []) {
+      if (e && typeof e.valeur === 'number' && ['nb', 'couleur', 'total'].includes(e.type))
+        compteurs[`std:${e.type}:${texte(e.index, 20) ?? ''}`] = { v: e.valeur, nom: e.type === 'nb' ? 'N&B' : e.type === 'couleur' ? 'Couleur' : 'Total' }
+    }
     const simplifier = (liste: Json) =>
       (Array.isArray(liste) ? liste : []).map((e: Json) => ({
         couleur: e.couleur ?? null,
