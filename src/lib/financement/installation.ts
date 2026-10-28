@@ -16,6 +16,16 @@ export async function etatInstallation(): Promise<EtatInstallation> {
   return (await prisma.finUtilisateur.count({ where: { role: 'ADMIN' } })) > 0 ? 'DEJA_INSTALLEE' : 'POSSIBLE'
 }
 
+// Aide au dépannage affichée sur la page d'installation quand elle est désactivée : jamais la valeur du code.
+export function diagnosticInstallation() {
+  const code = process.env.FIN_INSTALL_CODE
+  return {
+    environnement: process.env.VERCEL_ENV ?? 'inconnu', // production | preview | development
+    branche: process.env.VERCEL_GIT_COMMIT_REF ?? 'inconnue',
+    variable: !code ? ('ABSENTE' as const) : code.length < 20 ? ('TROP_COURTE' as const) : ('OK' as const),
+  }
+}
+
 const empreinte = (s: string) => createHash('sha256').update(s).digest()
 
 export async function installer(d: { code: string; email: string; prenom: string; nom: string }) {
