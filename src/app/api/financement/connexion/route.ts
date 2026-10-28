@@ -6,7 +6,7 @@ import { SESSION_FIN_COOKIE, creerJeton, optionsCookieFin, secretConfigure } fro
 
 export async function POST(req: Request) {
   if (!secretConfigure()) {
-    return NextResponse.json({ error: 'Configuration incomplète : la variable AUTH_SECRET est absente de cet environnement Vercel (ajoutez-la puis relancez le déploiement). Diagnostic — ' + diagnosticEnvironnement(/auth|secret|app_/i) }, { status: 503 })
+    return NextResponse.json({ error: 'Configuration incomplète : la variable AUTH_SECRET est absente de cet environnement Vercel (ajoutez-la puis relancez le déploiement). Diagnostic — ' + diagnosticEnvironnement(/^(auth|app_)/i) }, { status: 503 })
   }
   try {
     return await connecter(req)
