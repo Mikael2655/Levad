@@ -4,12 +4,13 @@
 import { dateFinDepuisDebut } from './echeances'
 import type { Periodicite } from './calcul'
 
-export const CHAMPS = ['ref', 'client', 'siret', 'materiel', 'loyer', 'periodicite', 'duree', 'dateDebut', 'dateFin', 'montantReel', 'commercial'] as const
+export const CHAMPS = ['ref', 'statut', 'client', 'siret', 'materiel', 'loyer', 'periodicite', 'duree', 'dateDebut', 'dateFin', 'montantReel', 'commercial'] as const
 export type Champ = (typeof CHAMPS)[number]
 export type Mapping = Partial<Record<Champ, number>> // numéro de colonne (0 = première)
 
 export const LIBELLES_CHAMPS: Record<Champ, string> = {
   ref: 'N° de contrat',
+  statut: 'Statut chez le financeur',
   client: 'Client (raison sociale)',
   siret: 'SIREN / SIRET',
   materiel: 'Matériel / objet',
@@ -27,14 +28,15 @@ export const normaliser = (s: string) => s.toLowerCase().normalize('NFD').replac
 
 // Ordre = priorité d'attribution des colonnes (les plus précises d'abord).
 const SYNONYMES: [Champ, string[]][] = [
+  ['statut', ['statut', 'status', 'etat', 'state', 'zustand']],
   ['ref', ['numero de contrat', 'n contrat', 'no contrat', 'contrat', 'contract number', 'contract no', 'contract', 'vertragsnummer', 'reference', 'ref']],
   ['siret', ['siret', 'siren']],
   ['dateDebut', ['date 1er loyer', 'date du 1er loyer', 'premier loyer', '1er loyer', 'premiere echeance', '1ere echeance', 'date de debut', 'date debut', 'debut', 'start date', 'start', 'first rent', 'beginn']],
   ['dateFin', ['date de fin', 'date fin', 'fin de contrat', 'echeance finale', 'end date', 'end', 'ende', 'fin']],
   ['periodicite', ['periodicite', 'frequence', 'payment frequency', 'frequency', 'zahlweise']],
-  ['duree', ['duree', 'duree mois', 'duration', 'laufzeit', 'nombre de mois', 'periode', 'period', 'mois']],
+  ['duree', ['duree', 'duree mois', 'duration', 'term of lease', 'term', 'laufzeit', 'nombre de mois', 'periode', 'period', 'mois']],
   ['loyer', ['loyer', 'loyer ht', 'montant du loyer', 'mensualite', 'rent', 'installment', 'instalment', 'rate']],
-  ['montantReel', ['montant finance', 'montant du financement', 'financement', 'financed amount', 'financing amount', 'nav', 'valeur financee', 'montant']],
+  ['montantReel', ['montant finance', 'montant du financement', 'financement', 'financed amount', 'financing amount', 'amount', 'nav', 'valeur financee', 'montant']],
   ['client', ['raison sociale', 'nom du client', 'client', 'locataire', 'preneur', 'lessee', 'customer', 'kunde']],
   ['materiel', ['materiel', 'objet', 'designation', 'bien', 'equipement', 'description', 'object']],
   ['commercial', ['commercial', 'vendeur', 'apporteur', 'sales', 'representant', 'conseiller']],
@@ -135,15 +137,19 @@ export function lireDureeMois(brut: string, unite: 'MOIS' | 'TRIMESTRES'): numbe
 
 // --- Lignes ------------------------------------------------------------------------------------------------------------
 
+export type UniteLoyer = 'PAR_PERIODE' | 'PAR_MOIS'
+
 export interface OptionsLecture {
   mapping: Mapping
   uniteDuree: 'MOIS' | 'TRIMESTRES'
+  uniteLoyer?: UniteLoyer // PAR_MOIS : le fichier donne le loyer d'un mois ; il est converti en loyer de la période (×3 si trimestriel)
   periodiciteDefaut: Periodicite
 }
 
 export interface LigneLue {
   numero: number // numéro de ligne dans le fichier (l'en-tête est la ligne 1)
   ref: string | null
+  statut: string | null
   client: string
   siret: string | null
   materiel: string | null
@@ -184,10 +190,33 @@ export function lireLignes(lignes: string[][], o: OptionsLecture): { lues: Ligne
     if (brutReel && montantReel === null) problemes.push('montant financé illisible')
     if (problemes.length) return erreurs.push({ numero, message: problemes.join(', ') })
     if (!dateFin && dateDebut) dateFin = dateFinDepuisDebut(dateDebut, duree!)
+    const loyerPeriode = o.uniteLoyer === 'PAR_MOIS' && periodicite === 'TRIMESTRIELLE' ? loyer! * 3 : loyer!
     lues.push({
-      numero, ref: valeur(l, 'ref') || null, client, siret: valeur(l, 'siret').replace(/\D/g, '') || null, materiel: valeur(l, 'materiel') || null,
-      loyerCentimes: loyer!, periodicite: periodicite!, dureeMois: duree!, dateDebut, dateFin, montantReelCentimes: montantReel, commercial: valeur(l, 'commercial') || null,
+      numero, ref: valeur(l, 'ref') || null, statut: valeur(l, 'statut') || null, client, siret: valeur(l, 'siret').replace(/\D/g, '') || null, materiel: valeur(l, 'materiel') || null,
+      loyerCentimes: loyerPeriode, periodicite: periodicite!, dureeMois: duree!, dateDebut, dateFin, montantReelCentimes: montantReel, commercial: valeur(l, 'commercial') || null,
     })
   })
   return { lues, erreurs }
+}
+
+// --- Loyer mensuel ou par période ? ------------------------------------------------------------------------------------
+// Compare le loyer au montant financé : (loyer / montant) x durée en mois vaut environ 1,1 à 1,4 pour un loyer MENSUEL
+// (le coefficient d'un financement tourne autour de 1,2 / durée) et environ 3,3 à 4,2 pour un loyer TRIMESTRIEL.
+// Sert à pré-sélectionner l'unité du loyer et à avertir si le choix de l'utilisateur semble faux. Renvoie null si le fichier
+// ne permet pas de conclure (colonnes absentes, ou valeurs mélangées).
+export function detecterUniteLoyer(lignes: string[][], mapping: Mapping, uniteDuree: 'MOIS' | 'TRIMESTRES'): UniteLoyer | null {
+  if (mapping.loyer === undefined || mapping.montantReel === undefined || mapping.duree === undefined) return null
+  const rapports: number[] = []
+  for (const l of lignes) {
+    const loyer = lireMontantCentimes(String(l[mapping.loyer] ?? ''))
+    const montant = lireMontantCentimes(String(l[mapping.montantReel] ?? ''))
+    const duree = lireDureeMois(String(l[mapping.duree] ?? ''), uniteDuree)
+    if (loyer && montant && duree && loyer > 0 && montant > 0) rapports.push((loyer / montant) * duree)
+  }
+  if (rapports.length < 3) return null
+  rapports.sort((a, b) => a - b)
+  const mediane = rapports[Math.floor(rapports.length / 2)]
+  if (mediane < 2) return 'PAR_MOIS'
+  if (mediane > 2.8) return 'PAR_PERIODE'
+  return null
 }

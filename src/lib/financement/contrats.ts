@@ -8,7 +8,7 @@ import { montantDepuisLoyer } from './calcul'
 import { estInterne, peutImporterContrats, peutModifierContrat, vueContrat, type Acteur } from './droits'
 import { ajouterMois, dateFinDepuisDebut, etatEcheance, moisRestants } from './echeances'
 import { ErreurMetier } from './erreurs'
-import { lireLignes, normaliser, OBLIGATOIRES, type Mapping } from './import-contrats'
+import { lireLignes, normaliser, OBLIGATOIRES, type Mapping, type UniteLoyer } from './import-contrats'
 
 export type FiltreEcheance = 'en_cours' | 'proche6' | 'proche12' | 'echus' | 'toutes'
 export interface FiltresContrats {
@@ -69,7 +69,7 @@ export async function lireContrat(a: Acteur, id: number) {
   return c ? enrichir(a, c, new Date()) : null
 }
 
-export async function modifierContrat(a: Acteur, id: number, d: { materiel?: string; refFinanceur?: string | null; dateDebut?: Date | null; dateFin?: Date | null }) {
+export async function modifierContrat(a: Acteur, id: number, d: { materiel?: string; refFinanceur?: string | null; dateDebut?: Date | null; dateFin?: Date | null; commercialId?: number }) {
   if (!peutModifierContrat(a)) throw new ErreurMetier('Action non autorisée.', 403)
   const c = await prisma.finContrat.findUnique({ where: { id } })
   if (!c) throw new ErreurMetier('Contrat introuvable.', 404)
@@ -78,9 +78,20 @@ export async function modifierContrat(a: Acteur, id: number, d: { materiel?: str
   // fin explicite si fournie ; sinon, un nouveau 1er loyer recalcule la fin
   const dateFin = d.dateFin !== undefined ? d.dateFin : d.dateDebut !== undefined && dateDebut ? dateFinDepuisDebut(dateDebut, c.dureeMois) : c.dateFin
   if (dateDebut && dateFin && dateFin <= dateDebut) throw new ErreurMetier('La date de fin doit être postérieure au 1er loyer.')
+  // Changement de commercial : le montant commercial est recalculé avec la grille du nouveau commercial (le loyer ne change pas).
+  let rattachement: { commercialId: number; montantCommercialCentimes: number | null } | null = null
+  if (d.commercialId !== undefined && d.commercialId !== c.commercialId) {
+    const u = await prisma.finUtilisateur.findUnique({ where: { id: d.commercialId } })
+    if (!u || !u.actif || (u.role !== 'COMMERCIAL' && u.role !== 'ADMIN')) throw new ErreurMetier('Commercial invalide.')
+    const financeur = await prisma.finFinanceur.findUniqueOrThrow({ where: { id: c.financeurId } })
+    const grille = await grilleCommercialePour(c.financeurId, u.id)
+    const r = grille ? montantDepuisLoyer(grille, c.dureeMois, c.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE', financeur.majorationMensuelleBp, c.loyerCentimes) : null
+    rattachement = { commercialId: u.id, montantCommercialCentimes: r?.montantCentimes ?? null }
+  }
   await prisma.finContrat.update({
     where: { id },
     data: {
+      ...(rattachement ?? {}),
       ...(d.materiel !== undefined ? { materiel: d.materiel.trim() } : {}),
       ...(d.refFinanceur !== undefined ? { refFinanceur: d.refFinanceur?.trim() || null } : {}),
       dateDebut,
@@ -97,8 +108,10 @@ export interface DemandeImport {
   lignes: string[][]
   mapping: Mapping
   uniteDuree: 'MOIS' | 'TRIMESTRES'
+  uniteLoyer: UniteLoyer
   periodiciteDefaut: 'MENSUELLE' | 'TRIMESTRIELLE'
   commercialDefautId: number | null
+  statutsRetenus: string[] | null // seuls ces statuts du fichier sont importés (null : tous)
   simuler: boolean
 }
 
@@ -106,7 +119,7 @@ export interface ResultatLigneImport {
   numero: number
   client: string
   ref: string | null
-  etat: 'OK' | 'DOUBLON' | 'ERREUR'
+  etat: 'OK' | 'DOUBLON' | 'IGNORE' | 'ERREUR'
   message?: string
   loyerCentimes?: number
   montantReelCentimes?: number
@@ -137,7 +150,7 @@ export async function traiterImport(a: Acteur, p: DemandeImport) {
   const defaut = p.commercialDefautId ? candidats.find(c => c.id === p.commercialDefautId) : undefined
   if (p.commercialDefautId && !defaut) throw new ErreurMetier('Commercial par défaut invalide.')
 
-  const { lues, erreurs } = lireLignes(p.lignes, { mapping: p.mapping, uniteDuree: p.uniteDuree, periodiciteDefaut: p.periodiciteDefaut })
+  const { lues, erreurs } = lireLignes(p.lignes, { mapping: p.mapping, uniteDuree: p.uniteDuree, uniteLoyer: p.uniteLoyer, periodiciteDefaut: p.periodiciteDefaut })
   const resultats: ResultatLigneImport[] = erreurs.map(e => ({ numero: e.numero, client: '', ref: null, etat: 'ERREUR', message: e.message }))
 
   const refs = lues.map(l => l.ref).filter((r): r is string => !!r)
@@ -149,6 +162,7 @@ export async function traiterImport(a: Acteur, p: DemandeImport) {
 
   for (const l of lues) {
     const base = { numero: l.numero, client: l.client, ref: l.ref }
+    if (p.statutsRetenus && !p.statutsRetenus.includes(l.statut ?? '')) { resultats.push({ ...base, etat: 'IGNORE', message: `Statut non retenu : ${l.statut ?? 'vide'}` }); continue }
     if (l.ref && (existantes.has(l.ref) || vues.has(l.ref))) { resultats.push({ ...base, etat: 'DOUBLON', message: 'Contrat déjà présent (même n° de contrat)' }); continue }
     if (l.ref) vues.add(l.ref)
 
@@ -164,7 +178,7 @@ export async function traiterImport(a: Acteur, p: DemandeImport) {
 
     resultats.push({ ...base, etat: 'OK', loyerCentimes: l.loyerCentimes, montantReelCentimes: montantReel, montantCommercialCentimes: recalcule?.montantCentimes ?? null, commercialNom: `${commercial.prenom} ${commercial.nom}` })
     aCreer.push({
-      importe: true, refFinanceur: l.ref, financeurId: financeur.id, commercialId: commercial.id, raisonSociale: l.client, siret: l.siret, materiel: l.materiel ?? 'Non précisé',
+      importe: true, refFinanceur: l.ref, statutFinanceur: l.statut, financeurId: financeur.id, commercialId: commercial.id, raisonSociale: l.client, siret: l.siret, materiel: l.materiel ?? 'Non précisé',
       periodicite: l.periodicite, dureeMois: l.dureeMois, loyerCentimes: l.loyerCentimes, dateDebut: l.dateDebut, dateFin: l.dateFin,
       montantCommercialCentimes: recalcule?.montantCentimes ?? null, montantReelCentimes: montantReel,
     })
@@ -173,5 +187,5 @@ export async function traiterImport(a: Acteur, p: DemandeImport) {
   if (!p.simuler && aCreer.length) await prisma.finContrat.createMany({ data: aCreer })
   resultats.sort((x, y) => x.numero - y.numero)
   const compte = (e: ResultatLigneImport['etat']) => resultats.filter(r => r.etat === e).length
-  return { simule: p.simuler, importes: compte('OK'), doublons: compte('DOUBLON'), erreurs: compte('ERREUR'), lignes: resultats.slice(0, 500), tronque: resultats.length > 500 }
+  return { simule: p.simuler, importes: compte('OK'), doublons: compte('DOUBLON'), ignores: compte('IGNORE'), erreurs: compte('ERREUR'), lignes: resultats.slice(0, 500), tronque: resultats.length > 500 }
 }

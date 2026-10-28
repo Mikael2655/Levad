@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { listerUtilisateurs } from '@/lib/financement/admin'
 import { lireContrat } from '@/lib/financement/contrats'
 import { peutModifierContrat, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
@@ -18,7 +19,8 @@ export default async function FicheContrat({ params }: { params: { id: string } 
   const c = await lireContrat(u, Number(params.id))
   if (!c) notFound()
   // vueContrat renvoie ces champs exactement quand peutVoirBaremeReel est vrai
-  const reel = peutVoirBaremeReel(u) ? (c as typeof c & { montantReelCentimes: number; margeCentimes: number | null; refFinanceur: string | null }) : null
+  const reel = peutVoirBaremeReel(u) ? (c as typeof c & { montantReelCentimes: number; margeCentimes: number | null; refFinanceur: string | null; statutFinanceur: string | null }) : null
+  const commerciaux = peutModifierContrat(u) ? (await listerUtilisateurs()).filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN')).map(x => ({ id: x.id, nom: `${x.prenom} ${x.nom}` })) : []
   const section = 'bg-white rounded-2xl border border-gray-200 p-4 sm:p-5'
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '')
 
@@ -47,13 +49,14 @@ export default async function FicheContrat({ params }: { params: { id: string } 
             <Ligne t="Montant financé réel">{euros(reel.montantReelCentimes)}</Ligne>
             {reel.margeCentimes !== null && <Ligne t="Marge"><b className="text-emerald-700">{euros(reel.margeCentimes)}</b></Ligne>}
             {reel.refFinanceur && <Ligne t="N° de contrat financeur">{reel.refFinanceur}</Ligne>}
+            {reel.statutFinanceur && <Ligne t="Statut chez le financeur">{reel.statutFinanceur}</Ligne>}
           </>
         )}
         {c.demandeId && <p className="pt-2 text-sm"><Link className="underline text-brand-800" href={`/financement/demandes/${c.demandeId}`}>Voir la demande d’origine</Link></p>}
       </section>
 
       {peutModifierContrat(u) && (
-        <FormulaireContrat id={c.id} materiel={c.materiel} refFinanceur={reel?.refFinanceur ?? ''} dateDebut={iso(c.dateDebut)} dateFin={iso(c.dateFin)} />
+        <FormulaireContrat id={c.id} commercialId={c.commercialId} commerciaux={commerciaux} materiel={c.materiel} refFinanceur={reel?.refFinanceur ?? ''} dateDebut={iso(c.dateDebut)} dateFin={iso(c.dateFin)} />
       )}
     </main>
   )

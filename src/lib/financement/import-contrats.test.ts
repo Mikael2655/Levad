@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { lireCsv, lireDate, lireDureeMois, lireLignes, lireMontantCentimes, lirePeriodicite, suggererMapping } from './import-contrats'
+import { detecterUniteLoyer, lireCsv, lireDate, lireDureeMois, lireLignes, lireMontantCentimes, lirePeriodicite, suggererMapping } from './import-contrats'
 
 describe('CSV', () => {
   it('séparateur « ; », guillemets, virgules françaises, BOM, lignes vides', () => {
@@ -80,5 +80,40 @@ describe('lecture des lignes', () => {
     expect(lues).toEqual([])
     expect(erreurs[0]).toEqual({ numero: 2, message: 'client manquant, loyer illisible, durée illisible' })
     expect(erreurs[1].message).toContain('périodicité inconnue')
+  })
+})
+
+// Format de l'export « My Contracts » de Grenke (en-têtes réels, valeurs fictives de même forme).
+describe('export Grenke « My Contracts »', () => {
+  const entetes = ['Contract No.', 'Status', 'Lessee', 'Sublessee', 'Term of lease', 'Amount', 'Leasing instalment', 'Start of primary period', 'End of primary period']
+  const lignes = [
+    ['100-00001', 'RunningContract', 'CLIENT A', '', '63', '27253.89', '526', '2026-07-01', '2031-10-01'],
+    ['100-00002', 'ApplicationSettled', 'CLIENT B', '', '24', '4094.83', '190', '2027-01-01', '2029-01-01'],
+    ['100-00003', 'DefectiveContract', 'CLIENT C', '', '63', '11025.64', '215', '2026-07-01', '2031-10-01'],
+    ['100-00004', 'RunningContract', 'CLIENT D', '', '36', '5345.91', '170', '2026-07-01', '2029-07-01'],
+  ]
+  it('colonnes reconnues automatiquement', () => {
+    expect(suggererMapping(entetes)).toEqual({ ref: 0, statut: 1, client: 2, duree: 4, montantReel: 5, loyer: 6, dateDebut: 7, dateFin: 8 })
+  })
+  it('« Statut du contrat » devient le statut, pas le n° de contrat', () => {
+    expect(suggererMapping(['Statut du contrat', 'N° contrat'])).toMatchObject({ statut: 0, ref: 1 })
+  })
+  it('le loyer du fichier est mensuel : détecté, puis converti en loyer trimestriel (×3)', () => {
+    const mapping = suggererMapping(entetes)
+    expect(detecterUniteLoyer(lignes, mapping, 'MOIS')).toBe('PAR_MOIS')
+    const { lues, erreurs } = lireLignes(lignes, { mapping, uniteDuree: 'MOIS', uniteLoyer: 'PAR_MOIS', periodiciteDefaut: 'TRIMESTRIELLE' })
+    expect(erreurs).toEqual([])
+    expect(lues[0]).toMatchObject({ ref: '100-00001', statut: 'RunningContract', client: 'CLIENT A', dureeMois: 63, loyerCentimes: 52600 * 3, montantReelCentimes: 2725389, periodicite: 'TRIMESTRIELLE' })
+    expect(lues[0].dateDebut?.toISOString().slice(0, 10)).toBe('2026-07-01')
+    expect(lues[0].dateFin?.toISOString().slice(0, 10)).toBe('2031-10-01')
+  })
+  it('un loyer mensuel reste mensuel si le contrat est mensuel', () => {
+    const { lues } = lireLignes(lignes, { mapping: suggererMapping(entetes), uniteDuree: 'MOIS', uniteLoyer: 'PAR_MOIS', periodiciteDefaut: 'MENSUELLE' })
+    expect(lues[0].loyerCentimes).toBe(52600)
+  })
+  it('un fichier dont le loyer est trimestriel est reconnu comme tel ; trop peu de lignes = pas de conclusion', () => {
+    const trimestriel = lignes.map(l => [...l.slice(0, 6), String(Number(l[6]) * 3), ...l.slice(7)])
+    expect(detecterUniteLoyer(trimestriel, suggererMapping(entetes), 'MOIS')).toBe('PAR_PERIODE')
+    expect(detecterUniteLoyer(lignes.slice(0, 2), suggererMapping(entetes), 'MOIS')).toBeNull()
   })
 })

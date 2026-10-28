@@ -21,6 +21,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     modifierContrat(u, Number(params.id), {
       ...(typeof c.materiel === 'string' ? { materiel: c.materiel } : {}),
       ...(typeof c.refFinanceur === 'string' || c.refFinanceur === null ? { refFinanceur: c.refFinanceur } : {}),
+      ...(c.commercialId ? { commercialId: Number(c.commercialId) } : {}),
       dateDebut: date(c.dateDebut),
       dateFin: date(c.dateFin),
     }),

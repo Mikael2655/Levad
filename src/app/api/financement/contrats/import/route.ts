@@ -22,8 +22,10 @@ export async function POST(req: Request) {
       lignes: c.lignes.map((l: unknown) => (Array.isArray(l) ? l.map(x => String(x ?? '')) : [])),
       mapping,
       uniteDuree: c.uniteDuree === 'TRIMESTRES' ? 'TRIMESTRES' : 'MOIS',
+      uniteLoyer: c.uniteLoyer === 'PAR_MOIS' ? 'PAR_MOIS' : 'PAR_PERIODE',
       periodiciteDefaut: c.periodiciteDefaut === 'MENSUELLE' ? 'MENSUELLE' : 'TRIMESTRIELLE',
       commercialDefautId: c.commercialDefautId ? Number(c.commercialDefautId) : null,
+      statutsRetenus: Array.isArray(c.statutsRetenus) ? c.statutsRetenus.map((x: unknown) => String(x)) : null,
       simuler: c.simuler !== false,
     })
   })

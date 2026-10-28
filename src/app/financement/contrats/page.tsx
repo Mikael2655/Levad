@@ -65,7 +65,7 @@ export default async function PageContrats({ searchParams }: { searchParams: { e
           <tbody className="divide-y divide-gray-50">
             {contrats.map(c => (
               <tr key={c.id} className={`hover:bg-gray-50 ${c.etat === 'PROCHE' ? 'bg-orange-50/40' : ''}`}>
-                <td className="p-3"><Link href={`/financement/contrats/${c.id}`} className="font-medium text-brand-800 underline">{c.raisonSociale}</Link></td>
+                <td className="p-3"><Link href={`/financement/contrats/${c.id}`} className="font-medium text-brand-800 underline">{c.raisonSociale}</Link>{'statutFinanceur' in c && c.statutFinanceur && c.statutFinanceur !== 'RunningContract' && <span className="ml-2 text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{c.statutFinanceur}</span>}</td>
                 {interne && <td className="p-3 whitespace-nowrap">{c.commercialNom}</td>}
                 <td className="p-3">{c.financeurNom}</td>
                 <td className="p-3 max-w-[16rem] truncate" title={c.materiel}>{c.materiel}</td>

@@ -137,7 +137,7 @@ d('contrats (base réelle)', () => {
     // colonnes : 0 N° contrat, 1 client, 2 loyer, 3 durée, 4 commercial, 5 montant financé, 6 date 1er loyer
     const mapping = { ref: 0, client: 1, loyer: 2, duree: 3, commercial: 4, montantReel: 5, dateDebut: 6 }
     const base = (lignes: string[][], o: Partial<import('./contrats').DemandeImport> = {}) => ({
-      financeurId: ids.grenke, lignes, mapping, uniteDuree: 'MOIS' as const, periodiciteDefaut: 'TRIMESTRIELLE' as const, commercialDefautId: null, simuler: false, ...o,
+      financeurId: ids.grenke, lignes, mapping, uniteDuree: 'MOIS' as const, uniteLoyer: 'PAR_PERIODE' as const, periodiciteDefaut: 'TRIMESTRIELLE' as const, commercialDefautId: null, statutsRetenus: null, simuler: false, ...o,
     })
     const fichier = [
       ['G-001', 'Alpha SARL', '723,00', '63', 'marie@t.fr', '12 552,08', '01/01/2025'],
@@ -156,7 +156,7 @@ d('contrats (base réelle)', () => {
     })
     it('simulation : rapport complet, rien n’est écrit', async () => {
       const r = await ct.traiterImport(A(), base(fichier, { simuler: true }))
-      expect(r).toMatchObject({ simule: true, importes: 2, doublons: 1, erreurs: 2 })
+      expect(r).toMatchObject({ simule: true, importes: 2, doublons: 1, ignores: 0, erreurs: 2 })
       expect(await prisma.finContrat.count()).toBe(0)
       const messages = r.lignes.map(l => `${l.numero}:${l.etat}`)
       expect(messages).toEqual(['2:OK', '3:OK', '4:ERREUR', '5:ERREUR', '6:DOUBLON'])
@@ -184,6 +184,54 @@ d('contrats (base réelle)', () => {
       const gamma = await prisma.finContrat.findFirstOrThrow({ where: { refFinanceur: 'G-003' } })
       expect(gamma.commercialId).toBe(ids.comA)
       expect(await prisma.finContrat.count()).toBe(3)
+    })
+  })
+
+  describe('export réel Grenke : loyer mensuel, statuts, attribution aux commerciaux', () => {
+    // colonnes : 0 N° contrat, 1 statut, 2 client, 3 durée, 4 montant financé, 5 loyer (mensuel), 6 début, 7 fin
+    const mapping = { ref: 0, statut: 1, client: 2, duree: 3, montantReel: 4, loyer: 5, dateDebut: 6, dateFin: 7 }
+    const lignes = [
+      ['G-200', 'RunningContract', 'Client X', '63', '27253.89', '526', '2026-07-01', '2031-10-01'],
+      ['G-201', 'ApplicationSettled', 'Client Y', '24', '4094.83', '190', '2027-01-01', '2029-01-01'],
+      ['G-202', 'DefectiveContract', 'Client Z', '63', '11025.64', '215', '2026-07-01', '2031-10-01'],
+    ]
+    const demande = (o: Partial<import('./contrats').DemandeImport> = {}) => ({
+      financeurId: ids.grenke, lignes, mapping, uniteDuree: 'MOIS' as const, uniteLoyer: 'PAR_MOIS' as const, periodiciteDefaut: 'TRIMESTRIELLE' as const,
+      commercialDefautId: ids.comA, statutsRetenus: ['RunningContract', 'ApplicationSettled'], simuler: false, ...o,
+    })
+    beforeAll(async () => { await prisma.finContrat.deleteMany() })
+
+    it('loyer mensuel du fichier converti en loyer trimestriel ; statut non retenu ignoré ; statut conservé', async () => {
+      const r = await ct.traiterImport(A(), demande())
+      expect(r).toMatchObject({ importes: 2, ignores: 1, erreurs: 0 })
+      expect(r.lignes.find(l => l.numero === 4)).toMatchObject({ etat: 'IGNORE', message: 'Statut non retenu : DefectiveContract' })
+      const x = await prisma.finContrat.findFirstOrThrow({ where: { refFinanceur: 'G-200' } })
+      expect(x).toMatchObject({ statutFinanceur: 'RunningContract', loyerCentimes: 157800, montantReelCentimes: 2725389, periodicite: 'TRIMESTRIELLE', dureeMois: 63, commercialId: ids.comA })
+      expect(x.montantCommercialCentimes).toBe(Math.round((157800 * 1_000_000) / 58500)) // 1 578 € / 5,85 % (barème commercial, tranche 25 000 € et plus)
+      expect(x.dateFin?.toISOString().slice(0, 10)).toBe('2031-10-01')
+    })
+    it('durée absente du barème commercial (24 mois) : contrat importé, montant commercial non calculable', async () => {
+      const y = await prisma.finContrat.findFirstOrThrow({ where: { refFinanceur: 'G-201' } })
+      expect(y).toMatchObject({ loyerCentimes: 57000, dureeMois: 24, montantCommercialCentimes: null, statutFinanceur: 'ApplicationSettled' })
+    })
+    it('le défaut ignoré peut être importé en le cochant', async () => {
+      const r = await ct.traiterImport(A(), demande({ statutsRetenus: null }))
+      expect(r).toMatchObject({ importes: 1, doublons: 2, ignores: 0 })
+    })
+    it('réattribuer un contrat à un autre commercial recalcule son montant commercial avec la grille de celui-ci', async () => {
+      const m = lignesVersMatrice(COMMERCIAL_LIGNES)
+      m.cellules[5] = [5.5, 5.4, 5.3] // 63 mois
+      await admin.creerGrillePropre(ids.grenke, ids.comB)
+      await admin.enregistrerGrille({ financeurId: ids.grenke, type: 'COMMERCIALE', utilisateurId: ids.comB }, 'TRIMESTRIEL', m)
+      const x = await prisma.finContrat.findFirstOrThrow({ where: { refFinanceur: 'G-200' } })
+      await expect(ct.modifierContrat(CA(), x.id, { commercialId: ids.comB })).rejects.toThrow('non autorisée')
+      await expect(ct.modifierContrat(A(), x.id, { commercialId: ids.assistante })).rejects.toThrow('Commercial invalide')
+      await ct.modifierContrat(S(), x.id, { commercialId: ids.comB })
+      const apres = await prisma.finContrat.findUniqueOrThrow({ where: { id: x.id } })
+      expect(apres).toMatchObject({ commercialId: ids.comB, loyerCentimes: 157800, montantReelCentimes: 2725389 })
+      expect(apres.montantCommercialCentimes).toBe(Math.round((157800 * 1_000_000) / 53000))
+      expect(await ct.lireContrat(CA(), x.id)).toBeNull() // l'ancien commercial ne le voit plus
+      expect(await ct.lireContrat(CB(), x.id)).not.toBeNull()
     })
   })
 })

@@ -418,6 +418,7 @@ model FinContrat {
   demande       FinDemande? @relation(fields: [demandeId], references: [id])
   importe       Boolean  @default(false)
   refFinanceur  String? // numéro de contrat chez le financeur
+  statutFinanceur String? // statut tel que donné par le financeur à l'import (ex. RunningContract)
 
   financeurId   Int
   financeur     FinFinanceur   @relation(fields: [financeurId], references: [id])

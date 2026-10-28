@@ -145,6 +145,7 @@ export interface ContratBase {
   demandeId: number | null
   importe: boolean
   refFinanceur: string | null
+  statutFinanceur: string | null
   financeurId: number
   commercialId: number
   raisonSociale: string
