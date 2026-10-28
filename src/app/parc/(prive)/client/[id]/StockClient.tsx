@@ -64,11 +64,11 @@ export async function StockClient({ clientId }: { clientId: number }) {
   const planSans = plan(false)
   const planAvec = plan(true)
 
-  // Derniers mouvements : les lignes d'un même envoi (même instant) sont regroupées en un seul envoi.
+  // Derniers mouvements : les lignes d'un même envoi (même date et même fournisseur) sont regroupées ; deux envois du même jour chez des fournisseurs différents restent séparés.
   type Mouvement = (typeof mouvements)[number]
   const evenements: { cle: string; date: Date; motif: string; lignes: Mouvement[] }[] = []
   for (const m of mouvements) {
-    const cle = m.motif === 'envoi' ? `envoi|${m.date.getTime()}` : `m${m.id}`
+    const cle = m.motif === 'envoi' ? `envoi|${m.date.getTime()}|${m.fournisseurs ?? ''}` : `m${m.id}`
     const existant = evenements.find((e) => e.cle === cle)
     if (existant) existant.lignes.push(m)
     else evenements.push({ cle, date: m.date, motif: m.motif, lignes: [m] })
