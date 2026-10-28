@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { chiffres, numeroEntrepriseValide, sirenValide } from './siren'
 import { lireResultats, rechercherEntreprises } from './entreprises'
-import { statutsAccessibles } from './statuts'
+import { peutEnvoyerEnSignature, statutsAccessibles } from './statuts'
 
 const admin = { id: 1, role: 'ADMIN' as const }
 const assistante = { id: 2, role: 'ASSISTANTE' as const }
@@ -16,10 +16,20 @@ describe('passages de statut', () => {
   it('l’admin peut aussi annuler', () => {
     expect(statutsAccessibles(admin, d('ENVOYEE'))).toContain('ANNULEE')
   })
-  it('le commercial ne peut qu’annuler son brouillon', () => {
-    expect(statutsAccessibles(com, d('BROUILLON'))).toEqual(['ANNULEE'])
+  it('le commercial mène SES demandes jusqu’au bout, mais n’annule que son brouillon', () => {
+    expect(statutsAccessibles(com, d('BROUILLON'))).toEqual(['ENVOYEE', 'ANNULEE'])
+    expect(statutsAccessibles(com, d('ENVOYEE'))).toEqual(['INFOS_MANQUANTES', 'PRETE_A_SIGNER', 'REFUSEE'])
+    expect(statutsAccessibles(com, d('EN_SIGNATURE'))).toEqual(['SIGNEE', 'PRETE_A_SIGNER'])
+  })
+  it('mais rien sur la demande d’un collègue', () => {
     expect(statutsAccessibles(com, d('BROUILLON', 99))).toEqual([])
-    expect(statutsAccessibles(com, d('ENVOYEE'))).toEqual([])
+    expect(statutsAccessibles(com, d('ENVOYEE', 99))).toEqual([])
+  })
+  it('tout le monde peut envoyer en signature une demande prête (la sienne pour un commercial)', () => {
+    expect(peutEnvoyerEnSignature(com, d('PRETE_A_SIGNER'))).toBe(true)
+    expect(peutEnvoyerEnSignature(assistante, d('PRETE_A_SIGNER'))).toBe(true)
+    expect(peutEnvoyerEnSignature(com, d('PRETE_A_SIGNER', 99))).toBe(false)
+    expect(peutEnvoyerEnSignature(com, d('ENVOYEE'))).toBe(false)
   })
   it('« En signature » n’est jamais un simple bouton ; signée et annulée sont définitifs', () => {
     expect(statutsAccessibles(admin, d('PRETE_A_SIGNER'))).toEqual(['ANNULEE'])

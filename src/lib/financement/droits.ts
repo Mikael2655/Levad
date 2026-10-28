@@ -56,7 +56,8 @@ export function peutAnnuler(a: Acteur, d: AvecStatut): boolean {
 // Archiver (la demande disparaît de la liste) : admin et assistante pour toute demande, le commercial pour les siennes.
 export const peutArchiver = (a: Acteur, d: Possedee) => peutVoir(a, d)
 
-// Changer à la main le statut (connecteur manuel) : réservé à l'interne.
+// Renseigner le n° de dossier chez le financeur (donnée réelle, que le commercial ne voit jamais) : réservé à l'interne.
+// Le changement de statut lui-même est ouvert à tous sur les demandes visibles (voir statuts.ts).
 export const peutChangerStatut = (a: Acteur) => estInterne(a)
 
 // --- Vues : ce qui est réellement envoyé au navigateur ---------------------------------------------------------------

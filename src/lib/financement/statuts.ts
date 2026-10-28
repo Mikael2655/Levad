@@ -1,5 +1,5 @@
 // Statuts communs à tous les financeurs et passages autorisés de l'un à l'autre.
-import { estInterne, peutAnnuler, type Acteur, type Statut } from './droits'
+import { peutAnnuler, peutVoir, type Acteur, type Statut } from './droits'
 
 export const LIBELLES_STATUT: Record<Statut, string> = {
   BROUILLON: 'Brouillon',
@@ -23,15 +23,17 @@ const TRANSITIONS: Record<Statut, Statut[]> = {
   ANNULEE: [],
 }
 
-// Statuts que l'acteur peut choisir à la main depuis la fiche. « En signature » passe par le formulaire des
+// Statuts que l'acteur peut choisir à la main depuis la fiche : tout utilisateur pour les demandes qu'il peut voir
+// (un commercial mène ses demandes jusqu'au bout sans validation). « En signature » passe par le formulaire des
 // signataires, pas par un simple bouton. L'annulation suit les règles de droits (admin ; commercial sur son brouillon).
 export function statutsAccessibles(a: Acteur, d: { statut: string; commercialId: number }): Statut[] {
   const suivants = TRANSITIONS[d.statut as Statut] ?? []
   return suivants.filter(s => {
     if (s === 'ANNULEE') return peutAnnuler(a, d)
     if (s === 'EN_SIGNATURE') return false
-    return estInterne(a)
+    return peutVoir(a, d)
   })
 }
 
-export const peutEnvoyerEnSignature = (a: Acteur, d: { statut: string }) => estInterne(a) && d.statut === 'PRETE_A_SIGNER'
+// Tous les utilisateurs, pour les demandes qu'ils voient.
+export const peutEnvoyerEnSignature = (a: Acteur, d: { statut: string; commercialId: number }) => peutVoir(a, d) && d.statut === 'PRETE_A_SIGNER'

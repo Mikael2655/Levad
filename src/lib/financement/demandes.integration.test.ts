@@ -94,8 +94,9 @@ d('demandes (base réelle)', () => {
     let id: number
     beforeAll(async () => { id = (await dem.creerDemande(CA(), entree({ siret: '' }))).id })
 
-    it('le commercial ne change pas le statut (sauf annuler son brouillon) ; envoi impossible sans SIREN valide', async () => {
-      await expect(dem.changerStatut(CA(), id, { statut: 'ENVOYEE' })).rejects.toThrow('pas possible')
+    it('envoi impossible sans SIREN valide ; un commercial ne touche pas au statut d’un collègue', async () => {
+      await expect(dem.changerStatut(CB(), id, { statut: 'ENVOYEE' })).rejects.toThrow('introuvable')
+      await expect(dem.changerStatut(CA(), id, { statut: 'ENVOYEE' })).rejects.toThrow('SIREN')
       await expect(dem.changerStatut(S(), id, { statut: 'ENVOYEE' })).rejects.toThrow('SIREN')
       await dem.modifierDemande(CA(), id, entree({ siret: '356 000 000 00048'.replace(/\s/g, '') }))
       await dem.changerStatut(S(), id, { statut: 'ENVOYEE', refFinanceur: 'GRK-123' })
@@ -117,9 +118,9 @@ d('demandes (base réelle)', () => {
       await expect(dem.changerStatut(S(), id, { statut: 'EN_SIGNATURE' })).rejects.toThrow('pas possible')
       const client = { prenom: 'Jean', nom: 'Dupont', email: 'jean@acme.fr' }
       const moi = { prenom: 'Mikael', nom: 'B', email: 'm@levad.fr' }
-      await expect(dem.envoyerEnSignature(CA(), id, client, moi)).rejects.toThrow('impossible')
+      await expect(dem.envoyerEnSignature(CB(), id, client, moi)).rejects.toThrow('introuvable')
       await expect(dem.envoyerEnSignature(S(), id, { ...client, email: 'pasunmail' }, moi)).rejects.toThrow('valides')
-      await dem.envoyerEnSignature(S(), id, client, moi)
+      await dem.envoyerEnSignature(CA(), id, client, moi) // le commercial de la demande peut lancer la signature
       expect(await prisma.finDemande.findUniqueOrThrow({ where: { id }, include: { signature: true } })).toMatchObject({ statut: 'EN_SIGNATURE', signature: { clientEmail: 'jean@acme.fr', fournisseurEmail: 'm@levad.fr' } })
       await dem.changerStatut(S(), id, { statut: 'SIGNEE' })
     })
@@ -129,6 +130,16 @@ d('demandes (base réelle)', () => {
       expect(fiche!.historique[4].commentaire).toContain('Bilan 2025 et RIB')
       const json = JSON.stringify(fiche)
       for (const interdit of ['Reel', 'marge', '1255208', 'GRK-123', 'assist@t.fr', 'boss@t.fr', 'ca@t.fr']) expect(json).not.toContain(interdit)
+    })
+    it('un commercial mène sa demande seul, de la saisie à la signature ; le n° de dossier financeur lui reste caché', async () => {
+      const x = (await dem.creerDemande(CA(), entree())).id
+      await dem.changerStatut(CA(), x, { statut: 'ENVOYEE', refFinanceur: 'TENTATIVE' })
+      await dem.changerStatut(CA(), x, { statut: 'PRETE_A_SIGNER' })
+      await dem.envoyerEnSignature(CA(), x, { prenom: 'J', nom: 'D', email: 'j@acme.fr' }, { prenom: 'M', nom: 'D', email: 'm@levad.fr' })
+      await dem.changerStatut(CA(), x, { statut: 'SIGNEE' })
+      const brut = await prisma.finDemande.findUniqueOrThrow({ where: { id: x } })
+      expect(brut.statut).toBe('SIGNEE')
+      expect(brut.refFinanceur).toBeNull() // seul l'interne renseigne cette donnée réelle
     })
     it('annulation : le commercial son brouillon, pas l’assistante', async () => {
       const b = (await dem.creerDemande(CA(), entree())).id
