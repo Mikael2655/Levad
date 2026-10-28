@@ -19,7 +19,8 @@ export default async function PageInstallation() {
               <p>L’installation n’est pas activée.</p>
               <ul className="text-xs bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-1">
                 <li>Environnement Vercel de ce déploiement : <b>{diag.environnement}</b></li>
-                <li>Branche : <b>{diag.branche}</b></li>
+                <li>Branche : <b>{diag.branche}</b> · version du déploiement : <b>{diag.version}</b></li>
+                <li>Variables aux noms voisins reçues par ce déploiement : <b>{diag.nomsProches.length ? diag.nomsProches.map(n => `« ${n} »`).join(', ') : 'aucune'}</b></li>
                 <li>Variable FIN_INSTALL_CODE : <b>{diag.variable === 'ABSENTE' ? 'absente de cet environnement' : 'présente mais trop courte (20 caractères minimum)'}</b></li>
               </ul>
               <p className="text-xs">Ajoutez la variable dans Vercel pour l’environnement indiqué ci-dessus, puis relancez le déploiement (Deployments → ⋯ → Redeploy).</p>

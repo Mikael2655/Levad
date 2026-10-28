@@ -23,6 +23,9 @@ export function diagnosticInstallation() {
     environnement: process.env.VERCEL_ENV ?? 'inconnu', // production | preview | development
     branche: process.env.VERCEL_GIT_COMMIT_REF ?? 'inconnue',
     variable: !code ? ('ABSENTE' as const) : code.length < 20 ? ('TROP_COURTE' as const) : ('OK' as const),
+    version: (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 7) || 'inconnue', // à comparer avec la liste des déploiements Vercel
+    // noms (jamais les valeurs) des variables qui ressemblent à celle attendue : repère une faute de frappe dans le nom
+    nomsProches: Object.keys(process.env).filter(k => /install|^fin/i.test(k)).sort(),
   }
 }
 
