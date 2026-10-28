@@ -48,7 +48,7 @@ export async function middleware(req: NextRequest) {
   // Outil de financement : comptes individuels (cookie propre). Le middleware ne vérifie que la signature du jeton ;
   // l'utilisateur et son rôle sont relus en base par chaque page / route (voir lib/financement/auth.ts).
   if (pathname === '/financement' || pathname.startsWith('/financement/') || pathname.startsWith('/api/financement/')) {
-    if (pathname === '/financement/connexion' || pathname === '/api/financement/connexion') return NextResponse.next()
+    if (['/financement/connexion', '/api/financement/connexion', '/financement/installation', '/api/financement/installation'].includes(pathname)) return NextResponse.next()
     const jeton = req.cookies.get(SESSION_FIN_COOKIE)?.value
     const sessionFin = jeton ? await verifierJeton(jeton) : null
     if (!sessionFin) {

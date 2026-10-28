@@ -39,7 +39,7 @@ export default async function FicheContrat({ params }: { params: { id: string } 
         <Ligne t="Commercial">{c.commercialNom}</Ligne>
         {c.siret && <Ligne t="SIREN / SIRET">{c.siret}</Ligne>}
         <Ligne t="Matériel">{c.materiel}</Ligne>
-        <Ligne t="Loyer HT"><b>{euros(c.loyerCentimes)}</b> ({libellePeriodicite(c.periodicite)})</Ligne>
+        <Ligne t="Loyer HT"><b>{euros(c.loyerCentimes)}</b> ({libellePeriodicite(c.periodicite)}){c.periodicite === 'MENSUELLE' && <span className="ml-2 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">mensuel</span>}</Ligne>
         <Ligne t="Durée">{dureeLibelle(c.dureeMois)}</Ligne>
         <Ligne t="1er loyer">{c.dateDebut ? dateFr(c.dateDebut) : <span className="text-amber-700">à renseigner</span>}</Ligne>
         <Ligne t="Fin du contrat">{c.dateFin ? dateFr(c.dateFin) : '—'}{c.moisRestants !== null && c.etat !== 'ECHU' ? ` · ${c.moisRestants} mois restants` : ''}</Ligne>

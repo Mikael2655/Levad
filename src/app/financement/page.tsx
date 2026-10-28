@@ -100,8 +100,8 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
                 <td className="p-3">{d.raisonSociale}</td>
                 {interne && <td className="p-3 whitespace-nowrap">{d.commercialNom}</td>}
                 <td className="p-3">{d.financeurNom}</td>
-                <td className="p-3 whitespace-nowrap">{d.dureeMois} mois</td>
-                <td className="p-3 text-right whitespace-nowrap">{euros(d.loyerCentimes)}</td>
+                <td className="p-3 whitespace-nowrap">{d.dureeMois} mois{d.periodicite === 'MENSUELLE' && <span className="ml-1.5 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">mensuel</span>}</td>
+                <td className="p-3 text-right whitespace-nowrap">{euros(d.loyerCentimes)}<span className="text-gray-400"> /{d.periodicite === 'MENSUELLE' ? 'mois' : 'trim.'}</span></td>
                 <td className="p-3 text-right whitespace-nowrap">{euros(d.montantCommercialCentimes)}</td>
                 {reel && <td className="p-3 text-right whitespace-nowrap">{'montantReelCentimes' in d ? euros(d.montantReelCentimes) : ''}</td>}
                 {reel && <td className="p-3 text-right whitespace-nowrap text-emerald-700">{'margeCentimes' in d ? euros(d.margeCentimes) : ''}</td>}

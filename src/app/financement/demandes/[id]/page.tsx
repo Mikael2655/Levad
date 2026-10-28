@@ -61,7 +61,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         <h2 className="font-semibold text-gray-900 mb-2">Financement</h2>
         <Ligne t="Financeur">{d.financeurNom}</Ligne>
         <Ligne t="Commercial">{d.commercialNom}{d.saisiParNom !== d.commercialNom ? ` (saisie par ${d.saisiParNom})` : ''}</Ligne>
-        <Ligne t="Durée / périodicité">{dureeLibelle(d.dureeMois)} · {libellePeriodicite(d.periodicite)}</Ligne>
+        <Ligne t="Durée / périodicité">{dureeLibelle(d.dureeMois)} · {libellePeriodicite(d.periodicite)}{d.periodicite === 'MENSUELLE' && <span className="ml-2 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">paiement mensuel : coefficient majoré</span>}</Ligne>
         <Ligne t="Loyer HT"><b>{euros(d.loyerCentimes)}</b> par {d.periodicite === 'MENSUELLE' ? 'mois' : 'trimestre'}</Ligne>
         <Ligne t="Montant (barème commercial)">{euros(d.montantCommercialCentimes)} <span className="text-gray-400">— coefficient {pourcentCoef(d.coefficientCommercialPpm)}</span></Ligne>
         {reel && (

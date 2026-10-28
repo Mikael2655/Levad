@@ -184,6 +184,7 @@ export default function FormulaireDemande(p: {
             <p>Montant (barème commercial) : <b>{euros(r.commercial.montantCentimes)}</b> <span className="text-gray-400">— coefficient {pourcentCoef(r.commercial.coefficientPpm)}</span></p>
             {r.reel && <p>Montant financé réel : <b>{euros(r.reel.montantCentimes)}</b> <span className="text-gray-400">— coefficient {pourcentCoef(r.reel.coefficientPpm)}</span></p>}
             {r.margeCentimes !== undefined && <p>Marge : <b className="text-emerald-700">{euros(r.margeCentimes)}</b></p>}
+            {v.periodicite === 'MENSUELLE' && <p className="sm:col-span-2 text-orange-800">ℹ Paiement mensuel : les coefficients ci-dessus incluent la majoration prévue par le barème.</p>}
             {(r.commercial.horsTranche || r.reel?.horsTranche) && <p className="sm:col-span-2 text-amber-800">⚠ Ce montant sort des tranches du barème : le résultat est approximatif.</p>}
           </div>
         )}
