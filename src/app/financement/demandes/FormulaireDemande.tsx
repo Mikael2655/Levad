@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react'
 import type { Entreprise } from '@/lib/financement/entreprises'
 import { appel, eurosVersCentimes } from '../appel'
 import { dureeLibelle, euros, pourcentCoef } from '../format'
+import { nouvelleLigne, type LigneForm } from './lignes'
 import RechercheEntreprise from './RechercheEntreprise'
 
-export interface LigneForm { designation: string; quantite: string; montantHt: string; typeBien: string; constructeur: string }
 export interface ValeursFormulaire {
   financeurId: string; commercialId: string
   raisonSociale: string; siret: string; formeJuridique: string; adresse: string; codePostal: string; ville: string; pays: string
@@ -15,8 +15,6 @@ export interface ValeursFormulaire {
   dureeMois: string; periodicite: 'TRIMESTRIELLE' | 'MENSUELLE'; saisie: 'loyer' | 'montant'; valeur: string
   lignes: LigneForm[]
 }
-
-export const LIGNE_VIDE: LigneForm = { designation: '', quantite: '1', montantHt: '', typeBien: '', constructeur: '' }
 
 interface Calcul {
   dureesDisponibles: number[]
@@ -78,15 +76,15 @@ export default function FormulaireDemande(p: {
     e.preventDefault()
     setErreur(null)
     setEnvoi(true)
+    try {
     const corps = {
       financeurId: Number(v.financeurId), commercialId: v.commercialId ? Number(v.commercialId) : null,
       raisonSociale: v.raisonSociale, siret: v.siret, formeJuridique: v.formeJuridique, adresse: v.adresse, codePostal: v.codePostal, ville: v.ville, pays: v.pays,
       contactPrenom: v.contactPrenom, contactNom: v.contactNom, contactEmail: v.contactEmail, contactTel: v.contactTel,
       dureeMois: Number(v.dureeMois), periodicite: v.periodicite,
       ...(v.saisie === 'loyer' ? { loyerCentimes: valeurCentimes } : { montantCentimes: valeurCentimes }),
-      lignes: v.lignes.map(l => ({ designation: l.designation, quantite: Number(l.quantite), montantHtCentimes: l.montantHt.trim() ? eurosVersCentimes(l.montantHt) : null, typeBien: l.typeBien, constructeur: l.constructeur })),
+      lignes: v.lignes.map(l => ({ designation: l.designation ?? '', quantite: Number(l.quantite || 1), montantHtCentimes: (l.montantHt ?? '').trim() ? eurosVersCentimes(l.montantHt) : null, typeBien: l.typeBien ?? '', constructeur: l.constructeur ?? '' })),
     }
-    try {
       const r = await (p.mode === 'creation' ? appel<{ id: number }>('/api/financement/demandes', 'POST', corps) : appel<{ id: number }>(`/api/financement/demandes/${p.demandeId}`, 'PATCH', corps))
       router.push(`/financement/demandes/${r.id}`)
       router.refresh()
@@ -111,14 +109,9 @@ export default function FormulaireDemande(p: {
           <Etiquette t="Adresse *"><input className={champ} value={v.adresse} onChange={e => set('adresse', e.target.value)} required /></Etiquette>
           <Etiquette t="Code postal"><input className={champ} value={v.codePostal} onChange={e => set('codePostal', e.target.value)} /></Etiquette>
           <Etiquette t="Ville"><input className={champ} value={v.ville} onChange={e => set('ville', e.target.value)} /></Etiquette>
+          <Etiquette t="Téléphone (facultatif)"><input className={champ} value={v.contactTel} onChange={e => set('contactTel', e.target.value)} /></Etiquette>
         </div>
-        <h3 className="text-sm font-medium text-gray-700 pt-1">Contact</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Etiquette t="Prénom *"><input className={champ} value={v.contactPrenom} onChange={e => set('contactPrenom', e.target.value)} required /></Etiquette>
-          <Etiquette t="Nom *"><input className={champ} value={v.contactNom} onChange={e => set('contactNom', e.target.value)} required /></Etiquette>
-          <Etiquette t="E-mail *"><input type="email" className={champ} value={v.contactEmail} onChange={e => set('contactEmail', e.target.value)} required /></Etiquette>
-          <Etiquette t="Téléphone"><input className={champ} value={v.contactTel} onChange={e => set('contactTel', e.target.value)} /></Etiquette>
-        </div>
+        <p className="text-xs text-gray-500">Le nom, le prénom et l’e-mail du signataire seront demandés à l’étape suivante, au moment de l’envoi en signature.</p>
       </section>
 
       <section className={section}>
@@ -134,7 +127,7 @@ export default function FormulaireDemande(p: {
             </div>
           ))}
         </div>
-        <button type="button" className="text-sm underline text-gray-600" onClick={() => setV(x => ({ ...x, lignes: [...x.lignes, { ...LIGNE_VIDE }] }))}>+ ajouter une ligne</button>
+        <button type="button" className="text-sm underline text-gray-600" onClick={() => setV(x => ({ ...x, lignes: [...x.lignes, nouvelleLigne()] }))}>+ ajouter une ligne</button>
       </section>
 
       <section className={section}>

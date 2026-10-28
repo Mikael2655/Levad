@@ -83,8 +83,8 @@ export function validerEntree(e: EntreeDemande): string[] {
   if (!e.raisonSociale) p.push('La raison sociale est obligatoire.')
   if (e.siret && !numeroEntrepriseValide(e.siret)) p.push('Le SIREN / SIRET est invalide (9 ou 14 chiffres, clé incorrecte).')
   if (!e.adresse) p.push('L’adresse est obligatoire.')
-  if (!e.contactPrenom || !e.contactNom) p.push('Prénom et nom du contact obligatoires.')
-  if (!EMAIL.test(e.contactEmail)) p.push('L’adresse e-mail du contact est invalide.')
+  // Le contact (prénom, nom, e-mail) n'est pas demandé à la saisie : il est renseigné à l'envoi en signature.
+  if (e.contactEmail && !EMAIL.test(e.contactEmail)) p.push('L’adresse e-mail du contact est invalide.')
   if (!Number.isInteger(e.dureeMois) || e.dureeMois <= 0) p.push('Choisissez une durée.')
   const loyer = e.loyerCentimes
   const montant = e.montantCentimes
@@ -274,7 +274,7 @@ export async function envoyerEnSignature(a: Acteur, id: number, client: Signatai
   }
   await prisma.$transaction([
     prisma.finSignature.upsert({ where: { demandeId: id }, create: { demandeId: id, ...sig }, update: { ...sig, demandeeLe: new Date(), signeeLe: null } }),
-    prisma.finDemande.update({ where: { id }, data: { statut: 'EN_SIGNATURE', infosManquantes: null } }),
+    prisma.finDemande.update({ where: { id }, data: { statut: 'EN_SIGNATURE', infosManquantes: null, contactPrenom: sig.clientPrenom, contactNom: sig.clientNom, contactEmail: sig.clientEmail } }),
     prisma.finHistorique.create({ data: { demandeId: id, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: 'EN_SIGNATURE', commentaire: `Signataires : ${sig.clientPrenom} ${sig.clientNom} (client), ${sig.fournisseurPrenom} ${sig.fournisseurNom} (LEVAD)` } }),
   ])
   return { ok: true }

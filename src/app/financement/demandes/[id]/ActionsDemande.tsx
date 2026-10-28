@@ -71,6 +71,7 @@ export default function ActionsDemande(p: {
           <button className="bg-violet-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold" onClick={() => setOuvertSignature(!ouvertSignature)}>Envoyer en signature</button>
           {ouvertSignature && (
             <div className="grid gap-3 sm:grid-cols-2 bg-violet-50 border border-violet-200 rounded-xl p-3">
+              <p className="sm:col-span-2 text-xs text-violet-900">Indiquez ici qui signe, côté client et côté LEVAD (prénom, nom et e-mail obligatoires).</p>
               {([['Signataire client', client, setClient], ['Signataire LEVAD', fournisseur, setFournisseur]] as const).map(([titre, s, set]) => (
                 <fieldset key={titre} className="space-y-1.5">
                   <legend className="text-sm font-medium text-gray-800">{titre}</legend>

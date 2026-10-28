@@ -25,6 +25,16 @@ export async function middleware(req: NextRequest) {
   const hote = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').toLowerCase()
   const { pathname } = req.nextUrl
 
+  // 0) Adresse dédiée au financement (leasing.levad.fr) : la racine mène à l'outil, et rien d'autre n'y est exposé
+  // (ni les publications, ni le parc). L'accès à l'outil reste protégé par sa propre connexion (voir plus bas).
+  if (hote.startsWith('leasing.')) {
+    if (pathname === '/') return NextResponse.redirect(new URL('/financement', req.url))
+    const autorise =
+      pathname === '/financement' || pathname.startsWith('/financement/') || pathname.startsWith('/api/financement/') ||
+      pathname.startsWith('/_next/') || ['/levad-logo.png', '/icon.png', '/favicon.ico'].includes(pathname)
+    if (!autorise) return new NextResponse('Introuvable', { status: 404 })
+  }
+
   if (hote.startsWith('connect.')) {
     if (pathname === '/') return NextResponse.rewrite(new URL('/telecharger', req.url))
 

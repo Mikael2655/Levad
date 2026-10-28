@@ -44,7 +44,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
   const champ = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white'
 
   return (
-    <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-4">
+    <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex items-center gap-3">
         <h1 className="text-xl font-bold text-gray-900">{filtres.archivees ? 'Demandes archivées' : 'Demandes de financement'}</h1>
         <Link href="/financement/demandes/nouvelle" className="ml-auto bg-brand-800 text-white rounded-xl px-4 py-2 text-sm font-semibold">+ Nouvelle demande</Link>
@@ -80,33 +80,33 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-100">
-              <th className="p-3 font-medium">Référence</th>
-              <th className="p-3 font-medium">Client</th>
-              {interne && <th className="p-3 font-medium">Commercial</th>}
-              <th className="p-3 font-medium">Financeur</th>
-              <th className="p-3 font-medium">Durée</th>
-              <th className="p-3 font-medium text-right">Loyer</th>
-              <th className="p-3 font-medium text-right">Montant</th>
-              {reel && <th className="p-3 font-medium text-right">Montant réel</th>}
-              {reel && <th className="p-3 font-medium text-right">Marge</th>}
-              <th className="p-3 font-medium">Statut</th>
-              <th className="p-3 font-medium">Créée le</th>
+              <th className="px-2.5 py-3 font-medium">Référence</th>
+              <th className="px-2.5 py-3 font-medium">Client</th>
+              {interne && <th className="px-2.5 py-3 font-medium">Commercial</th>}
+              <th className="px-2.5 py-3 font-medium">Financeur</th>
+              <th className="px-2.5 py-3 font-medium">Durée</th>
+              <th className="px-2.5 py-3 font-medium text-right">Loyer</th>
+              <th className="px-2.5 py-3 font-medium text-right">Montant</th>
+              {reel && <th className="px-2.5 py-3 font-medium text-right">Montant réel</th>}
+              {reel && <th className="px-2.5 py-3 font-medium text-right">Marge</th>}
+              <th className="px-2.5 py-3 font-medium">Statut</th>
+              <th className="px-2.5 py-3 font-medium">Créée le</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {demandes.map(d => (
               <tr key={d.id} className="hover:bg-gray-50">
-                <td className="p-3 whitespace-nowrap"><Link href={`/financement/demandes/${d.id}`} className="font-medium text-brand-800 underline">{d.reference}</Link></td>
-                <td className="p-3">{d.raisonSociale}</td>
-                {interne && <td className="p-3 whitespace-nowrap">{d.commercialNom}</td>}
-                <td className="p-3">{d.financeurNom}</td>
-                <td className="p-3 whitespace-nowrap">{d.dureeMois} mois{d.periodicite === 'MENSUELLE' && <span className="ml-1.5 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">mensuel</span>}</td>
-                <td className="p-3 text-right whitespace-nowrap">{euros(d.loyerCentimes)}<span className="text-gray-400"> /{d.periodicite === 'MENSUELLE' ? 'mois' : 'trim.'}</span></td>
-                <td className="p-3 text-right whitespace-nowrap">{euros(d.montantCommercialCentimes)}</td>
-                {reel && <td className="p-3 text-right whitespace-nowrap">{'montantReelCentimes' in d ? euros(d.montantReelCentimes) : ''}</td>}
-                {reel && <td className="p-3 text-right whitespace-nowrap text-emerald-700">{'margeCentimes' in d ? euros(d.margeCentimes) : ''}</td>}
-                <td className="p-3"><BadgeStatut statut={d.statut} /></td>
-                <td className="p-3 whitespace-nowrap text-gray-500">{dateFr(d.creeLe)}</td>
+                <td className="px-2.5 py-3 whitespace-nowrap"><Link href={`/financement/demandes/${d.id}`} className="font-medium text-brand-800 underline">{d.reference}</Link></td>
+                <td className="px-2.5 py-3">{d.raisonSociale}</td>
+                {interne && <td className="px-2.5 py-3 whitespace-nowrap">{d.commercialNom}</td>}
+                <td className="px-2.5 py-3">{d.financeurNom}</td>
+                <td className="px-2.5 py-3 whitespace-nowrap">{d.dureeMois} mois{d.periodicite === 'MENSUELLE' && <span className="ml-1.5 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">mensuel</span>}</td>
+                <td className="px-2.5 py-3 text-right whitespace-nowrap">{euros(d.loyerCentimes)}<span className="text-gray-400"> /{d.periodicite === 'MENSUELLE' ? 'mois' : 'trim.'}</span></td>
+                <td className="px-2.5 py-3 text-right whitespace-nowrap">{euros(d.montantCommercialCentimes)}</td>
+                {reel && <td className="px-2.5 py-3 text-right whitespace-nowrap">{'montantReelCentimes' in d ? euros(d.montantReelCentimes) : ''}</td>}
+                {reel && <td className="px-2.5 py-3 text-right whitespace-nowrap text-emerald-700">{'margeCentimes' in d ? euros(d.margeCentimes) : ''}</td>}
+                <td className="px-2.5 py-3"><BadgeStatut statut={d.statut} /></td>
+                <td className="px-2.5 py-3 whitespace-nowrap text-gray-500">{dateFr(d.creeLe)}</td>
               </tr>
             ))}
             {demandes.length === 0 && <tr><td colSpan={11} className="p-6 text-center text-gray-400">Aucune demande.</td></tr>}

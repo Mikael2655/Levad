@@ -54,7 +54,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         <Ligne t="Raison sociale">{d.raisonSociale}{d.formeJuridique ? ` (${d.formeJuridique})` : ''}</Ligne>
         <Ligne t="SIREN / SIRET">{d.siret || <span className="text-amber-700">à renseigner</span>}</Ligne>
         <Ligne t="Adresse">{[d.adresse, [d.codePostal, d.ville].filter(Boolean).join(' '), d.pays].filter(Boolean).join(', ')}</Ligne>
-        <Ligne t="Contact">{d.contactPrenom} {d.contactNom} · {d.contactEmail}{d.contactTel ? ` · ${d.contactTel}` : ''}</Ligne>
+        {(d.contactPrenom || d.contactNom || d.contactEmail || d.contactTel) && <Ligne t="Contact">{[`${d.contactPrenom} ${d.contactNom}`.trim(), d.contactEmail, d.contactTel].filter(Boolean).join(' · ')}</Ligne>}
       </section>
 
       <section className={section}>

@@ -73,6 +73,18 @@ d('demandes (base réelle)', () => {
     await expect(dem.creerDemande(S(), entree({ commercialId: ids.assistante }))).rejects.toThrow('Commercial invalide')
     expect((await dem.creerDemande(A(), entree())).id).toBeGreaterThan(0) // l'admin saisit pour lui-même par défaut
   })
+  it('le contact n’est pas demandé à la saisie ; il est enregistré à l’envoi en signature', async () => {
+    const e = entree({ contactPrenom: '', contactNom: '', contactEmail: '', contactTel: null })
+    const { id } = await dem.creerDemande(CA(), e)
+    expect(await prisma.finDemande.findUniqueOrThrow({ where: { id } })).toMatchObject({ contactPrenom: '', contactNom: '', contactEmail: '' })
+    await dem.changerStatut(CA(), id, { statut: 'ENVOYEE' })
+    await dem.changerStatut(CA(), id, { statut: 'PRETE_A_SIGNER' })
+    await dem.envoyerEnSignature(CA(), id, { prenom: 'Jeanne', nom: 'Martin', email: 'jeanne@acme.fr' }, { prenom: 'Marie', nom: 'D', email: 'm@levad.fr' })
+    expect(await prisma.finDemande.findUniqueOrThrow({ where: { id } })).toMatchObject({ statut: 'EN_SIGNATURE', contactPrenom: 'Jeanne', contactNom: 'Martin', contactEmail: 'jeanne@acme.fr' })
+  })
+  it('un e-mail de contact, s’il est donné, doit rester valide', async () => {
+    await expect(dem.creerDemande(CA(), entree({ contactEmail: 'pasunmail' }))).rejects.toThrow('e-mail du contact')
+  })
   it('validations : SIRET à clé fausse refusé, SIRET vide accepté en brouillon, durée absente du barème refusée', async () => {
     await expect(dem.creerDemande(CA(), entree({ siret: '35600000100048' }))).rejects.toThrow('invalide')
     await expect(dem.creerDemande(CA(), entree({ dureeMois: 42 }))).rejects.toThrow('pas disponible')

@@ -1,7 +1,8 @@
 import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import { estInterne } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
-import FormulaireDemande, { LIGNE_VIDE, type ValeursFormulaire } from '../FormulaireDemande'
+import FormulaireDemande, { type ValeursFormulaire } from '../FormulaireDemande'
+import { nouvelleLigne } from '../lignes'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export default async function NouvelleDemande() {
     raisonSociale: '', siret: '', formeJuridique: '', adresse: '', codePostal: '', ville: '', pays: 'France',
     contactPrenom: '', contactNom: '', contactEmail: '', contactTel: '',
     dureeMois: '', periodicite: 'TRIMESTRIELLE', saisie: 'loyer', valeur: '',
-    lignes: [{ ...LIGNE_VIDE }],
+    lignes: [nouvelleLigne()],
   }
   return (
     <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
