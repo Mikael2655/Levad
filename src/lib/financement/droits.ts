@@ -39,9 +39,12 @@ export const peutVoirMarge = (a: Acteur) => estInterne(a) // l'assistante voit l
 export const peutChoisirCommercial = (a: Acteur) => estInterne(a)
 export const peutGererUtilisateursEtGrilles = (a: Acteur) => estAdmin(a)
 export const peutSupprimer = (a: Acteur) => estAdmin(a)
+export const peutModifierContrat = (a: Acteur) => estInterne(a)
+export const peutImporterContrats = (a: Acteur) => estInterne(a)
 
 export function peutModifier(a: Acteur, d: AvecStatut): boolean {
-  if (!peutVoir(a, d) || d.statut === 'ANNULEE') return false
+  // une demande signée est devenue un contrat : c'est le contrat qu'on corrige (peutModifierContrat)
+  if (!peutVoir(a, d) || d.statut === 'ANNULEE' || d.statut === 'SIGNEE') return false
   if (estAdmin(a)) return true
   return (STATUTS_MODIFIABLES as string[]).includes(d.statut)
 }
@@ -150,8 +153,8 @@ export interface ContratBase {
   periodicite: string
   dureeMois: number
   loyerCentimes: number
-  dateDebut: Date
-  dateFin: Date
+  dateDebut: Date | null
+  dateFin: Date | null
   montantCommercialCentimes: number | null
   montantReelCentimes: number
 }

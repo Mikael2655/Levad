@@ -34,6 +34,7 @@ d('demandes (base réelle)', () => {
     admin = await import('./admin')
     dem = await import('./demandes')
     acces = await import('./acces')
+    await prisma.finContrat.deleteMany()
     await prisma.finDemande.deleteMany()
     await prisma.finGrille.deleteMany()
     await prisma.finUtilisateur.deleteMany()

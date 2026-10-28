@@ -14,6 +14,7 @@ d('accès aux demandes selon le rôle (base réelle)', () => {
     process.env.DATABASE_URL = URL_TEST
     prisma = (await import('@/lib/db')).prisma
     acces = await import('./acces')
+    await prisma.finContrat.deleteMany()
     await prisma.finDemande.deleteMany()
     await prisma.finUtilisateur.deleteMany()
     await prisma.finFinanceur.deleteMany()

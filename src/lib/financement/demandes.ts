@@ -224,6 +224,9 @@ export async function modifierDemande(a: Acteur, id: number, e: EntreeDemande): 
 
 // --- Statuts ---------------------------------------------------------------------------------------------------------
 
+export const resumeMateriel = (lignes: { designation: string; quantite: number; constructeur: string | null }[]) =>
+  lignes.map(l => `${l.quantite} × ${l.designation}${l.constructeur ? ` (${l.constructeur})` : ''}`).join(' ; ')
+
 export async function changerStatut(a: Acteur, id: number, p: { statut: string; commentaire?: string; infosManquantes?: string; refFinanceur?: string }) {
   const d = await trouverAccessible(a, id)
   if (!(statutsAccessibles(a, d) as string[]).includes(p.statut)) throw new ErreurMetier('Ce changement de statut n’est pas possible.', 403)
@@ -232,10 +235,24 @@ export async function changerStatut(a: Acteur, id: number, p: { statut: string; 
   if (p.statut === 'ENVOYEE' && !numeroEntrepriseValide(d.siret)) throw new ErreurMetier('Renseignez un SIREN / SIRET valide avant d’envoyer au financeur.')
   const commentaire = [p.commentaire?.trim(), p.statut === 'INFOS_MANQUANTES' ? `Demandé : ${infos}` : ''].filter(Boolean).join(' — ') || null
   const ref = peutChangerStatut(a) ? p.refFinanceur?.trim() : undefined
-  await prisma.$transaction([
+  const operations: Prisma.PrismaPromise<unknown>[] = [
     prisma.finDemande.update({ where: { id }, data: { statut: p.statut, infosManquantes: p.statut === 'INFOS_MANQUANTES' ? infos : null, ...(ref ? { refFinanceur: ref } : {}) } }),
     prisma.finHistorique.create({ data: { demandeId: id, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: p.statut, commentaire } }),
-  ])
+  ]
+  // Une demande signée devient un contrat en cours (la date du 1er loyer sera renseignée ensuite).
+  if (p.statut === 'SIGNEE') {
+    const lignes = await prisma.finDemandeLigne.findMany({ where: { demandeId: id }, orderBy: { id: 'asc' } })
+    operations.push(
+      prisma.finContrat.create({
+        data: {
+          demandeId: id, importe: false, refFinanceur: ref || d.refFinanceur, financeurId: d.financeurId, commercialId: d.commercialId,
+          raisonSociale: d.raisonSociale, siret: d.siret || null, materiel: resumeMateriel(lignes), periodicite: d.periodicite, dureeMois: d.dureeMois,
+          loyerCentimes: d.loyerCentimes, montantCommercialCentimes: d.montantCommercialCentimes, montantReelCentimes: d.montantReelCentimes,
+        },
+      }),
+    )
+  }
+  await prisma.$transaction(operations)
   return { ok: true }
 }
 

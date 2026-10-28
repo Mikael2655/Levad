@@ -81,5 +81,6 @@ describe('actions', () => {
     expect(peutModifier(comB, demande)).toBe(false)
     expect(peutModifier(admin, { ...demande, statut: 'ENVOYEE' })).toBe(true)
     expect(peutModifier(admin, { ...demande, statut: 'ANNULEE' })).toBe(false)
+    expect(peutModifier(admin, { ...demande, statut: 'SIGNEE' })).toBe(false) // devenue un contrat
   })
 })

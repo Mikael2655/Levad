@@ -17,6 +17,7 @@ d('administration (base réelle)', () => {
     process.env.DATABASE_URL = URL_TEST
     prisma = (await import('@/lib/db')).prisma
     admin = await import('./admin')
+    await prisma.finContrat.deleteMany()
     await prisma.finDemande.deleteMany()
     await prisma.finGrille.deleteMany()
     await prisma.finUtilisateur.deleteMany()

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { compterParStatut, listerDemandes, type FiltresDemandes } from '@/lib/financement/acces'
+import { compterEcheancesProches } from '@/lib/financement/contrats'
 import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import { STATUTS, estInterne, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
@@ -25,11 +26,12 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
     au: au && new Date(au.getTime() + 86_400_000 - 1),
     archivees: searchParams.arch === '1',
   }
-  const [demandes, compteurs, financeurs, utilisateurs] = await Promise.all([
+  const [demandes, compteurs, financeurs, utilisateurs, echeancesProches] = await Promise.all([
     listerDemandes(u, filtres),
     compterParStatut(u, filtres),
     listerFinanceurs(),
     interne ? listerUtilisateurs() : Promise.resolve([]),
+    compterEcheancesProches(u),
   ])
   const commerciaux = utilisateurs.filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN'))
   const total = Object.values(compteurs).reduce((n, v) => n + v, 0)
@@ -47,6 +49,12 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
         <h1 className="text-xl font-bold text-gray-900">{filtres.archivees ? 'Demandes archivées' : 'Demandes de financement'}</h1>
         <Link href="/financement/demandes/nouvelle" className="ml-auto bg-brand-800 text-white rounded-xl px-4 py-2 text-sm font-semibold">+ Nouvelle demande</Link>
       </div>
+
+      {echeancesProches > 0 && (
+        <Link href="/financement/contrats?e=proche6" className="block bg-orange-50 border border-orange-300 rounded-xl px-4 py-3 text-sm text-orange-900">
+          <b>{echeancesProches} contrat{echeancesProches > 1 ? 's arrivent' : ' arrive'} à échéance dans les 6 prochains mois</b> — opportunités de renouvellement. Voir →
+        </Link>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Link href={lien(undefined)} className={`px-3 py-1.5 rounded-full text-sm border ${!filtres.statut ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 text-gray-700'}`}>Toutes ({total})</Link>
