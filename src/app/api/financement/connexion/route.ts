@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { diagnosticEnvironnement } from '@/lib/financement/diagnostic'
 import { HASH_FACTICE, verifier } from '@/lib/financement/motdepasse'
 import { SESSION_FIN_COOKIE, creerJeton, optionsCookieFin, secretConfigure } from '@/lib/financement/session'
 
 export async function POST(req: Request) {
   if (!secretConfigure()) {
-    return NextResponse.json({ error: 'Configuration incomplète : la variable AUTH_SECRET est absente de cet environnement Vercel (ajoutez-la puis relancez le déploiement).' }, { status: 503 })
+    return NextResponse.json({ error: 'Configuration incomplète : la variable AUTH_SECRET est absente de cet environnement Vercel (ajoutez-la puis relancez le déploiement). Diagnostic — ' + diagnosticEnvironnement(/auth|secret|app_/i) }, { status: 503 })
   }
   try {
     return await connecter(req)

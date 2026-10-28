@@ -35,7 +35,9 @@ describe('secret de signature', () => {
       const { POST } = await import('@/app/api/financement/connexion/route')
       const res = await POST(new Request('http://x/api/financement/connexion', { method: 'POST', body: JSON.stringify({ email: 'a@b.fr', motDePasse: 'x' }) }))
       expect(res.status).toBe(503)
-      expect((await res.json()).error).toContain('AUTH_SECRET')
+      const message = (await res.json()).error as string
+      expect(message).toContain('AUTH_SECRET')
+      expect(message).toContain('Diagnostic')
     } finally {
       process.env.AUTH_SECRET = auth
       if (app !== undefined) process.env.APP_PASSWORD = app
