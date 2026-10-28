@@ -5,7 +5,7 @@ import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { prisma } from '@/lib/db'
 import { trierParNom } from '@/lib/connect/tri'
 import { avecEncres } from '@/lib/connect/releves'
-import { calculer, type Compteurs } from '@/lib/connect/calcul'
+import { calculer, totauxStandard, type Compteurs } from '@/lib/connect/calcul'
 import { VERT, Badge, Encres, depuis, jour, formaterDate, nombre, type Encre } from '@/components/connect/affichage'
 import { statutConnexion } from '@/lib/connect/agent'
 import { creerClient, marquerMachinesVues } from './actions'
@@ -152,6 +152,7 @@ export default async function ParcPage() {
                 const r = m.releves[0]
                 const compteurs = (r?.compteurs ?? {}) as unknown as Compteurs
                 const calc = calculer(compteurs, m.recette)
+                const std = totauxStandard(compteurs)
                 const suivie = m.categorie === 'mine'
                 const encreSuivie = suivie && !m.horsContrat
                 return (
@@ -199,6 +200,11 @@ export default async function ParcPage() {
                         <p className="flex flex-wrap gap-x-4">
                           <span>N&amp;B <strong>{nombre(calc.retenue.nb)}</strong></span>
                           <span>Couleur <strong>{nombre(calc.retenue.couleur)}</strong></span>
+                        </p>
+                      ) : std ? (
+                        <p className="flex flex-wrap gap-x-4">
+                          {std.nb !== null && <span>N&amp;B <strong>{nombre(std.nb)}</strong></span>}
+                          {std.couleur !== null && <span>Couleur <strong>{nombre(std.couleur)}</strong></span>}
                         </p>
                       ) : (
                         <p>Total <strong>{nombre(r?.totalStandard)}</strong></p>
