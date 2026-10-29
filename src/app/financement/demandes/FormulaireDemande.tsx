@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { Entreprise } from '@/lib/financement/entreprises'
 import { appel, eurosVersCentimes } from '../appel'
+import { TitreSection } from '../Fiche'
 import { dureeLibelle, euros, pourcentCoef } from '../format'
 import { nouvelleLigne, type LigneForm } from './lignes'
 import RechercheEntreprise from './RechercheEntreprise'
@@ -27,7 +28,7 @@ interface Calcul {
   } | null
 }
 
-const champ = 'w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm bg-white'
+const champ = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 const Etiquette = ({ t, children }: { t: string; children: React.ReactNode }) => <label className="block text-sm"><span className="text-gray-600 text-xs">{t}</span>{children}</label>
 
 export default function FormulaireDemande(p: {
@@ -102,7 +103,7 @@ export default function FormulaireDemande(p: {
   return (
     <form onSubmit={enregistrer} className="space-y-4">
       <section className={section}>
-        <h2 className="font-semibold text-gray-900">Client</h2>
+        <TitreSection icone="🏢">Client</TitreSection>
         <RechercheEntreprise onChoisir={choisirEntreprise} siren={v.siret} />
         <div className="grid gap-3 sm:grid-cols-2">
           <Etiquette t="Raison sociale *"><input className={champ} value={v.raisonSociale} onChange={e => set('raisonSociale', e.target.value)} required /></Etiquette>
@@ -117,7 +118,7 @@ export default function FormulaireDemande(p: {
       </section>
 
       <section className={section}>
-        <h2 className="font-semibold text-gray-900">Matériel et prestations</h2>
+        <TitreSection icone="🖨️">Matériel et prestations</TitreSection>
         <div className="space-y-2">
           {v.lignes.map((l, i) => (
             <div key={i} className="grid gap-2 sm:grid-cols-[2fr_4rem_1fr_1fr_auto] items-end border-b border-gray-100 pb-2">
@@ -133,7 +134,7 @@ export default function FormulaireDemande(p: {
       </section>
 
       <section className={section}>
-        <h2 className="font-semibold text-gray-900">Financement</h2>
+        <TitreSection icone="💶">Financement</TitreSection>
         <div className="grid gap-3 sm:grid-cols-3">
           <Etiquette t="Financeur *">
             <select className={champ} value={v.financeurId} onChange={e => set('financeurId', e.target.value)} required>
@@ -195,7 +196,7 @@ export default function FormulaireDemande(p: {
 
       {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{erreur}</p>}
       <div className="flex gap-3">
-        <button disabled={envoi} className="bg-leasing-700 text-white rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-60">{p.mode === 'creation' ? 'Enregistrer en brouillon' : 'Enregistrer les modifications'}</button>
+        <button disabled={envoi} className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-60">{p.mode === 'creation' ? 'Enregistrer en brouillon' : 'Enregistrer les modifications'}</button>
         <button type="button" className="text-sm underline text-gray-600" onClick={() => router.back()}>Annuler</button>
       </div>
     </form>

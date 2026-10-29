@@ -23,7 +23,7 @@ export default function MenuPrincipal({ admin }: { admin: boolean }) {
             key={o.href}
             href={o.href}
             aria-current={actif ? 'page' : undefined}
-            className={`px-3 sm:px-4 py-2 rounded-full whitespace-nowrap transition ${actif ? 'bg-leasing-700 text-white font-semibold shadow-sm' : 'text-gray-600 hover:bg-leasing-100 hover:text-leasing-800'}`}
+            className={`px-3 sm:px-4 py-2 rounded-full whitespace-nowrap transition ${actif ? 'bg-leasing-700 hover:bg-leasing-800 text-white transition font-semibold shadow-sm' : 'text-gray-600 hover:bg-leasing-100 hover:text-leasing-800'}`}
           >
             {o.libelle}
           </Link>

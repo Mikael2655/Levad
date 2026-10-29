@@ -6,7 +6,7 @@ import { appel, bpVersPourcent, eurosVersCentimes, pourcentVersBp } from '../../
 
 interface F { id: number; nom: string; connecteur: string; actif: boolean; majorationMensuelleBp: number; commissionBp: number | null; fraisDossierCentimes: number; signatureElectronique: boolean; envoiParMail: boolean; destinataireMailId: number | null }
 interface D { id: number; nom: string }
-const champ = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm'
+const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leasing-400 transition'
 
 function Ligne({ f, destinataires, onErreur }: { f: F | null; destinataires: D[]; onErreur: (m: string | null) => void }) {
   const router = useRouter()
@@ -42,7 +42,7 @@ function Ligne({ f, destinataires, onErreur }: { f: F | null; destinataires: D[]
       <label className="flex items-center gap-1.5 pb-2 text-sm"><input type="checkbox" checked={parMail} onChange={e => setParMail(e.target.checked)} />Demande transmise par e-mail</label>
       {parMail && <label><span className={etiquette}>E-mail envoyé à</span><select className={`${champ} bg-white`} value={destinataire} onChange={e => setDestinataire(e.target.value)}><option value="">— choisir —</option>{destinataires.map(x => <option key={x.id} value={x.id}>{x.nom}</option>)}</select></label>}
       {f && <span className="text-sm text-gray-500 pb-2">Connecteur : {f.connecteur}</span>}
-      <button type="submit" className="bg-leasing-700 text-white rounded-lg px-4 py-1.5 text-sm font-semibold">{f ? 'Enregistrer' : 'Ajouter'}</button>
+      <button type="submit" className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-lg px-4 py-1.5 text-sm font-semibold">{f ? 'Enregistrer' : 'Ajouter'}</button>
       {f && (
         <button type="button" className={`${champ} bg-white`} onClick={async () => {
           onErreur(null)

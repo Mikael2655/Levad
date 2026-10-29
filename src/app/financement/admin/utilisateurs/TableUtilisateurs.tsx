@@ -6,7 +6,7 @@ import { appel } from '../../appel'
 
 interface U { id: number; email: string; prenom: string; nom: string; role: string; actif: boolean; doitChangerMotDePasse: boolean }
 const ROLES = [['ADMIN', 'Administrateur'], ['ASSISTANTE', 'Assistante'], ['COMMERCIAL', 'Commercial']]
-const champ = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm'
+const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leasing-400 transition'
 
 export default function TableUtilisateurs({ moiId, utilisateurs }: { moiId: number; utilisateurs: U[] }) {
   const router = useRouter()
@@ -77,7 +77,7 @@ export default function TableUtilisateurs({ moiId, utilisateurs }: { moiId: numb
         <select className={champ} value={nouveau.role} onChange={e => setNouveau({ ...nouveau, role: e.target.value })}>
           {ROLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        <button type="submit" className="bg-leasing-700 text-white rounded-lg px-4 py-1.5 text-sm font-semibold">Créer</button>
+        <button type="submit" className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-lg px-4 py-1.5 text-sm font-semibold">Créer</button>
       </form>
     </div>
   )

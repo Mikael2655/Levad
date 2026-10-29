@@ -75,9 +75,9 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Link href={lien(undefined)} data-garde-m className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${!filtres.statut ? 'bg-leasing-700 text-white shadow-sm' : 'bg-white ring-1 ring-gray-900/10 text-gray-700 hover:bg-leasing-50'}`}>Toutes ({total})</Link>
+        <Link href={lien(undefined)} data-garde-m className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${!filtres.statut ? 'bg-leasing-700 hover:bg-leasing-800 text-white transition shadow-sm' : 'bg-white ring-1 ring-gray-900/10 text-gray-700 hover:bg-leasing-50'}`}>Toutes ({total})</Link>
         {STATUTS.filter(s => compteurs[s] || filtres.statut === s).map(s => (
-          <Link key={s} href={lien(s)} data-garde-m className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${filtres.statut === s ? 'bg-leasing-700 text-white shadow-sm' : 'bg-white ring-1 ring-gray-900/10 text-gray-700 hover:bg-leasing-50'}`}>
+          <Link key={s} href={lien(s)} data-garde-m className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${filtres.statut === s ? 'bg-leasing-700 hover:bg-leasing-800 text-white transition shadow-sm' : 'bg-white ring-1 ring-gray-900/10 text-gray-700 hover:bg-leasing-50'}`}>
             {LIBELLES_STATUT[s]} ({compteurs[s] ?? 0})
           </Link>
         ))}

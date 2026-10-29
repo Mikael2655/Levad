@@ -33,7 +33,7 @@ export default function FormulaireMotDePasse({ obligatoire }: { obligatoire: boo
       <input type="password" placeholder="Confirmer le nouveau mot de passe" value={confirmation} onChange={e => setConfirmation(e.target.value)} autoComplete="new-password" required className={champ} />
       {erreur && <p className="text-sm text-red-600">{erreur}</p>}
       {fait && !obligatoire && <p className="text-sm text-green-700">Mot de passe modifié.</p>}
-      <button type="submit" className="w-full bg-leasing-700 text-white rounded-xl py-2.5 text-sm font-semibold">Enregistrer</button>
+      <button type="submit" className="w-full bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-xl py-2.5 text-sm font-semibold">Enregistrer</button>
     </form>
   )
 }

@@ -42,7 +42,7 @@ export default function EssaisGrenke({ prete, demandes }: { prete: boolean; dema
         <h2 className="font-semibold text-gray-900">Aperçu d’une demande (rien n’est envoyé)</h2>
         <p className="text-sm text-gray-500">Montre exactement ce qui partirait chez Grenke : le <b>montant réel</b> réparti sur les matériels, le client, la périodicité.</p>
         <div className="flex flex-wrap gap-2 items-center">
-          <select className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white" value={demandeId} onChange={e => setDemandeId(e.target.value)}>
+          <select className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition" value={demandeId} onChange={e => setDemandeId(e.target.value)}>
             {demandes.map(x => <option key={x.id} value={x.id}>{x.reference} · {x.raisonSociale}</option>)}
             {demandes.length === 0 && <option value="">Aucune demande</option>}
           </select>

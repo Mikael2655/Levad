@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { appel } from '../../appel'
+import { TitreSection } from '../../Fiche'
 import { dateFr } from '../../format'
 
 interface Piece { envoyeFinanceurLe: string | null; id: number; type: string; nomFichier: string; taille: number; ajouteLe: string; ajouteParId: number; ajouteParNom: string }
@@ -12,7 +13,7 @@ const LIBELLE: Record<string, string> = Object.fromEntries(TYPES)
 const MORCEAU = 3 * 1024 * 1024 // doit rester sous la limite de 4,5 Mo par requête
 const TAILLE_MAX = 10 * 1024 * 1024
 const CONSERVATION_JOURS = 60
-const champ = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white'
+const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 
 const taille = (o: number) => (o >= 1024 * 1024 ? `${(o / 1024 / 1024).toFixed(1).replace('.', ',')} Mo` : `${Math.max(1, Math.round(o / 1024))} Ko`)
 
@@ -50,7 +51,7 @@ export default function PiecesJointes(p: { financeurAvecApi: boolean; demandeId:
 
   return (
     <section className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3">
-      <h2 className="font-semibold text-gray-900">Pièces jointes</h2>
+      <TitreSection icone="📎">Pièces jointes</TitreSection>
       {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{erreur}</p>}
 
       {p.pieces.length > 0 ? (

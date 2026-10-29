@@ -32,7 +32,7 @@ export default async function NouvelleDemande({ searchParams }: { searchParams: 
   }
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
-      <h1 className="text-xl font-bold text-gray-900">{rachat ? 'Demande de renouvellement' : 'Nouvelle demande de financement'}</h1>
+      <h1 className="text-2xl font-bold text-gray-900">{rachat ? 'Demande de renouvellement' : 'Nouvelle demande de financement'}</h1>
       <FormulaireDemande mode="creation" rachat={rachat ? { id: rachat.id, totalCentimes: rachat.totalCentimes, type: rachat.type, contrat: rachat.contrat.raisonSociale } : null} initial={initial} financeurs={financeurs.map(f => ({ id: f.id, nom: f.nom }))} commerciaux={commerciaux} interne={interne} />
     </main>
   )

@@ -4,6 +4,7 @@ import { exigerUtilisateur } from '@/lib/financement/garde'
 import { lireParametre, PARAM_DOSSIER_COMPLET, PARAM_SIGNATAIRE_LEVAD } from '@/lib/financement/notifications'
 import { dateHeureFr } from '../../format'
 import FormulaireNotifications from './FormulaireNotifications'
+import RetourAdmin from '../RetourAdmin'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,7 +20,8 @@ export default async function PageNotifications() {
   const mailActif = !!process.env.RESEND_API_KEY
   return (
     <main className="max-w-5xl mx-auto p-6 space-y-4">
-      <h1 className="text-xl font-bold text-gray-900">Notifications par e-mail</h1>
+      <RetourAdmin />
+      <h1 className="text-2xl font-bold text-gray-900">Notifications par e-mail</h1>
       {!mailActif && <p className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900">L’envoi d’e-mails n’est pas encore activé : ajoutez <code>RESEND_API_KEY</code> (et <code>FIN_MAIL_FROM</code>) dans Vercel, puis redéployez.</p>}
       <FormulaireNotifications choix={choix} signataireLevadId={signataire ?? ''} dossierCompletId={complet ?? ''} />
       <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm overflow-x-auto">

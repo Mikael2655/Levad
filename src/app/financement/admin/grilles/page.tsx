@@ -4,6 +4,7 @@ import { dureesDisponibles } from '@/lib/financement/calcul'
 import { exigerUtilisateur } from '@/lib/financement/garde'
 import BoutonsGrillePropre from './BoutonsGrillePropre'
 import EditeurGrille from './EditeurGrille'
+import RetourAdmin from '../RetourAdmin'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,12 +27,13 @@ export default async function PageGrilles({ searchParams }: { searchParams: { f?
   const durees = reelle && commune ? dureesDisponibles(reelle, commune) : []
 
   const lien = (cible: string, texte: string) => (
-    <Link key={cible} href={`/financement/admin/grilles?f=${financeur.id}&c=${cible}`} className={`px-3 py-1.5 rounded-lg text-sm border ${c === cible ? 'bg-leasing-700 text-white border-leasing-700' : 'bg-white border-gray-300 text-gray-700'}`}>{texte}</Link>
+    <Link key={cible} href={`/financement/admin/grilles?f=${financeur.id}&c=${cible}`} className={`px-3 py-1.5 rounded-lg text-sm border ${c === cible ? 'bg-leasing-700 hover:bg-leasing-800 text-white transition border-leasing-700' : 'bg-white border-gray-300 text-gray-700'}`}>{texte}</Link>
   )
 
   return (
     <main className="max-w-5xl mx-auto p-6 space-y-4">
-      <h1 className="text-xl font-bold text-gray-900">Barèmes</h1>
+      <RetourAdmin />
+      <h1 className="text-2xl font-bold text-gray-900">Barèmes</h1>
       <div className="flex flex-wrap gap-2">
         {financeurs.map(f => <Link key={f.id} href={`/financement/admin/grilles?f=${f.id}`} className={`px-3 py-1.5 rounded-lg text-sm border ${f.id === financeur.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 text-gray-700'}`}>{f.nom}</Link>)}
       </div>

@@ -7,7 +7,7 @@ import { ETAPES_SIGNATURE, LIBELLES_ETAPE } from '@/lib/financement/etapes'
 import { appel, eurosVersCentimes } from '../../appel'
 
 interface Sig { prenom: string; nom: string; email: string }
-const champ = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white'
+const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 
 export default function ActionsDemande(p: {
   id: number
@@ -71,7 +71,7 @@ export default function ActionsDemande(p: {
           </div>
           <div className="flex flex-wrap gap-2">
             {avancer.map(s => (
-              <button key={s.valeur} className="bg-gray-900 text-white rounded-lg px-3 py-1.5 text-sm" onClick={() => agir(async () => {
+              <button key={s.valeur} className="bg-gray-800 hover:bg-gray-900 text-white rounded-xl transition px-3 py-1.5 text-sm" onClick={() => agir(async () => {
                 await appel(`${url}/statut`, 'POST', { statut: s.valeur, commentaire, infosManquantes: infos, refFinanceur: ref, ...(p.saisieMontantReel && montantReel.trim() ? { montantReelCentimes: eurosVersCentimes(montantReel) } : {}) })
                 setCommentaire(''); setInfos('')
               })}>→ {s.libelle}</button>

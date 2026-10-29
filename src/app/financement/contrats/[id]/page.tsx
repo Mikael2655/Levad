@@ -4,6 +4,7 @@ import { listerUtilisateurs } from '@/lib/financement/admin'
 import { lireContrat } from '@/lib/financement/contrats'
 import { peutModifierContrat, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
+import { Ligne, TitreSection } from '../../Fiche'
 import { dateFr, dureeLibelle, euros, libellePeriodicite, materielAffiche } from '../../format'
 import { listerRachats } from '@/lib/financement/rachats'
 import BadgeStatutContrat, { LIBELLES_STATUT_CONTRAT } from '../BadgeStatutContrat'
@@ -14,10 +15,6 @@ import SoldeContrat from './SoldeContrat'
 import FormulaireContrat from './FormulaireContrat'
 
 export const dynamic = 'force-dynamic'
-
-const Ligne = ({ t, children }: { t: string; children: React.ReactNode }) => (
-  <div className="flex gap-3 py-1 text-sm"><span className="w-48 shrink-0 text-gray-500">{t}</span><span className="text-gray-900">{children}</span></div>
-)
 
 export default async function FicheContrat({ params, searchParams }: { params: { id: string }; searchParams: { m?: string } }) {
   const u = await exigerUtilisateur()
@@ -33,16 +30,16 @@ export default async function FicheContrat({ params, searchParams }: { params: {
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/financement/contrats" className="text-sm text-gray-500 underline">← Contrats</Link>
-        <h1 className="text-xl font-bold text-gray-900">{c.raisonSociale}</h1>
+        <Link href="/financement/contrats" className="text-sm text-gray-500 hover:text-leasing-700 bg-white ring-1 ring-gray-900/10 rounded-full px-3 py-1 transition">← Contrats</Link>
+        <h1 className="text-2xl font-bold text-gray-900">{c.raisonSociale}</h1>
         <BadgeStatutContrat statut={c.statutContrat} etat={c.etat} mois={c.moisRestants} />
         {c.clotureLe && <span className="text-sm text-gray-500">clôturé le {dateFr(c.clotureLe)}{'clotureMotif' in c && c.clotureMotif ? ` (${c.clotureMotif})` : ''}</span>}
         {c.importe && <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">Importé</span>}
       </div>
 
       <section className={section}>
-        <div className="flex flex-wrap items-start gap-3 mb-2">
-          <h2 className="font-semibold text-gray-900">Contrat</h2>
+        <div className="flex flex-wrap items-start gap-3">
+          <TitreSection icone="📄">Contrat</TitreSection>
           {reel && <div className="ml-auto text-sm"><SelecteurMontant initial={modeMontant} /></div>}
         </div>
         <Ligne t="Financeur">{c.financeurNom}</Ligne>
