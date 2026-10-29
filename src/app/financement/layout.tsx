@@ -1,8 +1,15 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { utilisateurCourant } from '@/lib/financement/auth'
 import Deconnexion from './Deconnexion'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Financements LEVAD',
+  description: 'Demandes de location financière et contrats LEVAD',
+  icons: { icon: '/financement-icon-64.png', apple: '/financement-icon-180.png' },
+}
 
 const LIBELLE_ROLE = { ADMIN: 'Administrateur', ASSISTANTE: 'Assistante', COMMERCIAL: 'Commercial' } as const
 
