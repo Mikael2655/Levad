@@ -382,6 +382,7 @@ model FinPieceJointe {
   stockage    String         @default("base") // le contenu est dans fin_piece_morceau (base de données)
   typeMime    String         @default("application/octet-stream")
   complete    Boolean        @default(false) // faux tant que l'envoi (par morceaux) n'est pas terminé
+  envoyeFinanceurLe DateTime? // date d'envoi au financeur par son API (Grenke)
   morceaux    FinPieceMorceau[]
   taille      Int
   ajouteParId Int

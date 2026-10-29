@@ -24,7 +24,7 @@ function conditions(acteur: Acteur, f: FiltresDemandes): Prisma.FinDemandeWhereI
   }
 }
 
-const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: { select: { nom: true, signatureElectronique: true, envoiParMail: true } } } as const
+const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: { select: { nom: true, connecteur: true, signatureElectronique: true, envoiParMail: true } } } as const
 
 export async function listerDemandes(acteur: Acteur, f: FiltresDemandes = {}) {
   const lignes = await prisma.finDemande.findMany({ where: conditions(acteur, f), orderBy: { creeLe: 'desc' }, include: { ...NOMS, lignes: { orderBy: { id: 'asc' }, select: { designation: true, quantite: true } } } })
@@ -65,11 +65,12 @@ export async function lireDemande(acteur: Acteur, id: number) {
     commercialNom: `${commercial.prenom} ${commercial.nom}`,
     financeurNom: financeur.nom,
     signatureElectronique: financeur.signatureElectronique,
+    financeurAvecApi: financeur.connecteur === 'grenke_api',
     envoiParMail: financeur.envoiParMail,
     ...(estInterne(acteur) ? { sansBaremeReel } : {}),
     saisiParNom: `${saisiPar.prenom} ${saisiPar.nom}`,
     lignes: lignes.map(l => ({ id: l.id, designation: l.designation, quantite: l.quantite, montantHtCentimes: l.montantHtCentimes, typeBien: l.typeBien, constructeur: l.constructeur })),
-    pieces: pieces.map(p => ({ id: p.id, type: p.type, nomFichier: p.nomFichier, taille: p.taille, ajouteLe: p.ajouteLe, ajouteParId: p.ajouteParId, ajouteParNom: `${p.ajoutePar.prenom} ${p.ajoutePar.nom}` })),
+    pieces: pieces.map(p => ({ id: p.id, type: p.type, nomFichier: p.nomFichier, taille: p.taille, ajouteLe: p.ajouteLe, ajouteParId: p.ajouteParId, envoyeFinanceurLe: p.envoyeFinanceurLe, ajouteParNom: `${p.ajoutePar.prenom} ${p.ajoutePar.nom}` })),
     // historique : on n'expose que le nom de l'auteur (jamais son adresse e-mail)
     historique: historique.map(h => ({ id: h.id, date: h.date, ancienStatut: h.ancienStatut, nouveauStatut: h.nouveauStatut, commentaire: h.commentaire, auteurNom: `${h.auteur.prenom} ${h.auteur.nom}` })),
     signature,

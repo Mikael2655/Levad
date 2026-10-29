@@ -24,6 +24,7 @@ beforeAll(async () => {
       const cn = (req.socket as any).getPeerCertificate()?.subject?.CN
       vues.push({ methode: req.method, url: req.url, cn, corps: Buffer.concat(morceaux).toString() })
       const reponse = (code: number, json: unknown) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(json)) }
+      if (req.method === 'POST' && /^\/basic\/v1\/calculationSets\/[0-9a-f-]{36}\/documents\/base64$/.test(req.url ?? '')) return reponse(200, {})
       if (req.url === '/echo') return reponse(200, '2026-10-29T10:00:00Z')
       if (req.url === '/basic/v1/calculate') return reponse(200, { Items: [{ Period: 36, MonthlyTotalInstalment: 316.02 }, { Period: 63, MonthlyTotalInstalment: 192 }] })
       if (req.url?.startsWith('/basic/v1/requests/11111111-1111-1111-1111-111111111111')) return reponse(200, { FinancingId: '11111111-1111-1111-1111-111111111111', State: 'AwaitingCustomerSignature' })
@@ -79,5 +80,32 @@ describe('connexion à l’API par certificat (serveur local)', () => {
     await expect(connecteur.recupererStatut('pas-un-uuid')).rejects.toThrow('invalide')
     await expect(appelerOk(config(), 'GET', '/interdit')).rejects.toThrow(/403/)
     await expect(connecteur.creerDemande(1)).rejects.toThrow('pas encore activé')
+  })
+})
+
+describe('envoi d’un document à Grenke (écriture)', () => {
+  const ID = '11111111-1111-1111-1111-111111111111'
+  it('refusé tant que GRENKE_ECRITURE n’est pas « oui »', async () => {
+    delete process.env.GRENKE_ECRITURE
+    const avant = vues.length
+    await expect(creerConnecteurGrenke(config()).envoyerPiece(ID, 'kbis.pdf', Buffer.from('%PDF-1.4'))).rejects.toThrow('pas encore activé')
+    expect(vues.length).toBe(avant) // aucun appel n'est parti
+  })
+  it('autorisé : le document part en base64 avec la catégorie 300, certificat client présenté', async () => {
+    process.env.GRENKE_ECRITURE = 'oui'
+    try {
+      await creerConnecteurGrenke(config()).envoyerPiece(ID, 'kbis.pdf', Buffer.from('%PDF-1.4 contenu'))
+      const v = vues.at(-1)!
+      expect(v).toMatchObject({ methode: 'POST', url: `/basic/v1/calculationSets/${ID}/documents/base64`, cn: 'cccccccc-0000-0000-0000-00000000000c' })
+      expect(JSON.parse(v.corps!)).toEqual({ DocumentName: 'kbis.pdf', DocumentContent: Buffer.from('%PDF-1.4 contenu').toString('base64'), DocumentCategory: 300 })
+    } finally { delete process.env.GRENKE_ECRITURE }
+  })
+  it('un identifiant de demande qui n’est pas un UUID est refusé avant tout appel', async () => {
+    process.env.GRENKE_ECRITURE = 'oui'
+    try {
+      const avant = vues.length
+      await expect(creerConnecteurGrenke(config()).envoyerPiece('../../contracts', 'a.pdf', Buffer.from('x'))).rejects.toThrow('invalide')
+      expect(vues.length).toBe(avant)
+    } finally { delete process.env.GRENKE_ECRITURE }
   })
 })

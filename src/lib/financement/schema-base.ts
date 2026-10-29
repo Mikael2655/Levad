@@ -14,7 +14,9 @@ const V2 = 'prisma/migrations/manual_financement_2.sql'
 const V3 = 'prisma/migrations/manual_financement_3.sql'
 const V4 = 'prisma/migrations/manual_financement_4.sql'
 const V5 = 'prisma/migrations/manual_financement_5.sql'
+const V6 = 'prisma/migrations/manual_financement_6.sql'
 const COLONNES_AJOUTEES: Record<string, string> = {
+  'fin_piece_jointe.envoyeFinanceurLe': V6,
   'fin_piece_jointe.typeMime': V5,
   'fin_piece_jointe.complete': V5,
   fin_piece_morceau: V5,

@@ -164,4 +164,35 @@ d('pièces jointes (base réelle)', () => {
     expect(await prisma.finPieceJointe.count({ where: { id: autre } })).toBe(1)
     expect(pj.suppressionLe(new Date('2026-01-01T00:00:00Z')).toISOString().slice(0, 10)).toBe('2026-03-02')
   })
+
+  describe('envoi au financeur par son API', () => {
+    const envoyes: { ref: string; nom: string; octets: number }[] = []
+    const faux = (echoue = false) => ({ envoyerPiece: async (ref: string, nom: string, contenu: Buffer) => { if (echoue) throw new Error('Grenke indisponible'); envoyes.push({ ref, nom, octets: contenu.length }) } }) as never
+    it('sans référence chez le financeur ou sans connecteur : rien ne part', async () => {
+      const id = await deposer(CA(), pdf(500), 'avant.pdf')
+      expect(await pj.transmettrePieces(demandeId, faux())).toEqual({ envoyees: 0, echecs: [] }) // demande pas encore créée chez le financeur
+      await prisma.finDemande.update({ where: { id: demandeId }, data: { refFinanceur: '11111111-1111-1111-1111-111111111111' } })
+      expect(await pj.transmettrePieces(demandeId, null)).toEqual({ envoyees: 0, echecs: [] }) // financeur sans API
+      expect((await prisma.finPieceJointe.findUniqueOrThrow({ where: { id } })).envoyeFinanceurLe).toBeNull()
+    })
+    it('avec la référence : toutes les pièces en attente partent, une seule fois, avec leur contenu complet', async () => {
+      const gros = pdf(7 * 1024 * 1024)
+      await prisma.finPieceJointe.updateMany({ where: { demandeId }, data: { envoyeFinanceurLe: new Date() } }) // anciennes pièces déjà parties
+      const id = await deposer(CA(), gros, 'gros.pdf')
+      envoyes.length = 0
+      expect(await pj.transmettrePieces(demandeId, faux())).toEqual({ envoyees: 1, echecs: [] })
+      expect(envoyes).toEqual([{ ref: '11111111-1111-1111-1111-111111111111', nom: 'gros.pdf', octets: gros.length }])
+      expect((await prisma.finPieceJointe.findUniqueOrThrow({ where: { id } })).envoyeFinanceurLe).not.toBeNull()
+      expect(await pj.transmettrePieces(demandeId, faux())).toEqual({ envoyees: 0, echecs: [] }) // pas de doublon
+    })
+    it('un échec laisse la pièce « à envoyer », sans bloquer le dépôt, et se retente ensuite', async () => {
+      await prisma.finPieceJointe.updateMany({ where: { demandeId }, data: { envoyeFinanceurLe: new Date() } })
+      const id = await deposer(CA(), pdf(300), 'echec.pdf')
+      const r = await pj.transmettrePieces(demandeId, faux(true))
+      expect(r.envoyees).toBe(0)
+      expect(r.echecs[0]).toContain('Grenke indisponible')
+      expect((await prisma.finPieceJointe.findUniqueOrThrow({ where: { id } })).envoyeFinanceurLe).toBeNull()
+      expect((await pj.transmettrePieces(demandeId, faux())).envoyees).toBe(1)
+    })
+  })
 })

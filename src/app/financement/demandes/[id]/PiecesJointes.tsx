@@ -5,7 +5,7 @@ import { useRef, useState } from 'react'
 import { appel } from '../../appel'
 import { dateFr } from '../../format'
 
-interface Piece { id: number; type: string; nomFichier: string; taille: number; ajouteLe: string; ajouteParId: number; ajouteParNom: string }
+interface Piece { envoyeFinanceurLe: string | null; id: number; type: string; nomFichier: string; taille: number; ajouteLe: string; ajouteParId: number; ajouteParNom: string }
 
 const TYPES = [['KBIS', 'Kbis'], ['BILAN', 'Bilan'], ['RIB', 'RIB'], ['IDENTITE', 'Pièce d’identité'], ['AUTRE', 'Autre']] as const
 const LIBELLE: Record<string, string> = Object.fromEntries(TYPES)
@@ -16,7 +16,7 @@ const champ = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white'
 
 const taille = (o: number) => (o >= 1024 * 1024 ? `${(o / 1024 / 1024).toFixed(1).replace('.', ',')} Mo` : `${Math.max(1, Math.round(o / 1024))} Ko`)
 
-export default function PiecesJointes(p: { demandeId: number; moiId: number; interne: boolean; modifiable: boolean; pieces: Piece[] }) {
+export default function PiecesJointes(p: { financeurAvecApi: boolean; demandeId: number; moiId: number; interne: boolean; modifiable: boolean; pieces: Piece[] }) {
   const router = useRouter()
   const [type, setType] = useState('KBIS')
   const [progression, setProgression] = useState<string | null>(null)
@@ -64,6 +64,7 @@ export default function PiecesJointes(p: { demandeId: number; moiId: number; int
                 <a className="font-medium text-brand-800 underline break-all" href={`/api/financement/pieces/${x.id}`}>{x.nomFichier}</a>
                 <span className="text-gray-400">{taille(x.taille)}</span>
                 <span className="text-gray-400">ajoutée le {dateFr(x.ajouteLe)} par {x.ajouteParNom}</span>
+                {p.financeurAvecApi && (x.envoyeFinanceurLe ? <span className="text-emerald-700">envoyée au financeur le {dateFr(x.envoyeFinanceurLe)}</span> : <span className="text-gray-400">pas encore envoyée au financeur</span>)}
                 <span className={jours <= 7 ? 'text-amber-700' : 'text-gray-400'}>supprimée automatiquement dans {jours} jour{jours > 1 ? 's' : ''}</span>
                 {p.modifiable && (p.interne || x.ajouteParId === p.moiId) && (
                   <button className="ml-auto text-red-700 underline" onClick={async () => {

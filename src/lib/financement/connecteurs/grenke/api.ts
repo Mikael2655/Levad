@@ -66,3 +66,16 @@ export async function lireDemande(c: ConfigGrenke, financingId: string): Promise
 
 export const typesObjets = async (c: ConfigGrenke) => items(await appelerOk(c, 'GET', '/basic/v1/objecttypes')).map(x => ({ id: x.Id as number, nom: x.Name as string }))
 export const formesJuridiques = async (c: ConfigGrenke) => items(await appelerOk(c, 'GET', '/basic/v1/legalforms')).map(x => ({ id: x.Id as number, nom: x.Name as string }))
+
+// --- Écriture (désactivée tant que GRENKE_ECRITURE n'est pas « oui ») -------------------------------------------------
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Dépose un document (Kbis, bilan, RIB...) sur la demande de financement. Le swagger de Grenke ne prévoit qu'une catégorie : 300.
+export async function envoyerDocument(c: ConfigGrenke, financingId: string, p: { nom: string; contenu: Buffer }) {
+  if (!UUID.test(financingId)) throw new ErreurMetier('Identifiant de demande Grenke invalide.')
+  await appelerOk(c, 'POST', `/basic/v1/calculationSets/${financingId}/documents/base64`, {
+    corps: { DocumentName: p.nom, DocumentContent: p.contenu.toString('base64'), DocumentCategory: 300 },
+    delaiMs: 90_000,
+  })
+}

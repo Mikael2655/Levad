@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS "fin_piece_jointe" (
     "stockage" TEXT NOT NULL DEFAULT 'base',
     "typeMime" TEXT NOT NULL DEFAULT 'application/octet-stream',
     "complete" BOOLEAN NOT NULL DEFAULT false,
+    "envoyeFinanceurLe" TIMESTAMP(3),
     "taille" INTEGER NOT NULL,
     "ajouteParId" INTEGER NOT NULL,
     "ajouteLe" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -2,9 +2,13 @@
 // après les essais, quand Grenke aura été prévenu (il n'existe pas d'environnement de test : tout se passe en production).
 import { ErreurMetier } from '../../erreurs'
 import type { Connecteur, ContratFinanceur, EtatDemande } from '../connecteur'
-import { listerContrats, lireDemande } from './api'
+import { envoyerDocument, listerContrats, lireDemande } from './api'
 import type { ConfigGrenke } from './config'
 import { versStatutCommun } from './statuts'
+
+// L'écriture vers Grenke (demandes, pièces, signatures) reste fermée tant que la variable GRENKE_ECRITURE n'est pas « oui » :
+// elle ne s'ouvre qu'après accord et quand Grenke a été prévenu (pas d'environnement de test chez Grenke).
+export const ecritureAutorisee = (env: Record<string, string | undefined> = process.env) => env.GRENKE_ECRITURE?.trim().toLowerCase() === 'oui'
 
 const pasEncore = (action: string) => new ErreurMetier(`${action} : l’envoi réel vers Grenke n’est pas encore activé.`, 501)
 
@@ -12,7 +16,10 @@ export function creerConnecteurGrenke(config: ConfigGrenke): Connecteur {
   return {
     code: 'grenke_api',
     creerDemande: async () => { throw pasEncore('Création de la demande') },
-    envoyerPiece: async () => { throw pasEncore('Envoi de la pièce') },
+    async envoyerPiece(referenceFinanceur, nomFichier, contenu) {
+      if (!ecritureAutorisee()) throw pasEncore('Envoi de la pièce')
+      await envoyerDocument(config, referenceFinanceur, { nom: nomFichier, contenu })
+    },
     lancerSignature: async () => { throw pasEncore('Lancement de la signature') },
     recupererContratSigne: async () => { throw pasEncore('Récupération du contrat signé') },
 

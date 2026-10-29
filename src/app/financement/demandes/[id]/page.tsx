@@ -104,7 +104,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         </section>
       )}
 
-      <PiecesJointes demandeId={d.id} moiId={u.id} interne={reel !== null} modifiable={d.statut !== 'ANNULEE' && d.statut !== 'SIGNEE'} pieces={d.pieces.map(x => JSON.parse(JSON.stringify(x)))} />
+      <PiecesJointes financeurAvecApi={d.financeurAvecApi} demandeId={d.id} moiId={u.id} interne={reel !== null} modifiable={d.statut !== 'ANNULEE' && d.statut !== 'SIGNEE'} pieces={d.pieces.map(x => JSON.parse(JSON.stringify(x)))} />
 
       <section className={section}>
         <h2 className="font-semibold text-gray-900 mb-2">Historique</h2>

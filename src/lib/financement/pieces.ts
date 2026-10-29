@@ -2,6 +2,8 @@
 // (une requête ne peut pas dépasser 4,5 Mo chez l'hébergeur). Accès : ceux qui voient la demande. Suppression automatique
 // 60 jours après le dépôt pour que la base ne se remplisse jamais.
 import { prisma } from '@/lib/db'
+import type { Connecteur } from './connecteurs/connecteur'
+import { connecteurPour } from './connecteurs'
 import { estInterne, type Acteur } from './droits'
 import { ErreurMetier } from './erreurs'
 
@@ -105,7 +107,35 @@ export async function terminerPiece(a: Acteur, pieceId: number) {
     prisma.finPieceJointe.update({ where: { id: pieceId }, data: { complete: true } }),
     prisma.finHistorique.create({ data: { demandeId: p.demandeId, auteurId: a.id, ancienStatut: p.demande.statut, nouveauStatut: p.demande.statut, commentaire: `Pièce jointe ajoutée : ${p.nomFichier} (${LIBELLES_PIECE[p.type as TypePiece] ?? p.type})` } }),
   ])
+  await transmettrePieces(p.demandeId) // financeur avec API (Grenke) : la pièce part directement chez lui, si la demande existe déjà là-bas
   return { ok: true }
+}
+
+// Envoie au financeur, par son API, les pièces pas encore transmises. Ne fait rien pour un financeur sans API, ni tant que la
+// demande n'existe pas chez lui (pas de référence). Ne lève jamais d'erreur : un échec laisse la pièce « à envoyer » et se retente
+// au prochain appel (nouvelle pièce, ou création de la demande chez le financeur).
+export async function transmettrePieces(demandeId: number, connecteur?: Connecteur | null): Promise<{ envoyees: number; echecs: string[] }> {
+  const resultat = { envoyees: 0, echecs: [] as string[] }
+  try {
+    const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { financeur: true } })
+    const c = connecteur === undefined ? connecteurPour(d?.financeur.connecteur ?? '') : connecteur
+    if (!d || !c || !d.refFinanceur) return resultat
+    const pieces = await prisma.finPieceJointe.findMany({ where: { demandeId, complete: true, envoyeFinanceurLe: null }, orderBy: { id: 'asc' } })
+    for (const piece of pieces) {
+      try {
+        const morceaux = await prisma.finPieceMorceau.findMany({ where: { pieceId: piece.id }, orderBy: { ordre: 'asc' } })
+        await c.envoyerPiece(d.refFinanceur, piece.nomFichier, Buffer.concat(morceaux.map(m => Buffer.from(m.donnees))))
+        await prisma.finPieceJointe.update({ where: { id: piece.id }, data: { envoyeFinanceurLe: new Date() } })
+        resultat.envoyees++
+      } catch (e) {
+        resultat.echecs.push(`${piece.nomFichier} : ${(e as Error).message}`)
+      }
+    }
+  } catch (e) {
+    resultat.echecs.push((e as Error).message)
+  }
+  if (resultat.echecs.length) console.error('Envoi des pièces au financeur : échecs', resultat.echecs)
+  return resultat
 }
 
 // Lecture : morceaux envoyés un par un (jamais tout le fichier en mémoire).

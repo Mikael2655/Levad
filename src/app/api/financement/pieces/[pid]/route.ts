@@ -4,7 +4,7 @@ import { acteurApi, repondre } from '@/lib/financement/garde'
 import { lirePiece, supprimerPiece, terminerPiece } from '@/lib/financement/pieces'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 60
 
 // Téléchargement : toujours en « pièce jointe » (jamais affiché dans la page), type de contenu non négociable.
 export async function GET(_req: Request, { params }: { params: { pid: string } }) {
