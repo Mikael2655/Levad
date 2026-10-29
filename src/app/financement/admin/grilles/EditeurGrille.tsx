@@ -57,7 +57,7 @@ export default function EditeurGrille({ cible, baseInitiale, matriceInitiale }: 
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
+      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 space-y-3">
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <label className="text-gray-600">Les coefficients sont exprimés
             <select className="ml-2 border border-gray-300 rounded-lg px-2 py-1" value={base} onChange={e => modif(() => setBase(e.target.value))}>
@@ -100,7 +100,7 @@ export default function EditeurGrille({ cible, baseInitiale, matriceInitiale }: 
         <p className="text-xs text-gray-500">Coefficients en % (ex. 5,95). Le calcul par défaut est loyer = montant × coefficient.</p>
       </div>
 
-      <details className="bg-white rounded-2xl border border-gray-200 p-4 text-sm">
+      <details className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 text-sm">
         <summary className="cursor-pointer font-medium text-gray-900">Coller un tableau depuis Excel</summary>
         <p className="text-gray-500 mt-2">1re ligne : un titre puis le minimum de chaque tranche (€). Lignes suivantes : la durée (« 36 » mois ou « 12T » trimestres) puis un coefficient par tranche.</p>
         <textarea className="mt-2 w-full border border-gray-300 rounded-lg p-2 font-mono text-xs h-32" value={collage} onChange={e => setCollage(e.target.value)} placeholder={'Montant\t0\t10000\t25000\n12T\t9,85%\t9,70%\t9,65%'} />
@@ -109,7 +109,7 @@ export default function EditeurGrille({ cible, baseInitiale, matriceInitiale }: 
 
       {messages.length > 0 && <ul className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-2 list-disc list-inside">{messages.map(x => <li key={x}>{x}</li>)}</ul>}
       {ok && <p className="text-sm text-green-700">Barème enregistré.</p>}
-      <button className="bg-brand-800 text-white rounded-xl px-5 py-2.5 text-sm font-semibold" onClick={enregistrer}>Enregistrer le barème</button>
+      <button className="bg-leasing-700 text-white rounded-xl px-5 py-2.5 text-sm font-semibold" onClick={enregistrer}>Enregistrer le barème</button>
     </div>
   )
 }

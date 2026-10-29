@@ -26,12 +26,12 @@ export default function FormulaireNotifications(p: { choix: { id: number; nom: s
   }
 
   return (
-    <form onSubmit={enregistrer} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3 text-sm">
+    <form onSubmit={enregistrer} className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 space-y-3 text-sm">
       <p className="text-gray-600">Le <b>commercial de la demande</b> reçoit toujours : les retours du financeur (accord, refus, pièces complémentaires), « le client a signé », « confirmation de livraison » et « dossier complet ». Choisissez ici qui reçoit en plus :</p>
       <label className="block">Quand LEVAD doit signer, prévenir<br /><select className={champ} value={signataire} onChange={e => setSignataire(e.target.value)}>{options}</select></label>
       <label className="block">Quand le dossier est complet, prévenir aussi<br /><select className={champ} value={complet} onChange={e => setComplet(e.target.value)}>{options}</select></label>
       <div className="flex items-center gap-3">
-        <button className="bg-brand-800 text-white rounded-lg px-4 py-1.5 font-semibold">Enregistrer</button>
+        <button className="bg-leasing-700 text-white rounded-lg px-4 py-1.5 font-semibold">Enregistrer</button>
         {message && <span className={message.ok ? 'text-green-700' : 'text-red-700'}>{message.texte}</span>}
       </div>
     </form>

@@ -44,7 +44,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
         </Link>
       )}
 
-      <FormulaireFiltres className="bg-white rounded-2xl border border-gray-200 p-3 flex flex-wrap items-end gap-3 text-sm">
+      <FormulaireFiltres className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-3 flex flex-wrap items-end gap-3 text-sm">
         <label>Statut<br /><select name="s" defaultValue={statut} className={champ}>{STATUTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
         <label>Échéance<br /><select name="e" defaultValue={echeance} className={champ}>{ECHEANCES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
         <label>Financeur<br /><select name="f" defaultValue={searchParams.f ?? ''} className={champ}><option value="">Tous</option>{financeurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}</select></label>
@@ -54,7 +54,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
         <Link href="/financement/contrats" className="underline text-gray-500 pb-2">Réinitialiser</Link>
       </FormulaireFiltres>
 
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
+      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm overflow-x-auto">
         <table className="w-full min-w-[84rem] table-fixed text-sm">
           <colgroup>
             <col className="w-32" />
@@ -87,7 +87,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
           <tbody className="divide-y divide-gray-50">
             {contrats.map(c => (
               <tr key={c.id} className={`hover:bg-gray-50 ${c.etat === 'PROCHE' && c.statutContrat === 'EN_COURS' ? 'bg-orange-50/40' : ''}`}>
-                <td className="px-2.5 py-3 whitespace-nowrap truncate"><Link href={`/financement/contrats/${c.id}`} className="font-medium text-brand-800 underline">{c.reference ?? `Contrat ${c.id}`}</Link></td>
+                <td className="px-2.5 py-3 whitespace-nowrap truncate"><Link href={`/financement/contrats/${c.id}`} className="font-medium text-leasing-700 underline">{c.reference ?? `Contrat ${c.id}`}</Link></td>
                 <td className="px-2.5 py-3 truncate" title={c.raisonSociale}>{c.raisonSociale}{c.importe && <span className="ml-1.5 text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5">importé</span>}</td>
                 {interne && <td className="px-2.5 py-3 whitespace-nowrap truncate" title={c.commercialNom}>{c.commercialAffiche}</td>}
                 <td className="px-2.5 py-3 truncate">{c.financeurNom}{'banque' in c && c.banque ? <span className="text-gray-500"> · {c.banque}</span> : null}</td>

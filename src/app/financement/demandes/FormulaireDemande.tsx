@@ -97,7 +97,7 @@ export default function FormulaireDemande(p: {
   }
 
   const r = calcul?.resultat
-  const section = 'bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-3'
+  const section = 'bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3'
 
   return (
     <form onSubmit={enregistrer} className="space-y-4">
@@ -195,7 +195,7 @@ export default function FormulaireDemande(p: {
 
       {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{erreur}</p>}
       <div className="flex gap-3">
-        <button disabled={envoi} className="bg-brand-800 text-white rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-60">{p.mode === 'creation' ? 'Enregistrer en brouillon' : 'Enregistrer les modifications'}</button>
+        <button disabled={envoi} className="bg-leasing-700 text-white rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-60">{p.mode === 'creation' ? 'Enregistrer en brouillon' : 'Enregistrer les modifications'}</button>
         <button type="button" className="text-sm underline text-gray-600" onClick={() => router.back()}>Annuler</button>
       </div>
     </form>

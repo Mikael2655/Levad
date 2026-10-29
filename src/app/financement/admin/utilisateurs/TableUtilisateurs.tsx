@@ -36,7 +36,7 @@ export default function TableUtilisateurs({ moiId, utilisateurs }: { moiId: numb
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100">
+      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm divide-y divide-gray-100">
         {utilisateurs.map(u => (
           <div key={u.id} className={`p-4 flex flex-wrap items-center gap-3 ${u.actif ? '' : 'opacity-60'}`}>
             <div className="min-w-[14rem] flex-1">
@@ -60,7 +60,7 @@ export default function TableUtilisateurs({ moiId, utilisateurs }: { moiId: numb
       </div>
 
       <form
-        className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-wrap items-end gap-3"
+        className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 flex flex-wrap items-end gap-3"
         onSubmit={e => {
           e.preventDefault()
           agir(async () => {
@@ -77,7 +77,7 @@ export default function TableUtilisateurs({ moiId, utilisateurs }: { moiId: numb
         <select className={champ} value={nouveau.role} onChange={e => setNouveau({ ...nouveau, role: e.target.value })}>
           {ROLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
-        <button type="submit" className="bg-brand-800 text-white rounded-lg px-4 py-1.5 text-sm font-semibold">Créer</button>
+        <button type="submit" className="bg-leasing-700 text-white rounded-lg px-4 py-1.5 text-sm font-semibold">Créer</button>
       </form>
     </div>
   )

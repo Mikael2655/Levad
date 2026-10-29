@@ -31,7 +31,7 @@ export default async function AdminAccueil() {
       {base === null && <p className="text-sm text-amber-800">Le contrôle de la base de données n’a pas pu être fait (base inaccessible ?).</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         {RUBRIQUES.map(r => (
-          <Link key={r.href} href={r.href} className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-brand-800">
+          <Link key={r.href} href={r.href} className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-5 hover:border-leasing-700">
             <p className="font-semibold text-gray-900">{r.titre}</p>
             <p className="text-sm text-gray-500 mt-1">{r.texte}</p>
           </Link>

@@ -31,7 +31,7 @@ export default function FormulaireContrat(p: { id: number; commercialId: number;
   }
 
   return (
-    <form onSubmit={enregistrer} className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-3">
+    <form onSubmit={enregistrer} className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3">
       <h2 className="font-semibold text-gray-900">Corriger le contrat</h2>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm sm:col-span-2"><span className="text-xs text-gray-600">Commercial (changer le commercial recalcule le montant avec sa grille ; le loyer ne change pas)</span>
@@ -45,7 +45,7 @@ export default function FormulaireContrat(p: { id: number; commercialId: number;
         <label className="text-sm sm:col-span-2"><span className="text-xs text-gray-600">Matériel</span><input className={champ} value={v.materiel} onChange={e => setV({ ...v, materiel: e.target.value })} /></label>
       </div>
       {message && <p className={`text-sm ${message.ok ? 'text-green-700' : 'text-red-700'}`}>{message.texte}</p>}
-      <button className="bg-brand-800 text-white rounded-xl px-5 py-2 text-sm font-semibold">Enregistrer</button>
+      <button className="bg-leasing-700 text-white rounded-xl px-5 py-2 text-sm font-semibold">Enregistrer</button>
     </form>
   )
 }

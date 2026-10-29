@@ -14,7 +14,7 @@ export default async function PageGrenke() {
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <h1 className="text-xl font-bold text-gray-900">Connexion à l’API Grenke</h1>
-      <section className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-2 text-sm">
+      <section className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-2 text-sm">
         <h2 className="font-semibold text-gray-900">Configuration (variables d’environnement Vercel)</h2>
         <ul className="space-y-1">
           {VARIABLES_GRENKE.map(v => <li key={v}>{cfg.manquantes.includes(v) ? '❌' : '✅'} <code>{v}</code>{cfg.manquantes.includes(v) ? ` : absente de cet environnement${v === 'GRENKE_API_URL' ? ' (valeur de production donnée par Grenke : https://api.grenkeonline.com)' : ''}` : ''}</li>)}

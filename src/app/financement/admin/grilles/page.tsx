@@ -26,7 +26,7 @@ export default async function PageGrilles({ searchParams }: { searchParams: { f?
   const durees = reelle && commune ? dureesDisponibles(reelle, commune) : []
 
   const lien = (cible: string, texte: string) => (
-    <Link key={cible} href={`/financement/admin/grilles?f=${financeur.id}&c=${cible}`} className={`px-3 py-1.5 rounded-lg text-sm border ${c === cible ? 'bg-brand-800 text-white border-brand-800' : 'bg-white border-gray-300 text-gray-700'}`}>{texte}</Link>
+    <Link key={cible} href={`/financement/admin/grilles?f=${financeur.id}&c=${cible}`} className={`px-3 py-1.5 rounded-lg text-sm border ${c === cible ? 'bg-leasing-700 text-white border-leasing-700' : 'bg-white border-gray-300 text-gray-700'}`}>{texte}</Link>
   )
 
   return (

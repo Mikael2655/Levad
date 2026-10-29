@@ -29,32 +29,31 @@ export default function FormulaireConnexion({ suite }: { suite?: string }) {
     }
   }
 
+  const champ = 'w-full border border-gray-200 bg-gray-50/60 rounded-xl px-4 py-3 text-sm placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
   return (
-    <form onSubmit={soumettre} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 w-full max-w-sm space-y-4">
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 bg-brand-800 rounded-lg flex items-center justify-center">
-          <span className="text-white font-black text-lg">L</span>
-        </div>
+    <form onSubmit={soumettre} className="bg-white rounded-3xl ring-1 ring-gray-900/5 shadow-xl shadow-leasing-900/5 p-8 sm:p-10 w-full max-w-md space-y-5">
+      <div className="text-center space-y-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/levad-logo.png" alt="LEVAD" className="h-12 w-auto mx-auto" />
         <div>
-          <p className="font-bold text-gray-900">Levad</p>
-          <p className="text-xs text-gray-400">Financements</p>
+          <h1 className="text-xl font-bold text-gray-900">Bienvenue sur Leasing</h1>
+          <p className="text-sm text-gray-500 mt-1">Connectez-vous pour gérer vos demandes de financement et vos contrats.</p>
         </div>
       </div>
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Adresse e-mail</label>
-        <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoFocus autoComplete="username" required
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800" />
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">Adresse e-mail</label>
+        <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoFocus autoComplete="username" required placeholder="prenom.nom@levad.fr" className={champ} />
       </div>
       <div>
-        <label htmlFor="mdp" className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
-        <input id="mdp" type="password" value={motDePasse} onChange={e => setMotDePasse(e.target.value)} autoComplete="current-password" required
-          className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-800" />
+        <label htmlFor="mdp" className="block text-sm font-medium text-gray-700 mb-1.5">Mot de passe</label>
+        <input id="mdp" type="password" value={motDePasse} onChange={e => setMotDePasse(e.target.value)} autoComplete="current-password" required placeholder="••••••••" className={champ} />
       </div>
-      {erreur && <p className="text-sm text-red-600">{erreur}</p>}
+      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{erreur}</p>}
       <button type="submit" disabled={envoi}
-        className="w-full bg-brand-800 text-white rounded-xl py-2.5 text-sm font-semibold disabled:opacity-60">
+        className="w-full bg-leasing-700 hover:bg-leasing-800 text-white rounded-xl py-3 text-sm font-semibold shadow-sm shadow-leasing-900/20 transition disabled:opacity-60">
         {envoi ? 'Connexion…' : 'Se connecter'}
       </button>
+      <p className="text-center text-xs text-gray-400">Mot de passe oublié ? Contactez votre administrateur.</p>
     </form>
   )
 }

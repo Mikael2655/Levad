@@ -37,7 +37,7 @@ export default function RechercheEntreprise({ onChoisir, siren }: { onChoisir: (
   return (
     <div className="space-y-2">
       <input
-        className="w-full border border-brand-800/40 bg-blue-50/40 rounded-xl px-3 py-2.5 text-sm"
+        className="w-full border border-leasing-700/40 bg-blue-50/40 rounded-xl px-3 py-2.5 text-sm"
         placeholder="🔎 Rechercher l’entreprise : nom, adresse ou SIREN (ex. « Dupont Menuiserie Strasbourg »)"
         value={q}
         onChange={e => setQ(e.target.value)}

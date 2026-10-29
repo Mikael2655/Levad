@@ -49,7 +49,7 @@ export default function PiecesJointes(p: { financeurAvecApi: boolean; demandeId:
   }
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-3">
+    <section className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3">
       <h2 className="font-semibold text-gray-900">Pièces jointes</h2>
       {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{erreur}</p>}
 
@@ -61,7 +61,7 @@ export default function PiecesJointes(p: { financeurAvecApi: boolean; demandeId:
             return (
               <li key={x.id} className="py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">{LIBELLE[x.type] ?? x.type}</span>
-                <a className="font-medium text-brand-800 underline break-all" href={`/api/financement/pieces/${x.id}`}>{x.nomFichier}</a>
+                <a className="font-medium text-leasing-700 underline break-all" href={`/api/financement/pieces/${x.id}`}>{x.nomFichier}</a>
                 <span className="text-gray-400">{taille(x.taille)}</span>
                 <span className="text-gray-400">ajoutée le {dateFr(x.ajouteLe)} par {x.ajouteParNom}</span>
                 {p.financeurAvecApi && (x.envoyeFinanceurLe ? <span className="text-emerald-700">envoyée au financeur le {dateFr(x.envoyeFinanceurLe)}</span> : <span className="text-gray-400">pas encore envoyée au financeur</span>)}
