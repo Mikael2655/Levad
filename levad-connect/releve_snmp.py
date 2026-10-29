@@ -586,14 +586,14 @@ def racines_a_lire():
     return racines
 
 
-def lire_branches(client, racines, progres=None):
+def lire_branches(client, racines, progres=None, en_parallele=8):
     """Lit les branches en parallèle. Retourne (valeurs brutes {oid: valeur}, nombre de branches incomplètes)."""
     brut, incompletes = {}, 0
 
     def une_branche(racine):
         return client.parcourir(racine)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=en_parallele) as pool:
         for valeurs, probleme in pool.map(une_branche, racines):
             brut.update(dict(valeurs))
             if probleme:
@@ -652,6 +652,14 @@ def lire_machine(ip, communaute, delai, port=161, versions=(1, 0), progres=None)
 
     if r["est_canon"]:
         compteurs = interpreter_compteurs_canon(brut)
+        if not compteurs:
+            # certaines machines laissent sans réponse les questions envoyées en rafale : on relit la branche Canon
+            # une question à la fois, en attendant plus longtemps
+            client.delai, client.essais = max(client.delai, 5.0), 2
+            racines_canon = [x for x in racines_a_lire() if x.startswith(BRANCHES["canon_prive"])]
+            relu, _ = lire_branches(client, racines_canon, None, en_parallele=1)
+            brut.update(relu)
+            compteurs = interpreter_compteurs_canon(brut)
         r["compteurs_canon"] = {str(n): compteurs[n] for n in sorted(compteurs)}
         for n in COMPTEURS_CANON_ATTENDUS:
             if n not in compteurs:
