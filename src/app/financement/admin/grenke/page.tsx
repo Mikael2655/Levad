@@ -18,6 +18,7 @@ export default async function PageGrenke() {
         <h2 className="font-semibold text-gray-900">Configuration (variables d’environnement Vercel)</h2>
         <ul className="space-y-1">
           {VARIABLES_GRENKE.map(v => <li key={v}>{cfg.manquantes.includes(v) ? '❌' : '✅'} <code>{v}</code>{cfg.manquantes.includes(v) ? ' : absente de cet environnement' : ''}</li>)}
+          <li>{process.env.GRENKE_CA_BASE64 ? '✅' : '⚪'} <code>GRENKE_CA_BASE64</code> : {process.env.GRENKE_CA_BASE64 ? 'définie' : 'non définie (facultative : certificats publics de Grenke, à ajouter si la connexion est refusée)'}</li>
           <li>{mode ? '✅' : '⚪'} <code>GRENKE_PAYMENT_METHOD</code> : {mode ?? 'non définie (nécessaire pour envoyer de vraies demandes : « Invoice » ou « Direct Debit »)'}</li>
         </ul>
         {cfg.problemes.length > 0 && <p className="text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{cfg.problemes.join(' ')}</p>}

@@ -1,5 +1,6 @@
 // Client HTTP de l'API Grenke : authentification par certificat client (mTLS). Aucune donnée n'est journalisée.
 import https from 'https'
+import { rootCertificates } from 'tls'
 import { ErreurMetier } from '../../erreurs'
 import type { ConfigGrenke } from './config'
 
@@ -30,7 +31,8 @@ export function appelGrenke(config: ConfigGrenke, methode: 'GET' | 'POST' | 'PUT
     for (const x of Array.isArray(v) ? v : [v]) if (x !== undefined && x !== '') url.searchParams.append(k, String(x))
   }
   const charge = o.corps === undefined ? undefined : JSON.stringify(o.corps)
-  const agent = new https.Agent({ cert: config.cert, key: config.key, passphrase: config.passphrase, ca: config.ca })
+  // ca : on AJOUTE les autorités fournies (Grenke) aux autorités publiques habituelles, on ne les remplace pas
+  const agent = new https.Agent({ cert: config.cert, key: config.key, passphrase: config.passphrase, ca: config.ca ? [...rootCertificates, config.ca] : undefined })
   return new Promise((resolve, reject) => {
     const req = https.request(
       url,

@@ -3,6 +3,8 @@
 //   GRENKE_CERT_BASE64      le certificat téléchargé sur le portail, encodé en base64 (format PEM ou DER)
 //   GRENKE_KEY_BASE64       la clé privée (fichier .key créé avec la demande de certificat), encodée en base64
 //   GRENKE_KEY_PASSPHRASE   (facultatif) mot de passe de la clé, si elle en a un
+//   GRENKE_CA_BASE64        (facultatif) les certificats publics de Grenke (« GRENKE Public Root CA » et « GRENKE Public Leasing Api CA »,
+//                           à télécharger sur pki.grenkeonline.com), chacun encodé en base64, séparés par une virgule
 //   GRENKE_PAYMENT_METHOD   (envoi réel de demandes) « Invoice » ou « Direct Debit »
 import { X509Certificate, createPrivateKey } from 'crypto'
 
@@ -11,7 +13,7 @@ export interface ConfigGrenke {
   cert: string // PEM
   key: string // PEM
   passphrase?: string
-  ca?: string // uniquement pour les tests (serveur local) ; en production Grenke présente un certificat public
+  ca?: string // autorités de confiance supplémentaires (PEM) : celles de Grenke, ou le faux serveur des tests
   modePaiement?: 'Invoice' | 'Direct Debit'
 }
 
@@ -62,11 +64,21 @@ export function lireConfigGrenke(env: Record<string, string | undefined> = proce
     problemes.push(`Certificat ou clé illisible (${(e as Error).message.split('\n')[0]}).`)
   }
 
+  let ca: string | undefined
+  const brutsCa = (env.GRENKE_CA_BASE64 ?? '').split(/[\s,;]+/).filter(Boolean)
+  if (brutsCa.length) {
+    try {
+      ca = brutsCa.map(b => { const pem = certificatEnPem(Buffer.from(b, 'base64')); new X509Certificate(pem); return pem }).join('')
+    } catch (e) {
+      problemes.push(`GRENKE_CA_BASE64 illisible (${(e as Error).message.split('\n')[0]}) : un certificat public de Grenke est mal copié.`)
+    }
+  }
+
   const mode = env.GRENKE_PAYMENT_METHOD?.trim()
   if (mode && mode !== 'Invoice' && mode !== 'Direct Debit') problemes.push('GRENKE_PAYMENT_METHOD doit valoir « Invoice » ou « Direct Debit ».')
   if (problemes.length) return { prete: false, manquantes: [], problemes, certificat }
   return {
     prete: true, manquantes: [], problemes: [], certificat,
-    config: { urlBase, cert, key, passphrase: env.GRENKE_KEY_PASSPHRASE || undefined, modePaiement: mode as ConfigGrenke['modePaiement'] },
+    config: { urlBase, cert, key, passphrase: env.GRENKE_KEY_PASSPHRASE || undefined, ca, modePaiement: mode as ConfigGrenke['modePaiement'] },
   }
 }

@@ -11,6 +11,20 @@ afterAll(() => { c.nettoyer(); autre.nettoyer() })
 
 const env = (o: Record<string, string | undefined> = {}) => ({ GRENKE_API_URL: 'https://api.exemple.test/', GRENKE_CERT_BASE64: b64(c.client.cert), GRENKE_KEY_BASE64: b64(c.client.key), ...o })
 
+describe('certificats publics de Grenke (autorités de confiance)', () => {
+  it('un ou plusieurs certificats, au format DER ou PEM, séparés par une virgule', () => {
+    const r = lireConfigGrenke(env({ GRENKE_CA_BASE64: `${b64(c.ca)}, ${b64(autre.client.certDer)}` }))
+    expect(r.prete).toBe(true)
+    expect((r.config!.ca!.match(/BEGIN CERTIFICATE/g) ?? []).length).toBe(2)
+  })
+  it('facultatif : sans la variable, aucune autorité ajoutée', () => {
+    expect(lireConfigGrenke(env()).config!.ca).toBeUndefined()
+  })
+  it('un certificat mal copié est signalé', () => {
+    expect(lireConfigGrenke(env({ GRENKE_CA_BASE64: b64('pas un certificat') })).problemes.join(' ')).toContain('GRENKE_CA_BASE64 illisible')
+  })
+})
+
 describe('configuration Grenke', () => {
   it('variables absentes : liste ce qui manque (noms seulement)', () => {
     expect(lireConfigGrenke({})).toMatchObject({ prete: false, manquantes: ['GRENKE_API_URL', 'GRENKE_CERT_BASE64', 'GRENKE_KEY_BASE64'] })
