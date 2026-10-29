@@ -8,6 +8,7 @@ import { dateFr, dureeLibelle, euros, libellePeriodicite, materielAffiche } from
 import { listerRachats } from '@/lib/financement/rachats'
 import BadgeStatutContrat from '../BadgeStatutContrat'
 import BoutonDenonciation from './BoutonDenonciation'
+import BoutonSupprimer from './BoutonSupprimer'
 import SoldeContrat from './SoldeContrat'
 import FormulaireContrat from './FormulaireContrat'
 
@@ -72,6 +73,8 @@ export default async function FicheContrat({ params }: { params: { id: string } 
         peutAnnuler
         rachats={(await listerRachats(u, c.id)).map(r => JSON.parse(JSON.stringify(r)))}
       />
+
+      {u.role === 'ADMIN' && <BoutonSupprimer id={c.id} avecDemande={c.demandeId !== null} />}
 
       {peutModifierContrat(u) && (
         <FormulaireContrat id={c.id} commercialId={c.commercialId} commerciaux={commerciaux} materiel={c.materiel} refFinanceur={reel?.refFinanceur ?? ''} dateDebut={iso(c.dateDebut)} dateFin={iso(c.dateFin)} />

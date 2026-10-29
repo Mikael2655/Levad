@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { modifierContrat } from '@/lib/financement/contrats'
+import { modifierContrat, supprimerContrat } from '@/lib/financement/contrats'
 import { ErreurMetier } from '@/lib/financement/erreurs'
 import { acteurApi, corps, repondre } from '@/lib/financement/garde'
 import { lireDate } from '@/lib/financement/import-contrats'
@@ -26,4 +26,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       dateFin: date(c.dateFin),
     }),
   )
+}
+
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  const u = await acteurApi()
+  if (u instanceof NextResponse) return u
+  return repondre(() => supprimerContrat(u, Number(params.id)))
 }

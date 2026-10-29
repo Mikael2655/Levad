@@ -89,6 +89,17 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
     expect(JSON.stringify(await ct.listerContrats(CA()))).not.toMatch(/GRK-123|SB-9/)
   })
 
+  it('suppression d\'un contrat : administrateur seulement ; emporte la demande d\'origine', async () => {
+    const demande = await prisma.finDemande.create({ data: { reference: 'LEV-2026-0099', financeurId: ids.grenke, commercialId: ids.comA, saisiParId: ids.comA, statut: 'SIGNEE', raisonSociale: 'TEST', siret: '', adresse: '', contactPrenom: '', contactNom: '', contactEmail: '', dureeMois: 63, periodicite: 'TRIMESTRIELLE', loyerCentimes: 1, montantCommercialCentimes: 1, coefficientCommercialPpm: 1 } as never })
+    const c = await nouveau({ raisonSociale: 'A supprimer', demandeId: demande.id, dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
+    await expect(ct.supprimerContrat(S(), c.id)).rejects.toThrow('administrateur')
+    await expect(ct.supprimerContrat(CA(), c.id)).rejects.toThrow('administrateur')
+    await ct.supprimerContrat(A(), c.id)
+    expect(await prisma.finContrat.count({ where: { id: c.id } })).toBe(0)
+    expect(await prisma.finDemande.count({ where: { id: demande.id } })).toBe(0)
+    await expect(ct.supprimerContrat(A(), c.id)).rejects.toThrow('introuvable')
+  })
+
   describe('solde anticipé', () => {
     let contratId: number
     beforeAll(async () => {

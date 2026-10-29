@@ -249,3 +249,18 @@ export async function definirDenonciation(a: Acteur, id: number, denonce: boolea
   await prisma.finContrat.update({ where: { id }, data: { denonceLe: denonce ? date : null } })
   return { ok: true }
 }
+
+// --- Suppression -------------------------------------------------------------------------------------------------------
+
+// Réservé à l'administrateur (contrat de test, saisie par erreur). Supprime aussi les demandes de solde du contrat
+// et, si le contrat vient d'une demande, cette demande avec son historique.
+export async function supprimerContrat(a: Acteur, id: number) {
+  if (a.role !== 'ADMIN') throw new ErreurMetier('Seul un administrateur peut supprimer un contrat.', 403)
+  const c = await prisma.finContrat.findUnique({ where: { id } })
+  if (!c) throw new ErreurMetier('Contrat introuvable.', 404)
+  await prisma.$transaction([
+    prisma.finContrat.delete({ where: { id } }),
+    ...(c.demandeId ? [prisma.finDemande.delete({ where: { id: c.demandeId } })] : []),
+  ])
+  return { ok: true }
+}
