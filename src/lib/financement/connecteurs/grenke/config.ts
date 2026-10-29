@@ -1,9 +1,9 @@
 // Configuration de l'API Grenke : lue dans les variables d'environnement de Vercel (jamais dans le code ni la base).
-//   GRENKE_API_URL          adresse de l'API (donnée par le portail développeur de Grenke)
+//   GRENKE_API_URL          adresse de l'API : https://api.grenkeonline.com pour la production (guide Postman de Grenke)
 //   GRENKE_CERT_BASE64      le certificat téléchargé sur le portail, encodé en base64 (format PEM ou DER)
 //   GRENKE_KEY_BASE64       la clé privée (fichier .key créé avec la demande de certificat), encodée en base64
 //   GRENKE_KEY_PASSPHRASE   (facultatif) mot de passe de la clé, si elle en a un
-//   GRENKE_CA_BASE64        (facultatif) les certificats publics de Grenke (« GRENKE Public Root CA » et « GRENKE Public Leasing Api CA »,
+//   GRENKE_CA_BASE64        (probablement nécessaire) les certificats publics de Grenke (« GRENKE Public Root CA » et « GRENKE Public Leasing Api CA »,
 //                           à télécharger sur pki.grenkeonline.com), chacun encodé en base64, séparés par une virgule
 //   GRENKE_PAYMENT_METHOD   (envoi réel de demandes) « Invoice » ou « Direct Debit »
 import { X509Certificate, createPrivateKey } from 'crypto'

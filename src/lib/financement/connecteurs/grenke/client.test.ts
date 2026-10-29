@@ -51,6 +51,9 @@ describe('connexion à l’API par certificat (serveur local)', () => {
   it('un certificat d’une autre autorité est refusé, avec un message clair', async () => {
     await expect(appelGrenke({ ...config(), cert: intrus.client.cert, key: intrus.client.key }, 'GET', '/echo')).rejects.toThrow(/connexion sécurisée|certificat|interrompue/i)
   })
+  it('serveur dont l’autorité n’est pas connue : on explique qu’il faut ajouter les certificats publics de Grenke', async () => {
+    await expect(appelGrenke({ ...config(), ca: undefined }, 'GET', '/echo')).rejects.toThrow('GRENKE_CA_BASE64')
+  })
   it('serveur injoignable : message clair', async () => {
     await expect(appelGrenke({ ...config(), urlBase: 'https://localhost:1' }, 'GET', '/echo', { delaiMs: 2000 })).rejects.toThrow(/refusée|interrompue|injoignable/i)
   })

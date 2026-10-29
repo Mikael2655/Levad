@@ -16,8 +16,11 @@ export interface OptionsAppel {
   delaiMs?: number
 }
 
+const CODES_SERVEUR_NON_RECONNU = ['UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'SELF_SIGNED_CERT_IN_CHAIN', 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY', 'DEPTH_ZERO_SELF_SIGNED_CERT', 'CERT_UNTRUSTED', 'UNABLE_TO_GET_ISSUER_CERT']
+
 function messageReseau(e: NodeJS.ErrnoException): string {
   const code = e.code ?? ''
+  if (CODES_SERVEUR_NON_RECONNU.includes(code)) return 'Le certificat du serveur Grenke n’est pas reconnu : ajoutez les certificats publics de Grenke (« GRENKE Public Root CA » et « GRENKE Public Leasing Api CA », téléchargeables sur pki.grenkeonline.com) dans la variable GRENKE_CA_BASE64.'
   if (['ENOTFOUND', 'EAI_AGAIN'].includes(code)) return 'Adresse de l’API Grenke introuvable (vérifiez GRENKE_API_URL).'
   if (['ECONNREFUSED', 'ECONNRESET'].includes(code)) return 'Connexion à l’API Grenke refusée ou interrompue.'
   if (code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT' || e.message === 'timeout') return 'L’API Grenke ne répond pas (délai dépassé).'

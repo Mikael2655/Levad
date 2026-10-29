@@ -17,8 +17,8 @@ export default async function PageGrenke() {
       <section className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-2 text-sm">
         <h2 className="font-semibold text-gray-900">Configuration (variables d’environnement Vercel)</h2>
         <ul className="space-y-1">
-          {VARIABLES_GRENKE.map(v => <li key={v}>{cfg.manquantes.includes(v) ? '❌' : '✅'} <code>{v}</code>{cfg.manquantes.includes(v) ? ' : absente de cet environnement' : ''}</li>)}
-          <li>{process.env.GRENKE_CA_BASE64 ? '✅' : '⚪'} <code>GRENKE_CA_BASE64</code> : {process.env.GRENKE_CA_BASE64 ? 'définie' : 'non définie (facultative : certificats publics de Grenke, à ajouter si la connexion est refusée)'}</li>
+          {VARIABLES_GRENKE.map(v => <li key={v}>{cfg.manquantes.includes(v) ? '❌' : '✅'} <code>{v}</code>{cfg.manquantes.includes(v) ? ` : absente de cet environnement${v === 'GRENKE_API_URL' ? ' (valeur de production donnée par Grenke : https://api.grenkeonline.com)' : ''}` : ''}</li>)}
+          <li>{process.env.GRENKE_CA_BASE64 ? '✅' : '⚪'} <code>GRENKE_CA_BASE64</code> : {process.env.GRENKE_CA_BASE64 ? 'définie' : 'non définie (probablement nécessaire : les deux certificats publics de Grenke, « Public Root CA » et « Public Leasing Api CA », à télécharger sur pki.grenkeonline.com)'}</li>
           <li>{mode ? '✅' : '⚪'} <code>GRENKE_PAYMENT_METHOD</code> : {mode ?? 'non définie (nécessaire pour envoyer de vraies demandes : « Invoice » ou « Direct Debit »)'}</li>
         </ul>
         {cfg.problemes.length > 0 && <p className="text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{cfg.problemes.join(' ')}</p>}
