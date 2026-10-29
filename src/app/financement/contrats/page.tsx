@@ -3,17 +3,19 @@ import { compterContrats, compterEcheancesProches, listerContrats, type FiltreEc
 import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import { estInterne, peutImporterContrats, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
+import EnteteTri from '../EnteteTri'
 import FormulaireFiltres from '../FormulaireFiltres'
+import { lireOrdre, trier } from '@/lib/financement/tri'
 import { dateFr, dureeTrimestres, euros, loyerPeriode, materielAffiche } from '../format'
 import SelecteurMontant from '../SelecteurMontant'
-import BadgeStatutContrat from './BadgeStatutContrat'
+import BadgeStatutContrat, { LIBELLES_STATUT_CONTRAT } from './BadgeStatutContrat'
 
 export const dynamic = 'force-dynamic'
 
 const STATUTS: [FiltreStatut, string][] = [['en_cours', 'En cours'], ['tacite', 'Tacite'], ['cloture', 'Clôturé'], ['tous', 'Tous']]
 const ECHEANCES: [FiltreEcheance, string][] = [['toutes', 'Toutes'], ['proche6', 'Échéance < 6 mois'], ['proche12', 'Échéance < 12 mois']]
 
-interface Params { s?: string; e?: string; f?: string; c?: string; q?: string; m?: string }
+interface Params { s?: string; e?: string; f?: string; c?: string; q?: string; m?: string; tri?: string; ordre?: string }
 
 export default async function PageContrats({ searchParams }: { searchParams: Params }) {
   const u = await exigerUtilisateur()
@@ -29,6 +31,15 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
     interne ? listerUtilisateurs() : Promise.resolve([]),
     compterContrats(u),
   ])
+  const ordre = lireOrdre(searchParams.ordre)
+  const lignes = trier(contrats, searchParams.tri, ordre, {
+    reference: c => c.reference ?? '', client: c => c.raisonSociale, commercial: c => c.commercialNom,
+    financeur: c => `${c.financeurNom}${'banque' in c && c.banque ? ` ${c.banque}` : ''}`, materiel: c => materielAffiche(c.materiel),
+    loyer: c => c.loyerCentimes / (c.periodicite === 'MENSUELLE' ? 1 : 3), duree: c => c.dureeMois,
+    montant: c => (modeMontant === 'reel' && 'montantReelCentimes' in c ? c.montantReelCentimes : c.montantCommercialCentimes),
+    debut: c => c.dateDebut, dernier: c => c.dernierLoyer, statut: c => LIBELLES_STATUT_CONTRAT[c.statutContrat],
+  })
+  const entete = (cle: string, libelle: React.ReactNode, droite = false) => <EnteteTri cle={cle} libelle={libelle} chemin="/financement/contrats" params={searchParams as Record<string, string | undefined>} tri={searchParams.tri} ordre={ordre} droite={droite} />
   const commerciaux = utilisateurs.filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN'))
   const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 
@@ -66,14 +77,15 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
         {interne && <label>Commercial<br /><select name="c" defaultValue={searchParams.c ?? ''} className={champ}><option value="">Tous</option>{commerciaux.map(c => <option key={c.id} value={c.id}>{c.prenom} {c.nom}</option>)}</select></label>}
         {reel && <SelecteurMontant initial={modeMontant} />}
         <label>Client<br /><input type="search" name="q" defaultValue={searchParams.q ?? ''} placeholder="Nom du client" autoComplete="off" className={champ} /></label>
+        {searchParams.tri && <><input type="hidden" name="tri" value={searchParams.tri} /><input type="hidden" name="ordre" value={ordre} /></>}
         <Link href="/financement/contrats" className="underline text-gray-500 pb-2">Réinitialiser</Link>
       </FormulaireFiltres>
 
       <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm overflow-x-auto">
-        <table className="w-full min-w-[84rem] table-fixed text-sm">
+        <table className="w-full min-w-[92rem] table-fixed text-sm">
           <colgroup>
-            <col className="w-32" />
-            <col />
+            <col className="w-40" />
+            <col className="w-64" />
             {interne && <col className="w-28" />}
             <col className={reel ? 'w-40' : 'w-28'} />
             <col className="w-44" />
@@ -86,24 +98,24 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
           </colgroup>
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-gray-500 bg-gray-50/70 border-b border-gray-100">
-              <th className="px-3 py-3 font-semibold">Référence</th>
-              <th className="px-3 py-3 font-semibold">Client</th>
-              {interne && <th className="px-3 py-3 font-semibold">Commercial</th>}
-              <th className="px-3 py-3 font-semibold">Financeur{reel && ' · banque'}</th>
-              <th className="px-3 py-3 font-semibold">Matériel</th>
-              <th className="px-3 py-3 font-semibold text-right">Loyer</th>
-              <th className="px-3 py-3 font-semibold text-right">Durée</th>
-              <th className="px-3 py-3 font-semibold text-right">{reel ? <><span className="m-commercial">Montant (commerciaux)</span><span className="m-reel">Montant financé réel</span></> : 'Montant financé'}</th>
-              <th className="px-3 py-3 font-semibold">1er loyer</th>
-              <th className="px-3 py-3 font-semibold">Dernier loyer</th>
-              <th className="px-3 py-3 font-semibold">Statut</th>
+              {entete('reference', 'Référence')}
+              {entete('client', 'Client')}
+              {interne && entete('commercial', 'Commercial')}
+              {entete('financeur', <>Financeur{reel && ' · banque'}</>)}
+              {entete('materiel', 'Matériel')}
+              {entete('loyer', 'Loyer', true)}
+              {entete('duree', 'Durée', true)}
+              {entete('montant', reel ? <><span className="m-commercial">Montant (commerciaux)</span><span className="m-reel">Montant financé réel</span></> : 'Montant financé', true)}
+              {entete('debut', '1er loyer')}
+              {entete('dernier', 'Dernier loyer')}
+              {entete('statut', 'Statut')}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {contrats.map(c => (
+            {lignes.map(c => (
               <tr key={c.id} className={`hover:bg-leasing-50/70 transition-colors ${c.etat === 'PROCHE' && c.statutContrat === 'EN_COURS' ? 'bg-orange-50/40' : ''}`}>
                 <td className="px-3 py-3.5 whitespace-nowrap truncate"><Link href={`/financement/contrats/${c.id}`} className="font-medium text-leasing-700 underline">{c.reference ?? `Contrat ${c.id}`}</Link></td>
-                <td className="px-3 py-3.5 truncate" title={c.raisonSociale}>{c.raisonSociale}{c.importe && <span className="ml-1.5 text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5">importé</span>}</td>
+                <td className="px-3 py-3.5" title={c.raisonSociale}><span className="line-clamp-2 break-words">{c.raisonSociale}</span>{c.importe && <span className="ml-1.5 text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5">importé</span>}</td>
                 {interne && <td className="px-3 py-3.5 whitespace-nowrap truncate" title={c.commercialNom}>{c.commercialAffiche}</td>}
                 <td className="px-3 py-3.5 truncate">{c.financeurNom}{'banque' in c && c.banque ? <span className="text-gray-500"> · {c.banque}</span> : null}</td>
                 <td className="px-3 py-3.5 truncate" title={materielAffiche(c.materiel)}>{materielAffiche(c.materiel)}</td>

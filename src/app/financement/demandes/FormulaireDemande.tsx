@@ -61,7 +61,7 @@ export default function FormulaireDemande(p: {
           commercialId: v.commercialId ? Number(v.commercialId) : null,
           dureeMois: v.dureeMois ? Number(v.dureeMois) : null,
           periodicite: v.periodicite,
-          ...(v.saisie === 'loyer' ? { loyerCentimes: valeurCentimes } : { montantCentimes: valeurCentimes }),
+          loyerCentimes: valeurCentimes,
         })
         if (!annule) { setCalcul(r); setErreurCalcul(null) }
       } catch (e) {
@@ -69,7 +69,7 @@ export default function FormulaireDemande(p: {
       }
     }, 350)
     return () => { annule = true; clearTimeout(t) }
-  }, [v.financeurId, v.commercialId, v.dureeMois, v.periodicite, v.saisie, v.valeur]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [v.financeurId, v.commercialId, v.dureeMois, v.periodicite, v.valeur]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function choisirEntreprise(e: Entreprise) {
     setV(x => ({ ...x, raisonSociale: e.nom, siret: e.siret || e.siren, formeJuridique: e.formeJuridique || x.formeJuridique, adresse: e.adresse, codePostal: e.codePostal, ville: e.ville, pays: 'France' }))
@@ -85,7 +85,7 @@ export default function FormulaireDemande(p: {
       raisonSociale: v.raisonSociale, siret: v.siret, formeJuridique: v.formeJuridique, adresse: v.adresse, codePostal: v.codePostal, ville: v.ville, pays: v.pays,
       contactPrenom: v.contactPrenom, contactNom: v.contactNom, contactEmail: v.contactEmail, contactTel: v.contactTel,
       dureeMois: Number(v.dureeMois), periodicite: v.periodicite, rachatId: v.rachatId ? Number(v.rachatId) : null,
-      ...(v.saisie === 'loyer' ? { loyerCentimes: valeurCentimes } : { montantCentimes: valeurCentimes }),
+      loyerCentimes: valeurCentimes,
       lignes: v.lignes.map(l => ({ designation: l.designation ?? '', quantite: Number(l.quantite || 1), montantHtCentimes: (l.montantHt ?? '').trim() ? eurosVersCentimes(l.montantHt) : null, typeBien: l.typeBien ?? '', constructeur: l.constructeur ?? '' })),
     }
       const r = await (p.mode === 'creation' ? appel<{ id: number }>('/api/financement/demandes', 'POST', corps) : appel<{ id: number }>(`/api/financement/demandes/${p.demandeId}`, 'PATCH', corps))
@@ -112,7 +112,6 @@ export default function FormulaireDemande(p: {
           <Etiquette t="Adresse *"><input className={champ} value={v.adresse} onChange={e => set('adresse', e.target.value)} required /></Etiquette>
           <Etiquette t="Code postal"><input className={champ} value={v.codePostal} onChange={e => set('codePostal', e.target.value)} /></Etiquette>
           <Etiquette t="Ville"><input className={champ} value={v.ville} onChange={e => set('ville', e.target.value)} /></Etiquette>
-          <Etiquette t="Téléphone (facultatif)"><input className={champ} value={v.contactTel} onChange={e => set('contactTel', e.target.value)} /></Etiquette>
         </div>
         <p className="text-xs text-gray-500">Le nom, le prénom et l’e-mail du signataire seront demandés à l’étape suivante, au moment de l’envoi en signature.</p>
       </section>
@@ -121,11 +120,9 @@ export default function FormulaireDemande(p: {
         <TitreSection icone="🖨️">Matériel et prestations</TitreSection>
         <div className="space-y-2">
           {v.lignes.map((l, i) => (
-            <div key={i} className="grid gap-2 sm:grid-cols-[2fr_4rem_1fr_1fr_auto] items-end border-b border-gray-100 pb-2">
+            <div key={i} className="grid gap-2 sm:grid-cols-[1fr_5rem_auto] items-end border-b border-gray-100 pb-2">
               <Etiquette t="Désignation *"><input className={champ} value={l.designation} onChange={e => setV(x => ({ ...x, lignes: x.lignes.map((y, k) => (k === i ? { ...y, designation: e.target.value } : y)) }))} /></Etiquette>
               <Etiquette t="Qté"><input className={champ} inputMode="numeric" value={l.quantite} onChange={e => setV(x => ({ ...x, lignes: x.lignes.map((y, k) => (k === i ? { ...y, quantite: e.target.value } : y)) }))} /></Etiquette>
-              <Etiquette t="Constructeur"><input className={champ} value={l.constructeur} onChange={e => setV(x => ({ ...x, lignes: x.lignes.map((y, k) => (k === i ? { ...y, constructeur: e.target.value } : y)) }))} /></Etiquette>
-              <Etiquette t="Montant HT (facultatif)"><input className={champ} inputMode="decimal" value={l.montantHt} onChange={e => setV(x => ({ ...x, lignes: x.lignes.map((y, k) => (k === i ? { ...y, montantHt: e.target.value } : y)) }))} /></Etiquette>
               {v.lignes.length > 1 && <button type="button" className="text-gray-400 hover:text-red-600 pb-2" title="Supprimer la ligne" onClick={() => setV(x => ({ ...x, lignes: x.lignes.filter((_, k) => k !== i) }))}>×</button>}
             </div>
           ))}
@@ -162,13 +159,7 @@ export default function FormulaireDemande(p: {
               {(calcul?.dureesDisponibles ?? (v.dureeMois ? [Number(v.dureeMois)] : [])).map(d => <option key={d} value={d}>{dureeLibelle(d)}</option>)}
             </select>
           </Etiquette>
-          <Etiquette t="Je connais…">
-            <select className={champ} value={v.saisie} onChange={e => set('saisie', e.target.value as 'loyer' | 'montant')}>
-              <option value="loyer">le loyer</option>
-              <option value="montant">le montant à financer</option>
-            </select>
-          </Etiquette>
-          <Etiquette t={v.saisie === 'loyer' ? `Loyer ${v.periodicite === 'MENSUELLE' ? 'mensuel' : 'trimestriel'} HT (€) *` : 'Montant à financer HT (€) *'}>
+          <Etiquette t={`Loyer ${v.periodicite === 'MENSUELLE' ? 'mensuel' : 'trimestriel'} HT (€) *`}>
             <input className={champ} inputMode="decimal" value={v.valeur} onChange={e => set('valeur', e.target.value)} placeholder="ex. 723,00" required />
           </Etiquette>
         </div>
