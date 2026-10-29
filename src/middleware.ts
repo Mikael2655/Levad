@@ -31,7 +31,8 @@ export async function middleware(req: NextRequest) {
     if (pathname === '/') return NextResponse.redirect(new URL('/financement', req.url))
     const autorise =
       pathname === '/financement' || pathname.startsWith('/financement/') || pathname.startsWith('/api/financement/') ||
-      pathname.startsWith('/_next/') || ['/levad-logo.png', '/icon.png', '/favicon.ico'].includes(pathname)
+      pathname.startsWith('/_next/') || pathname.startsWith('/icons/leasing-') ||
+      ['/levad-logo.png', '/icon.png', '/favicon.ico', '/leasing-manifest.webmanifest'].includes(pathname)
     if (!autorise) return new NextResponse('Introuvable', { status: 404 })
   }
 

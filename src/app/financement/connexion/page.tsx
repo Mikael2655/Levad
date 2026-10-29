@@ -1,8 +1,8 @@
 import FormulaireConnexion from './FormulaireConnexion'
-import { appMetadata, appViewport } from '@/lib/app-metadata'
+import { metadataFinancement, viewportFinancement } from '@/lib/financement/metadata'
 
-export const metadata = appMetadata
-export const viewport = appViewport
+export const metadata = metadataFinancement
+export const viewport = viewportFinancement
 export const dynamic = 'force-dynamic'
 
 export default function PageConnexion({ searchParams }: { searchParams: { suite?: string } }) {
