@@ -10,9 +10,10 @@ import { assurerCode, assurerCodeEspace, listeIps, regenererCode, regenererCodeE
 import { adressesMail } from '@/lib/connect/mail'
 import { envoyerLienClient } from '@/lib/connect/lien-mail'
 import { cleClient } from '@/lib/connect/normaliser'
+import { libelleMachine } from '@/lib/connect/libelle'
 import { MAX_CLIENTS_PAR_IMPORT, lireListe } from '@/lib/connect/import-clients'
 import { dateValide, finDeJournee } from '@/lib/connect/export'
-import { rechercherReference } from '@/lib/connect/modeles'
+import { rechercherReference, resoudreModele } from '@/lib/connect/modeles'
 
 const seuil = (v: FormDataEntryValue | null) => Math.min(100, Math.max(0, Number(v ?? 25) || 0))
 
@@ -95,6 +96,13 @@ export async function definirHorsContratClient(formData: FormData) {
   const id = Number(formData.get('id'))
   const horsContrat = String(formData.get('valeur')) === 'oui'
   await prisma.connectMachine.updateMany({ where: { clientId: id }, data: { horsContrat } })
+  revalidatePath('/parc', 'layout')
+}
+
+export async function definirHorsContratMachine(formData: FormData) {
+  if (!connecte()) throw new Error('Non connecté')
+  const id = Number(formData.get('id'))
+  await prisma.connectMachine.update({ where: { id }, data: { horsContrat: String(formData.get('valeur')) === 'oui' } })
   revalidatePath('/parc', 'layout')
 }
 
@@ -529,6 +537,72 @@ export type ElementImport = {
   modele: string
   ip: string
   compteurs: Record<string, { v: number; nom?: string }>
+}
+
+// ---- Import d'un export CSV d'HyperPrint ------------------------------------------------------
+
+export type ApercuCsv = {
+  matricule: string
+  etat: 'connue' | 'nouvelle'
+  clientId: number | null // client de la machine connue, ou client reconnu d'après « Abonné »
+  clientNom: string | null
+  machineId: number | null
+  machine: string | null
+}
+
+export async function apercuCsv(lignes: { matricule: string; abonne: string | null }[]): Promise<ApercuCsv[]> {
+  if (!connecte()) throw new Error('Non connecté')
+  const res: ApercuCsv[] = []
+  for (const l of lignes.slice(0, 500)) {
+    const m = await prisma.connectMachine.findUnique({ where: { cle: `sn:${l.matricule.toUpperCase()}` }, include: { client: { select: { id: true, nom: true } } } })
+    if (m) {
+      res.push({ matricule: l.matricule, etat: 'connue', clientId: m.client.id, clientNom: m.client.nom, machineId: m.id, machine: libelleMachine(m, 'Machine') })
+      continue
+    }
+    const c = l.abonne ? await prisma.connectClient.findUnique({ where: { cle: cleClient(l.abonne) }, select: { id: true, nom: true } }) : null
+    res.push({ matricule: l.matricule, etat: 'nouvelle', clientId: c?.id ?? null, clientNom: c?.nom ?? null, machineId: null, machine: null })
+  }
+  return res
+}
+
+export type ElementCsv = { matricule: string; nb: number | null; couleur: number | null; machineId: number | null; clientId: number | null; creerClient: string | null }
+
+// Enregistre les relevés d'un export HyperPrint : les totaux (A3 compté double) sont stockés comme compteurs 109 (N&B) et 106 (couleur).
+export async function importerCsv(jour: string, elements: ElementCsv[]): Promise<string> {
+  if (!connecte()) throw new Error('Non connecté')
+  const prets: ElementImport[] = []
+  const clientsCrees = new Map<string, number>()
+  for (const e of elements.slice(0, 500)) {
+    let clientId = e.clientId
+    if (!e.machineId && !clientId && e.creerClient) {
+      const nom = e.creerClient.trim().slice(0, 120)
+      const cle = cleClient(nom)
+      const deja = clientsCrees.get(cle)
+      if (deja) clientId = deja
+      else {
+        // client qui n'a pas (encore) Levad Connect : relevés manuels, donc aucune alerte de déconnexion
+        const c = await prisma.connectClient.upsert({ where: { cle }, update: {}, create: { cle, nom, modeReleve: 'manuel' } })
+        clientsCrees.set(cle, c.id)
+        clientId = c.id
+      }
+    }
+    if (!e.machineId && !clientId) throw new Error(`Choisissez le client de la machine ${e.matricule}`)
+    const machine = e.machineId ? await prisma.connectMachine.findUnique({ where: { id: e.machineId } }) : null
+    const modele = machine ? '' : (await resoudreModele({ serie: e.matricule })) ?? ''
+    prets.push({
+      clientId: machine?.clientId ?? clientId!,
+      machineId: machine?.id ?? null,
+      serie: e.matricule,
+      modele,
+      ip: '',
+      compteurs: {
+        '109': { v: e.nb ?? 0, nom: 'Total N&B (éq. A4, A3 double)' },
+        '106': { v: e.couleur ?? 0, nom: 'Total couleur (éq. A4, A3 double)' },
+      },
+    })
+  }
+  if (!prets.length) return 'Rien à importer.'
+  return enregistrerImport(JSON.stringify({ jour, elements: prets }))
 }
 
 // Supprime un relevé importé par erreur (seuls les relevés importés à la main peuvent l'être).

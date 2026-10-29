@@ -53,7 +53,8 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
     if (!machine && !serie) {
       const c = await clientPourMachineNouvelle()
       cle = `ip:${c.id}:${ip ?? 'inconnue'}`
-      machine = await prisma.connectMachine.findUnique({ where: { cle } })
+      // la même adresse peut déjà appartenir à une machine connue par son numéro de série (lecture de l'adresse ajoutée à la main) : on la retrouve
+      machine = (ip ? await prisma.connectMachine.findFirst({ where: { clientId: c.id, ip, cle: { startsWith: 'sn:' } }, orderBy: { id: 'asc' } }) : null) ?? (await prisma.connectMachine.findUnique({ where: { cle } }))
     }
     if (machine) {
       // à chaque relevé on met à jour ce que la machine déclare ; les choix faits à la main sont conservés
@@ -83,9 +84,19 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
       })
     }
 
+    // doublon créé avant que le numéro de série soit lu (machine connue seulement par son adresse) : on le retire
+    if (ip && machine.cle.startsWith('sn:')) {
+      await prisma.connectMachine.deleteMany({ where: { clientId: machine.clientId, ip, cle: { startsWith: 'ip:' }, id: { not: machine.id } } })
+    }
+
     const compteurs: Record<string, { v: number; nom?: string }> = {}
     for (const [n, c] of Object.entries<Json>(m.compteurs_canon ?? {})) {
       if (c && typeof c.valeur === 'number') compteurs[n] = { v: c.valeur, nom: texte(c.nom, 120) ?? undefined }
+    }
+    // autres marques : compteurs de pages du moteur d'impression (noir et blanc / couleur / total), enregistrés sous « std:… »
+    for (const e of Array.isArray(m.compteurs_standard) ? m.compteurs_standard : []) {
+      if (e && typeof e.valeur === 'number' && ['nb', 'couleur', 'total'].includes(e.type))
+        compteurs[`std:${e.type}:${texte(e.index, 20) ?? ''}`] = { v: e.valeur, nom: e.type === 'nb' ? 'N&B' : e.type === 'couleur' ? 'Couleur' : 'Total' }
     }
     const simplifier = (liste: Json) =>
       (Array.isArray(liste) ? liste : []).map((e: Json) => ({

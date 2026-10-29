@@ -5,7 +5,7 @@
    Sécurité « de confort » (identique à proposition-commerciale) :
    connexion applicative (identifiant + mot de passe haché) +
    connexion anonyme Firebase pour l'écriture. Les rôles filtrent
-   l'UI côté client ; voir gestion/firestore.rules.
+   l'UI côté client ; voir crm-erp/firestore.rules.
    ============================================================ */
 
 const COLLECTIONS = ["users", "clients", "contracts", "machines", "meterReadings", "invoices", "sepaBatches", "counters", "settings"];

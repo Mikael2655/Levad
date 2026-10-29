@@ -433,6 +433,34 @@ def interpreter_consommables(brut):
     return encres, bacs, autres
 
 
+def interpreter_compteurs_standard(brut):
+    """
+    Compteurs de pages de la table standard « marqueurs » (toutes marques) : une ligne par moteur d'impression,
+    avec son nombre de couleurs (1 = noir et blanc, 3 ou 4 = couleur) et son unité (impressions, feuilles…).
+    Retourne [{"index", "type" ("nb", "couleur" ou "total"), "unite", "valeur"}].
+    """
+    racine = "1.3.6.1.2.1.43.10.2.1."
+    lignes = {}
+    for oid, v in brut.items():
+        if oid.startswith(racine):
+            colonne, _, index = oid[len(racine):].partition(".")
+            lignes.setdefault(index, {})[colonne] = v
+    unites = {7: "impressions", 8: "feuilles", 4: "impressions", 5: "feuilles"}
+    resultat = []
+    for index in sorted(lignes, key=_cle):
+        c = lignes[index]
+        valeur = c.get("4")
+        if not isinstance(valeur, int) or valeur < 0:
+            continue
+        unite = c.get("3")
+        if unite not in unites:           # mètres, pieds, litres… : pas des pages
+            continue
+        couleurs = c.get("6")
+        genre = "nb" if couleurs == 1 else ("couleur" if isinstance(couleurs, int) and couleurs >= 3 else "total")
+        resultat.append({"index": index, "type": genre, "unite": unites[unite], "valeur": valeur})
+    return resultat
+
+
 def _table_canon(brut, racine):
     """Lit une table Canon : retourne {numéro de ligne: {colonne: valeur}}."""
     lignes = {}
@@ -558,14 +586,14 @@ def racines_a_lire():
     return racines
 
 
-def lire_branches(client, racines, progres=None):
+def lire_branches(client, racines, progres=None, en_parallele=8):
     """Lit les branches en parallèle. Retourne (valeurs brutes {oid: valeur}, nombre de branches incomplètes)."""
     brut, incompletes = {}, 0
 
     def une_branche(racine):
         return client.parcourir(racine)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=en_parallele) as pool:
         for valeurs, probleme in pool.map(une_branche, racines):
             brut.update(dict(valeurs))
             if probleme:
@@ -606,6 +634,7 @@ def lire_machine(ip, communaute, delai, port=161, versions=(1, 0), progres=None)
     r["numero_serie"] = _premier(brut, OID_PRT_SERIE)
     total = _premier(brut, OID_PRT_COMPTEUR_TOTAL)
     r["compteur_total_standard"] = total if isinstance(total, int) else None
+    r["compteurs_standard"] = interpreter_compteurs_standard(brut)
 
     encres, bacs, autres = interpreter_consommables(brut)
     r["encres"], r["bacs_recuperateurs"], r["autres_consommables"] = encres, bacs, autres
@@ -623,6 +652,14 @@ def lire_machine(ip, communaute, delai, port=161, versions=(1, 0), progres=None)
 
     if r["est_canon"]:
         compteurs = interpreter_compteurs_canon(brut)
+        if not compteurs:
+            # certaines machines laissent sans réponse les questions envoyées en rafale : on relit la branche Canon
+            # une question à la fois, en attendant plus longtemps
+            client.delai, client.essais = max(client.delai, 5.0), 2
+            racines_canon = [x for x in racines_a_lire() if x.startswith(BRANCHES["canon_prive"])]
+            relu, _ = lire_branches(client, racines_canon, None, en_parallele=1)
+            brut.update(relu)
+            compteurs = interpreter_compteurs_canon(brut)
         r["compteurs_canon"] = {str(n): compteurs[n] for n in sorted(compteurs)}
         for n in COMPTEURS_CANON_ATTENDUS:
             if n not in compteurs:

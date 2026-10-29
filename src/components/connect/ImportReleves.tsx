@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { enregistrerImport } from '@/app/parc/(prive)/actions'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 
@@ -46,7 +46,7 @@ export function ImportReleves({ clients }: { clients: ClientOpt[] }) {
   const [fini, setFini] = useState('')
   const entree = useRef<HTMLInputElement>(null)
 
-  async function lire(fichiers: FileList | null) {
+  async function lire(fichiers: ArrayLike<File> | null) {
     if (!fichiers?.length) return
     setOccupe(true)
     setFini('')
@@ -93,6 +93,47 @@ export function ImportReleves({ clients }: { clients: ClientOpt[] }) {
     if (entree.current) entree.current.value = ''
   }
 
+  // Glisser-déposer ou coller (Cmd/Ctrl + V) : fichiers, images copiées, et images glissées depuis le corps d'un mail
+  const [survol, setSurvol] = useState(false)
+  async function recevoir(dt: DataTransfer) {
+    let fichiers: File[] = Array.from(dt.files ?? [])
+    if (!fichiers.length) fichiers = Array.from(dt.items ?? []).filter((i) => i.kind === 'file').map((i) => i.getAsFile()).filter((f): f is File => Boolean(f))
+    if (!fichiers.length) {
+      // image glissée depuis une page web ou un mail : on récupère son adresse puis l'image
+      let url = ''
+      const html = dt.getData('text/html')
+      if (html) url = new DOMParser().parseFromString(html, 'text/html').querySelector('img')?.getAttribute('src') ?? ''
+      if (!url) url = (dt.getData('text/uri-list') || dt.getData('text/plain')).split(/\r?\n/).find((l) => /^(https?:|data:|blob:)/i.test(l.trim()))?.trim() ?? ''
+      if (url) {
+        try {
+          const blob = await (await fetch(url)).blob()
+          if (blob.type.startsWith('image/')) fichiers = [new File([blob], `image-collee-${Date.now()}.${blob.type.split('/')[1] || 'png'}`, { type: blob.type })]
+        } catch {
+          // image protégée ou illisible depuis cette page : message ci-dessous
+        }
+      }
+    }
+    if (!fichiers.length) {
+      setErreurs(["Cette image ne peut pas être récupérée par glisser-déposer. Faites un clic droit sur l'image du mail, « Copier l'image », puis cliquez sur cette page et collez avec Cmd + V (Ctrl + V sous Windows)."])
+      return
+    }
+    await lire(fichiers)
+  }
+  const recevoirRef = useRef(recevoir)
+  recevoirRef.current = recevoir
+  useEffect(() => {
+    const coller = (e: ClipboardEvent) => {
+      const cible = e.target as HTMLElement | null
+      if (cible && ['INPUT', 'TEXTAREA', 'SELECT'].includes(cible.tagName) && (cible as HTMLInputElement).type !== 'file') return
+      if (e.clipboardData && Array.from(e.clipboardData.files).some((f) => f.type.startsWith('image/') || f.type === 'application/pdf')) {
+        e.preventDefault()
+        recevoirRef.current(e.clipboardData)
+      }
+    }
+    document.addEventListener('paste', coller)
+    return () => document.removeEventListener('paste', coller)
+  }, [])
+
   const maj = (cle: number, p: Partial<Carte>) => setCartes((x) => x.map((c) => (c.cle === cle ? { ...c, ...p } : c)))
   const majLigne = (cle: number, i: number, p: Partial<Ligne>) =>
     setCartes((x) => x.map((c) => (c.cle === cle ? { ...c, lignes: c.lignes.map((l, k) => (k === i ? { ...l, ...p } : l)) } : c)))
@@ -137,11 +178,20 @@ export function ImportReleves({ clients }: { clients: ClientOpt[] }) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border bg-white p-6">
+      <section
+        className={`rounded-xl border bg-white p-6 ${survol ? 'border-2 border-dashed bg-gray-50' : ''}`}
+        style={survol ? { borderColor: '#8c9e8b' } : undefined}
+        onDragOver={(e) => { e.preventDefault(); setSurvol(true) }}
+        onDragLeave={() => setSurvol(false)}
+        onDrop={(e) => { e.preventDefault(); setSurvol(false); if (!occupe) recevoir(e.dataTransfer) }}
+      >
         <div className="grid gap-4 md:grid-cols-2">
           <label className="text-sm font-medium text-gray-700">
             Fichiers reçus (PDF ou photos de l&apos;écran)
             <input ref={entree} type="file" multiple accept="application/pdf,image/*" disabled={occupe} onChange={(e) => lire(e.target.files)} className="mt-1 block w-full text-sm" />
+            <span className="mt-1 block text-xs font-normal text-gray-500">
+              Vous pouvez aussi <strong>glisser-déposer</strong> un fichier ou une image sur ce cadre, ou la <strong>coller</strong> (clic droit sur l&apos;image du mail, « Copier l&apos;image », puis Cmd + V).
+            </span>
           </label>
           <label className="text-sm font-medium text-gray-700">
             Date du relevé (par défaut aujourd&apos;hui)

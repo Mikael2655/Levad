@@ -18,7 +18,7 @@ export default async function DeconnexionsPage() {
         Ordinateurs (un par site chez le client) dont le programme ne donne plus signe de vie.
       </p>
       <ul className="mt-2 space-y-1 text-sm text-gray-600">
-        <li><span className="font-semibold text-orange-600">Orange</span> : 3 jours ou plus sans signal. Simple avertissement, pas de mail.</li>
+        <li><span className="font-semibold text-gray-900">Noir</span> : 3 jours ou plus sans signal. Simple avertissement, pas de mail.</li>
         <li><span className="font-semibold text-red-600">Rouge</span> : 10 jours ou plus (délai réglable pour chaque client dans sa fiche). Un mail d&apos;alerte est envoyé.</li>
       </ul>
       {postes.length === 0 ? (
@@ -29,14 +29,14 @@ export default async function DeconnexionsPage() {
       ) : (
         <>
           <p className="mt-4 text-sm text-gray-500">
-            {postes.filter((p) => p.niveau === 'rouge').length} en rouge, {postes.filter((p) => p.niveau === 'orange').length} en orange.
+            {postes.filter((p) => p.niveau === 'rouge').length} en rouge, {postes.filter((p) => p.niveau === 'orange').length} en noir.
           </p>
           <div className="mt-6 divide-y rounded-xl border bg-white">
             {postes.map((p) => (
-              <Link key={p.id} href={`/parc/client/${p.clientId}`} className={`grid items-center gap-2 border-l-4 px-5 py-4 md:grid-cols-[1.4fr_1.2fr_2fr_0.8fr] ${p.niveau === 'rouge' ? 'border-red-500 hover:bg-red-50' : 'border-orange-400 hover:bg-orange-50'}`}>
+              <Link key={p.id} href={`/parc/client/${p.clientId}`} className={`grid items-center gap-2 border-l-4 px-5 py-4 md:grid-cols-[1.4fr_1.2fr_2fr_0.8fr] ${p.niveau === 'rouge' ? 'border-red-500 hover:bg-red-50' : 'border-gray-900 hover:bg-gray-100'}`}>
                 <p className="font-semibold">{p.clientNom}</p>
                 <p className="text-sm text-gray-600">{p.site} · {p.nom}</p>
-                <p className={`text-sm ${p.niveau === 'rouge' ? 'text-red-600' : 'text-orange-600'}`}>
+                <p className={`text-sm ${p.niveau === 'rouge' ? 'font-semibold text-red-600' : 'text-gray-900'}`}>
                   Dernier signal : {formaterDate(p.derniere)} ({depuis(p.derniere)})
                 </p>
                 <p className="text-sm text-gray-500 md:text-right">Délai : {p.seuilJours} jours</p>

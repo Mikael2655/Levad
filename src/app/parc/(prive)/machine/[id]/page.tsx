@@ -6,7 +6,7 @@ import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { trierParNom } from '@/lib/connect/tri'
-import { NOM_COURT_COMPTEUR, calculer, type Compteurs } from '@/lib/connect/calcul'
+import { NOM_COURT_COMPTEUR, calculer, totauxStandard, type Compteurs } from '@/lib/connect/calcul'
 import { Badge, Encres, VERT, formaterDate, nombre, depuis, type Encre } from '@/components/connect/affichage'
 import { chercherReference, choisirGamme, demanderLecture, enregistrerReglages } from '../../actions'
 import { COULEURS, NOM_COULEUR, etatsParMachine, seuilDe, stockDuGroupe, stocksParGroupe } from '@/lib/connect/alertes'
@@ -33,6 +33,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
   const dernier = machine.releves[0]
   const compteurs = (dernier?.compteurs ?? {}) as unknown as Compteurs
   const calc = calculer(compteurs, machine.recette)
+  const std = totauxStandard(compteurs)
   const suivie = machine.categorie === 'mine'
   // 112 / 113 / 122 / 123 / 501 toujours ; les autres compteurs (108, 109, 106, 125…) seulement s'ils servent au calcul retenu
   const utilises = new Set((calc.retenue?.utilises ?? []).map(String))
@@ -115,12 +116,28 @@ export default async function MachinePage({ params }: { params: { id: string } }
               <div className="mt-4">
                 <Encres encres={encres} seuils={suivie && !machine.horsContrat ? seuils : undefined} stock={suivie && !machine.horsContrat ? stock : undefined} etats={suivie && !machine.horsContrat ? etats : undefined} grand />
               </div>
+              {encres.length > 0 && COULEURS.some((c) => !encres.find((e) => e.couleur === c && e.pourcent !== null)) && (
+                <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+                  <p className="font-semibold text-gray-700">Niveaux que la machine ne communique pas</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {COULEURS.filter((c) => !encres.find((e) => e.couleur === c && e.pourcent !== null)).map((c) => {
+                      const e = encres.find((x) => x.couleur === c)
+                      return (
+                        <li key={c}>
+                          <strong>{NOM_COULEUR[c]}</strong> :{' '}
+                          {e ? `${e.note ?? 'niveau non communiqué'}${e.description ? ` (« ${e.description} »)` : ''}` : 'la machine ne déclare pas cette cartouche'}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
               <p className="mt-3 text-xs text-gray-500">
                 {suivie && !machine.horsContrat ? (
                   <>
                     Stock de cartouches chez ce client :{' '}
                     {COULEURS.map((c) => `${NOM_COULEUR[c]} ${stock[c]}`).join(' · ')}.{' '}
-                    <Link href={`/parc/stocks/${machine.clientId}`} className="underline">Gérer le stock</Link>
+                    <Link href={`/parc/client/${machine.clientId}#stock`} className="underline">Gérer le stock</Link>
                   </>
                 ) : machine.horsContrat ? (
                   'Hors contrat : niveaux affichés à titre indicatif, aucune alerte.'
@@ -198,9 +215,32 @@ export default async function MachinePage({ params }: { params: { id: string } }
               </div>
             </div>
           ) : (
-            <div className="mt-4 rounded-lg bg-gray-50 p-4">
-              <p className="text-sm text-gray-500">Total</p>
-              <p className="text-3xl font-bold">{nombre(dernier?.totalStandard)}</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              {std ? (
+                <>
+                  {std.nb !== null && (
+                    <div className="rounded-lg bg-gray-50 p-4">
+                      <p className="text-sm text-gray-500">N&amp;B</p>
+                      <p className="text-3xl font-bold">{nombre(std.nb)}</p>
+                    </div>
+                  )}
+                  {std.couleur !== null && (
+                    <div className="rounded-lg bg-gray-50 p-4">
+                      <p className="text-sm text-gray-500">Couleur</p>
+                      <p className="text-3xl font-bold">{nombre(std.couleur)}</p>
+                    </div>
+                  )}
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <p className="text-sm text-gray-500">Total</p>
+                    <p className="text-3xl font-bold">{nombre(dernier?.totalStandard ?? std.total)}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <p className="text-sm text-gray-500">Total</p>
+                  <p className="text-3xl font-bold">{nombre(dernier?.totalStandard)}</p>
+                </div>
+              )}
             </div>
           )}
         </section>

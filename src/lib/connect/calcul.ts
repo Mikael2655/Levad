@@ -85,3 +85,19 @@ export const NOM_COURT_COMPTEUR: Record<string, string> = {
   '301': 'Impressions',
   '501': 'Scans',
 }
+
+/**
+ * Autres marques : N&B et couleur d'après les compteurs standard du relevé (clés « std:nb:… », « std:couleur:… »).
+ * Retourne null si la machine n'en a pas transmis (ancien relevé ou machine qui ne les fournit pas).
+ */
+export function totauxStandard(c: Compteurs | null | undefined) {
+  const somme = (type: string) => {
+    const lignes = Object.entries(c ?? {}).filter(([k]) => k.startsWith(`std:${type}:`))
+    return lignes.length ? lignes.reduce((n, [, x]) => n + x.v, 0) : null
+  }
+  const nb = somme('nb')
+  const couleur = somme('couleur')
+  const total = somme('total')
+  if (nb === null && couleur === null) return null
+  return { nb, couleur, total: total ?? (nb ?? 0) + (couleur ?? 0) }
+}

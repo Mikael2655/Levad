@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { trierParNom } from '@/lib/connect/tri'
 import Link from 'next/link'
 import { ImportReleves } from '@/components/connect/ImportReleves'
+import { ImportCsv } from '@/components/connect/ImportCsv'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { calculer, type Compteurs } from '@/lib/connect/calcul'
 import { jour, nombre } from '@/components/connect/affichage'
@@ -36,6 +37,8 @@ export default async function ImportPage() {
           }))}
         />
       </div>
+
+      <ImportCsv clients={clients.map((c) => ({ id: c.id, nom: c.nom }))} />
 
       <section className="mt-8 rounded-xl border bg-white p-6">
         <h2 className="text-lg font-bold">Derniers imports</h2>
