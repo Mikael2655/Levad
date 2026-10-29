@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { utilisateurCourant } from '@/lib/financement/auth'
-import Deconnexion from './Deconnexion'
+import MenuProfil from './MenuProfil'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,12 +25,11 @@ export default async function LayoutFinancement({ children }: { children: React.
               <img src="/levad-logo.png" alt="LEVAD" className="h-8 w-auto" />
               <span className="sr-only">Financements LEVAD</span>
             </Link>
-            {!u.doitChangerMotDePasse && <Link href="/financement" className="text-gray-600 hover:text-gray-900">Demandes</Link>}
+            {!u.doitChangerMotDePasse && <Link href="/financement/demandes/nouvelle" className="text-gray-600 hover:text-gray-900">Nouvelle demande</Link>}
+            {!u.doitChangerMotDePasse && <Link href="/financement" className="text-gray-600 hover:text-gray-900">Demandes en cours</Link>}
             {!u.doitChangerMotDePasse && <Link href="/financement/contrats" className="text-gray-600 hover:text-gray-900">Contrats</Link>}
             {!u.doitChangerMotDePasse && u.role === 'ADMIN' && <Link href="/financement/admin" className="text-gray-600 hover:text-gray-900">Administration</Link>}
-            <span className="ml-auto text-gray-500">{u.prenom} {u.nom} · {LIBELLE_ROLE[u.role]}</span>
-            <Link href="/financement/mot-de-passe" className="text-gray-600 hover:text-gray-900">Mot de passe</Link>
-            <Deconnexion />
+            <MenuProfil prenom={u.prenom} nom={u.nom} email={u.email} role={LIBELLE_ROLE[u.role]} />
           </div>
         </header>
       )}

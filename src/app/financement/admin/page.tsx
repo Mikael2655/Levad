@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 const RUBRIQUES = [
   { href: '/financement/admin/utilisateurs', titre: 'Utilisateurs', texte: 'Créer les comptes, choisir les rôles, réinitialiser un mot de passe.' },
   { href: '/financement/admin/financeurs', titre: 'Financeurs', texte: 'Paramètres de chaque financeur (majoration mensuelle, commission, connecteur).' },
+  { href: '/financement/mot-de-passe', titre: 'Mon mot de passe', texte: 'Changer le mot de passe de votre compte administrateur.' },
   { href: '/financement/admin/notifications', titre: 'Notifications', texte: 'Qui reçoit les e-mails (LEVAD doit signer, dossier complet) et journal des envois.' },
   { href: '/financement/admin/transfert', titre: 'Transfert de contrats', texte: 'Passer tous les contrats d’un commercial à un autre (départ, réorganisation).' },
   { href: '/financement/admin/grenke', titre: 'Connexion Grenke', texte: 'État de la liaison avec l’API Grenke, essais en lecture seule, aperçu des demandes.' },

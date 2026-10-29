@@ -50,8 +50,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-bold text-gray-900">{filtres.archivees ? 'Demandes archivées' : 'Demandes de financement'}</h1>
-        <Link href="/financement/demandes/nouvelle" className="ml-auto bg-brand-800 text-white rounded-xl px-4 py-2 text-sm font-semibold">+ Nouvelle demande</Link>
+        <h1 className="text-xl font-bold text-gray-900">{filtres.archivees ? 'Demandes archivées' : 'Demandes en cours'}</h1>
       </div>
 
       {echeancesProches > 0 && (

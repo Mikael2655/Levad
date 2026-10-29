@@ -17,7 +17,8 @@ function conditions(acteur: Acteur, f: FiltresDemandes): Prisma.FinDemandeWhereI
   return {
     ...(estInterne(acteur) ? (f.commercialId ? { commercialId: f.commercialId } : {}) : { commercialId: acteur.id }),
     archivee: f.archivees ?? false,
-    ...(f.statut ? { statut: f.statut } : {}),
+    // une demande signée est devenue un contrat : elle ne figure plus parmi les demandes en cours (sauf recherche explicite)
+    statut: f.statut ? f.statut : { not: 'SIGNEE' },
     ...(f.financeurId ? { financeurId: f.financeurId } : {}),
     ...(f.du || f.au ? { creeLe: { ...(f.du ? { gte: f.du } : {}), ...(f.au ? { lte: f.au } : {}) } } : {}),
   }

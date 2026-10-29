@@ -109,6 +109,10 @@ d('Solubail, notifications et transfert (base réelle)', () => {
     expect(c.dateFin!.toISOString().slice(0, 7)).toBe('2032-03')
     expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: demandeId } })).statut).toBe('SIGNEE')
     expect(vers('ca@t.fr').some(m => m.sujet.startsWith('Dossier complet'))).toBe(true)
+    // devenue contrat, la demande quitte la liste des demandes en cours (et ses compteurs)
+    expect((await acces.listerDemandes(S())).some(x => x.id === demandeId)).toBe(false)
+    expect((await acces.listerDemandes(CA())).some(x => x.id === demandeId)).toBe(false)
+    expect((await acces.compterParStatut(S())).SIGNEE).toBeUndefined()
   })
   it('le commercial voit son contrat sans montant réel ni banque', async () => {
     const liste = await contrats.listerContrats(CA())
