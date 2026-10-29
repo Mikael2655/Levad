@@ -58,4 +58,14 @@ describe('lecture des fichiers d’import', () => {
     expect(r.entetes).toEqual(['N° contrat', 'Colonne 2', 'Début'])
     expect(r.lignes).toEqual([['GRK-1', '723.5', '2026-01-01']])
   })
+
+  it('lecteur de secours : balises avec préfixe (x:row, x:c…), BOM, chemin absolu, texte en ligne', async () => {
+    const zip = new JSZip()
+    zip.file('xl/workbook.xml', '\uFEFF<x:workbook xmlns:x="a" xmlns:r="b"><x:sheets><x:sheet name="Feuil1" sheetId="1" r:id="rId1"/></x:sheets></x:workbook>')
+    zip.file('xl/_rels/workbook.xml.rels', '<Relationships><Relationship Id="rId1" Type="t" Target="/xl/worksheets/sheet1.xml"/></Relationships>')
+    zip.file('xl/worksheets/sheet1.xml', '<x:worksheet xmlns:x="a"><x:sheetData><x:row r="1"><x:c r="A1" t="inlineStr"><x:is><x:t>N° contrat</x:t></x:is></x:c><x:c r="B1" t="inlineStr"><x:is><x:t>Loyer</x:t></x:is></x:c></x:row><x:row r="2"><x:c r="A2" t="inlineStr"><x:is><x:t>GRK-9</x:t></x:is></x:c><x:c r="B2"><x:v>42</x:v></x:c></x:row></x:sheetData></x:worksheet>')
+    const r = await lireFichier('MyContracts-2.xlsx', Buffer.from(await zip.generateAsync({ type: 'uint8array' })))
+    expect(r.entetes).toEqual(['N° contrat', 'Loyer'])
+    expect(r.lignes).toEqual([['GRK-9', '42']])
+  })
 })
