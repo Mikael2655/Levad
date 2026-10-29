@@ -8,12 +8,14 @@ import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT } from '@/lib/financement/statuts'
 import BadgeStatut from './BadgeStatut'
 import SelecteurMontant from './SelecteurMontant'
+import EnteteTri from './EnteteTri'
 import FormulaireFiltres from './FormulaireFiltres'
+import { lireOrdre, trier } from '@/lib/financement/tri'
 import { dateFr, dureeTrimestres, euros, loyerPeriode } from './format'
 
 export const dynamic = 'force-dynamic'
 
-interface Params { statut?: string; f?: string; c?: string; du?: string; au?: string; arch?: string; m?: string }
+interface Params { statut?: string; f?: string; c?: string; du?: string; au?: string; arch?: string; m?: string; tri?: string; ordre?: string }
 
 export default async function TableauDeBord({ searchParams }: { searchParams: Params }) {
   const u = await exigerUtilisateur()
@@ -38,6 +40,14 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
     interne ? listerUtilisateurs() : Promise.resolve([]),
     compterEcheancesProches(u),
   ])
+  const ordre = lireOrdre(searchParams.ordre)
+  const lignes = trier(demandes, searchParams.tri, ordre, {
+    reference: d => d.reference, client: d => d.raisonSociale, commercial: d => d.commercialNom, financeur: d => d.financeurNom, materiel: d => d.materiel,
+    loyer: d => d.loyerCentimes / (d.periodicite === 'MENSUELLE' ? 1 : 3), duree: d => d.dureeMois,
+    montant: d => (modeMontant === 'reel' && 'montantReelCentimes' in d ? d.montantReelCentimes : d.montantCommercialCentimes),
+    statut: d => LIBELLES_STATUT[d.statut as keyof typeof LIBELLES_STATUT] ?? d.statut, creee: d => d.creeLe,
+  })
+  const entete = (cle: string, libelle: React.ReactNode, droite = false) => <EnteteTri cle={cle} libelle={libelle} chemin="/financement" params={searchParams as Record<string, string | undefined>} tri={searchParams.tri} ordre={ordre} droite={droite} />
   const commerciaux = utilisateurs.filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN'))
   const total = Object.values(compteurs).reduce((n, v) => n + v, 0)
 
@@ -85,6 +95,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
 
       <FormulaireFiltres className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-3 flex flex-wrap items-end gap-3 text-sm">
         {filtres.statut && <input type="hidden" name="statut" value={filtres.statut} />}
+        {searchParams.tri && <><input type="hidden" name="tri" value={searchParams.tri} /><input type="hidden" name="ordre" value={ordre} /></>}
         <label>Financeur<br /><select name="f" defaultValue={searchParams.f ?? ''} className={champ}><option value="">Tous</option>{financeurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}</select></label>
         {interne && <label>Commercial<br /><select name="c" defaultValue={searchParams.c ?? ''} className={champ}><option value="">Tous</option>{commerciaux.map(c => <option key={c.id} value={c.id}>{c.prenom} {c.nom}</option>)}</select></label>}
         <label>Créée du<br /><input type="date" name="du" defaultValue={searchParams.du ?? ''} className={champ} /></label>
@@ -95,10 +106,10 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
       </FormulaireFiltres>
 
       <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm overflow-x-auto">
-        <table className="w-full min-w-[74rem] table-fixed text-sm">
+        <table className="w-full min-w-[84rem] table-fixed text-sm">
           <colgroup>
-            <col className="w-32" />
-            <col />
+            <col className="w-40" />
+            <col className="w-64" />
             {interne && <col className="w-28" />}
             <col className="w-28" />
             <col className="w-44" />
@@ -110,23 +121,23 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
           </colgroup>
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-gray-500 bg-gray-50/70 border-b border-gray-100">
-              <th className="px-3 py-3 font-semibold">Référence</th>
-              <th className="px-3 py-3 font-semibold">Client</th>
-              {interne && <th className="px-3 py-3 font-semibold">Commercial</th>}
-              <th className="px-3 py-3 font-semibold">Financeur</th>
-              <th className="px-3 py-3 font-semibold">Matériel</th>
-              <th className="px-3 py-3 font-semibold text-right">Loyer</th>
-              <th className="px-3 py-3 font-semibold text-right">Durée</th>
-              <th className="px-3 py-3 font-semibold text-right">{peutChoisir ? <><span className="m-commercial">Montant (commerciaux)</span><span className="m-reel">Montant financé réel</span></> : 'Montant financé'}</th>
-              <th className="px-3 py-3 font-semibold">Statut</th>
-              <th className="px-3 py-3 font-semibold">Créée le</th>
+              {entete('reference', 'Référence')}
+              {entete('client', 'Client')}
+              {interne && entete('commercial', 'Commercial')}
+              {entete('financeur', 'Financeur')}
+              {entete('materiel', 'Matériel')}
+              {entete('loyer', 'Loyer', true)}
+              {entete('duree', 'Durée', true)}
+              {entete('montant', peutChoisir ? <><span className="m-commercial">Montant (commerciaux)</span><span className="m-reel">Montant financé réel</span></> : 'Montant financé', true)}
+              {entete('statut', 'Statut')}
+              {entete('creee', 'Créée le')}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {demandes.map(d => (
+            {lignes.map(d => (
               <tr key={d.id} className="hover:bg-leasing-50/70 transition-colors">
                 <td className="px-3 py-3.5 whitespace-nowrap"><Link href={`/financement/demandes/${d.id}`} className="font-medium text-leasing-700 underline">{d.reference}</Link></td>
-                <td className="px-3 py-3.5 truncate" title={d.raisonSociale}>{d.raisonSociale}</td>
+                <td className="px-3 py-3.5" title={d.raisonSociale}><span className="line-clamp-2 break-words">{d.raisonSociale}</span></td>
                 {interne && <td className="px-3 py-3.5 whitespace-nowrap truncate" title={d.commercialNom}>{d.commercialAffiche}</td>}
                 <td className="px-3 py-3.5 truncate">{d.financeurNom}</td>
                 <td className="px-3 py-3.5 truncate" title={d.materiel}>{d.materiel}</td>
