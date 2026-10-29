@@ -43,6 +43,7 @@ export interface EntreeDemande {
   periodicite: Periodicite
   loyerCentimes: number | null // le loyer OU le montant : l'autre se déduit
   montantCentimes: number | null
+  rachatId?: number | null // renouvellement : solde d'un contrat existant intégré au montant financé
   lignes: EntreeLigne[]
 }
 
@@ -70,6 +71,7 @@ export function normaliserEntree(c: Record<string, any>): EntreeDemande {
     periodicite: c.periodicite === 'MENSUELLE' ? 'MENSUELLE' : 'TRIMESTRIELLE',
     loyerCentimes: entierOuNull(c.loyerCentimes),
     montantCentimes: entierOuNull(c.montantCentimes),
+    rachatId: entierOuNull(c.rachatId),
     lignes: (Array.isArray(c.lignes) ? c.lignes : []).map((l: Record<string, any>) => ({
       designation: texte(l?.designation),
       quantite: Number(l?.quantite ?? 1),
@@ -153,13 +155,19 @@ async function resoudreCommercial(a: Acteur, demande: number | null): Promise<nu
   return id
 }
 
-async function preparer(a: Acteur, e: EntreeDemande, commercialDemande: number | null) {
+async function preparer(a: Acteur, e: EntreeDemande, commercialDemande: number | null, demandeId: number | null = null) {
   const problemes = validerEntree(e)
   if (problemes.length) throw new ErreurMetier(problemes.join(' '))
   const commercialId = await resoudreCommercial(a, commercialDemande)
   const { resultat } = await calculer({ financeurId: e.financeurId, commercialId, dureeMois: e.dureeMois, periodicite: e.periodicite, loyerCentimes: e.loyerCentimes, montantCentimes: e.montantCentimes })
   if (!resultat) throw new ErreurMetier('Calcul impossible.')
+  const rachat = await rachatALier(a, e.rachatId ?? null, demandeId)
+  if (rachat && rachat.totalCentimes > resultat.commercial.montantCentimes) {
+    const eur = (c: number) => (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+    throw new ErreurMetier(`Le rachat du contrat (${eur(rachat.totalCentimes)}) dépasse le montant financé (${eur(resultat.commercial.montantCentimes)}) : augmentez le loyer.`)
+  }
   const donnees = {
+    rachatId: rachat?.id ?? null,
     financeurId: e.financeurId,
     commercialId,
     raisonSociale: e.raisonSociale,
@@ -186,6 +194,27 @@ async function preparer(a: Acteur, e: EntreeDemande, commercialDemande: number |
   return { donnees, lignes }
 }
 
+// Solde de contrat que la demande peut intégrer : visible par l'acteur, pas annulé ni déjà signé, pas déjà lié à une autre demande.
+async function rachatALier(a: Acteur, rachatId: number | null, demandeId: number | null) {
+  if (rachatId == null) return null
+  const r = await prisma.finRachat.findFirst({ where: { id: rachatId, contrat: estInterne(a) ? {} : { commercialId: a.id } }, include: { demande: { select: { id: true, reference: true } } } })
+  if (!r) throw new ErreurMetier('Solde de contrat introuvable.', 404)
+  if (r.statut === 'ANNULEE' || r.statut === 'SIGNEE') throw new ErreurMetier('Ce solde n’est plus disponible (annulé ou déjà réglé).')
+  if (r.demande && r.demande.id !== demandeId) throw new ErreurMetier(`Ce solde est déjà intégré à la demande ${r.demande.reference}.`)
+  return r
+}
+
+// Une demande de renouvellement signée solde le contrat remplacé (à la date de résiliation prévue dans le solde).
+export async function finaliserRachat(d: { rachatId: number | null; reference: string }) {
+  if (d.rachatId == null) return []
+  const r = await prisma.finRachat.findUnique({ where: { id: d.rachatId } })
+  if (!r) return []
+  return [
+    prisma.finRachat.updateMany({ where: { id: r.id, statut: { in: ['SIMULEE', 'ENVOYEE'] } }, data: { statut: 'SIGNEE' } }),
+    prisma.finContrat.updateMany({ where: { id: r.contratId, clotureLe: null }, data: { clotureLe: r.dateResiliation, clotureMotif: `Renouvelé (demande ${d.reference})` } }),
+  ]
+}
+
 async function nouvelleReference(tx: Prisma.TransactionClient): Promise<string> {
   const prefixe = `LEV-${new Date().getFullYear()}-`
   const derniere = await tx.finDemande.findFirst({ where: { reference: { startsWith: prefixe } }, orderBy: { reference: 'desc' }, select: { reference: true } })
@@ -200,7 +229,7 @@ export async function creerDemande(a: Acteur, e: EntreeDemande): Promise<{ id: n
       return await prisma.$transaction(async tx => {
         const reference = await nouvelleReference(tx)
         const d = await tx.finDemande.create({
-          data: { ...donnees, reference, saisiParId: a.id, lignes: { create: lignes }, historique: { create: { auteurId: a.id, nouveauStatut: 'BROUILLON', commentaire: 'Demande créée' } } },
+          data: { ...donnees, reference, saisiParId: a.id, lignes: { create: lignes }, historique: { create: { auteurId: a.id, nouveauStatut: 'BROUILLON', commentaire: donnees.rachatId ? 'Demande de renouvellement créée (rachat de contrat intégré)' : 'Demande créée' } } },
           select: { id: true, reference: true },
         })
         return d
@@ -222,7 +251,7 @@ async function trouverAccessible(a: Acteur, id: number) {
 export async function modifierDemande(a: Acteur, id: number, e: EntreeDemande): Promise<{ id: number }> {
   const d = await trouverAccessible(a, id)
   if (!peutModifier(a, d)) throw new ErreurMetier('Cette demande ne peut plus être modifiée.', 403)
-  const { donnees, lignes } = await preparer(a, e, e.commercialId ?? d.commercialId)
+  const { donnees, lignes } = await preparer(a, e, e.commercialId ?? d.commercialId, id)
   await prisma.$transaction([
     prisma.finDemande.update({ where: { id }, data: donnees }),
     prisma.finDemandeLigne.deleteMany({ where: { demandeId: id } }),
@@ -268,6 +297,7 @@ export async function changerStatut(a: Acteur, id: number, p: { statut: string; 
           loyerCentimes: d.loyerCentimes, montantCommercialCentimes: d.montantCommercialCentimes, montantReelCentimes: reel ?? d.montantReelCentimes,
         },
       }),
+      ...(await finaliserRachat(d)),
     )
   }
   await prisma.$transaction(operations)
@@ -339,6 +369,7 @@ export async function mettreEnPlaceContrat(a: Acteur, id: number, p: { montantRe
         dateDebut: p.dateDebut, dateFin: dateFinDepuisDebut(p.dateDebut, d.dureeMois),
       },
     }),
+    ...(await finaliserRachat(d)),
   ])
   await notifierChangement({ demandeId: id, acteurId: a.id, statutAvant: d.statut, etapeAvant: null, statutApres: 'SIGNEE', etapeApres: null })
   return { ok: true }

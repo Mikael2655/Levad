@@ -13,6 +13,7 @@ export interface ValeursFormulaire {
   raisonSociale: string; siret: string; formeJuridique: string; adresse: string; codePostal: string; ville: string; pays: string
   contactPrenom: string; contactNom: string; contactEmail: string; contactTel: string
   dureeMois: string; periodicite: 'TRIMESTRIELLE' | 'MENSUELLE'; saisie: 'loyer' | 'montant'; valeur: string
+  rachatId: string // renouvellement : identifiant du solde de contrat intégré (vide : aucun)
   lignes: LigneForm[]
 }
 
@@ -31,6 +32,7 @@ const Etiquette = ({ t, children }: { t: string; children: React.ReactNode }) =>
 
 export default function FormulaireDemande(p: {
   mode: 'creation' | 'modification'
+  rachat?: { id: number; totalCentimes: number; type: string; contrat: string } | null
   demandeId?: number
   initial: ValeursFormulaire
   financeurs: { id: number; nom: string }[]
@@ -81,7 +83,7 @@ export default function FormulaireDemande(p: {
       financeurId: Number(v.financeurId), commercialId: v.commercialId ? Number(v.commercialId) : null,
       raisonSociale: v.raisonSociale, siret: v.siret, formeJuridique: v.formeJuridique, adresse: v.adresse, codePostal: v.codePostal, ville: v.ville, pays: v.pays,
       contactPrenom: v.contactPrenom, contactNom: v.contactNom, contactEmail: v.contactEmail, contactTel: v.contactTel,
-      dureeMois: Number(v.dureeMois), periodicite: v.periodicite,
+      dureeMois: Number(v.dureeMois), periodicite: v.periodicite, rachatId: v.rachatId ? Number(v.rachatId) : null,
       ...(v.saisie === 'loyer' ? { loyerCentimes: valeurCentimes } : { montantCentimes: valeurCentimes }),
       lignes: v.lignes.map(l => ({ designation: l.designation ?? '', quantite: Number(l.quantite || 1), montantHtCentimes: (l.montantHt ?? '').trim() ? eurosVersCentimes(l.montantHt) : null, typeBien: l.typeBien ?? '', constructeur: l.constructeur ?? '' })),
     }
@@ -170,6 +172,14 @@ export default function FormulaireDemande(p: {
           </Etiquette>
         </div>
 
+        {p.rachat && v.rachatId && (
+          <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm space-y-1">
+            <p className="font-medium text-emerald-900">Rachat du contrat de {p.rachat.contrat} intégré ({p.rachat.type === 'RENOUVELANT' ? 'solde renouvelant' : 'solde non renouvelant'})</p>
+            <p>Montant du rachat : <b>{euros(p.rachat.totalCentimes)}</b> — il est <b>compris</b> dans le montant à financer ci-dessous.</p>
+            {r && <p>Reste pour le nouveau matériel : <b className={r.commercial.montantCentimes < p.rachat.totalCentimes ? 'text-red-700' : ''}>{euros(r.commercial.montantCentimes - p.rachat.totalCentimes)}</b>{r.commercial.montantCentimes < p.rachat.totalCentimes && ' — le rachat dépasse le montant financé : augmentez le loyer.'}</p>}
+            <button type="button" className="text-xs underline text-gray-600" onClick={() => set('rachatId', '')}>Retirer le rachat de cette demande</button>
+          </div>
+        )}
         {erreurCalcul && <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{erreurCalcul}</p>}
         {r && (
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm grid gap-x-6 gap-y-1 sm:grid-cols-2">

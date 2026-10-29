@@ -345,6 +345,8 @@ model FinDemande {
   montantCommercialCentimes Int
   coefficientCommercialPpm  Int // coefficient par période réellement appliqué (majoration comprise), en millionièmes : 59500 = 5,95 %
   // calcul réel (jamais envoyé au commercial)
+  rachatId      Int?     @unique // renouvellement : solde (rachat) d'un contrat existant, intégré au montant financé de cette demande
+  rachat        FinRachat? @relation(fields: [rachatId], references: [id], onDelete: SetNull)
   montantReelCentimes       Int? // vide tant que le financeur n'a pas communiqué le vrai montant (financeur sans barème réel)
   coefficientReelPpm        Int?
   horsTranche   Boolean @default(false) // le montant calculé tombait entre deux tranches
@@ -514,6 +516,7 @@ model FinRachat {
   envoyeParId              Int?
   envoyePar                FinUtilisateur? @relation("RachatEnvoyePar", fields: [envoyeParId], references: [id])
   commentaire              String?
+  demande                  FinDemande? // demande de renouvellement qui intègre ce solde
 
   @@index([contratId])
   @@map("fin_rachat")

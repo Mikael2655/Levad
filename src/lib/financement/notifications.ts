@@ -177,7 +177,7 @@ const euros = (c: number) => (c / 100).toLocaleString('fr-FR', { style: 'currenc
 // dans Administration → Financeurs (administrateur ou assistante), qui le transfère au financeur.
 export async function envoyerMailFinanceur(demandeId: number): Promise<'ENVOYE' | 'ECHEC' | 'IGNORE' | 'SANS_DESTINATAIRE'> {
   try {
-    const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { lignes: { orderBy: { id: 'asc' } }, financeur: true, commercial: true } })
+    const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { lignes: { orderBy: { id: 'asc' } }, financeur: true, commercial: true, rachat: { include: { contrat: true } } } })
     if (!d || !d.financeur.envoiParMail) return 'SANS_DESTINATAIRE'
     const to = await destinataireActif(d.financeur.destinataireMailId)
     if (!to) return 'SANS_DESTINATAIRE'
@@ -194,6 +194,7 @@ export async function envoyerMailFinanceur(demandeId: number): Promise<'ENVOYE' 
         ['Périodicité', d.periodicite === 'MENSUELLE' ? 'Mensuelle' : 'Trimestrielle'],
         ['Durée', duree],
         ['Matériel', materiel],
+        ...(d.rachat ? [['Rachat de contrat intégré', `${euros(d.rachat.totalCentimes)} (contrat ${d.rachat.contrat.refFinanceur ?? d.rachat.contrat.raisonSociale}, résiliation au ${d.rachat.dateResiliation.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}) — compris dans le montant financé`] as [string, string]] : []),
       ],
       lien: { url: `${urlBase()}/financement/demandes/${d.id}`, texte: 'Ouvrir la demande (pour enregistrer la réponse)' },
       pied: `Référence ${d.reference} · commercial : ${d.commercial.prenom} ${d.commercial.nom}`,

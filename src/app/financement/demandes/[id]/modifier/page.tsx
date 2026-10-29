@@ -20,13 +20,14 @@ export default async function ModifierDemande({ params }: { params: { id: string
     financeurId: String(d.financeurId), commercialId: String(d.commercialId),
     raisonSociale: d.raisonSociale, siret: d.siret, formeJuridique: d.formeJuridique ?? '', adresse: d.adresse, codePostal: d.codePostal ?? '', ville: d.ville ?? '', pays: d.pays,
     contactPrenom: d.contactPrenom, contactNom: d.contactNom, contactEmail: d.contactEmail, contactTel: d.contactTel ?? '',
+    rachatId: d.rachat ? String(d.rachat.id) : '',
     dureeMois: String(d.dureeMois), periodicite: d.periodicite as ValeursFormulaire['periodicite'], saisie: 'loyer', valeur: eur(d.loyerCentimes),
     lignes: d.lignes.map(l => ({ designation: l.designation, quantite: String(l.quantite), montantHt: eur(l.montantHtCentimes), typeBien: l.typeBien ?? '', constructeur: l.constructeur ?? '' })),
   }
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <h1 className="text-xl font-bold text-gray-900">Modifier {d.reference}</h1>
-      <FormulaireDemande mode="modification" demandeId={d.id} initial={initial} financeurs={financeurs.map(f => ({ id: f.id, nom: f.nom }))} commerciaux={commerciaux} interne={interne} />
+      <FormulaireDemande rachat={d.rachat ? { id: d.rachat.id, totalCentimes: d.rachat.totalCentimes, type: d.rachat.type, contrat: d.rachat.contratClient } : null} mode="modification" demandeId={d.id} initial={initial} financeurs={financeurs.map(f => ({ id: f.id, nom: f.nom }))} commerciaux={commerciaux} interne={interne} />
     </main>
   )
 }
