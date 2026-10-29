@@ -5,45 +5,67 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { grilleCommercialePour, grilleReelle } from './admin'
 import { montantDepuisLoyer } from './calcul'
-import { estInterne, peutImporterContrats, peutModifierContrat, vueContrat, type Acteur } from './droits'
-import { ajouterMois, dateFinDepuisDebut, etatEcheance, moisRestants } from './echeances'
+import { estInterne, peutImporterContrats, peutModifierContrat, peutVoirBaremeReel, vueContrat, type Acteur } from './droits'
+import { ajouterMois, dateFinDepuisDebut, dernierLoyer, etatEcheance, moisRestants, prochaineReconduction, statutContrat } from './echeances'
 import { ErreurMetier } from './erreurs'
 import { lireLignes, normaliser, OBLIGATOIRES, type Mapping, type UniteLoyer } from './import-contrats'
 
-export type FiltreEcheance = 'en_cours' | 'proche6' | 'proche12' | 'echus' | 'toutes'
+export type FiltreStatut = 'en_cours' | 'tacite' | 'cloture' | 'tous'
+export type FiltreEcheance = 'toutes' | 'proche6' | 'proche12'
 export interface FiltresContrats {
   financeurId?: number
   commercialId?: number // ignoré pour un commercial
-  echeance?: FiltreEcheance
+  statut?: FiltreStatut // défaut : en cours
+  echeance?: FiltreEcheance // défaut : toutes
   q?: string
 }
 
+// Statut dans la requête SQL (même règle que statutContrat() de echeances.ts).
+// Dénoncé pendant la reconduction tacite : traité côté application (cas rare) par le filtre ci-dessous.
+function conditionStatut(statut: FiltreStatut, maintenant: Date): Prisma.FinContratWhereInput {
+  const termeDepasse: Prisma.FinContratWhereInput = { dateFin: { lt: maintenant } }
+  const ouvert: Prisma.FinContratWhereInput = { clotureLe: null }
+  if (statut === 'en_cours') return { AND: [ouvert, { OR: [{ dateFin: null }, { dateFin: { gte: maintenant } }] }] }
+  if (statut === 'tacite') return { AND: [ouvert, termeDepasse] }
+  if (statut === 'cloture') return { OR: [{ clotureLe: { not: null } }, { AND: [termeDepasse, { denonceLe: { not: null } }] }] }
+  return {}
+}
+
 function conditions(a: Acteur, f: FiltresContrats, maintenant: Date): Prisma.FinContratWhereInput {
-  const e = f.echeance ?? 'en_cours'
+  const e = f.echeance ?? 'toutes'
   const fin: Prisma.FinContratWhereInput =
-    e === 'en_cours' ? { OR: [{ dateFin: null }, { dateFin: { gte: maintenant } }] }
-    : e === 'proche6' ? { dateFin: { gte: maintenant, lte: ajouterMois(maintenant, 6) } }
+    e === 'proche6' ? { dateFin: { gte: maintenant, lte: ajouterMois(maintenant, 6) } }
     : e === 'proche12' ? { dateFin: { gte: maintenant, lte: ajouterMois(maintenant, 12) } }
-    : e === 'echus' ? { dateFin: { lt: maintenant } }
     : {}
   return {
     AND: [
       estInterne(a) ? (f.commercialId ? { commercialId: f.commercialId } : {}) : { commercialId: a.id },
       f.financeurId ? { financeurId: f.financeurId } : {},
       f.q?.trim() ? { raisonSociale: { contains: f.q.trim(), mode: 'insensitive' } } : {},
+      conditionStatut(f.statut ?? 'en_cours', maintenant),
       fin,
     ],
   }
 }
 
-const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: { select: { nom: true } } } as const
+const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: { select: { nom: true, envoiParMail: true } }, demande: { select: { reference: true } } } as const
 
 function enrichir(a: Acteur, c: Prisma.FinContratGetPayload<{ include: typeof NOMS }>, maintenant: Date) {
-  const { commercial, financeur, ...base } = c
+  const { commercial, financeur, demande, ...base } = c
+  const interne = peutVoirBaremeReel(a)
+  // Référence affichée : numéro de contrat du financeur ; pour un financeur sans API (ex. Solubail) le numéro de demande.
+  // Un commercial ne voit jamais le numéro du financeur : numéro de demande, ou rien pour un contrat importé.
+  const reference = interne ? (financeur.envoiParMail && demande ? demande.reference : base.refFinanceur ?? demande?.reference ?? null) : demande?.reference ?? null
+  const statut = statutContrat(base, maintenant)
   return {
     ...vueContrat(a, base),
     commercialNom: `${commercial.prenom} ${commercial.nom}`,
+    commercialAffiche: `${commercial.prenom} ${commercial.nom.slice(0, 1)}.`,
     financeurNom: financeur.nom,
+    reference,
+    statutContrat: statut,
+    dernierLoyer: dernierLoyer(base.dateFin, base.periodicite),
+    reconduction: statut === 'TACITE' && base.dateFin ? prochaineReconduction(base.dateFin, maintenant) : null,
     moisRestants: moisRestants(base.dateFin, maintenant),
     etat: etatEcheance(base.dateFin, maintenant),
   }
@@ -56,10 +78,12 @@ export async function listerContrats(a: Acteur, f: FiltresContrats = {}) {
     orderBy: [{ dateFin: { sort: 'asc', nulls: 'last' } }, { raisonSociale: 'asc' }],
     include: NOMS,
   })
-  return lignes.map(c => enrichir(a, c, maintenant))
+  // « dénoncé pendant la reconduction tacite » : le statut exact se calcule ici (cas rare, la requête SQL est une approximation)
+  const statutVoulu = f.statut ?? 'en_cours'
+  return lignes.map(c => enrichir(a, c, maintenant)).filter(c => statutVoulu === 'tous' || c.statutContrat === { en_cours: 'EN_COURS', tacite: 'TACITE', cloture: 'CLOTURE' }[statutVoulu])
 }
 
-// Nombre de contrats qui arrivent à échéance dans les 6 mois (bandeau du tableau de bord).
+// Nombre de contrats en cours qui arrivent à échéance dans les 6 mois (bandeau du tableau de bord).
 export async function compterEcheancesProches(a: Acteur): Promise<number> {
   return prisma.finContrat.count({ where: conditions(a, { echeance: 'proche6' }, new Date()) })
 }
@@ -212,4 +236,16 @@ export async function transfererContrats(a: Acteur, deId: number, versId: number
   }
   await prisma.$transaction(operations)
   return { transferes: contrats.length }
+}
+
+// --- Dénonciation ------------------------------------------------------------------------------------------------------
+
+// Un contrat dénoncé s'arrête à son terme (au lieu d'être prolongé tacitement d'un an). Réservé à l'administrateur et à l'assistante.
+export async function definirDenonciation(a: Acteur, id: number, denonce: boolean, date: Date = new Date()) {
+  if (!peutModifierContrat(a)) throw new ErreurMetier('Action non autorisée.', 403)
+  const c = await prisma.finContrat.findUnique({ where: { id } })
+  if (!c) throw new ErreurMetier('Contrat introuvable.', 404)
+  if (statutContrat(c) === 'CLOTURE') throw new ErreurMetier('Ce contrat est déjà clôturé.')
+  await prisma.finContrat.update({ where: { id }, data: { denonceLe: denonce ? date : null } })
+  return { ok: true }
 }

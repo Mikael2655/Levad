@@ -101,26 +101,26 @@ d('contrats (base réelle)', () => {
     it('un commercial ne voit que ses contrats ; l’interne voit tout', async () => {
       expect(noms(await ct.listerContrats(CA()))).toEqual(['Proche A', 'Lointain A', 'Sans date A'])
       expect(noms(await ct.listerContrats(CB()))).toEqual(['Proche B'])
-      expect(await ct.listerContrats(S())).toHaveLength(4)
+      expect(await ct.listerContrats(S())).toHaveLength(4) // les contrats tacites ne sont pas « en cours »
       expect((await ct.listerContrats(CA(), { commercialId: ids.comB })).every(c => c.commercialId === ids.comA)).toBe(true)
     })
     it('aucune donnée réelle ne part vers un commercial', async () => {
-      const json = JSON.stringify(await ct.listerContrats(CA(), { echeance: 'toutes' }))
+      const json = JSON.stringify(await ct.listerContrats(CA(), { statut: 'tous' }))
       for (const interdit of ['montantReel', 'marge', '1255208', 'SECRET-REF']) expect(json).not.toContain(interdit)
       expect(json).toContain('1215126')
       expect(JSON.stringify(await ct.listerContrats(S()))).toContain('1255208')
     })
     it('filtres d’échéance et tri par date de fin', async () => {
       expect(noms(await ct.listerContrats(S(), { echeance: 'proche6' }))).toEqual(['Proche A', 'Proche B'])
-      expect(noms(await ct.listerContrats(S(), { echeance: 'echus' }))).toEqual(['Echu A'])
+      expect(noms(await ct.listerContrats(S(), { statut: 'tacite' }))).toEqual(['Echu A'])
       expect(noms(await ct.listerContrats(S(), { echeance: 'proche12' }))).toEqual(['Proche A', 'Proche B'])
-      expect(noms(await ct.listerContrats(S(), { echeance: 'toutes' }))).toEqual(['Echu A', 'Proche A', 'Proche B', 'Lointain A', 'Sans date A'])
+      expect(noms(await ct.listerContrats(S(), { statut: 'tous' }))).toEqual(['Echu A', 'Proche A', 'Proche B', 'Lointain A', 'Sans date A'])
       expect(noms(await ct.listerContrats(S(), { q: 'lointain' }))).toEqual(['Lointain A'])
     })
     it('mois restants et état d’échéance calculés', async () => {
       const [proche] = await ct.listerContrats(CA(), { echeance: 'proche6' })
       expect(proche).toMatchObject({ etat: 'PROCHE', moisRestants: 3 })
-      expect((await ct.listerContrats(S(), { echeance: 'echus' }))[0]).toMatchObject({ etat: 'ECHU', moisRestants: 0 })
+      expect((await ct.listerContrats(S(), { statut: 'tacite' }))[0]).toMatchObject({ etat: 'ECHU', moisRestants: 0, statutContrat: 'TACITE' })
     })
     it('compteur d’échéances proches (bandeau)', async () => {
       expect(await ct.compterEcheancesProches(CA())).toBe(1)

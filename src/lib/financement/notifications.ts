@@ -37,7 +37,7 @@ export const remplacerExpediteur = (e: Expediteur | null) => { expediteur = e ??
 
 export const urlBase = () => (process.env.FIN_BASE_URL || 'https://leasing.levad.fr').replace(/\/+$/, '')
 
-export type TypeNotification = 'DEMANDE_FINANCEUR' | 'RETOUR_FINANCEUR' | 'CLIENT_A_SIGNE' | 'LEVAD_DOIT_SIGNER' | 'LIVRAISON_A_CONFIRMER' | 'DOSSIER_COMPLET'
+export type TypeNotification = 'DEMANDE_FINANCEUR' | 'RETOUR_FINANCEUR' | 'CLIENT_A_SIGNE' | 'LEVAD_DOIT_SIGNER' | 'LIVRAISON_A_CONFIRMER' | 'DOSSIER_COMPLET' | 'RACHAT_FINANCEUR'
 
 export async function envoyerEtJournaliser(type: TypeNotification, demandeId: number | null, m: Mail): Promise<'ENVOYE' | 'ECHEC' | 'IGNORE'> {
   let statut: 'ENVOYE' | 'ECHEC' | 'IGNORE' = 'ENVOYE'

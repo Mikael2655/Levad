@@ -12,7 +12,12 @@ export interface EtatSchema {
 // Colonne -> script qui l'a ajoutée (pour dire quoi exécuter). Les colonnes absentes de cette liste relèvent du script complet.
 const V2 = 'prisma/migrations/manual_financement_2.sql'
 const V3 = 'prisma/migrations/manual_financement_3.sql'
+const V4 = 'prisma/migrations/manual_financement_4.sql'
 const COLONNES_AJOUTEES: Record<string, string> = {
+  'fin_contrat.denonceLe': V4,
+  'fin_contrat.clotureLe': V4,
+  'fin_contrat.clotureMotif': V4,
+  fin_rachat: V4,
   'fin_demande.etapeSignature': V2,
   'fin_financeur.signatureElectronique': V3,
   'fin_financeur.envoiParMail': V3,

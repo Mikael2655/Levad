@@ -70,6 +70,11 @@ d('Solubail, notifications et transfert (base réelle)', () => {
     expect(brut.montantReelCentimes).toBeNull()
     expect(brut.montantCommercialCentimes).toBe(Math.round(72300 / 0.065)) // 21 trimestres : 6,60 % donnerait 10 954 € (> 10 000 €) donc tranche suivante, 6,50 %
   })
+  it('liste des demandes : matériel sans « 1 × », commercial en prénom + initiale', async () => {
+    const [l] = (await acces.listerDemandes(CA())).filter(x => x.id === demandeId)
+    expect(l.materiel).toBe('2 × Copieur C3226i')
+    expect(l.commercialAffiche).toBe('P c.')
+  })
   it('à « Envoyée », le récapitulatif part vers l’assistante choisie (SIREN, loyer, périodicité, durée en trimestres, matériel)', async () => {
     await dem.changerStatut(CA(), demandeId, { statut: 'ENVOYEE' })
     const mails = vers('assist@t.fr')

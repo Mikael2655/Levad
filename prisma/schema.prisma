@@ -237,6 +237,8 @@ model FinUtilisateur {
   historique         FinHistorique[]
   piecesJointes      FinPieceJointe[]
   financeursDestinataire FinFinanceur[] @relation("FinanceurDestinataire")
+  rachatsCrees       FinRachat[] @relation("RachatCreePar")
+  rachatsEnvoyes     FinRachat[] @relation("RachatEnvoyePar")
 
   @@map("fin_utilisateur")
 }
@@ -442,6 +444,10 @@ model FinContrat {
   montantCommercialCentimes Int?
   montantReelCentimes       Int? // montant financé par le financeur (jamais envoyé au commercial)
   banque        String? // banque / établissement chez qui passe le dossier (jamais envoyé au commercial)
+  denonceLe     DateTime? // le contrat a été dénoncé : il s'arrête au terme au lieu d'être prolongé tacitement d'un an
+  clotureLe     DateTime? // contrat soldé avant le terme (rachat signé) : date d'effet
+  clotureMotif  String?
+  rachats       FinRachat[]
 
   @@index([commercialId])
   @@index([dateFin])
@@ -469,4 +475,29 @@ model FinNotification {
 
   @@index([creeLe])
   @@map("fin_notification")
+}
+
+// Solde d'un contrat avant son terme (rachat) : simulation enregistrée par le commercial, envoyée au financeur par l'admin / l'assistante.
+model FinRachat {
+  id                       Int      @id @default(autoincrement())
+  creeLe                   DateTime @default(now())
+  contratId                Int
+  contrat                  FinContrat @relation(fields: [contratId], references: [id], onDelete: Cascade)
+  creeParId                Int
+  creePar                  FinUtilisateur @relation("RachatCreePar", fields: [creeParId], references: [id])
+  type                     String // RENOUVELANT | NON_RENOUVELANT
+  dateResiliation          DateTime
+  nbLoyersRestants         Int
+  loyersRestantsCentimes   Int
+  penaliteCentimes         Int
+  valeurResiduelleCentimes Int // jamais envoyée au commercial (permettrait de retrouver le montant financé réel)
+  totalCentimes            Int
+  statut                   String // SIMULEE | ENVOYEE | SIGNEE | ANNULEE
+  envoyeLe                 DateTime?
+  envoyeParId              Int?
+  envoyePar                FinUtilisateur? @relation("RachatEnvoyePar", fields: [envoyeParId], references: [id])
+  commentaire              String?
+
+  @@index([contratId])
+  @@map("fin_rachat")
 }

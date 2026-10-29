@@ -27,10 +27,12 @@ function conditions(acteur: Acteur, f: FiltresDemandes): Prisma.FinDemandeWhereI
 const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: { select: { nom: true, signatureElectronique: true, envoiParMail: true } } } as const
 
 export async function listerDemandes(acteur: Acteur, f: FiltresDemandes = {}) {
-  const lignes = await prisma.finDemande.findMany({ where: conditions(acteur, f), orderBy: { creeLe: 'desc' }, include: NOMS })
-  return lignes.map(({ commercial, financeur, ...d }) => ({
+  const lignes = await prisma.finDemande.findMany({ where: conditions(acteur, f), orderBy: { creeLe: 'desc' }, include: { ...NOMS, lignes: { orderBy: { id: 'asc' }, select: { designation: true, quantite: true } } } })
+  return lignes.map(({ commercial, financeur, lignes: materiel, ...d }) => ({
     ...vueDemande(acteur, d),
     commercialNom: `${commercial.prenom} ${commercial.nom}`,
+    commercialAffiche: `${commercial.prenom} ${commercial.nom.slice(0, 1)}.`,
+    materiel: materiel.map(l => (l.quantite > 1 ? `${l.quantite} × ` : '') + l.designation).join(' ; '),
     financeurNom: financeur.nom,
   }))
 }

@@ -8,7 +8,8 @@ import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT } from '@/lib/financement/statuts'
 import BadgeStatut from './BadgeStatut'
 import SelecteurMontant from './SelecteurMontant'
-import { dateFr, dureeLibelle, euros } from './format'
+import FormulaireFiltres from './FormulaireFiltres'
+import { dateFr, dureeTrimestres, euros, loyerPeriode } from './format'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +49,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
   const champ = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white'
 
   return (
-    <main id="zone-montant" data-m={modeMontant} className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
+    <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex items-center gap-3">
         <h1 className="text-xl font-bold text-gray-900">{filtres.archivees ? 'Demandes archivées' : 'Demandes en cours'}</h1>
       </div>
@@ -68,7 +69,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
         ))}
       </div>
 
-      <form className="bg-white rounded-2xl border border-gray-200 p-3 flex flex-wrap items-end gap-3 text-sm" method="get">
+      <FormulaireFiltres className="bg-white rounded-2xl border border-gray-200 p-3 flex flex-wrap items-end gap-3 text-sm">
         {filtres.statut && <input type="hidden" name="statut" value={filtres.statut} />}
         <label>Financeur<br /><select name="f" defaultValue={searchParams.f ?? ''} className={champ}><option value="">Tous</option>{financeurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}</select></label>
         {interne && <label>Commercial<br /><select name="c" defaultValue={searchParams.c ?? ''} className={champ}><option value="">Tous</option>{commerciaux.map(c => <option key={c.id} value={c.id}>{c.prenom} {c.nom}</option>)}</select></label>}
@@ -76,22 +77,22 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
         <label>au<br /><input type="date" name="au" defaultValue={searchParams.au ?? ''} className={champ} /></label>
         {peutChoisir && <SelecteurMontant initial={modeMontant} />}
         <label className="pb-2"><input type="checkbox" name="arch" value="1" defaultChecked={filtres.archivees} className="mr-1.5" />Archivées</label>
-        <button className="bg-gray-900 text-white rounded-lg px-4 py-1.5">Filtrer</button>
         <Link href="/financement" className="underline text-gray-500 pb-2">Réinitialiser</Link>
-      </form>
+      </FormulaireFiltres>
 
       <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
-        <table className="w-full min-w-[68rem] table-fixed text-sm">
+        <table className="w-full min-w-[74rem] table-fixed text-sm">
           <colgroup>
-            <col className="w-36" />
+            <col className="w-32" />
             <col />
-            {interne && <col className="w-40" />}
+            {interne && <col className="w-28" />}
+            <col className="w-28" />
+            <col className="w-44" />
+            <col className="w-32" />
+            <col className="w-20" />
             <col className="w-32" />
             <col className="w-40" />
-            <col className="w-32" />
-            <col className="w-36" />
-            <col className="w-44" />
-            <col className="w-28" />
+            <col className="w-24" />
           </colgroup>
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-100">
@@ -99,8 +100,9 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
               <th className="px-2.5 py-3 font-medium">Client</th>
               {interne && <th className="px-2.5 py-3 font-medium">Commercial</th>}
               <th className="px-2.5 py-3 font-medium">Financeur</th>
-              <th className="px-2.5 py-3 font-medium">Durée</th>
+              <th className="px-2.5 py-3 font-medium">Matériel</th>
               <th className="px-2.5 py-3 font-medium text-right">Loyer</th>
+              <th className="px-2.5 py-3 font-medium text-right">Durée</th>
               <th className="px-2.5 py-3 font-medium text-right">{peutChoisir ? <><span className="m-commercial">Montant (commerciaux)</span><span className="m-reel">Montant financé réel</span></> : 'Montant financé'}</th>
               <th className="px-2.5 py-3 font-medium">Statut</th>
               <th className="px-2.5 py-3 font-medium">Créée le</th>
@@ -110,17 +112,18 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
             {demandes.map(d => (
               <tr key={d.id} className="hover:bg-gray-50">
                 <td className="px-2.5 py-3 whitespace-nowrap"><Link href={`/financement/demandes/${d.id}`} className="font-medium text-brand-800 underline">{d.reference}</Link></td>
-                <td className="px-2.5 py-3">{d.raisonSociale}</td>
-                {interne && <td className="px-2.5 py-3 whitespace-nowrap">{d.commercialNom}</td>}
-                <td className="px-2.5 py-3">{d.financeurNom}</td>
-                <td className="px-2.5 py-3 whitespace-nowrap">{d.dureeMois} mois{d.periodicite === 'MENSUELLE' && <span className="ml-1.5 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">mensuel</span>}</td>
-                <td className="px-2.5 py-3 text-right whitespace-nowrap">{euros(d.loyerCentimes)}<span className="text-gray-400"> /{d.periodicite === 'MENSUELLE' ? 'mois' : 'trim.'}</span></td>
+                <td className="px-2.5 py-3 truncate" title={d.raisonSociale}>{d.raisonSociale}</td>
+                {interne && <td className="px-2.5 py-3 whitespace-nowrap truncate" title={d.commercialNom}>{d.commercialAffiche}</td>}
+                <td className="px-2.5 py-3 truncate">{d.financeurNom}</td>
+                <td className="px-2.5 py-3 truncate" title={d.materiel}>{d.materiel}</td>
+                <td className="px-2.5 py-3 text-right whitespace-nowrap tabular-nums">{loyerPeriode(d.loyerCentimes, d.periodicite)}</td>
+                <td className="px-2.5 py-3 text-right whitespace-nowrap">{dureeTrimestres(d.dureeMois)}</td>
                 <td className="px-2.5 py-3 text-right whitespace-nowrap tabular-nums">{peutChoisir && 'montantReelCentimes' in d ? <><span className="m-commercial">{euros(d.montantCommercialCentimes)}</span><span className="m-reel">{euros(d.montantReelCentimes)}</span></> : euros(d.montantCommercialCentimes)}</td>
                 <td className="px-2.5 py-3"><BadgeStatut statut={d.statut} />{d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="block text-xs text-violet-800 mt-0.5">{libelleEtape(d.etapeSignature)}</span>}</td>
                 <td className="px-2.5 py-3 whitespace-nowrap text-gray-500">{dateFr(d.creeLe)}</td>
               </tr>
             ))}
-            {demandes.length === 0 && <tr><td colSpan={9} className="p-6 text-center text-gray-400">Aucune demande.</td></tr>}
+            {demandes.length === 0 && <tr><td colSpan={interne ? 10 : 9} className="p-6 text-center text-gray-400">Aucune demande.</td></tr>}
           </tbody>
         </table>
       </div>

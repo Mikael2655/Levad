@@ -161,6 +161,9 @@ export interface ContratBase {
   montantCommercialCentimes: number | null
   montantReelCentimes: number | null
   banque: string | null
+  denonceLe: Date | null
+  clotureLe: Date | null
+  clotureMotif: string | null
 }
 
 export function vueContrat(a: Acteur, c: ContratBase) {
@@ -181,6 +184,8 @@ export function vueContrat(a: Acteur, c: ContratBase) {
     dateDebut: c.dateDebut,
     dateFin: c.dateFin,
     montantCommercialCentimes: c.montantCommercialCentimes,
+    denonceLe: c.denonceLe,
+    clotureLe: c.clotureLe,
   }
 }
 
