@@ -18,7 +18,7 @@ function statutsDistincts(lignes: string[][], colonne: number | undefined): { va
   return Array.from(n, ([valeur, nombre]) => ({ valeur, nombre })).sort((a, b) => b.nombre - a.nombre)
 }
 
-const section = 'bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-3'
+const section = 'bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3'
 
 export default function ImportContrats({ financeurs, commerciaux }: { financeurs: { id: number; nom: string }[]; commerciaux: { id: number; nom: string }[] }) {
   const [financeurId, setFinanceurId] = useState(financeurs.length === 1 ? String(financeurs[0].id) : '')
@@ -167,7 +167,7 @@ export default function ImportContrats({ financeurs, commerciaux }: { financeurs
                 </table>
               </div>
               {rapport.simule ? (
-                <button disabled={occupe || rapport.importes === 0} className="bg-brand-800 text-white rounded-xl px-5 py-2 text-sm font-semibold disabled:opacity-50" onClick={() => lancer(false)}>Importer {rapport.importes} contrat{rapport.importes > 1 ? 's' : ''}</button>
+                <button disabled={occupe || rapport.importes === 0} className="bg-leasing-700 text-white rounded-xl px-5 py-2 text-sm font-semibold disabled:opacity-50" onClick={() => lancer(false)}>Importer {rapport.importes} contrat{rapport.importes > 1 ? 's' : ''}</button>
               ) : (
                 <p className="text-sm text-green-700">Import terminé. <Link href="/financement/contrats" className="underline">Voir les contrats</Link></p>
               )}

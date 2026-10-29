@@ -26,10 +26,10 @@ export default function FormulaireTransfert({ sources, cibles }: { sources: P[];
   }
 
   return (
-    <form onSubmit={transferer} className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-wrap items-end gap-3 text-sm">
+    <form onSubmit={transferer} className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 flex flex-wrap items-end gap-3 text-sm">
       <label>De<br /><select className={champ} value={de} onChange={e => setDe(e.target.value)} required><option value="">— choisir —</option>{sources.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}</select></label>
       <label>Vers<br /><select className={champ} value={vers} onChange={e => setVers(e.target.value)} required><option value="">— choisir —</option>{cibles.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}</select></label>
-      <button className="bg-brand-800 text-white rounded-lg px-4 py-2 font-semibold">Transférer</button>
+      <button className="bg-leasing-700 text-white rounded-lg px-4 py-2 font-semibold">Transférer</button>
       {message && <span className={message.ok ? 'text-green-700' : 'text-red-700'}>{message.texte}</span>}
     </form>
   )

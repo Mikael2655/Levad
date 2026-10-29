@@ -23,7 +23,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
   const d = await lireDemande(u, Number(params.id))
   if (!d) notFound()
   const reel = peutVoirBaremeReel(u) && 'montantReelCentimes' in d ? d : null
-  const section = 'bg-white rounded-2xl border border-gray-200 p-4 sm:p-5'
+  const section = 'bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5'
 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
@@ -74,7 +74,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         <Ligne t="Durée / périodicité">{dureeLibelle(d.dureeMois)} · {libellePeriodicite(d.periodicite)}{d.periodicite === 'MENSUELLE' && <span className="ml-2 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">paiement mensuel : coefficient majoré</span>}</Ligne>
         <Ligne t="Loyer HT"><b>{euros(d.loyerCentimes)}</b> par {d.periodicite === 'MENSUELLE' ? 'mois' : 'trimestre'}</Ligne>
         <Ligne t="Montant (barème commercial)">{euros(d.montantCommercialCentimes)} <span className="text-gray-400">— coefficient {pourcentCoef(d.coefficientCommercialPpm)}</span></Ligne>
-        {d.rachat && <Ligne t="Rachat de contrat intégré"><b>{euros(d.rachat.totalCentimes)}</b> — contrat de <Link className="underline text-brand-800" href={`/financement/contrats/${d.rachat.contratId}`}>{d.rachat.contratClient}</Link> ({d.rachat.type === 'RENOUVELANT' ? 'solde renouvelant' : 'solde non renouvelant'}), compris dans le montant ci-dessus</Ligne>}
+        {d.rachat && <Ligne t="Rachat de contrat intégré"><b>{euros(d.rachat.totalCentimes)}</b> — contrat de <Link className="underline text-leasing-700" href={`/financement/contrats/${d.rachat.contratId}`}>{d.rachat.contratClient}</Link> ({d.rachat.type === 'RENOUVELANT' ? 'solde renouvelant' : 'solde non renouvelant'}), compris dans le montant ci-dessus</Ligne>}
         {reel && (
           <>
             {reel.montantReelCentimes != null && <Ligne t="Montant financé réel">{euros(reel.montantReelCentimes)}{reel.coefficientReelPpm != null && <span className="text-gray-400"> — coefficient {pourcentCoef(reel.coefficientReelPpm)}</span>}</Ligne>}

@@ -15,7 +15,7 @@ export default function MenuPrincipal({ admin }: { admin: boolean }) {
     ...(admin ? [{ href: '/financement/admin', libelle: 'Administration', actif: (c: string) => c.startsWith('/financement/admin') }] : []),
   ]
   return (
-    <nav className="flex flex-wrap items-center gap-x-3 gap-y-1">
+    <nav className="order-3 md:order-none w-full md:w-auto flex items-center gap-1 sm:gap-3 overflow-x-auto pb-1 md:pb-0 -mx-1 px-1">
       {onglets.map(o => {
         const actif = o.actif(chemin)
         return (
@@ -23,7 +23,7 @@ export default function MenuPrincipal({ admin }: { admin: boolean }) {
             key={o.href}
             href={o.href}
             aria-current={actif ? 'page' : undefined}
-            className={`px-4 py-2 rounded-lg ${actif ? 'bg-brand-800 text-white font-semibold' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}
+            className={`px-3 sm:px-4 py-2 rounded-full whitespace-nowrap transition ${actif ? 'bg-leasing-700 text-white font-semibold shadow-sm' : 'text-gray-600 hover:bg-leasing-100 hover:text-leasing-800'}`}
           >
             {o.libelle}
           </Link>

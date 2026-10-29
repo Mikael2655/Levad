@@ -44,7 +44,7 @@ export default function SoldeContrat(p: { contratId: number; enCours: boolean; p
   )
 
   return (
-    <section className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 space-y-3">
+    <section className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3">
       <h2 className="font-semibold text-gray-900">Solde anticipé (rachat du contrat)</h2>
       {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{erreur}</p>}
       {info && <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">{info}</p>}
@@ -62,7 +62,7 @@ export default function SoldeContrat(p: { contratId: number; enCours: boolean; p
               {detail(sim) || <p className="text-xs text-sky-800">{sim.nbLoyersRestants} loyer(s) restant(s) à la date choisie.</p>}
               <div className="mt-2 flex flex-wrap gap-2 items-center">
                 <input className={`${champ} flex-1 min-w-[12rem]`} placeholder="Commentaire (facultatif)" value={commentaire} onChange={e => setCommentaire(e.target.value)} />
-                <button className="bg-brand-800 text-white rounded-lg px-4 py-1.5 text-sm font-semibold" onClick={() => agir(async () => { await appel(url, 'POST', { type, dateResiliation: date, commentaire, enregistrer: true }); setSim(null); setCommentaire(''); setInfo('Demande de solde enregistrée.') })}>Enregistrer la demande</button>
+                <button className="bg-leasing-700 text-white rounded-lg px-4 py-1.5 text-sm font-semibold" onClick={() => agir(async () => { await appel(url, 'POST', { type, dateResiliation: date, commentaire, enregistrer: true }); setSim(null); setCommentaire(''); setInfo('Demande de solde enregistrée.') })}>Enregistrer la demande</button>
               </div>
             </div>
           )}
@@ -83,7 +83,7 @@ export default function SoldeContrat(p: { contratId: number; enCours: boolean; p
               </div>
               {detail(r)}
               {r.commentaire && <p className="text-gray-500 mt-1">{r.commentaire}</p>}
-              {r.demande && <p className="mt-1">Intégré à la demande de renouvellement <Link className="underline text-brand-800 font-medium" href={`/financement/demandes/${r.demande.id}`}>{r.demande.reference}</Link>.</p>}
+              {r.demande && <p className="mt-1">Intégré à la demande de renouvellement <Link className="underline text-leasing-700 font-medium" href={`/financement/demandes/${r.demande.id}`}>{r.demande.reference}</Link>.</p>}
               <div className="mt-2 flex flex-wrap gap-2">
                 {!r.demande && (r.statut === 'SIMULEE' || r.statut === 'ENVOYEE') && <Link href={`/financement/demandes/nouvelle?rachat=${r.id}`} className="bg-emerald-700 text-white rounded-lg px-3 py-1 text-xs font-semibold">Créer la demande de renouvellement (rachat intégré)</Link>}
                 {p.peutEnvoyer && r.statut === 'SIMULEE' && !r.demande && <button className="bg-violet-700 text-white rounded-lg px-3 py-1 text-xs font-semibold" onClick={() => agir(async () => { await appel(`/api/financement/rachats/${r.id}`, 'POST', { action: 'envoyer' }); setInfo('Demande envoyée par e-mail.') })}>Envoyer la demande au financeur</button>}

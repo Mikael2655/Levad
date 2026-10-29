@@ -42,7 +42,7 @@ function Ligne({ f, destinataires, onErreur }: { f: F | null; destinataires: D[]
       <label className="flex items-center gap-1.5 pb-2 text-sm"><input type="checkbox" checked={parMail} onChange={e => setParMail(e.target.checked)} />Demande transmise par e-mail</label>
       {parMail && <label><span className={etiquette}>E-mail envoyé à</span><select className={`${champ} bg-white`} value={destinataire} onChange={e => setDestinataire(e.target.value)}><option value="">— choisir —</option>{destinataires.map(x => <option key={x.id} value={x.id}>{x.nom}</option>)}</select></label>}
       {f && <span className="text-sm text-gray-500 pb-2">Connecteur : {f.connecteur}</span>}
-      <button type="submit" className="bg-brand-800 text-white rounded-lg px-4 py-1.5 text-sm font-semibold">{f ? 'Enregistrer' : 'Ajouter'}</button>
+      <button type="submit" className="bg-leasing-700 text-white rounded-lg px-4 py-1.5 text-sm font-semibold">{f ? 'Enregistrer' : 'Ajouter'}</button>
       {f && (
         <button type="button" className={`${champ} bg-white`} onClick={async () => {
           onErreur(null)
@@ -58,10 +58,10 @@ export default function ListeFinanceurs({ financeurs, destinataires }: { finance
   return (
     <div className="space-y-4">
       {erreur && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{erreur}</p>}
-      <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100">
+      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm divide-y divide-gray-100">
         {financeurs.map(f => <Ligne key={`${f.id}-${f.nom}-${f.majorationMensuelleBp}-${f.commissionBp}-${f.fraisDossierCentimes}-${f.signatureElectronique}-${f.envoiParMail}-${f.destinataireMailId}`} f={f} destinataires={destinataires} onErreur={setErreur} />)}
       </div>
-      <div className="bg-white rounded-2xl border border-gray-200"><Ligne f={null} destinataires={destinataires} onErreur={setErreur} /></div>
+      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm"><Ligne f={null} destinataires={destinataires} onErreur={setErreur} /></div>
     </div>
   )
 }

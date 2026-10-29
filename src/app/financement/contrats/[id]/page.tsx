@@ -27,7 +27,7 @@ export default async function FicheContrat({ params, searchParams }: { params: {
   const reel = peutVoirBaremeReel(u) ? (c as typeof c & { montantReelCentimes: number | null; banque: string | null; margeCentimes: number | null; refFinanceur: string | null; statutFinanceur: string | null }) : null
   const commerciaux = peutModifierContrat(u) ? (await listerUtilisateurs()).filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN')).map(x => ({ id: x.id, nom: `${x.prenom} ${x.nom}` })) : []
   const modeMontant = reel && searchParams.m === 'reel' ? 'reel' : 'commercial'
-  const section = 'bg-white rounded-2xl border border-gray-200 p-4 sm:p-5'
+  const section = 'bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5'
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '')
 
   return (
@@ -66,7 +66,7 @@ export default async function FicheContrat({ params, searchParams }: { params: {
         <Ligne t="Statut">{LIBELLES_STATUT_CONTRAT[c.statutContrat]}</Ligne>
         {c.statutContrat === 'TACITE' && c.reconduction && <Ligne t="Reconduction tacite">Prolongé d’un an : prochaine reconduction le {dateFr(c.reconduction)}{c.denonceLe ? ' — dénoncé, il s’arrêtera à cette date' : ''}</Ligne>}
         {c.denonceLe && c.statutContrat !== 'TACITE' && <Ligne t="Dénonciation">Dénoncé le {dateFr(c.denonceLe)} : le contrat s’arrête au terme</Ligne>}
-        {c.demandeId && <p className="pt-2 text-sm"><Link className="underline text-brand-800" href={`/financement/demandes/${c.demandeId}`}>Voir la demande d’origine</Link></p>}
+        {c.demandeId && <p className="pt-2 text-sm"><Link className="underline text-leasing-700" href={`/financement/demandes/${c.demandeId}`}>Voir la demande d’origine</Link></p>}
       </section>
 
       {peutModifierContrat(u) && c.statutContrat !== 'CLOTURE' && <BoutonDenonciation id={c.id} denonce={!!c.denonceLe} />}

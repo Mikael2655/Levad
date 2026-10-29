@@ -14,11 +14,11 @@ const LIBELLE_ROLE = { ADMIN: 'Administrateur', ASSISTANTE: 'Assistante', COMMER
 export default async function LayoutFinancement({ children }: { children: React.ReactNode }) {
   const u = await utilisateurCourant()
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-leasing-50">
       {u && (
-        <header className="bg-white border-b border-gray-200">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-x-10 gap-y-2 text-sm">
-            <Link href="/financement" className="flex items-center gap-2 font-bold text-gray-900">
+        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur shadow-sm ring-1 ring-gray-900/5">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center gap-x-10 gap-y-1 text-sm">
+            <Link href="/financement" className="flex items-center gap-2 font-bold text-gray-900 order-1 md:order-none">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/levad-logo.png" alt="LEVAD" className="h-8 w-auto" />
               <span className="sr-only">Financements LEVAD</span>
