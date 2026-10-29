@@ -2,6 +2,9 @@
 // on lit directement le contenu du fichier (c'est une archive zip de fichiers XML) : première feuille, textes et nombres, dates.
 import JSZip from 'jszip'
 
+// Certains logiciels écrivent <x:row>, <x:c>... : on retire le préfixe des balises (jamais des attributs) pour lire tous les cas de la même façon.
+const sansPrefixe = (xml: string) => xml.replace(/<(\/?)[A-Za-z_][\w.-]*:([A-Za-z_])/g, '<$1$2')
+
 const entites = (s: string) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16))).replace(/&amp;/g, '&')
 const attribut = (balise: string, nom: string) => new RegExp(`(?:^|[\\s])${nom}\\s*=\\s*"([^"]*)"`).exec(balise)?.[1]
 const texteDe = (xml: string) => Array.from(xml.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)).map(m => entites(m[1])).join('')
@@ -25,7 +28,11 @@ function serieVersDate(n: number): string {
 
 export async function lireXlsxSimple(contenu: Buffer): Promise<string[][]> {
   const zip = await JSZip.loadAsync(contenu)
-  const lire = async (chemin: string) => (await zip.file(chemin)?.async('string')) ?? null
+  const lire = async (chemin: string) => {
+    const f = zip.file(chemin) ?? zip.file(new RegExp(`^${chemin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'))[0]
+    const xml = f ? await f.async('string') : null
+    return xml === null ? null : sansPrefixe(xml.replace(/^\uFEFF/, ''))
+  }
 
   // première feuille du classeur
   const classeur = (await lire('xl/workbook.xml')) ?? ''
@@ -43,7 +50,7 @@ export async function lireXlsxSimple(contenu: Buffer): Promise<string[][]> {
     const autre = Object.keys(zip.files).find(f => /^xl\/worksheets\/[^/]+\.xml$/.test(f))
     feuille = autre ? await lire(autre) : null
   }
-  if (feuille === null) throw new Error('feuille introuvable')
+  if (feuille === null) throw new Error(`feuille introuvable (contenu : ${Object.keys(zip.files).slice(0, 12).join(', ')})`)
 
   const partages = Array.from(((await lire('xl/sharedStrings.xml')) ?? '').matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)).map(m => texteDe(m[1]))
 
@@ -83,5 +90,6 @@ export async function lireXlsxSimple(contenu: Buffer): Promise<string[][]> {
     }
     if (cellules.some(x => x !== '')) lignes.push(cellules)
   }
+  if (lignes.length === 0) throw new Error(`aucune ligne lue dans ${chemin} (${(feuille.match(/<row\b/g) ?? []).length} lignes, ${(feuille.match(/<c\b/g) ?? []).length} cellules, ${partages.length} textes)`)
   return lignes
 }
