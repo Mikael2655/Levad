@@ -7,6 +7,7 @@ import { exigerUtilisateur } from '@/lib/financement/garde'
 import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT } from '@/lib/financement/statuts'
 import BadgeStatut from './BadgeStatut'
+import SelecteurMontant from './SelecteurMontant'
 import { dateFr, dureeLibelle, euros } from './format'
 
 export const dynamic = 'force-dynamic'
@@ -17,7 +18,8 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
   const u = await exigerUtilisateur()
   const interne = estInterne(u)
   // Un seul montant affiché ; admin/assistante choisissent lequel (réel ou « pour les commerciaux »).
-  const afficheReel = peutVoirBaremeReel(u) && searchParams.m === 'reel'
+  const peutChoisir = peutVoirBaremeReel(u)
+  const modeMontant = peutChoisir && searchParams.m === 'reel' ? 'reel' : 'commercial'
   const date = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(v) : undefined)
   const au = date(searchParams.au)
   const filtres: FiltresDemandes = {
@@ -46,7 +48,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
   const champ = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white'
 
   return (
-    <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
+    <main id="zone-montant" data-m={modeMontant} className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex items-center gap-3">
         <h1 className="text-xl font-bold text-gray-900">{filtres.archivees ? 'Demandes archivées' : 'Demandes de financement'}</h1>
         <Link href="/financement/demandes/nouvelle" className="ml-auto bg-brand-800 text-white rounded-xl px-4 py-2 text-sm font-semibold">+ Nouvelle demande</Link>
@@ -59,9 +61,9 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Link href={lien(undefined)} className={`px-3 py-1.5 rounded-full text-sm border ${!filtres.statut ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 text-gray-700'}`}>Toutes ({total})</Link>
+        <Link href={lien(undefined)} data-garde-m className={`px-3 py-1.5 rounded-full text-sm border ${!filtres.statut ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 text-gray-700'}`}>Toutes ({total})</Link>
         {STATUTS.filter(s => compteurs[s] || filtres.statut === s).map(s => (
-          <Link key={s} href={lien(s)} className={`px-3 py-1.5 rounded-full text-sm border ${filtres.statut === s ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 text-gray-700'}`}>
+          <Link key={s} href={lien(s)} data-garde-m className={`px-3 py-1.5 rounded-full text-sm border ${filtres.statut === s ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 text-gray-700'}`}>
             {LIBELLES_STATUT[s]} ({compteurs[s] ?? 0})
           </Link>
         ))}
@@ -73,14 +75,25 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
         {interne && <label>Commercial<br /><select name="c" defaultValue={searchParams.c ?? ''} className={champ}><option value="">Tous</option>{commerciaux.map(c => <option key={c.id} value={c.id}>{c.prenom} {c.nom}</option>)}</select></label>}
         <label>Créée du<br /><input type="date" name="du" defaultValue={searchParams.du ?? ''} className={champ} /></label>
         <label>au<br /><input type="date" name="au" defaultValue={searchParams.au ?? ''} className={champ} /></label>
-        {peutVoirBaremeReel(u) && <label>Montant affiché<br /><select name="m" defaultValue={afficheReel ? 'reel' : 'commercial'} className={champ}><option value="commercial">Montant financé pour les commerciaux</option><option value="reel">Montant financé réel</option></select></label>}
+        {peutChoisir && <SelecteurMontant initial={modeMontant} />}
         <label className="pb-2"><input type="checkbox" name="arch" value="1" defaultChecked={filtres.archivees} className="mr-1.5" />Archivées</label>
         <button className="bg-gray-900 text-white rounded-lg px-4 py-1.5">Filtrer</button>
         <Link href="/financement" className="underline text-gray-500 pb-2">Réinitialiser</Link>
       </form>
 
       <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[68rem] table-fixed text-sm">
+          <colgroup>
+            <col className="w-36" />
+            <col />
+            {interne && <col className="w-40" />}
+            <col className="w-32" />
+            <col className="w-40" />
+            <col className="w-32" />
+            <col className="w-36" />
+            <col className="w-44" />
+            <col className="w-28" />
+          </colgroup>
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-100">
               <th className="px-2.5 py-3 font-medium">Référence</th>
@@ -89,7 +102,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
               <th className="px-2.5 py-3 font-medium">Financeur</th>
               <th className="px-2.5 py-3 font-medium">Durée</th>
               <th className="px-2.5 py-3 font-medium text-right">Loyer</th>
-              <th className="px-2.5 py-3 font-medium text-right">{afficheReel ? 'Montant financé réel' : 'Montant financé'}</th>
+              <th className="px-2.5 py-3 font-medium text-right">{peutChoisir ? <><span className="m-commercial">Montant (commerciaux)</span><span className="m-reel">Montant financé réel</span></> : 'Montant financé'}</th>
               <th className="px-2.5 py-3 font-medium">Statut</th>
               <th className="px-2.5 py-3 font-medium">Créée le</th>
             </tr>
@@ -103,7 +116,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
                 <td className="px-2.5 py-3">{d.financeurNom}</td>
                 <td className="px-2.5 py-3 whitespace-nowrap">{d.dureeMois} mois{d.periodicite === 'MENSUELLE' && <span className="ml-1.5 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">mensuel</span>}</td>
                 <td className="px-2.5 py-3 text-right whitespace-nowrap">{euros(d.loyerCentimes)}<span className="text-gray-400"> /{d.periodicite === 'MENSUELLE' ? 'mois' : 'trim.'}</span></td>
-                <td className="px-2.5 py-3 text-right whitespace-nowrap">{euros(afficheReel && 'montantReelCentimes' in d ? d.montantReelCentimes : d.montantCommercialCentimes)}</td>
+                <td className="px-2.5 py-3 text-right whitespace-nowrap tabular-nums">{peutChoisir && 'montantReelCentimes' in d ? <><span className="m-commercial">{euros(d.montantCommercialCentimes)}</span><span className="m-reel">{euros(d.montantReelCentimes)}</span></> : euros(d.montantCommercialCentimes)}</td>
                 <td className="px-2.5 py-3"><BadgeStatut statut={d.statut} />{d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="block text-xs text-violet-800 mt-0.5">{libelleEtape(d.etapeSignature)}</span>}</td>
                 <td className="px-2.5 py-3 whitespace-nowrap text-gray-500">{dateFr(d.creeLe)}</td>
               </tr>
