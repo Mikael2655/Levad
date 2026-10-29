@@ -23,7 +23,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
   const section = 'bg-white rounded-2xl border border-gray-200 p-4 sm:p-5'
 
   return (
-    <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
+    <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <Link href="/financement" className="text-sm text-gray-500 underline">← Demandes</Link>
         <h1 className="text-xl font-bold text-gray-900">{d.reference} · {d.raisonSociale}</h1>

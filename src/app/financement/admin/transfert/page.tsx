@@ -9,7 +9,7 @@ export default async function PageTransfert() {
   const utilisateurs = await listerUtilisateurs()
   const nom = (x: { prenom: string; nom: string; actif: boolean }) => `${x.prenom} ${x.nom}${x.actif ? '' : ' (désactivé)'}`
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-4">
+    <main className="max-w-5xl mx-auto p-6 space-y-4">
       <h1 className="text-xl font-bold text-gray-900">Transfert de contrats</h1>
       <p className="text-sm text-gray-600">Tous les contrats du commercial choisi passent au nouveau commercial (le montant « commercial » est recalculé avec son barème, le loyer ne change pas). Pour un seul contrat, ouvrez sa fiche.</p>
       <FormulaireTransfert

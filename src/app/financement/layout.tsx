@@ -20,7 +20,7 @@ export default async function LayoutFinancement({ children }: { children: React.
     <div className="min-h-screen bg-gray-50">
       {u && (
         <header className="bg-white border-b border-gray-200">
-          <div className="max-w-[96rem] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-x-10 gap-y-2 text-sm">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-x-10 gap-y-2 text-sm">
             <Link href="/financement" className="flex items-center gap-2 font-bold text-gray-900">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/levad-logo.png" alt="LEVAD" className="h-8 w-auto" />

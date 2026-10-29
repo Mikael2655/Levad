@@ -20,7 +20,7 @@ export default async function NouvelleDemande() {
     lignes: [nouvelleLigne()],
   }
   return (
-    <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
+    <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <h1 className="text-xl font-bold text-gray-900">Nouvelle demande de financement</h1>
       <FormulaireDemande mode="creation" initial={initial} financeurs={financeurs.map(f => ({ id: f.id, nom: f.nom }))} commerciaux={commerciaux} interne={interne} />
     </main>

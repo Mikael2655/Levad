@@ -29,7 +29,7 @@ export default async function FicheContrat({ params }: { params: { id: string } 
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '')
 
   return (
-    <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
+    <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <Link href="/financement/contrats" className="text-sm text-gray-500 underline">← Contrats</Link>
         <h1 className="text-xl font-bold text-gray-900">{c.raisonSociale}</h1>
