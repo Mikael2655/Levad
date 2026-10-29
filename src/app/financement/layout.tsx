@@ -1,16 +1,13 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import { utilisateurCourant } from '@/lib/financement/auth'
+import { metadataFinancement, viewportFinancement } from '@/lib/financement/metadata'
 import MenuPrincipal from './MenuPrincipal'
 import MenuProfil from './MenuProfil'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Financements LEVAD',
-  description: 'Demandes de location financière et contrats LEVAD',
-  icons: { icon: '/financement-icon-64.png', apple: '/financement-icon-180.png' },
-}
+export const metadata = metadataFinancement
+export const viewport = viewportFinancement
 
 const LIBELLE_ROLE = { ADMIN: 'Administrateur', ASSISTANTE: 'Assistante', COMMERCIAL: 'Commercial' } as const
 
