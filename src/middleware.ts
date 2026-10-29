@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { SESSION_COOKIE, createToken, sessionCookieOptions, verifyToken } from '@/lib/session'
+import { SESSION_FIN_COOKIE, creerJeton, optionsCookieFin, verifierJeton } from '@/lib/financement/session'
 
 // 1) Adresse destinée aux clients (connect.levad.fr) : on n'y expose QUE la page de téléchargement,
 // les fichiers à télécharger, l'adresse de réception des relevés et le suivi du parc (protégé par mot de passe). Tout le reste (en particulier
@@ -24,6 +25,16 @@ export async function middleware(req: NextRequest) {
   const hote = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').toLowerCase()
   const { pathname } = req.nextUrl
 
+  // 0) Adresse dédiée au financement (leasing.levad.fr) : la racine mène à l'outil, et rien d'autre n'y est exposé
+  // (ni les publications, ni le parc). L'accès à l'outil reste protégé par sa propre connexion (voir plus bas).
+  if (hote.startsWith('leasing.')) {
+    if (pathname === '/') return NextResponse.redirect(new URL('/financement', req.url))
+    const autorise =
+      pathname === '/financement' || pathname.startsWith('/financement/') || pathname.startsWith('/api/financement/') ||
+      pathname.startsWith('/_next/') || ['/levad-logo.png', '/icon.png', '/favicon.ico'].includes(pathname)
+    if (!autorise) return new NextResponse('Introuvable', { status: 404 })
+  }
+
   if (hote.startsWith('connect.')) {
     if (pathname === '/') return NextResponse.rewrite(new URL('/telecharger', req.url))
 
@@ -42,6 +53,30 @@ export async function middleware(req: NextRequest) {
     if (autorise) return NextResponse.next()
 
     return new NextResponse('Introuvable', { status: 404 })
+  }
+
+  // Outil de financement : comptes individuels (cookie propre). Le middleware ne vérifie que la signature du jeton ;
+  // l'utilisateur et son rôle sont relus en base par chaque page / route (voir lib/financement/auth.ts).
+  if (pathname === '/financement' || pathname.startsWith('/financement/') || pathname.startsWith('/api/financement/')) {
+    if (['/financement/connexion', '/api/financement/connexion', '/financement/installation', '/api/financement/installation'].includes(pathname)) return NextResponse.next()
+    const jeton = req.cookies.get(SESSION_FIN_COOKIE)?.value
+    const sessionFin = jeton ? await verifierJeton(jeton) : null
+    if (!sessionFin) {
+      if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Non connecté' }, { status: 401 })
+      const url = req.nextUrl.clone()
+      const suite = pathname + req.nextUrl.search
+      url.pathname = '/financement/connexion'
+      url.search = ''
+      if (suite !== '/financement') url.searchParams.set('suite', suite)
+      const res = NextResponse.redirect(url)
+      res.cookies.delete(SESSION_FIN_COOKIE)
+      return res
+    }
+    const res = NextResponse.next()
+    if (Date.now() - sessionFin.derniere > 30_000) {
+      res.cookies.set(SESSION_FIN_COOKIE, await creerJeton(sessionFin.utilisateurId, sessionFin.debut), optionsCookieFin)
+    }
+    return res
   }
 
   if (!estProtege(pathname)) return NextResponse.next()

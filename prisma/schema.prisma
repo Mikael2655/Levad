@@ -212,3 +212,309 @@ model ConnectLienEvenement {
   @@index([clientId, date])
   @@map("connect_lien_evenement")
 }
+
+// ---------------------------------------------------------------------------
+// Financement : demandes de location financière et contrats en cours (tables préfixées fin_)
+// Montants en centimes (entiers), coefficients en dix-millièmes (595 = 5,95 %).
+// ---------------------------------------------------------------------------
+
+model FinUtilisateur {
+  id                  Int      @id @default(autoincrement())
+  email               String   @unique
+  prenom              String
+  nom                 String
+  motDePasseHash      String
+  role                String // ADMIN | ASSISTANTE | COMMERCIAL
+  actif               Boolean  @default(true)
+  doitChangerMotDePasse Boolean @default(true)
+  motDePasseChangeLe  DateTime @default(now()) // les sessions ouvertes avant cette date sont refusées
+  creeLe              DateTime @default(now())
+
+  demandesCommercial FinDemande[]    @relation("DemandeCommercial")
+  demandesSaisies    FinDemande[]    @relation("DemandeSaisiePar")
+  contrats           FinContrat[]
+  grilles            FinGrille[]
+  historique         FinHistorique[]
+  piecesJointes      FinPieceJointe[]
+  financeursDestinataire FinFinanceur[] @relation("FinanceurDestinataire")
+  rachatsCrees       FinRachat[] @relation("RachatCreePar")
+  rachatsEnvoyes     FinRachat[] @relation("RachatEnvoyePar")
+
+  @@map("fin_utilisateur")
+}
+
+model FinFinanceur {
+  id                      Int      @id @default(autoincrement())
+  nom                     String   @unique
+  connecteur              String   @default("manuel") // manuel | grenke_api | ...
+  actif                   Boolean  @default(true)
+  majorationMensuelleBp   Int      @default(150) // 1,5 % de majoration du coefficient en paiement mensuel
+  commissionBp            Int? // information (2 % chez Grenke), non utilisée dans le calcul
+  fraisDossierCentimes    Int      @default(0)
+  signatureElectronique   Boolean  @default(true) // faux : pas de signature dans l'outil (ex. Solubail), le contrat est « mis en place » à la main
+  envoiParMail            Boolean  @default(false) // vrai : à « Envoyée », un mail récapitulatif part vers le destinataire ci-dessous (qui le transmet au financeur)
+  destinataireMailId      Int?
+  destinataireMail        FinUtilisateur? @relation("FinanceurDestinataire", fields: [destinataireMailId], references: [id], onDelete: SetNull)
+
+  grilles          FinGrille[]
+  correspondances  FinCorrespondanceStatut[]
+  demandes         FinDemande[]
+  contrats         FinContrat[]
+
+  @@map("fin_financeur")
+}
+
+// Code de statut propre au financeur -> statut commun
+model FinCorrespondanceStatut {
+  id             Int          @id @default(autoincrement())
+  financeurId    Int
+  financeur      FinFinanceur @relation(fields: [financeurId], references: [id], onDelete: Cascade)
+  codeFinanceur  String
+  statut         String
+
+  @@unique([financeurId, codeFinanceur])
+  @@map("fin_correspondance_statut")
+}
+
+// type REELLE : barème du financeur (utilisateurId vide).
+// type COMMERCIALE : barème des commerciaux ; utilisateurId vide = barème commun, renseigné = barème propre à ce commercial.
+// base : unité du coefficient (MENSUEL pour Grenke réel, TRIMESTRIEL pour le barème commercial).
+model FinGrille {
+  id            Int            @id @default(autoincrement())
+  financeurId   Int
+  financeur     FinFinanceur   @relation(fields: [financeurId], references: [id], onDelete: Cascade)
+  utilisateurId Int?
+  utilisateur   FinUtilisateur? @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  type          String // REELLE | COMMERCIALE
+  base          String // MENSUEL | TRIMESTRIEL
+  lignes        FinGrilleLigne[]
+
+  @@index([financeurId, type])
+  @@map("fin_grille")
+}
+
+// Une tranche court de son minimum jusqu'au minimum de la tranche suivante (la dernière n'a pas de limite).
+model FinGrilleLigne {
+  id                  Int       @id @default(autoincrement())
+  grilleId            Int
+  grille              FinGrille @relation(fields: [grilleId], references: [id], onDelete: Cascade)
+  dureeMois           Int
+  montantMinCentimes  Int
+  coefficientBp       Int
+
+  @@index([grilleId])
+  @@map("fin_grille_ligne")
+}
+
+model FinDemande {
+  id            Int      @id @default(autoincrement())
+  reference     String   @unique // LEV-AAAA-NNNN
+  creeLe        DateTime @default(now())
+  majLe         DateTime @updatedAt
+  statut        String   @default("BROUILLON")
+  archivee      Boolean  @default(false)
+  infosManquantes String? // pièces demandées par le financeur
+  etapeSignature String? // étape précise quand le statut est « En signature » (voir lib/financement/etapes.ts)
+  refFinanceur  String? // numéro de dossier chez le financeur
+
+  financeurId   Int
+  financeur     FinFinanceur   @relation(fields: [financeurId], references: [id])
+  commercialId  Int
+  commercial    FinUtilisateur @relation("DemandeCommercial", fields: [commercialId], references: [id])
+  saisiParId    Int
+  saisiPar      FinUtilisateur @relation("DemandeSaisiePar", fields: [saisiParId], references: [id])
+
+  // client
+  raisonSociale String
+  siret         String   @default("") // vide tant qu'il n'est pas connu (obligatoire pour passer en « envoyée »)
+  formeJuridique String? // SAS, SARL... (libellé libre, repris de la recherche d'entreprise)
+  adresse       String
+  codePostal    String?
+  ville         String?
+  pays          String   @default("France")
+  contactPrenom String
+  contactNom    String
+  contactEmail  String
+  contactTel    String?
+
+  // financement
+  dureeMois     Int
+  periodicite   String // TRIMESTRIELLE | MENSUELLE
+  loyerCentimes Int
+  // calcul commercial (ce que voit le commercial)
+  montantCommercialCentimes Int
+  coefficientCommercialPpm  Int // coefficient par période réellement appliqué (majoration comprise), en millionièmes : 59500 = 5,95 %
+  // calcul réel (jamais envoyé au commercial)
+  montantReelCentimes       Int? // vide tant que le financeur n'a pas communiqué le vrai montant (financeur sans barème réel)
+  coefficientReelPpm        Int?
+  horsTranche   Boolean @default(false) // le montant calculé tombait entre deux tranches
+
+  lignes        FinDemandeLigne[]
+  pieces        FinPieceJointe[]
+  historique    FinHistorique[]
+  signature     FinSignature?
+  contrat       FinContrat?
+
+  @@index([commercialId])
+  @@index([statut])
+  @@map("fin_demande")
+}
+
+model FinDemandeLigne {
+  id            Int        @id @default(autoincrement())
+  demandeId     Int
+  demande       FinDemande @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  designation   String
+  quantite      Int        @default(1)
+  montantHtCentimes Int? // optionnel : le montant à financer est déduit du loyer
+  typeBien      String? // exigé par certains financeurs (ex. matériel informatique)
+  constructeur  String?
+
+  @@map("fin_demande_ligne")
+}
+
+model FinPieceJointe {
+  id          Int            @id @default(autoincrement())
+  demandeId   Int
+  demande     FinDemande     @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  type        String // KBIS | BILAN | RIB | AUTRE
+  nomFichier  String
+  stockage    String         @default("base") // le contenu est dans fin_piece_morceau (base de données)
+  typeMime    String         @default("application/octet-stream")
+  complete    Boolean        @default(false) // faux tant que l'envoi (par morceaux) n'est pas terminé
+  envoyeFinanceurLe DateTime? // date d'envoi au financeur par son API (Grenke)
+  morceaux    FinPieceMorceau[]
+  taille      Int
+  ajouteParId Int
+  ajoutePar   FinUtilisateur @relation(fields: [ajouteParId], references: [id])
+  ajouteLe    DateTime       @default(now())
+
+  @@index([ajouteLe])
+  @@map("fin_piece_jointe")
+}
+
+// Contenu d'une pièce jointe, découpé en morceaux de 3 Mo (limite de taille d'une requête chez l'hébergeur).
+model FinPieceMorceau {
+  id      Int          @id @default(autoincrement())
+  pieceId Int
+  piece   FinPieceJointe @relation(fields: [pieceId], references: [id], onDelete: Cascade)
+  ordre   Int
+  donnees Bytes
+
+  @@unique([pieceId, ordre])
+  @@map("fin_piece_morceau")
+}
+
+model FinHistorique {
+  id             Int            @id @default(autoincrement())
+  demandeId      Int
+  demande        FinDemande     @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  date           DateTime       @default(now())
+  auteurId       Int
+  auteur         FinUtilisateur @relation(fields: [auteurId], references: [id])
+  ancienStatut   String?
+  nouveauStatut  String?
+  commentaire    String?
+
+  @@index([demandeId, date])
+  @@map("fin_historique")
+}
+
+model FinSignature {
+  id               Int        @id @default(autoincrement())
+  demandeId        Int        @unique
+  demande          FinDemande @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  clientPrenom     String
+  clientNom        String
+  clientEmail      String
+  fournisseurPrenom String
+  fournisseurNom   String
+  fournisseurEmail String
+  demandeeLe       DateTime   @default(now())
+  signeeLe         DateTime?
+
+  @@map("fin_signature")
+}
+
+model FinContrat {
+  id            Int      @id @default(autoincrement())
+  creeLe        DateTime @default(now())
+  demandeId     Int?     @unique
+  demande       FinDemande? @relation(fields: [demandeId], references: [id])
+  importe       Boolean  @default(false)
+  refFinanceur  String? // numéro de contrat chez le financeur
+  statutFinanceur String? // statut tel que donné par le financeur à l'import (ex. RunningContract)
+
+  financeurId   Int
+  financeur     FinFinanceur   @relation(fields: [financeurId], references: [id])
+  commercialId  Int
+  commercial    FinUtilisateur @relation(fields: [commercialId], references: [id])
+
+  raisonSociale String
+  siret         String?
+  materiel      String
+  periodicite   String
+  dureeMois     Int
+  loyerCentimes Int // loyer payé par le client (commercial) ; pour un contrat importé, loyer du contrat Grenke
+  dateDebut     DateTime? // 1er loyer : inconnu à la signature, renseigné ensuite
+  dateFin       DateTime? // par défaut : 1er loyer + durée
+  montantCommercialCentimes Int?
+  montantReelCentimes       Int? // montant financé par le financeur (jamais envoyé au commercial)
+  banque        String? // banque / établissement chez qui passe le dossier (jamais envoyé au commercial)
+  denonceLe     DateTime? // le contrat a été dénoncé : il s'arrête au terme au lieu d'être prolongé tacitement d'un an
+  clotureLe     DateTime? // contrat soldé avant le terme (rachat signé) : date d'effet
+  clotureMotif  String?
+  rachats       FinRachat[]
+
+  @@index([commercialId])
+  @@index([dateFin])
+  @@map("fin_contrat")
+}
+
+// Réglages simples (clé / valeur) : destinataires des notifications, etc.
+model FinParametre {
+  cle    String @id
+  valeur String
+
+  @@map("fin_parametre")
+}
+
+// Journal des e-mails envoyés par l'outil (et de ceux qui n'ont pas pu partir) : sert au dépannage.
+model FinNotification {
+  id                Int      @id @default(autoincrement())
+  creeLe            DateTime @default(now())
+  type              String // DEMANDE_FINANCEUR | RETOUR_FINANCEUR | CLIENT_A_SIGNE | LEVAD_DOIT_SIGNER | LIVRAISON_A_CONFIRMER | DOSSIER_COMPLET
+  demandeId         Int?
+  destinataireEmail String
+  sujet             String
+  statut            String // ENVOYE | ECHEC | IGNORE
+  erreur            String?
+
+  @@index([creeLe])
+  @@map("fin_notification")
+}
+
+// Solde d'un contrat avant son terme (rachat) : simulation enregistrée par le commercial, envoyée au financeur par l'admin / l'assistante.
+model FinRachat {
+  id                       Int      @id @default(autoincrement())
+  creeLe                   DateTime @default(now())
+  contratId                Int
+  contrat                  FinContrat @relation(fields: [contratId], references: [id], onDelete: Cascade)
+  creeParId                Int
+  creePar                  FinUtilisateur @relation("RachatCreePar", fields: [creeParId], references: [id])
+  type                     String // RENOUVELANT | NON_RENOUVELANT
+  dateResiliation          DateTime
+  nbLoyersRestants         Int
+  loyersRestantsCentimes   Int
+  penaliteCentimes         Int
+  valeurResiduelleCentimes Int // jamais envoyée au commercial (permettrait de retrouver le montant financé réel)
+  totalCentimes            Int
+  statut                   String // SIMULEE | ENVOYEE | SIGNEE | ANNULEE
+  envoyeLe                 DateTime?
+  envoyeParId              Int?
+  envoyePar                FinUtilisateur? @relation("RachatEnvoyePar", fields: [envoyeParId], references: [id])
+  commentaire              String?
+
+  @@index([contratId])
+  @@map("fin_rachat")
+}

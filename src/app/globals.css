@@ -1,3 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Outil de financement : bascule instantanée entre montant « commerciaux » et montant « réel » (admin / assistante). */
+#zone-montant[data-m='commercial'] .m-reel,
+#zone-montant[data-m='reel'] .m-commercial { display: none; }
