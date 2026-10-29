@@ -3,11 +3,13 @@ import { notFound } from 'next/navigation'
 import { lireDemande } from '@/lib/financement/acces'
 import { peutAnnuler, peutArchiver, peutModifier, peutSupprimer, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
+import { purgeOpportuniste } from '@/lib/financement/pieces'
 import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT, peutEnvoyerEnSignature, statutsAccessibles } from '@/lib/financement/statuts'
 import BadgeStatut from '../../BadgeStatut'
 import { dateHeureFr, dureeLibelle, euros, libellePeriodicite, pourcentCoef } from '../../format'
 import ActionsDemande from './ActionsDemande'
+import PiecesJointes from './PiecesJointes'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +19,7 @@ const Ligne = ({ t, children }: { t: string; children: React.ReactNode }) => (
 
 export default async function FicheDemande({ params }: { params: { id: string } }) {
   const u = await exigerUtilisateur()
+  await purgeOpportuniste()
   const d = await lireDemande(u, Number(params.id))
   if (!d) notFound()
   const reel = peutVoirBaremeReel(u) && 'montantReelCentimes' in d ? d : null
@@ -101,10 +104,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         </section>
       )}
 
-      <section className={section}>
-        <h2 className="font-semibold text-gray-900 mb-2">Pièces jointes</h2>
-        <p className="text-sm text-gray-500">L’envoi des pièces (Kbis, bilans, RIB…) sera ajouté à une prochaine étape. En attendant, transmettez-les par e-mail.</p>
-      </section>
+      <PiecesJointes demandeId={d.id} moiId={u.id} interne={reel !== null} modifiable={d.statut !== 'ANNULEE' && d.statut !== 'SIGNEE'} pieces={d.pieces.map(x => JSON.parse(JSON.stringify(x)))} />
 
       <section className={section}>
         <h2 className="font-semibold text-gray-900 mb-2">Historique</h2>

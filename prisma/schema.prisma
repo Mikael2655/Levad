@@ -379,13 +379,29 @@ model FinPieceJointe {
   demande     FinDemande     @relation(fields: [demandeId], references: [id], onDelete: Cascade)
   type        String // KBIS | BILAN | RIB | AUTRE
   nomFichier  String
-  stockage    String // clé du fichier dans le stockage privé
+  stockage    String         @default("base") // le contenu est dans fin_piece_morceau (base de données)
+  typeMime    String         @default("application/octet-stream")
+  complete    Boolean        @default(false) // faux tant que l'envoi (par morceaux) n'est pas terminé
+  morceaux    FinPieceMorceau[]
   taille      Int
   ajouteParId Int
   ajoutePar   FinUtilisateur @relation(fields: [ajouteParId], references: [id])
   ajouteLe    DateTime       @default(now())
 
+  @@index([ajouteLe])
   @@map("fin_piece_jointe")
+}
+
+// Contenu d'une pièce jointe, découpé en morceaux de 3 Mo (limite de taille d'une requête chez l'hébergeur).
+model FinPieceMorceau {
+  id      Int          @id @default(autoincrement())
+  pieceId Int
+  piece   FinPieceJointe @relation(fields: [pieceId], references: [id], onDelete: Cascade)
+  ordre   Int
+  donnees Bytes
+
+  @@unique([pieceId, ordre])
+  @@map("fin_piece_morceau")
 }
 
 model FinHistorique {

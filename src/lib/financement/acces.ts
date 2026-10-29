@@ -51,7 +51,7 @@ export async function lireDemande(acteur: Acteur, id: number) {
       ...NOMS,
       saisiPar: { select: { prenom: true, nom: true } },
       lignes: { orderBy: { id: 'asc' } },
-      pieces: { orderBy: { id: 'asc' } },
+      pieces: { where: { complete: true }, orderBy: { id: 'asc' }, include: { ajoutePar: { select: { prenom: true, nom: true } } } },
       historique: { orderBy: { date: 'asc' }, include: { auteur: { select: { prenom: true, nom: true } } } },
       signature: true,
     },
@@ -69,7 +69,7 @@ export async function lireDemande(acteur: Acteur, id: number) {
     ...(estInterne(acteur) ? { sansBaremeReel } : {}),
     saisiParNom: `${saisiPar.prenom} ${saisiPar.nom}`,
     lignes: lignes.map(l => ({ id: l.id, designation: l.designation, quantite: l.quantite, montantHtCentimes: l.montantHtCentimes, typeBien: l.typeBien, constructeur: l.constructeur })),
-    pieces: pieces.map(p => ({ id: p.id, type: p.type, nomFichier: p.nomFichier, taille: p.taille, ajouteLe: p.ajouteLe })),
+    pieces: pieces.map(p => ({ id: p.id, type: p.type, nomFichier: p.nomFichier, taille: p.taille, ajouteLe: p.ajouteLe, ajouteParId: p.ajouteParId, ajouteParNom: `${p.ajoutePar.prenom} ${p.ajoutePar.nom}` })),
     // historique : on n'expose que le nom de l'auteur (jamais son adresse e-mail)
     historique: historique.map(h => ({ id: h.id, date: h.date, ancienStatut: h.ancienStatut, nouveauStatut: h.nouveauStatut, commentaire: h.commentaire, auteurNom: `${h.auteur.prenom} ${h.auteur.nom}` })),
     signature,

@@ -117,7 +117,9 @@ CREATE TABLE IF NOT EXISTS "fin_piece_jointe" (
     "demandeId" INTEGER NOT NULL,
     "type" TEXT NOT NULL,
     "nomFichier" TEXT NOT NULL,
-    "stockage" TEXT NOT NULL,
+    "stockage" TEXT NOT NULL DEFAULT 'base',
+    "typeMime" TEXT NOT NULL DEFAULT 'application/octet-stream',
+    "complete" BOOLEAN NOT NULL DEFAULT false,
     "taille" INTEGER NOT NULL,
     "ajouteParId" INTEGER NOT NULL,
     "ajouteLe" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -346,5 +348,25 @@ END $$;
 
 DO $$ BEGIN
   ALTER TABLE "fin_rachat" ADD CONSTRAINT "fin_rachat_envoyeParId_fkey" FOREIGN KEY ("envoyeParId") REFERENCES "fin_utilisateur"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+
+
+CREATE INDEX IF NOT EXISTS "fin_piece_jointe_ajouteLe_idx" ON "fin_piece_jointe"("ajouteLe");
+
+CREATE TABLE IF NOT EXISTS "fin_piece_morceau" (
+    "id" SERIAL NOT NULL,
+    "pieceId" INTEGER NOT NULL,
+    "ordre" INTEGER NOT NULL,
+    "donnees" BYTEA NOT NULL,
+
+CONSTRAINT "fin_piece_morceau_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "fin_piece_morceau_pieceId_ordre_key" ON "fin_piece_morceau"("pieceId", "ordre");
+
+DO $$ BEGIN
+  ALTER TABLE "fin_piece_morceau" ADD CONSTRAINT "fin_piece_morceau_pieceId_fkey" FOREIGN KEY ("pieceId") REFERENCES "fin_piece_jointe"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
