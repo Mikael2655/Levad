@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { appel } from '../../appel'
@@ -8,6 +9,7 @@ import { dateFr, euros } from '../../format'
 interface Rachat {
   id: number; type: string; dateResiliation: string; nbLoyersRestants: number; totalCentimes: number; statut: string; envoyeLe: string | null; commentaire: string | null; creeLe: string
   loyersRestantsCentimes?: number; penaliteCentimes?: number; valeurResiduelleCentimes?: number
+  demande: { id: number; reference: string } | null
 }
 interface Simulation { nbLoyersRestants: number; totalCentimes: number; loyersRestantsCentimes?: number; penaliteCentimes?: number; valeurResiduelleCentimes?: number }
 
@@ -81,8 +83,10 @@ export default function SoldeContrat(p: { contratId: number; enCours: boolean; p
               </div>
               {detail(r)}
               {r.commentaire && <p className="text-gray-500 mt-1">{r.commentaire}</p>}
+              {r.demande && <p className="mt-1">Intégré à la demande de renouvellement <Link className="underline text-brand-800 font-medium" href={`/financement/demandes/${r.demande.id}`}>{r.demande.reference}</Link>.</p>}
               <div className="mt-2 flex flex-wrap gap-2">
-                {p.peutEnvoyer && r.statut === 'SIMULEE' && <button className="bg-violet-700 text-white rounded-lg px-3 py-1 text-xs font-semibold" onClick={() => agir(async () => { await appel(`/api/financement/rachats/${r.id}`, 'POST', { action: 'envoyer' }); setInfo('Demande envoyée par e-mail.') })}>Envoyer la demande au financeur</button>}
+                {!r.demande && (r.statut === 'SIMULEE' || r.statut === 'ENVOYEE') && <Link href={`/financement/demandes/nouvelle?rachat=${r.id}`} className="bg-emerald-700 text-white rounded-lg px-3 py-1 text-xs font-semibold">Créer la demande de renouvellement (rachat intégré)</Link>}
+                {p.peutEnvoyer && r.statut === 'SIMULEE' && !r.demande && <button className="bg-violet-700 text-white rounded-lg px-3 py-1 text-xs font-semibold" onClick={() => agir(async () => { await appel(`/api/financement/rachats/${r.id}`, 'POST', { action: 'envoyer' }); setInfo('Demande envoyée par e-mail.') })}>Envoyer la demande au financeur</button>}
                 {p.peutEnvoyer && r.statut === 'ENVOYEE' && <button className="bg-emerald-700 text-white rounded-lg px-3 py-1 text-xs font-semibold" onClick={() => confirm('Offre de rachat signée : le contrat sera clôturé à la date de résiliation. Confirmer ?') && agir(() => appel(`/api/financement/rachats/${r.id}`, 'POST', { action: 'statut', statut: 'SIGNEE' }))}>Offre signée : clôturer le contrat</button>}
                 {((p.peutEnvoyer && (r.statut === 'SIMULEE' || r.statut === 'ENVOYEE')) || (p.peutAnnuler && r.statut === 'SIMULEE')) && <button className={`${champ} text-red-700 !py-1 text-xs`} onClick={() => agir(() => appel(`/api/financement/rachats/${r.id}`, 'POST', { action: 'statut', statut: 'ANNULEE' }))}>Annuler</button>}
               </div>

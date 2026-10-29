@@ -57,5 +57,7 @@ export async function apercuDemande(demandeId: number, modePaiementConfigure?: '
     { raisonSociale: d.raisonSociale, siret: d.siret, adresse: d.adresse, codePostal: d.codePostal, ville: d.ville, pays: d.pays, contactEmail: d.contactEmail, contactTel: d.contactTel, dureeMois: d.dureeMois, periodicite: d.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE', montantReelCentimes: d.montantReelCentimes, lignes: d.lignes.map(l => ({ designation: l.designation, quantite: l.quantite, constructeur: l.constructeur, typeBien: l.typeBien, montantHtCentimes: l.montantHtCentimes })) },
     options,
   )
-  return { ...r, avertissements: [...(modePaiementConfigure ? [] : ['Mode de paiement non configuré (GRENKE_PAYMENT_METHOD) : « Invoice » est affiché à titre d’exemple.']), ...r.avertissements] }
+  const rachat = d.rachatId ? await prisma.finRachat.findUnique({ where: { id: d.rachatId }, include: { contrat: true } }) : null
+  const avisRachat = rachat ? [`Cette demande intègre le rachat du contrat ${rachat.contrat.refFinanceur ?? rachat.contrat.raisonSociale} (${(rachat.totalCentimes / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}) : la façon de le déclarer à Grenke (champ « HasRepurchase » de la demande) reste à confirmer avec eux ; il n’est pas transmis dans cet aperçu.`] : []
+  return { ...r, avertissements: [...avisRachat, ...(modePaiementConfigure ? [] : ['Mode de paiement non configuré (GRENKE_PAYMENT_METHOD) : « Invoice » est affiché à titre d’exemple.']), ...r.avertissements] }
 }

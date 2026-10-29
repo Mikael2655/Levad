@@ -54,10 +54,11 @@ export async function lireDemande(acteur: Acteur, id: number) {
       pieces: { where: { complete: true }, orderBy: { id: 'asc' }, include: { ajoutePar: { select: { prenom: true, nom: true } } } },
       historique: { orderBy: { date: 'asc' }, include: { auteur: { select: { prenom: true, nom: true } } } },
       signature: true,
+      rachat: { include: { contrat: { select: { id: true, raisonSociale: true } } } },
     },
   })
   if (!d) return null
-  const { commercial, financeur, saisiPar, lignes, pieces, historique, signature, ...base } = d
+  const { commercial, financeur, saisiPar, lignes, pieces, historique, signature, rachat, ...base } = d
   // information réservée à l'interne : un commercial n'a pas à savoir s'il existe un barème réel
   const sansBaremeReel = !(await prisma.finGrille.findFirst({ where: { financeurId: base.financeurId, type: 'REELLE' }, select: { id: true } }))
   return {
@@ -74,5 +75,7 @@ export async function lireDemande(acteur: Acteur, id: number) {
     // historique : on n'expose que le nom de l'auteur (jamais son adresse e-mail)
     historique: historique.map(h => ({ id: h.id, date: h.date, ancienStatut: h.ancienStatut, nouveauStatut: h.nouveauStatut, commentaire: h.commentaire, auteurNom: `${h.auteur.prenom} ${h.auteur.nom}` })),
     signature,
+    // renouvellement : le solde est visible du commercial (total seulement, jamais la valeur résiduelle ni la pénalité)
+    rachat: rachat ? { id: rachat.id, type: rachat.type, dateResiliation: rachat.dateResiliation, totalCentimes: rachat.totalCentimes, statut: rachat.statut, contratId: rachat.contrat.id, contratClient: rachat.contrat.raisonSociale } : null,
   }
 }
