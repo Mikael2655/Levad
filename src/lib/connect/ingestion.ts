@@ -53,7 +53,8 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
     if (!machine && !serie) {
       const c = await clientPourMachineNouvelle()
       cle = `ip:${c.id}:${ip ?? 'inconnue'}`
-      machine = await prisma.connectMachine.findUnique({ where: { cle } })
+      // la même adresse peut déjà appartenir à une machine connue par son numéro de série (lecture de l'adresse ajoutée à la main) : on la retrouve
+      machine = (ip ? await prisma.connectMachine.findFirst({ where: { clientId: c.id, ip, cle: { startsWith: 'sn:' } }, orderBy: { id: 'asc' } }) : null) ?? (await prisma.connectMachine.findUnique({ where: { cle } }))
     }
     if (machine) {
       // à chaque relevé on met à jour ce que la machine déclare ; les choix faits à la main sont conservés
@@ -81,6 +82,11 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
           aVerifier: !marque || !modele,
         },
       })
+    }
+
+    // doublon créé avant que le numéro de série soit lu (machine connue seulement par son adresse) : on le retire
+    if (ip && machine.cle.startsWith('sn:')) {
+      await prisma.connectMachine.deleteMany({ where: { clientId: machine.clientId, ip, cle: { startsWith: 'ip:' }, id: { not: machine.id } } })
     }
 
     const compteurs: Record<string, { v: number; nom?: string }> = {}
