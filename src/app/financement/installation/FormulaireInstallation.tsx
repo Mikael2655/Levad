@@ -41,7 +41,7 @@ export default function FormulaireInstallation() {
       <input className={champ} placeholder="Nom" value={v.nom} onChange={e => setV({ ...v, nom: e.target.value })} required />
       <input className={champ} type="email" placeholder="Adresse e-mail (votre identifiant)" value={v.email} onChange={e => setV({ ...v, email: e.target.value })} required />
       {erreur && <p className="text-sm text-red-600">{erreur}</p>}
-      <button className="w-full bg-leasing-700 text-white rounded-xl py-2.5 text-sm font-semibold">Installer</button>
+      <button className="w-full bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-xl py-2.5 text-sm font-semibold">Installer</button>
     </form>
   )
 }

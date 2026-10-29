@@ -264,3 +264,14 @@ export async function supprimerContrat(a: Acteur, id: number) {
   ])
   return { ok: true }
 }
+
+// Indicateurs de l'écran « Contrats » (même visibilité que la liste : un commercial ne compte que les siens).
+export async function compterContrats(a: Acteur) {
+  const tous = await listerContrats(a, { statut: 'tous' })
+  return {
+    enCours: tous.filter(c => c.statutContrat === 'EN_COURS').length,
+    aRenouveler: tous.filter(c => c.statutContrat === 'EN_COURS' && c.etat === 'PROCHE').length,
+    tacites: tous.filter(c => c.statutContrat === 'TACITE').length,
+    clotures: tous.filter(c => c.statutContrat === 'CLOTURE').length,
+  }
+}

@@ -26,7 +26,7 @@ export default function BoutonsGrillePropre({ financeurId, utilisateurId, aGrill
       ) : (
         <>
           <span className="text-gray-600">Ce commercial utilise le barème commun.</span>
-          <button className="bg-leasing-700 text-white rounded-lg px-3 py-1.5 font-semibold" onClick={() => agir('POST')}>Créer un barème propre (copie du commun)</button>
+          <button className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-lg px-3 py-1.5 font-semibold" onClick={() => agir('POST')}>Créer un barème propre (copie du commun)</button>
         </>
       )}
       {erreur && <span className="text-red-600">{erreur}</span>}

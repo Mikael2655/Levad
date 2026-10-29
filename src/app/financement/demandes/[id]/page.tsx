@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { lireDemande } from '@/lib/financement/acces'
 import { peutAnnuler, peutArchiver, peutModifier, peutSupprimer, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
+import { Ligne, TitreSection } from '../../Fiche'
 import { purgeOpportuniste } from '@/lib/financement/pieces'
 import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT, peutEnvoyerEnSignature, statutsAccessibles } from '@/lib/financement/statuts'
@@ -12,10 +13,6 @@ import ActionsDemande from './ActionsDemande'
 import PiecesJointes from './PiecesJointes'
 
 export const dynamic = 'force-dynamic'
-
-const Ligne = ({ t, children }: { t: string; children: React.ReactNode }) => (
-  <div className="flex gap-3 py-1 text-sm"><span className="w-44 shrink-0 text-gray-500">{t}</span><span className="text-gray-900">{children}</span></div>
-)
 
 export default async function FicheDemande({ params }: { params: { id: string } }) {
   const u = await exigerUtilisateur()
@@ -28,8 +25,8 @@ export default async function FicheDemande({ params }: { params: { id: string } 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/financement" className="text-sm text-gray-500 underline">← Demandes</Link>
-        <h1 className="text-xl font-bold text-gray-900">{d.reference} · {d.raisonSociale}</h1>
+        <Link href="/financement" className="text-sm text-gray-500 hover:text-leasing-700 bg-white ring-1 ring-gray-900/10 rounded-full px-3 py-1 transition">← Demandes</Link>
+        <h1 className="text-2xl font-bold text-gray-900">{d.reference} <span className="text-gray-400 font-normal">·</span> {d.raisonSociale}</h1>
         <BadgeStatut statut={d.statut} />
         {d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="text-sm text-violet-800">{libelleEtape(d.etapeSignature)}</span>}
         {d.archivee && <span className="text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5">Archivée</span>}
@@ -60,7 +57,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
       />
 
       <section className={section}>
-        <h2 className="font-semibold text-gray-900 mb-2">Client</h2>
+        <TitreSection icone="🏢">Client</TitreSection>
         <Ligne t="Raison sociale">{d.raisonSociale}{d.formeJuridique ? ` (${d.formeJuridique})` : ''}</Ligne>
         <Ligne t="SIREN / SIRET">{d.siret || <span className="text-amber-700">à renseigner</span>}</Ligne>
         <Ligne t="Adresse">{[d.adresse, [d.codePostal, d.ville].filter(Boolean).join(' '), d.pays].filter(Boolean).join(', ')}</Ligne>
@@ -68,7 +65,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
       </section>
 
       <section className={section}>
-        <h2 className="font-semibold text-gray-900 mb-2">Financement</h2>
+        <TitreSection icone="💶">Financement</TitreSection>
         <Ligne t="Financeur">{d.financeurNom}</Ligne>
         <Ligne t="Commercial">{d.commercialNom}{d.saisiParNom !== d.commercialNom ? ` (saisie par ${d.saisiParNom})` : ''}</Ligne>
         <Ligne t="Durée / périodicité">{dureeLibelle(d.dureeMois)} · {libellePeriodicite(d.periodicite)}{d.periodicite === 'MENSUELLE' && <span className="ml-2 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">paiement mensuel : coefficient majoré</span>}</Ligne>
@@ -86,7 +83,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
       </section>
 
       <section className={section}>
-        <h2 className="font-semibold text-gray-900 mb-2">Matériel et prestations</h2>
+        <TitreSection icone="🖨️">Matériel et prestations</TitreSection>
         <table className="w-full text-sm">
           <thead><tr className="text-left text-gray-500"><th className="py-1 font-medium">Désignation</th><th className="font-medium">Constructeur</th><th className="font-medium text-right">Qté</th><th className="font-medium text-right">Montant HT</th></tr></thead>
           <tbody>
@@ -99,7 +96,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
 
       {d.signature && (
         <section className={section}>
-          <h2 className="font-semibold text-gray-900 mb-2">Signataires</h2>
+          <TitreSection icone="✍️">Signataires</TitreSection>
           <Ligne t="Client">{d.signature.clientPrenom} {d.signature.clientNom} · {d.signature.clientEmail}</Ligne>
           <Ligne t="LEVAD">{d.signature.fournisseurPrenom} {d.signature.fournisseurNom} · {d.signature.fournisseurEmail}</Ligne>
         </section>
@@ -108,10 +105,11 @@ export default async function FicheDemande({ params }: { params: { id: string } 
       <PiecesJointes financeurAvecApi={d.financeurAvecApi} demandeId={d.id} moiId={u.id} interne={reel !== null} modifiable={d.statut !== 'ANNULEE' && d.statut !== 'SIGNEE'} pieces={d.pieces.map(x => JSON.parse(JSON.stringify(x)))} />
 
       <section className={section}>
-        <h2 className="font-semibold text-gray-900 mb-2">Historique</h2>
-        <ul className="space-y-2 text-sm">
+        <TitreSection icone="🕑">Historique</TitreSection>
+        <ul className="relative border-l-2 border-leasing-100 ml-2 space-y-4 text-sm">
           {[...d.historique].reverse().map(h => (
-            <li key={h.id} className="flex flex-wrap gap-x-3">
+            <li key={h.id} className="relative pl-6 flex flex-wrap gap-x-3 gap-y-0.5">
+              <span className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-leasing-400 ring-4 ring-white" aria-hidden />
               <span className="text-gray-400 w-32 shrink-0">{dateHeureFr(h.date)}</span>
               <span className="text-gray-700">{h.auteurNom}</span>
               {h.nouveauStatut && h.ancienStatut !== h.nouveauStatut && <span className="text-gray-900">{h.ancienStatut ? `${LIBELLES_STATUT[h.ancienStatut as keyof typeof LIBELLES_STATUT]} → ` : ''}<b>{LIBELLES_STATUT[h.nouveauStatut as keyof typeof LIBELLES_STATUT]}</b></span>}

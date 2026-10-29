@@ -109,7 +109,7 @@ export default function EditeurGrille({ cible, baseInitiale, matriceInitiale }: 
 
       {messages.length > 0 && <ul className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-2 list-disc list-inside">{messages.map(x => <li key={x}>{x}</li>)}</ul>}
       {ok && <p className="text-sm text-green-700">Barème enregistré.</p>}
-      <button className="bg-leasing-700 text-white rounded-xl px-5 py-2.5 text-sm font-semibold" onClick={enregistrer}>Enregistrer le barème</button>
+      <button className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-xl px-5 py-2.5 text-sm font-semibold" onClick={enregistrer}>Enregistrer le barème</button>
     </div>
   )
 }

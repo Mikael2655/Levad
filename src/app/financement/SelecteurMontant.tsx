@@ -21,7 +21,7 @@ export default function SelecteurMontant({ initial }: { initial: 'commercial' | 
   }
   return (
     <label htmlFor={id}>Montant affiché<br />
-      <select id={id} name="m" defaultValue={initial} onChange={e => changer(e.target.value)} className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white">
+      <select id={id} name="m" defaultValue={initial} onChange={e => changer(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition">
         <option value="commercial">Montant financé pour les commerciaux</option>
         <option value="reel">Montant financé réel</option>
       </select>

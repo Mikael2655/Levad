@@ -10,7 +10,7 @@ interface Analyse { entetes: string[]; lignes: string[][]; mapping: Mapping }
 interface Ligne { numero: number; client: string; ref: string | null; etat: 'OK' | 'DOUBLON' | 'IGNORE' | 'ERREUR'; message?: string; loyerCentimes?: number; montantReelCentimes?: number; montantCommercialCentimes?: number | null; commercialNom?: string }
 interface Rapport { simule: boolean; importes: number; doublons: number; ignores: number; erreurs: number; lignes: Ligne[]; tronque: boolean }
 
-const champ = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white'
+const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 function statutsDistincts(lignes: string[][], colonne: number | undefined): { valeur: string; nombre: number }[] {
   if (colonne === undefined) return []
   const n = new Map<string, number>()
@@ -93,7 +93,7 @@ export default function ImportContrats({ financeurs, commerciaux }: { financeurs
             </select>
           </label>
           <input type="file" accept=".xlsx,.csv,.txt" className="text-sm" onChange={e => { setFichier(e.target.files?.[0] ?? null); setAnalyse(null); setRapport(null) }} />
-          <button disabled={occupe || !fichier || !financeurId} className="bg-gray-900 text-white rounded-lg px-4 py-1.5 text-sm disabled:opacity-50" onClick={analyser}>Analyser le fichier</button>
+          <button disabled={occupe || !fichier || !financeurId} className="bg-gray-800 hover:bg-gray-900 text-white rounded-xl transition px-4 py-1.5 text-sm disabled:opacity-50" onClick={analyser}>Analyser le fichier</button>
         </div>
       </section>
 
@@ -145,7 +145,7 @@ export default function ImportContrats({ financeurs, commerciaux }: { financeurs
               </table>
             </div>
             {manquants.length > 0 && <p className="text-sm text-amber-800">À associer : {manquants.map(c => LIBELLES_CHAMPS[c]).join(', ')}.</p>}
-            <button disabled={occupe || manquants.length > 0} className="bg-gray-900 text-white rounded-lg px-4 py-1.5 text-sm disabled:opacity-50" onClick={() => lancer(true)}>Vérifier (rien n’est enregistré)</button>
+            <button disabled={occupe || manquants.length > 0} className="bg-gray-800 hover:bg-gray-900 text-white rounded-xl transition px-4 py-1.5 text-sm disabled:opacity-50" onClick={() => lancer(true)}>Vérifier (rien n’est enregistré)</button>
           </section>
 
           {rapport && (
@@ -167,7 +167,7 @@ export default function ImportContrats({ financeurs, commerciaux }: { financeurs
                 </table>
               </div>
               {rapport.simule ? (
-                <button disabled={occupe || rapport.importes === 0} className="bg-leasing-700 text-white rounded-xl px-5 py-2 text-sm font-semibold disabled:opacity-50" onClick={() => lancer(false)}>Importer {rapport.importes} contrat{rapport.importes > 1 ? 's' : ''}</button>
+                <button disabled={occupe || rapport.importes === 0} className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-xl px-5 py-2 text-sm font-semibold disabled:opacity-50" onClick={() => lancer(false)}>Importer {rapport.importes} contrat{rapport.importes > 1 ? 's' : ''}</button>
               ) : (
                 <p className="text-sm text-green-700">Import terminé. <Link href="/financement/contrats" className="underline">Voir les contrats</Link></p>
               )}

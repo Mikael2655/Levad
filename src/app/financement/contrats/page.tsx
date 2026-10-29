@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { compterEcheancesProches, listerContrats, type FiltreEcheance, type FiltreStatut } from '@/lib/financement/contrats'
+import { compterContrats, compterEcheancesProches, listerContrats, type FiltreEcheance, type FiltreStatut } from '@/lib/financement/contrats'
 import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import { estInterne, peutImporterContrats, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
@@ -22,27 +22,42 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
   const modeMontant = reel && searchParams.m === 'reel' ? 'reel' : 'commercial'
   const statut = STATUTS.some(([v]) => v === searchParams.s) ? (searchParams.s as FiltreStatut) : 'en_cours'
   const echeance = ECHEANCES.some(([v]) => v === searchParams.e) ? (searchParams.e as FiltreEcheance) : 'toutes'
-  const [contrats, proches, financeurs, utilisateurs] = await Promise.all([
+  const [contrats, proches, financeurs, utilisateurs, nb] = await Promise.all([
     listerContrats(u, { statut, echeance, financeurId: Number(searchParams.f) || undefined, commercialId: interne ? Number(searchParams.c) || undefined : undefined, q: searchParams.q }),
     compterEcheancesProches(u),
     listerFinanceurs(),
     interne ? listerUtilisateurs() : Promise.resolve([]),
+    compterContrats(u),
   ])
   const commerciaux = utilisateurs.filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN'))
-  const champ = 'border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm bg-white'
+  const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-6 space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-bold text-gray-900">Contrats</h1>
-        {peutImporterContrats(u) && <Link href="/financement/contrats/import" className="ml-auto border border-gray-300 bg-white rounded-xl px-4 py-2 text-sm font-medium">Importer des contrats</Link>}
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Contrats</h1>
+          <p className="text-gray-500 mt-1">Vos contrats de location, leurs échéances et les renouvellements à préparer.</p>
+        </div>
+        {peutImporterContrats(u) && <Link href="/financement/contrats/import" className="ml-auto bg-white ring-1 ring-gray-900/10 hover:bg-leasing-50 rounded-xl px-4 py-2 text-sm font-medium transition">Importer des contrats</Link>}
       </div>
 
-      {proches > 0 && echeance !== 'proche6' && (
-        <Link href="/financement/contrats?e=proche6" data-garde-m className="block bg-orange-50 border border-orange-300 rounded-xl px-4 py-3 text-sm text-orange-900">
-          <b>{proches} contrat{proches > 1 ? 's arrivent' : ' arrive'} à échéance dans les 6 prochains mois</b> — des opportunités de renouvellement. Voir la liste →
-        </Link>
-      )}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        {[
+          { href: '/financement/contrats', n: nb.enCours, t: 'Contrats en cours', icone: '📄', ton: 'bg-leasing-100 text-leasing-800' },
+          { href: '/financement/contrats?e=proche6', n: nb.aRenouveler, t: 'À renouveler (< 6 mois)', icone: '🔔', ton: 'bg-orange-100 text-orange-800' },
+          { href: '/financement/contrats?s=tacite', n: nb.tacites, t: 'En reconduction tacite', icone: '🔁', ton: 'bg-violet-100 text-violet-800' },
+          { href: '/financement/contrats?s=cloture', n: nb.clotures, t: 'Clôturés', icone: '✅', ton: 'bg-gray-100 text-gray-700' },
+        ].map(k => (
+          <Link key={k.t} href={k.href} data-garde-m className="group bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition">
+            <span className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${k.ton}`}>{k.icone}</span>
+            <span>
+              <span className="block text-2xl font-bold text-gray-900 leading-none">{k.n}</span>
+              <span className="block text-xs text-gray-500 mt-1">{k.t}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
 
       <FormulaireFiltres className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-3 flex flex-wrap items-end gap-3 text-sm">
         <label>Statut<br /><select name="s" defaultValue={statut} className={champ}>{STATUTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
@@ -70,37 +85,43 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
             <col className="w-28" />
           </colgroup>
           <thead>
-            <tr className="text-left text-gray-500 border-b border-gray-100">
-              <th className="px-2.5 py-3 font-medium">Référence</th>
-              <th className="px-2.5 py-3 font-medium">Client</th>
-              {interne && <th className="px-2.5 py-3 font-medium">Commercial</th>}
-              <th className="px-2.5 py-3 font-medium">Financeur{reel && ' · banque'}</th>
-              <th className="px-2.5 py-3 font-medium">Matériel</th>
-              <th className="px-2.5 py-3 font-medium text-right">Loyer</th>
-              <th className="px-2.5 py-3 font-medium text-right">Durée</th>
-              <th className="px-2.5 py-3 font-medium text-right">{reel ? <><span className="m-commercial">Montant (commerciaux)</span><span className="m-reel">Montant financé réel</span></> : 'Montant financé'}</th>
-              <th className="px-2.5 py-3 font-medium">1er loyer</th>
-              <th className="px-2.5 py-3 font-medium">Dernier loyer</th>
-              <th className="px-2.5 py-3 font-medium">Statut</th>
+            <tr className="text-left text-xs uppercase tracking-wide text-gray-500 bg-gray-50/70 border-b border-gray-100">
+              <th className="px-3 py-3 font-semibold">Référence</th>
+              <th className="px-3 py-3 font-semibold">Client</th>
+              {interne && <th className="px-3 py-3 font-semibold">Commercial</th>}
+              <th className="px-3 py-3 font-semibold">Financeur{reel && ' · banque'}</th>
+              <th className="px-3 py-3 font-semibold">Matériel</th>
+              <th className="px-3 py-3 font-semibold text-right">Loyer</th>
+              <th className="px-3 py-3 font-semibold text-right">Durée</th>
+              <th className="px-3 py-3 font-semibold text-right">{reel ? <><span className="m-commercial">Montant (commerciaux)</span><span className="m-reel">Montant financé réel</span></> : 'Montant financé'}</th>
+              <th className="px-3 py-3 font-semibold">1er loyer</th>
+              <th className="px-3 py-3 font-semibold">Dernier loyer</th>
+              <th className="px-3 py-3 font-semibold">Statut</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-gray-100">
             {contrats.map(c => (
-              <tr key={c.id} className={`hover:bg-gray-50 ${c.etat === 'PROCHE' && c.statutContrat === 'EN_COURS' ? 'bg-orange-50/40' : ''}`}>
-                <td className="px-2.5 py-3 whitespace-nowrap truncate"><Link href={`/financement/contrats/${c.id}`} className="font-medium text-leasing-700 underline">{c.reference ?? `Contrat ${c.id}`}</Link></td>
-                <td className="px-2.5 py-3 truncate" title={c.raisonSociale}>{c.raisonSociale}{c.importe && <span className="ml-1.5 text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5">importé</span>}</td>
-                {interne && <td className="px-2.5 py-3 whitespace-nowrap truncate" title={c.commercialNom}>{c.commercialAffiche}</td>}
-                <td className="px-2.5 py-3 truncate">{c.financeurNom}{'banque' in c && c.banque ? <span className="text-gray-500"> · {c.banque}</span> : null}</td>
-                <td className="px-2.5 py-3 truncate" title={materielAffiche(c.materiel)}>{materielAffiche(c.materiel)}</td>
-                <td className="px-2.5 py-3 text-right whitespace-nowrap tabular-nums">{loyerPeriode(c.loyerCentimes, c.periodicite)}</td>
-                <td className="px-2.5 py-3 text-right whitespace-nowrap">{dureeTrimestres(c.dureeMois)}</td>
-                <td className="px-2.5 py-3 text-right whitespace-nowrap tabular-nums">{reel && 'montantReelCentimes' in c ? <><span className="m-commercial">{euros(c.montantCommercialCentimes)}</span><span className="m-reel">{euros(c.montantReelCentimes)}</span></> : euros(c.montantCommercialCentimes)}</td>
-                <td className="px-2.5 py-3 whitespace-nowrap text-gray-600">{c.dateDebut ? dateFr(c.dateDebut) : '—'}</td>
-                <td className="px-2.5 py-3 whitespace-nowrap text-gray-600">{c.dernierLoyer ? dateFr(c.dernierLoyer) : '—'}</td>
-                <td className="px-2.5 py-3 whitespace-nowrap"><BadgeStatutContrat statut={c.statutContrat} etat={c.etat} mois={c.moisRestants} /></td>
+              <tr key={c.id} className={`hover:bg-leasing-50/70 transition-colors ${c.etat === 'PROCHE' && c.statutContrat === 'EN_COURS' ? 'bg-orange-50/40' : ''}`}>
+                <td className="px-3 py-3.5 whitespace-nowrap truncate"><Link href={`/financement/contrats/${c.id}`} className="font-medium text-leasing-700 underline">{c.reference ?? `Contrat ${c.id}`}</Link></td>
+                <td className="px-3 py-3.5 truncate" title={c.raisonSociale}>{c.raisonSociale}{c.importe && <span className="ml-1.5 text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5">importé</span>}</td>
+                {interne && <td className="px-3 py-3.5 whitespace-nowrap truncate" title={c.commercialNom}>{c.commercialAffiche}</td>}
+                <td className="px-3 py-3.5 truncate">{c.financeurNom}{'banque' in c && c.banque ? <span className="text-gray-500"> · {c.banque}</span> : null}</td>
+                <td className="px-3 py-3.5 truncate" title={materielAffiche(c.materiel)}>{materielAffiche(c.materiel)}</td>
+                <td className="px-3 py-3.5 text-right whitespace-nowrap tabular-nums">{loyerPeriode(c.loyerCentimes, c.periodicite)}</td>
+                <td className="px-3 py-3.5 text-right whitespace-nowrap">{dureeTrimestres(c.dureeMois)}</td>
+                <td className="px-3 py-3.5 text-right whitespace-nowrap tabular-nums">{reel && 'montantReelCentimes' in c ? <><span className="m-commercial">{euros(c.montantCommercialCentimes)}</span><span className="m-reel">{euros(c.montantReelCentimes)}</span></> : euros(c.montantCommercialCentimes)}</td>
+                <td className="px-3 py-3.5 whitespace-nowrap text-gray-600">{c.dateDebut ? dateFr(c.dateDebut) : '—'}</td>
+                <td className="px-3 py-3.5 whitespace-nowrap text-gray-600">{c.dernierLoyer ? dateFr(c.dernierLoyer) : '—'}</td>
+                <td className="px-3 py-3.5 whitespace-nowrap"><BadgeStatutContrat statut={c.statutContrat} etat={c.etat} mois={c.moisRestants} /></td>
               </tr>
             ))}
-            {contrats.length === 0 && <tr><td colSpan={interne ? 11 : 10} className="p-6 text-center text-gray-400">Aucun contrat.</td></tr>}
+            {contrats.length === 0 && (
+              <tr><td colSpan={interne ? 11 : 10} className="p-12 text-center">
+                <p className="text-4xl mb-2">📄</p>
+                <p className="font-medium text-gray-700">Aucun contrat ne correspond</p>
+                <p className="text-sm text-gray-400 mt-1">Modifiez les filtres, ou attendez qu’une demande soit signée : elle deviendra un contrat.</p>
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>

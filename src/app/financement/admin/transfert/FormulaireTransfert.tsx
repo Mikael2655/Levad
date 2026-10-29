@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { appel } from '../../appel'
 
-const champ = 'border border-gray-300 rounded-lg px-2.5 py-2 text-sm bg-white'
+const champ = 'border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 interface P { id: number; nom: string }
 
 export default function FormulaireTransfert({ sources, cibles }: { sources: P[]; cibles: P[] }) {
@@ -29,7 +29,7 @@ export default function FormulaireTransfert({ sources, cibles }: { sources: P[];
     <form onSubmit={transferer} className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 flex flex-wrap items-end gap-3 text-sm">
       <label>De<br /><select className={champ} value={de} onChange={e => setDe(e.target.value)} required><option value="">— choisir —</option>{sources.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}</select></label>
       <label>Vers<br /><select className={champ} value={vers} onChange={e => setVers(e.target.value)} required><option value="">— choisir —</option>{cibles.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}</select></label>
-      <button className="bg-leasing-700 text-white rounded-lg px-4 py-2 font-semibold">Transférer</button>
+      <button className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-lg px-4 py-2 font-semibold">Transférer</button>
       {message && <span className={message.ok ? 'text-green-700' : 'text-red-700'}>{message.texte}</span>}
     </form>
   )
