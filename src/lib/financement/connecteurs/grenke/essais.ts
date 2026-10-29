@@ -51,6 +51,7 @@ export async function essaiCalculs(c: ConfigGrenke) {
 export async function apercuDemande(demandeId: number, modePaiementConfigure?: 'Invoice' | 'Direct Debit') {
   const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { lignes: true, financeur: true } })
   if (!d) throw new ErreurMetier('Demande introuvable.', 404)
+  if (d.montantReelCentimes == null) throw new ErreurMetier('Cette demande n’a pas de montant financé réel (financeur sans barème réel) : rien à envoyer à Grenke.')
   const options: OptionsGrenke = { modePaiement: modePaiementConfigure ?? 'Invoice', commissionPourcent: d.financeur.commissionBp != null ? d.financeur.commissionBp / 100 : null, typeObjetParDefaut: 7, formatIdentifiant: 'SIREN' }
   const r = construireDemandeGrenke(
     { raisonSociale: d.raisonSociale, siret: d.siret, adresse: d.adresse, codePostal: d.codePostal, ville: d.ville, pays: d.pays, contactEmail: d.contactEmail, contactTel: d.contactTel, dureeMois: d.dureeMois, periodicite: d.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE', montantReelCentimes: d.montantReelCentimes, lignes: d.lignes.map(l => ({ designation: l.designation, quantite: l.quantite, constructeur: l.constructeur, typeBien: l.typeBien, montantHtCentimes: l.montantHtCentimes })) },

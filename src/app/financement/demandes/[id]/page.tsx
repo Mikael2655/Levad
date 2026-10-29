@@ -44,7 +44,11 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         archivee={d.archivee}
         peutSupprimer={peutSupprimer(u)}
         peutAnnuler={peutAnnuler(u, d)}
-        peutSignature={peutEnvoyerEnSignature(u, d)}
+        peutSignature={peutEnvoyerEnSignature(u, d) && d.signatureElectronique}
+        saisieMontantReel={reel !== null && "sansBaremeReel" in d && d.sansBaremeReel === true}
+        miseEnPlace={reel !== null && !d.signatureElectronique && d.statut === 'PRETE_A_SIGNER'}
+        peutRenvoyerMail={reel !== null && d.envoiParMail && d.statut !== 'BROUILLON' && d.statut !== 'ANNULEE'}
+        montantReelActuel={reel?.montantReelCentimes ?? null}
         etapeSignature={d.statut === 'EN_SIGNATURE' ? d.etapeSignature ?? '' : null}
         signataires={{
           client: { prenom: d.contactPrenom, nom: d.contactNom, email: d.contactEmail },
@@ -69,8 +73,8 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         <Ligne t="Montant (barème commercial)">{euros(d.montantCommercialCentimes)} <span className="text-gray-400">— coefficient {pourcentCoef(d.coefficientCommercialPpm)}</span></Ligne>
         {reel && (
           <>
-            <Ligne t="Montant financé réel">{euros(reel.montantReelCentimes)} <span className="text-gray-400">— coefficient {pourcentCoef(reel.coefficientReelPpm)}</span></Ligne>
-            <Ligne t="Marge"><b className="text-emerald-700">{euros(reel.margeCentimes)}</b></Ligne>
+            {reel.montantReelCentimes != null && <Ligne t="Montant financé réel">{euros(reel.montantReelCentimes)}{reel.coefficientReelPpm != null && <span className="text-gray-400"> — coefficient {pourcentCoef(reel.coefficientReelPpm)}</span>}</Ligne>}
+            {reel.margeCentimes != null && <Ligne t="Marge"><b className="text-emerald-700">{euros(reel.margeCentimes)}</b></Ligne>}
             {reel.horsTranche && <p className="text-sm text-amber-800 mt-1">⚠ Montant hors des tranches du barème : calcul approximatif.</p>}
             {reel.refFinanceur && <Ligne t="N° de dossier financeur">{reel.refFinanceur}</Ligne>}
           </>

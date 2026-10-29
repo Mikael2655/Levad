@@ -10,7 +10,17 @@ export interface EtatSchema {
 }
 
 // Colonne -> script qui l'a ajoutée (pour dire quoi exécuter). Les colonnes absentes de cette liste relèvent du script complet.
-const COLONNES_AJOUTEES: Record<string, string> = { 'fin_demande.etapeSignature': 'prisma/migrations/manual_financement_2.sql' }
+const V2 = 'prisma/migrations/manual_financement_2.sql'
+const V3 = 'prisma/migrations/manual_financement_3.sql'
+const COLONNES_AJOUTEES: Record<string, string> = {
+  'fin_demande.etapeSignature': V2,
+  'fin_financeur.signatureElectronique': V3,
+  'fin_financeur.envoiParMail': V3,
+  'fin_financeur.destinataireMailId': V3,
+  'fin_contrat.banque': V3,
+  fin_parametre: V3,
+  fin_notification: V3,
+}
 
 export async function verifierSchemaBase(): Promise<EtatSchema> {
   const attendues: { table: string; colonnes: string[] }[] = Prisma.dmmf.datamodel.models
@@ -27,6 +37,11 @@ export async function verifierSchemaBase(): Promise<EtatSchema> {
     if (!colonnes) manquantes.push(t.table)
     else for (const c of t.colonnes) if (!colonnes.has(c)) manquantes.push(`${t.table}.${c}`)
   }
-  const scripts = Array.from(new Set(manquantes.map(m => COLONNES_AJOUTEES[m] ?? 'prisma/migrations/manual_financement.sql')))
+  // colonnes devenues facultatives avec la mise à jour n° 3
+  const nullables = await prisma.$queryRaw<{ table_name: string; column_name: string; is_nullable: string }[]>`
+    SELECT table_name, column_name, is_nullable FROM information_schema.columns WHERE table_schema = current_schema()
+    AND ((table_name = 'fin_demande' AND column_name IN ('montantReelCentimes', 'coefficientReelPpm')) OR (table_name = 'fin_contrat' AND column_name = 'montantReelCentimes'))`
+  for (const n of nullables) if (n.is_nullable === 'NO') manquantes.push(`${n.table_name}.${n.column_name} (doit être facultative)`)
+  const scripts = Array.from(new Set(manquantes.map(m => COLONNES_AJOUTEES[m] ?? (m.includes('(doit être facultative)') ? V3 : 'prisma/migrations/manual_financement.sql'))))
   return { ok: manquantes.length === 0, manquantes, scripts }
 }

@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS "fin_financeur" (
     "majorationMensuelleBp" INTEGER NOT NULL DEFAULT 150,
     "commissionBp" INTEGER,
     "fraisDossierCentimes" INTEGER NOT NULL DEFAULT 0,
+    "signatureElectronique" BOOLEAN NOT NULL DEFAULT true,
+    "envoiParMail" BOOLEAN NOT NULL DEFAULT false,
+    "destinataireMailId" INTEGER,
 
 CONSTRAINT "fin_financeur_pkey" PRIMARY KEY ("id")
 );
@@ -90,8 +93,8 @@ CREATE TABLE IF NOT EXISTS "fin_demande" (
     "loyerCentimes" INTEGER NOT NULL,
     "montantCommercialCentimes" INTEGER NOT NULL,
     "coefficientCommercialPpm" INTEGER NOT NULL,
-    "montantReelCentimes" INTEGER NOT NULL,
-    "coefficientReelPpm" INTEGER NOT NULL,
+    "montantReelCentimes" INTEGER,
+    "coefficientReelPpm" INTEGER,
     "horsTranche" BOOLEAN NOT NULL DEFAULT false,
 
 CONSTRAINT "fin_demande_pkey" PRIMARY KEY ("id")
@@ -167,10 +170,33 @@ CREATE TABLE IF NOT EXISTS "fin_contrat" (
     "dateDebut" TIMESTAMP(3),
     "dateFin" TIMESTAMP(3),
     "montantCommercialCentimes" INTEGER,
-    "montantReelCentimes" INTEGER NOT NULL,
+    "montantReelCentimes" INTEGER,
+    "banque" TEXT,
 
 CONSTRAINT "fin_contrat_pkey" PRIMARY KEY ("id")
 );
+
+CREATE TABLE IF NOT EXISTS "fin_parametre" (
+    "cle" TEXT NOT NULL,
+    "valeur" TEXT NOT NULL,
+
+CONSTRAINT "fin_parametre_pkey" PRIMARY KEY ("cle")
+);
+
+CREATE TABLE IF NOT EXISTS "fin_notification" (
+    "id" SERIAL NOT NULL,
+    "creeLe" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "type" TEXT NOT NULL,
+    "demandeId" INTEGER,
+    "destinataireEmail" TEXT NOT NULL,
+    "sujet" TEXT NOT NULL,
+    "statut" TEXT NOT NULL,
+    "erreur" TEXT,
+
+CONSTRAINT "fin_notification_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "fin_notification_creeLe_idx" ON "fin_notification"("creeLe");
 
 CREATE UNIQUE INDEX IF NOT EXISTS "fin_utilisateur_email_key" ON "fin_utilisateur"("email");
 
@@ -275,5 +301,10 @@ END $$;
 
 DO $$ BEGIN
   ALTER TABLE "fin_contrat" ADD CONSTRAINT "fin_contrat_commercialId_fkey" FOREIGN KEY ("commercialId") REFERENCES "fin_utilisateur"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "fin_financeur" ADD CONSTRAINT "fin_financeur_destinataireMailId_fkey" FOREIGN KEY ("destinataireMailId") REFERENCES "fin_utilisateur"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;

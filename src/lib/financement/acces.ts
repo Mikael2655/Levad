@@ -23,7 +23,7 @@ function conditions(acteur: Acteur, f: FiltresDemandes): Prisma.FinDemandeWhereI
   }
 }
 
-const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: { select: { nom: true } } } as const
+const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: { select: { nom: true, signatureElectronique: true, envoiParMail: true } } } as const
 
 export async function listerDemandes(acteur: Acteur, f: FiltresDemandes = {}) {
   const lignes = await prisma.finDemande.findMany({ where: conditions(acteur, f), orderBy: { creeLe: 'desc' }, include: NOMS })
@@ -55,10 +55,15 @@ export async function lireDemande(acteur: Acteur, id: number) {
   })
   if (!d) return null
   const { commercial, financeur, saisiPar, lignes, pieces, historique, signature, ...base } = d
+  // information réservée à l'interne : un commercial n'a pas à savoir s'il existe un barème réel
+  const sansBaremeReel = !(await prisma.finGrille.findFirst({ where: { financeurId: base.financeurId, type: 'REELLE' }, select: { id: true } }))
   return {
     ...vueDemande(acteur, base),
     commercialNom: `${commercial.prenom} ${commercial.nom}`,
     financeurNom: financeur.nom,
+    signatureElectronique: financeur.signatureElectronique,
+    envoiParMail: financeur.envoiParMail,
+    ...(estInterne(acteur) ? { sansBaremeReel } : {}),
     saisiParNom: `${saisiPar.prenom} ${saisiPar.nom}`,
     lignes: lignes.map(l => ({ id: l.id, designation: l.designation, quantite: l.quantite, montantHtCentimes: l.montantHtCentimes, typeBien: l.typeBien, constructeur: l.constructeur })),
     pieces: pieces.map(p => ({ id: p.id, type: p.type, nomFichier: p.nomFichier, taille: p.taille, ajouteLe: p.ajouteLe })),

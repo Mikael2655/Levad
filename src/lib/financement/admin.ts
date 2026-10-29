@@ -86,6 +86,9 @@ export interface DonneesFinanceur {
   majorationMensuelleBp?: number
   commissionBp?: number | null
   fraisDossierCentimes?: number
+  signatureElectronique?: boolean
+  envoiParMail?: boolean
+  destinataireMailId?: number | null
 }
 
 function verifierFinanceur(d: DonneesFinanceur) {
@@ -103,12 +106,16 @@ export async function creerFinanceur(d: DonneesFinanceur & { nom: string }) {
   verifierFinanceur(d)
   if (await prisma.finFinanceur.findUnique({ where: { nom: d.nom.trim() } })) throw new ErreurMetier('Ce financeur existe déjà.', 409)
   return prisma.finFinanceur.create({
-    data: { nom: d.nom.trim(), connecteur: d.connecteur ?? 'manuel', majorationMensuelleBp: d.majorationMensuelleBp ?? 150, commissionBp: d.commissionBp ?? null, fraisDossierCentimes: d.fraisDossierCentimes ?? 0 },
+    data: { nom: d.nom.trim(), connecteur: d.connecteur ?? 'manuel', signatureElectronique: d.signatureElectronique ?? true, envoiParMail: d.envoiParMail ?? false, majorationMensuelleBp: d.majorationMensuelleBp ?? 150, commissionBp: d.commissionBp ?? null, fraisDossierCentimes: d.fraisDossierCentimes ?? 0 },
   })
 }
 
 export async function modifierFinanceur(id: number, d: DonneesFinanceur) {
   verifierFinanceur(d)
+  if (d.destinataireMailId != null) {
+    const u = await prisma.finUtilisateur.findUnique({ where: { id: d.destinataireMailId } })
+    if (!u || !u.actif || (u.role !== 'ADMIN' && u.role !== 'ASSISTANTE')) throw new ErreurMetier('Le destinataire doit être un administrateur ou une assistante actifs.')
+  }
   if (!(await prisma.finFinanceur.findUnique({ where: { id }, select: { id: true } }))) throw new ErreurMetier('Financeur introuvable.', 404)
   if (d.nom !== undefined) {
     const autre = await prisma.finFinanceur.findUnique({ where: { nom: d.nom.trim() } })
@@ -123,6 +130,9 @@ export async function modifierFinanceur(id: number, d: DonneesFinanceur) {
       ...(d.majorationMensuelleBp !== undefined ? { majorationMensuelleBp: d.majorationMensuelleBp } : {}),
       ...(d.commissionBp !== undefined ? { commissionBp: d.commissionBp } : {}),
       ...(d.fraisDossierCentimes !== undefined ? { fraisDossierCentimes: d.fraisDossierCentimes } : {}),
+      ...(d.signatureElectronique !== undefined ? { signatureElectronique: d.signatureElectronique } : {}),
+      ...(d.envoiParMail !== undefined ? { envoiParMail: d.envoiParMail } : {}),
+      ...(d.destinataireMailId !== undefined ? { destinataireMailId: d.destinataireMailId } : {}),
     },
   })
 }

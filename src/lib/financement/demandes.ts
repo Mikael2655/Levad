@@ -4,7 +4,9 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { grilleCommercialePour, grilleReelle } from './admin'
-import { calculerDemande, dureesDisponibles, loyerDepuisMontant, type Periodicite } from './calcul'
+import { notifierChangement, envoyerMailFinanceur } from './notifications'
+import { dateFinDepuisDebut } from './echeances'
+import { calculerDemande, dureesDisponibles, dureesGrille, loyerDepuisMontant, montantDepuisLoyer, type Periodicite } from './calcul'
 import { estInterne, peutArchiver, peutChangerStatut, peutModifier, peutSupprimer, type Acteur, type ResultatCalcul } from './droits'
 import { ErreurMetier } from './erreurs'
 import { ETAPES_SIGNATURE, libelleEtape } from './etapes'
@@ -111,8 +113,10 @@ export async function calculer(p: {
   if (!financeur || !financeur.actif) throw new ErreurMetier('Financeur indisponible.')
   const reelle = await grilleReelle(financeur.id)
   const commerciale = await grilleCommercialePour(financeur.id, p.commercialId)
-  if (!reelle || !commerciale) throw new ErreurMetier('Les barèmes de ce financeur ne sont pas encore configurés.')
-  const durees = dureesDisponibles(reelle, commerciale)
+  if (!commerciale) throw new ErreurMetier('Le barème de ce financeur n’est pas encore configuré.')
+  // Un financeur peut ne pas avoir de barème réel (ex. un courtier) : seul le calcul commercial est alors possible,
+  // le vrai montant financé étant communiqué plus tard par le financeur.
+  const durees = reelle ? dureesDisponibles(reelle, commerciale) : dureesGrille(commerciale)
   const loyerSaisi = p.loyerCentimes && p.loyerCentimes > 0 ? p.loyerCentimes : null
   const montantSaisi = p.montantCentimes && p.montantCentimes > 0 ? p.montantCentimes : null
   if (!p.dureeMois || (!loyerSaisi && !montantSaisi)) return { dureesDisponibles: durees, resultat: null }
@@ -123,6 +127,11 @@ export async function calculer(p: {
     const l = loyerDepuisMontant(commerciale, p.dureeMois, p.periodicite, financeur.majorationMensuelleBp, montantSaisi!)
     if (!l) throw new ErreurMetier('Calcul impossible pour ce montant.')
     loyer = l.loyerCentimes
+  }
+  if (!reelle) {
+    const commercial = montantDepuisLoyer(commerciale, p.dureeMois, p.periodicite, financeur.majorationMensuelleBp, loyer)
+    if (!commercial) throw new ErreurMetier('Calcul impossible avec ces valeurs.')
+    return { dureesDisponibles: durees, resultat: { loyerCentimes: loyer, commercial, reel: null, margeCentimes: null } }
   }
   const r = calculerDemande({ loyerCentimes: loyer, dureeMois: p.dureeMois, periodicite: p.periodicite, majorationMensuelleBp: financeur.majorationMensuelleBp, grilleReelle: reelle, grilleCommerciale: commerciale })
   if (!r) throw new ErreurMetier('Calcul impossible avec ces valeurs.')
@@ -169,9 +178,9 @@ async function preparer(a: Acteur, e: EntreeDemande, commercialDemande: number |
     loyerCentimes: resultat.loyerCentimes,
     montantCommercialCentimes: resultat.commercial.montantCentimes,
     coefficientCommercialPpm: resultat.commercial.coefficientPpm,
-    montantReelCentimes: resultat.reel.montantCentimes,
-    coefficientReelPpm: resultat.reel.coefficientPpm,
-    horsTranche: resultat.commercial.horsTranche || resultat.reel.horsTranche,
+    montantReelCentimes: resultat.reel?.montantCentimes ?? null,
+    coefficientReelPpm: resultat.reel?.coefficientPpm ?? null,
+    horsTranche: resultat.commercial.horsTranche || (resultat.reel?.horsTranche ?? false),
   }
   const lignes = e.lignes.map(l => ({ designation: l.designation, quantite: l.quantite, montantHtCentimes: l.montantHtCentimes, typeBien: l.typeBien, constructeur: l.constructeur }))
   return { donnees, lignes }
@@ -228,7 +237,7 @@ export async function modifierDemande(a: Acteur, id: number, e: EntreeDemande): 
 export const resumeMateriel = (lignes: { designation: string; quantite: number; constructeur: string | null }[]) =>
   lignes.map(l => `${l.quantite} × ${l.designation}${l.constructeur ? ` (${l.constructeur})` : ''}`).join(' ; ')
 
-export async function changerStatut(a: Acteur, id: number, p: { statut: string; commentaire?: string; infosManquantes?: string; refFinanceur?: string }) {
+export async function changerStatut(a: Acteur, id: number, p: { statut: string; commentaire?: string; infosManquantes?: string; refFinanceur?: string; montantReelCentimes?: number | null }) {
   const d = await trouverAccessible(a, id)
   if (!(statutsAccessibles(a, d) as string[]).includes(p.statut)) throw new ErreurMetier('Ce changement de statut n’est pas possible.', 403)
   const infos = (p.infosManquantes ?? '').trim()
@@ -236,8 +245,16 @@ export async function changerStatut(a: Acteur, id: number, p: { statut: string; 
   if (p.statut === 'ENVOYEE' && !numeroEntrepriseValide(d.siret)) throw new ErreurMetier('Renseignez un SIREN / SIRET valide avant d’envoyer au financeur.')
   const commentaire = [p.commentaire?.trim(), p.statut === 'INFOS_MANQUANTES' ? `Demandé : ${infos}` : ''].filter(Boolean).join(' — ') || null
   const ref = peutChangerStatut(a) ? p.refFinanceur?.trim() : undefined
+  // Financeur sans barème réel : l'interne peut enregistrer le vrai montant financé communiqué par le financeur.
+  let reel: number | undefined
+  if (p.montantReelCentimes != null) {
+    if (!peutChangerStatut(a)) throw new ErreurMetier('Le montant financé réel est réservé à l’administrateur et à l’assistante.', 403)
+    if (!Number.isInteger(p.montantReelCentimes) || p.montantReelCentimes <= 0) throw new ErreurMetier('Montant financé invalide.')
+    if (await grilleReelle(d.financeurId)) throw new ErreurMetier('Ce financeur a un barème réel : le montant financé réel est calculé, pas saisi.')
+    reel = p.montantReelCentimes
+  }
   const operations: Prisma.PrismaPromise<unknown>[] = [
-    prisma.finDemande.update({ where: { id }, data: { statut: p.statut, infosManquantes: p.statut === 'INFOS_MANQUANTES' ? infos : null, etapeSignature: null, ...(ref ? { refFinanceur: ref } : {}) } }),
+    prisma.finDemande.update({ where: { id }, data: { statut: p.statut, infosManquantes: p.statut === 'INFOS_MANQUANTES' ? infos : null, etapeSignature: null, ...(ref ? { refFinanceur: ref } : {}), ...(reel !== undefined ? { montantReelCentimes: reel } : {}) } }),
     prisma.finHistorique.create({ data: { demandeId: id, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: p.statut, commentaire } }),
   ]
   // Une demande signée devient un contrat en cours (la date du 1er loyer sera renseignée ensuite).
@@ -248,12 +265,14 @@ export async function changerStatut(a: Acteur, id: number, p: { statut: string; 
         data: {
           demandeId: id, importe: false, refFinanceur: ref || d.refFinanceur, financeurId: d.financeurId, commercialId: d.commercialId,
           raisonSociale: d.raisonSociale, siret: d.siret || null, materiel: resumeMateriel(lignes), periodicite: d.periodicite, dureeMois: d.dureeMois,
-          loyerCentimes: d.loyerCentimes, montantCommercialCentimes: d.montantCommercialCentimes, montantReelCentimes: d.montantReelCentimes,
+          loyerCentimes: d.loyerCentimes, montantCommercialCentimes: d.montantCommercialCentimes, montantReelCentimes: reel ?? d.montantReelCentimes,
         },
       }),
     )
   }
   await prisma.$transaction(operations)
+  await notifierChangement({ demandeId: id, acteurId: a.id, statutAvant: d.statut, etapeAvant: d.etapeSignature, statutApres: p.statut, etapeApres: null })
+  if (p.statut === 'ENVOYEE') await envoyerMailFinanceur(id) // financeur sans API : récapitulatif à transmettre
   return { ok: true }
 }
 
@@ -266,6 +285,8 @@ export interface Signataire {
 export async function envoyerEnSignature(a: Acteur, id: number, client: Signataire, fournisseur: Signataire) {
   const d = await trouverAccessible(a, id)
   if (!peutEnvoyerEnSignature(a, d)) throw new ErreurMetier('Envoi en signature impossible pour cette demande.', 403)
+  const financeur = await prisma.finFinanceur.findUniqueOrThrow({ where: { id: d.financeurId } })
+  if (!financeur.signatureElectronique) throw new ErreurMetier(`${financeur.nom} ne signe pas par signature électronique : enregistrez la mise en place du contrat.`, 403)
   for (const s of [client, fournisseur]) {
     if (!s.prenom.trim() || !s.nom.trim() || !EMAIL.test(s.email.trim())) throw new ErreurMetier('Prénom, nom et e-mail valides requis pour chaque signataire.')
   }
@@ -290,6 +311,48 @@ export async function changerEtapeSignature(a: Acteur, id: number, etape: string
     prisma.finDemande.update({ where: { id }, data: { etapeSignature: etape } }),
     prisma.finHistorique.create({ data: { demandeId: id, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: d.statut, commentaire: `Signature : ${libelleEtape(etape)}` } }),
   ])
+  await notifierChangement({ demandeId: id, acteurId: a.id, statutAvant: d.statut, etapeAvant: d.etapeSignature, statutApres: d.statut, etapeApres: etape })
+  return { ok: true }
+}
+
+// Financeur sans signature électronique (ex. Solubail) : après l'accord, l'administrateur ou l'assistante enregistre la mise en place
+// du contrat avec le vrai montant financé, la banque et la date du 1er loyer. La fin du contrat se calcule avec la durée.
+export async function mettreEnPlaceContrat(a: Acteur, id: number, p: { montantReelCentimes: number; banque: string; dateDebut: Date }) {
+  if (!peutChangerStatut(a)) throw new ErreurMetier('Réservé à l’administrateur et à l’assistante.', 403)
+  const d = await trouverAccessible(a, id)
+  const financeur = await prisma.finFinanceur.findUniqueOrThrow({ where: { id: d.financeurId } })
+  if (financeur.signatureElectronique) throw new ErreurMetier(`${financeur.nom} signe par signature électronique : utilisez « Envoyer en signature ».`, 403)
+  if (d.statut !== 'PRETE_A_SIGNER') throw new ErreurMetier('La demande doit être « Prête à signer » (accord du financeur) avant la mise en place du contrat.')
+  if (!Number.isInteger(p.montantReelCentimes) || p.montantReelCentimes <= 0) throw new ErreurMetier('Indiquez le montant financé réel.')
+  const banque = p.banque.trim()
+  if (!banque) throw new ErreurMetier('Indiquez la banque chez qui passe le dossier.')
+  if (Number.isNaN(p.dateDebut.getTime())) throw new ErreurMetier('Indiquez la date du 1er loyer.')
+  const lignes = await prisma.finDemandeLigne.findMany({ where: { demandeId: id }, orderBy: { id: 'asc' } })
+  await prisma.$transaction([
+    prisma.finDemande.update({ where: { id }, data: { statut: 'SIGNEE', montantReelCentimes: p.montantReelCentimes, infosManquantes: null, etapeSignature: null } }),
+    prisma.finHistorique.create({ data: { demandeId: id, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: 'SIGNEE', commentaire: `Contrat mis en place (${banque})` } }),
+    prisma.finContrat.create({
+      data: {
+        demandeId: id, importe: false, refFinanceur: d.refFinanceur, financeurId: d.financeurId, commercialId: d.commercialId,
+        raisonSociale: d.raisonSociale, siret: d.siret || null, materiel: resumeMateriel(lignes), periodicite: d.periodicite, dureeMois: d.dureeMois,
+        loyerCentimes: d.loyerCentimes, montantCommercialCentimes: d.montantCommercialCentimes, montantReelCentimes: p.montantReelCentimes, banque,
+        dateDebut: p.dateDebut, dateFin: dateFinDepuisDebut(p.dateDebut, d.dureeMois),
+      },
+    }),
+  ])
+  await notifierChangement({ demandeId: id, acteurId: a.id, statutAvant: d.statut, etapeAvant: null, statutApres: 'SIGNEE', etapeApres: null })
+  return { ok: true }
+}
+
+// Renvoie le récapitulatif au destinataire choisi pour ce financeur (financeur sans API).
+export async function renvoyerMailFinanceur(a: Acteur, id: number) {
+  if (!peutChangerStatut(a)) throw new ErreurMetier('Réservé à l’administrateur et à l’assistante.', 403)
+  const d = await trouverAccessible(a, id)
+  if (d.statut === 'BROUILLON' || d.statut === 'ANNULEE') throw new ErreurMetier('Le mail se renvoie une fois la demande envoyée au financeur.')
+  const r = await envoyerMailFinanceur(id)
+  if (r === 'SANS_DESTINATAIRE') throw new ErreurMetier('Aucun destinataire n’est configuré pour ce financeur (Administration → Financeurs).')
+  if (r === 'IGNORE') throw new ErreurMetier('Envoi d’e-mails non configuré sur ce serveur (RESEND_API_KEY absente).')
+  if (r === 'ECHEC') throw new ErreurMetier('L’e-mail n’a pas pu être envoyé (voir Administration → Notifications).')
   return { ok: true }
 }
 

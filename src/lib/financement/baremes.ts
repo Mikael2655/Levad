@@ -39,3 +39,15 @@ function construire(table: Record<number, number[]>, minimumsEuros: number[]): L
 
 export const GRENKE_REEL_LIGNES = construire(GRENKE_REEL, MINIMUMS_GRENKE_EUROS)
 export const COMMERCIAL_LIGNES = construire(COMMERCIAL, MINIMUMS_COMMERCIAL_EUROS)
+
+// Solubail (courtier) : barème commercial seulement (pas de barème réel connu), coefficients TRIMESTRIELS en %,
+// durées 12/13/16/17/20/21 trimestres, tranches 0 / 10 000 / 25 000 €. Paiement mensuel : majoration de 1,5 %.
+const SOLUBAIL: Record<number, number[]> = {
+  36: [10.7, 10.55, 10.45],
+  39: [10.15, 9.95, 9.85],
+  48: [8.25, 8.15, 8.05],
+  51: [7.85, 7.75, 7.65],
+  60: [6.85, 6.7, 6.65],
+  63: [6.6, 6.5, 6.4],
+}
+export const SOLUBAIL_COMMERCIAL_LIGNES = construire(SOLUBAIL, MINIMUMS_COMMERCIAL_EUROS)

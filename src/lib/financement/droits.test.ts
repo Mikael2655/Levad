@@ -50,7 +50,7 @@ describe('vue commerciale : rien du réel ne sort', () => {
 })
 
 describe('vue contrat commerciale', () => {
-  const c = { id: 1, creeLe: new Date(), demandeId: null, importe: true, refFinanceur: 'X', statutFinanceur: 'RunningContract', financeurId: 1, commercialId: 3, raisonSociale: 'A', siret: null, materiel: 'm', periodicite: 'TRIMESTRIELLE', dureeMois: 63, loyerCentimes: 1, dateDebut: new Date(), dateFin: new Date(), montantCommercialCentimes: 5, montantReelCentimes: 999 }
+  const c = { id: 1, creeLe: new Date(), demandeId: null, importe: true, refFinanceur: 'X', statutFinanceur: 'RunningContract', financeurId: 1, commercialId: 3, raisonSociale: 'A', siret: null, materiel: 'm', periodicite: 'TRIMESTRIELLE', dureeMois: 63, loyerCentimes: 1, dateDebut: new Date(), dateFin: new Date(), montantCommercialCentimes: 5, montantReelCentimes: 999, banque: 'B' }
   it('pas de montant réel pour le commercial', () => {
     const json = JSON.stringify(vueContrat(comA, c))
     expect(json).not.toContain('montantReel')

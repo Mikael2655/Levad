@@ -122,7 +122,7 @@ export interface ResultatLigneImport {
   etat: 'OK' | 'DOUBLON' | 'IGNORE' | 'ERREUR'
   message?: string
   loyerCentimes?: number
-  montantReelCentimes?: number
+  montantReelCentimes?: number | null
   montantCommercialCentimes?: number | null
   commercialNom?: string
 }
@@ -174,7 +174,8 @@ export async function traiterImport(a: Acteur, p: DemandeImport) {
     // montant commercial RECALCULÉ avec le barème du commercial ; le loyer, lui, reste celui du contrat
     const recalcule = grille ? montantDepuisLoyer(grille, l.dureeMois, l.periodicite, financeur.majorationMensuelleBp, l.loyerCentimes) : null
     const montantReel = l.montantReelCentimes ?? (reelle ? montantDepuisLoyer(reelle, l.dureeMois, l.periodicite, financeur.majorationMensuelleBp, l.loyerCentimes)?.montantCentimes : null) ?? null
-    if (montantReel === null) { resultats.push({ ...base, etat: 'ERREUR', message: 'Montant financé absent et non calculable avec le barème réel' }); continue }
+    // sans barème réel (financeur de type courtier), le montant financé peut rester vide ; avec un barème réel, il doit être connu ou calculable
+    if (montantReel === null && reelle) { resultats.push({ ...base, etat: 'ERREUR', message: 'Montant financé absent et non calculable avec le barème réel' }); continue }
 
     resultats.push({ ...base, etat: 'OK', loyerCentimes: l.loyerCentimes, montantReelCentimes: montantReel, montantCommercialCentimes: recalcule?.montantCentimes ?? null, commercialNom: `${commercial.prenom} ${commercial.nom}` })
     aCreer.push({
@@ -188,4 +189,27 @@ export async function traiterImport(a: Acteur, p: DemandeImport) {
   resultats.sort((x, y) => x.numero - y.numero)
   const compte = (e: ResultatLigneImport['etat']) => resultats.filter(r => r.etat === e).length
   return { simule: p.simuler, importes: compte('OK'), doublons: compte('DOUBLON'), ignores: compte('IGNORE'), erreurs: compte('ERREUR'), lignes: resultats.slice(0, 500), tronque: resultats.length > 500 }
+}
+
+// --- Transfert de portefeuille ----------------------------------------------------------------------------------------
+
+// Tous les contrats d'un commercial passent à un autre (ex. départ de LEVAD). Le montant « commercial » est recalculé
+// avec le barème du nouveau commercial, comme pour un changement unitaire ; le loyer ne change pas.
+export async function transfererContrats(a: Acteur, deId: number, versId: number): Promise<{ transferes: number }> {
+  if (a.role !== 'ADMIN') throw new ErreurMetier('Action non autorisée : réservée à l’administrateur.', 403)
+  if (deId === versId) throw new ErreurMetier('Choisissez deux commerciaux différents.')
+  const vers = await prisma.finUtilisateur.findUnique({ where: { id: versId } })
+  if (!vers || !vers.actif || (vers.role !== 'COMMERCIAL' && vers.role !== 'ADMIN')) throw new ErreurMetier('Le nouveau commercial doit être un compte actif.')
+  const contrats = await prisma.finContrat.findMany({ where: { commercialId: deId } })
+  const financeurs = new Map((await prisma.finFinanceur.findMany()).map(f => [f.id, f]))
+  const grilles = new Map<number, Awaited<ReturnType<typeof grilleCommercialePour>>>()
+  const operations = []
+  for (const c of contrats) {
+    if (!grilles.has(c.financeurId)) grilles.set(c.financeurId, await grilleCommercialePour(c.financeurId, versId))
+    const grille = grilles.get(c.financeurId)
+    const r = grille ? montantDepuisLoyer(grille, c.dureeMois, c.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE', financeurs.get(c.financeurId)!.majorationMensuelleBp, c.loyerCentimes) : null
+    operations.push(prisma.finContrat.update({ where: { id: c.id }, data: { commercialId: versId, montantCommercialCentimes: r?.montantCentimes ?? c.montantCommercialCentimes } }))
+  }
+  await prisma.$transaction(operations)
+  return { transferes: contrats.length }
 }

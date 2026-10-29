@@ -11,12 +11,13 @@ import { dateFr, dureeLibelle, euros } from './format'
 
 export const dynamic = 'force-dynamic'
 
-interface Params { statut?: string; f?: string; c?: string; du?: string; au?: string; arch?: string }
+interface Params { statut?: string; f?: string; c?: string; du?: string; au?: string; arch?: string; m?: string }
 
 export default async function TableauDeBord({ searchParams }: { searchParams: Params }) {
   const u = await exigerUtilisateur()
   const interne = estInterne(u)
-  const reel = peutVoirBaremeReel(u)
+  // Un seul montant affiché ; admin/assistante choisissent lequel (réel ou « pour les commerciaux »).
+  const afficheReel = peutVoirBaremeReel(u) && searchParams.m === 'reel'
   const date = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(v) : undefined)
   const au = date(searchParams.au)
   const filtres: FiltresDemandes = {
@@ -72,6 +73,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
         {interne && <label>Commercial<br /><select name="c" defaultValue={searchParams.c ?? ''} className={champ}><option value="">Tous</option>{commerciaux.map(c => <option key={c.id} value={c.id}>{c.prenom} {c.nom}</option>)}</select></label>}
         <label>Créée du<br /><input type="date" name="du" defaultValue={searchParams.du ?? ''} className={champ} /></label>
         <label>au<br /><input type="date" name="au" defaultValue={searchParams.au ?? ''} className={champ} /></label>
+        {peutVoirBaremeReel(u) && <label>Montant affiché<br /><select name="m" defaultValue={afficheReel ? 'reel' : 'commercial'} className={champ}><option value="commercial">Montant financé pour les commerciaux</option><option value="reel">Montant financé réel</option></select></label>}
         <label className="pb-2"><input type="checkbox" name="arch" value="1" defaultChecked={filtres.archivees} className="mr-1.5" />Archivées</label>
         <button className="bg-gray-900 text-white rounded-lg px-4 py-1.5">Filtrer</button>
         <Link href="/financement" className="underline text-gray-500 pb-2">Réinitialiser</Link>
@@ -87,9 +89,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
               <th className="px-2.5 py-3 font-medium">Financeur</th>
               <th className="px-2.5 py-3 font-medium">Durée</th>
               <th className="px-2.5 py-3 font-medium text-right">Loyer</th>
-              <th className="px-2.5 py-3 font-medium text-right">Montant</th>
-              {reel && <th className="px-2.5 py-3 font-medium text-right">Montant réel</th>}
-              {reel && <th className="px-2.5 py-3 font-medium text-right">Marge</th>}
+              <th className="px-2.5 py-3 font-medium text-right">{afficheReel ? 'Montant financé réel' : 'Montant financé'}</th>
               <th className="px-2.5 py-3 font-medium">Statut</th>
               <th className="px-2.5 py-3 font-medium">Créée le</th>
             </tr>
@@ -103,14 +103,12 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
                 <td className="px-2.5 py-3">{d.financeurNom}</td>
                 <td className="px-2.5 py-3 whitespace-nowrap">{d.dureeMois} mois{d.periodicite === 'MENSUELLE' && <span className="ml-1.5 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">mensuel</span>}</td>
                 <td className="px-2.5 py-3 text-right whitespace-nowrap">{euros(d.loyerCentimes)}<span className="text-gray-400"> /{d.periodicite === 'MENSUELLE' ? 'mois' : 'trim.'}</span></td>
-                <td className="px-2.5 py-3 text-right whitespace-nowrap">{euros(d.montantCommercialCentimes)}</td>
-                {reel && <td className="px-2.5 py-3 text-right whitespace-nowrap">{'montantReelCentimes' in d ? euros(d.montantReelCentimes) : ''}</td>}
-                {reel && <td className="px-2.5 py-3 text-right whitespace-nowrap text-emerald-700">{'margeCentimes' in d ? euros(d.margeCentimes) : ''}</td>}
+                <td className="px-2.5 py-3 text-right whitespace-nowrap">{euros(afficheReel && 'montantReelCentimes' in d ? d.montantReelCentimes : d.montantCommercialCentimes)}</td>
                 <td className="px-2.5 py-3"><BadgeStatut statut={d.statut} />{d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="block text-xs text-violet-800 mt-0.5">{libelleEtape(d.etapeSignature)}</span>}</td>
                 <td className="px-2.5 py-3 whitespace-nowrap text-gray-500">{dateFr(d.creeLe)}</td>
               </tr>
             ))}
-            {demandes.length === 0 && <tr><td colSpan={11} className="p-6 text-center text-gray-400">Aucune demande.</td></tr>}
+            {demandes.length === 0 && <tr><td colSpan={9} className="p-6 text-center text-gray-400">Aucune demande.</td></tr>}
           </tbody>
         </table>
       </div>

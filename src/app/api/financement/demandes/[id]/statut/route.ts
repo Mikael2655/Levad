@@ -12,6 +12,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       commentaire: typeof c.commentaire === 'string' ? c.commentaire : undefined,
       infosManquantes: typeof c.infosManquantes === 'string' ? c.infosManquantes : undefined,
       refFinanceur: typeof c.refFinanceur === 'string' ? c.refFinanceur : undefined,
+      montantReelCentimes: c.montantReelCentimes === undefined || c.montantReelCentimes === null || c.montantReelCentimes === '' ? undefined : Number(c.montantReelCentimes),
     }),
   )
 }

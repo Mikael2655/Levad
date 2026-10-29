@@ -60,6 +60,7 @@ export default async function PageContrats({ searchParams }: { searchParams: { e
               <th className="p-3 font-medium">Échéance</th>
               <th className="p-3 font-medium text-right">Montant</th>
               {reel && <th className="p-3 font-medium text-right">Montant réel</th>}
+              {reel && <th className="p-3 font-medium">Banque</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -75,9 +76,10 @@ export default async function PageContrats({ searchParams }: { searchParams: { e
                 <td className="p-3 whitespace-nowrap"><BadgeEcheance etat={c.etat} mois={c.moisRestants} /></td>
                 <td className="p-3 text-right whitespace-nowrap">{euros(c.montantCommercialCentimes)}</td>
                 {reel && <td className="p-3 text-right whitespace-nowrap">{'montantReelCentimes' in c ? euros(c.montantReelCentimes) : ''}</td>}
+                {reel && <td className="p-3 whitespace-nowrap">{'banque' in c ? c.banque ?? '—' : ''}</td>}
               </tr>
             ))}
-            {contrats.length === 0 && <tr><td colSpan={10} className="p-6 text-center text-gray-400">Aucun contrat.</td></tr>}
+            {contrats.length === 0 && <tr><td colSpan={11} className="p-6 text-center text-gray-400">Aucun contrat.</td></tr>}
           </tbody>
         </table>
       </div>

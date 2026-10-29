@@ -236,6 +236,7 @@ model FinUtilisateur {
   grilles            FinGrille[]
   historique         FinHistorique[]
   piecesJointes      FinPieceJointe[]
+  financeursDestinataire FinFinanceur[] @relation("FinanceurDestinataire")
 
   @@map("fin_utilisateur")
 }
@@ -248,6 +249,10 @@ model FinFinanceur {
   majorationMensuelleBp   Int      @default(150) // 1,5 % de majoration du coefficient en paiement mensuel
   commissionBp            Int? // information (2 % chez Grenke), non utilisée dans le calcul
   fraisDossierCentimes    Int      @default(0)
+  signatureElectronique   Boolean  @default(true) // faux : pas de signature dans l'outil (ex. Solubail), le contrat est « mis en place » à la main
+  envoiParMail            Boolean  @default(false) // vrai : à « Envoyée », un mail récapitulatif part vers le destinataire ci-dessous (qui le transmet au financeur)
+  destinataireMailId      Int?
+  destinataireMail        FinUtilisateur? @relation("FinanceurDestinataire", fields: [destinataireMailId], references: [id], onDelete: SetNull)
 
   grilles          FinGrille[]
   correspondances  FinCorrespondanceStatut[]
@@ -338,8 +343,8 @@ model FinDemande {
   montantCommercialCentimes Int
   coefficientCommercialPpm  Int // coefficient par période réellement appliqué (majoration comprise), en millionièmes : 59500 = 5,95 %
   // calcul réel (jamais envoyé au commercial)
-  montantReelCentimes       Int
-  coefficientReelPpm        Int
+  montantReelCentimes       Int? // vide tant que le financeur n'a pas communiqué le vrai montant (financeur sans barème réel)
+  coefficientReelPpm        Int?
   horsTranche   Boolean @default(false) // le montant calculé tombait entre deux tranches
 
   lignes        FinDemandeLigne[]
@@ -435,9 +440,33 @@ model FinContrat {
   dateDebut     DateTime? // 1er loyer : inconnu à la signature, renseigné ensuite
   dateFin       DateTime? // par défaut : 1er loyer + durée
   montantCommercialCentimes Int?
-  montantReelCentimes       Int // montant financé par le financeur (jamais envoyé au commercial)
+  montantReelCentimes       Int? // montant financé par le financeur (jamais envoyé au commercial)
+  banque        String? // banque / établissement chez qui passe le dossier (jamais envoyé au commercial)
 
   @@index([commercialId])
   @@index([dateFin])
   @@map("fin_contrat")
+}
+
+// Réglages simples (clé / valeur) : destinataires des notifications, etc.
+model FinParametre {
+  cle    String @id
+  valeur String
+
+  @@map("fin_parametre")
+}
+
+// Journal des e-mails envoyés par l'outil (et de ceux qui n'ont pas pu partir) : sert au dépannage.
+model FinNotification {
+  id                Int      @id @default(autoincrement())
+  creeLe            DateTime @default(now())
+  type              String // DEMANDE_FINANCEUR | RETOUR_FINANCEUR | CLIENT_A_SIGNE | LEVAD_DOIT_SIGNER | LIVRAISON_A_CONFIRMER | DOSSIER_COMPLET
+  demandeId         Int?
+  destinataireEmail String
+  sujet             String
+  statut            String // ENVOYE | ECHEC | IGNORE
+  erreur            String?
+
+  @@index([creeLe])
+  @@map("fin_notification")
 }

@@ -94,8 +94,8 @@ export interface DemandeBase {
   loyerCentimes: number
   montantCommercialCentimes: number
   coefficientCommercialPpm: number
-  montantReelCentimes: number
-  coefficientReelPpm: number
+  montantReelCentimes: number | null // vide pour un financeur sans barème réel tant qu'il n'a pas communiqué le vrai montant
+  coefficientReelPpm: number | null
   horsTranche: boolean
 }
 
@@ -134,10 +134,10 @@ export function vueCommerciale(d: DemandeBase) {
 }
 
 export type DemandeVueCommerciale = ReturnType<typeof vueCommerciale>
-export type DemandeVueInterne = DemandeBase & { margeCentimes: number }
+export type DemandeVueInterne = DemandeBase & { margeCentimes: number | null }
 
 export function vueDemande(a: Acteur, d: DemandeBase): DemandeVueCommerciale | DemandeVueInterne {
-  if (peutVoirBaremeReel(a)) return { ...d, margeCentimes: d.montantReelCentimes - d.montantCommercialCentimes }
+  if (peutVoirBaremeReel(a)) return { ...d, margeCentimes: d.montantReelCentimes == null ? null : d.montantReelCentimes - d.montantCommercialCentimes }
   return vueCommerciale(d)
 }
 
@@ -159,11 +159,12 @@ export interface ContratBase {
   dateDebut: Date | null
   dateFin: Date | null
   montantCommercialCentimes: number | null
-  montantReelCentimes: number
+  montantReelCentimes: number | null
+  banque: string | null
 }
 
 export function vueContrat(a: Acteur, c: ContratBase) {
-  if (peutVoirBaremeReel(a)) return { ...c, margeCentimes: c.montantCommercialCentimes == null ? null : c.montantReelCentimes - c.montantCommercialCentimes }
+  if (peutVoirBaremeReel(a)) return { ...c, margeCentimes: c.montantCommercialCentimes == null || c.montantReelCentimes == null ? null : c.montantReelCentimes - c.montantCommercialCentimes }
   return {
     id: c.id,
     creeLe: c.creeLe,
@@ -190,8 +191,8 @@ export interface ResultatCalcul {
   resultat: {
     loyerCentimes: number
     commercial: { montantCentimes: number; coefficientPpm: number; horsTranche: boolean }
-    reel: { montantCentimes: number; coefficientPpm: number; horsTranche: boolean }
-    margeCentimes: number
+    reel: { montantCentimes: number; coefficientPpm: number; horsTranche: boolean } | null // null : financeur sans barème réel
+    margeCentimes: number | null
   } | null
 }
 

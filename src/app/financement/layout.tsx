@@ -13,7 +13,11 @@ export default async function LayoutFinancement({ children }: { children: React.
       {u && (
         <header className="bg-white border-b border-gray-200">
           <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-            <Link href="/financement" className="font-bold text-gray-900">Financements LEVAD</Link>
+            <Link href="/financement" className="flex items-center gap-2 font-bold text-gray-900">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/levad-logo.png" alt="LEVAD" className="h-8 w-auto" />
+              <span className="sr-only">Financements LEVAD</span>
+            </Link>
             {!u.doitChangerMotDePasse && <Link href="/financement" className="text-gray-600 hover:text-gray-900">Demandes</Link>}
             {!u.doitChangerMotDePasse && <Link href="/financement/contrats" className="text-gray-600 hover:text-gray-900">Contrats</Link>}
             {!u.doitChangerMotDePasse && u.role === 'ADMIN' && <Link href="/financement/admin" className="text-gray-600 hover:text-gray-900">Administration</Link>}
