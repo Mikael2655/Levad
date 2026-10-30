@@ -6,7 +6,7 @@
    copie locale.
    ============================================================ */
 
-const CACHE = "hebreu-vocab-v11";
+const CACHE = "hebreu-vocab-v12";
 const CORE = [
   "./",
   "index.html",
