@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { connecte } from '@/lib/connect/auth'
-import { COULEURS, stockCourant } from '@/lib/connect/alertes'
+import { COULEURS, stockCourant, varianteADecompter } from '@/lib/connect/alertes'
 import { GAMME_AUTRES, cleGroupe, familleDe, gammeParCode } from '@/lib/connect/gammes'
 import { assurerCode, assurerCodeEspace, listeIps, regenererCode, regenererCodeEspace, urlsTelechargement } from '@/lib/connect/agent'
 import { adressesMail } from '@/lib/connect/mail'
@@ -656,4 +656,34 @@ export async function enregistrerImport(json: string): Promise<string> {
   }
   revalidatePath('/parc', 'layout')
   return `${nb} relevé${nb > 1 ? 's' : ''} enregistré${nb > 1 ? 's' : ''}.`
+}
+
+// Remplacement de cartouche vu dans les niveaux d'encre : « oui » retire une cartouche du stock, « non » marque la vérification faite.
+// Dans les deux cas une ligne « changement » est enregistrée à la date du remplacement, pour qu'il ne soit plus signalé.
+export async function traiterChangement(formData: FormData): Promise<string | void> {
+  if (!connecte()) throw new Error('Non connecté')
+  const machineId = Number(formData.get('machineId'))
+  const couleur = String(formData.get('couleur'))
+  const quand = new Date(String(formData.get('quand')))
+  const avant = Number(formData.get('avant'))
+  const apres = Number(formData.get('apres'))
+  const oui = String(formData.get('reponse')) === 'oui'
+  if (!(COULEURS as readonly string[]).includes(couleur) || Number.isNaN(quand.getTime())) return '!Données invalides'
+  const machine = await prisma.connectMachine.findUnique({ where: { id: machineId } })
+  if (!machine) return '!Machine introuvable'
+  const groupe = cleGroupe(machine)
+  let variante = ''
+  if (oui) {
+    const v = await varianteADecompter(machine.clientId, groupe, couleur)
+    if (v === null) return '!Plus de cartouche en stock pour cette couleur'
+    variante = v
+  }
+  await prisma.connectStockMouvement.create({
+    data: {
+      clientId: machine.clientId, groupe, variante, couleur, delta: oui ? -1 : 0, motif: 'changement', machineId: machine.id, date: quand,
+      note: oui ? `Remplacement confirmé (niveau passé de ${avant} % à ${apres} %)` : `Vérifié : pas de cartouche du stock (niveau passé de ${avant} % à ${apres} %)`,
+    },
+  })
+  revalidatePath('/parc', 'layout')
+  return oui ? 'Cartouche retirée du stock' : 'Noté'
 }

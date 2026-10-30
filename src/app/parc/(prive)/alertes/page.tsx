@@ -1,4 +1,8 @@
 import Link from 'next/link'
+import { Bouton, Formulaire } from '@/components/connect/Formulaire'
+import { changementsAVerifier } from '@/lib/connect/changements'
+import { libelleMachine } from '@/lib/connect/libelle'
+import { traiterChangement } from '../actions'
 import { Badge, Encres, depuis, formaterDate } from '@/components/connect/affichage'
 import { groupesParSite } from '@/lib/connect/libelle'
 import { COULEURS, NOM_COULEUR, clientsEnAlerte, type ClientEtat, type MachineEtat } from '@/lib/connect/alertes'
@@ -43,6 +47,7 @@ export default async function AlertesPage() {
   } catch {
     return <p className="rounded-xl border border-amber-300 bg-amber-50 p-6">La base de données n&apos;est pas encore prête.</p>
   }
+  const aVerifier = await changementsAVerifier().catch(() => [])
   const nbMachines = clients.reduce((n, c) => n + c.nbAlertes, 0)
   return (
     <>
@@ -51,6 +56,37 @@ export default async function AlertesPage() {
         Un client est en alerte pour une couleur quand il lui reste <strong>moins de 10 jours d&apos;encre</strong> (estimés d&apos;après sa consommation récente) <strong>et</strong> qu&apos;il n&apos;a
         plus de cartouche de cette couleur en stock. Après un changement de cartouche, la consommation de la cartouche précédente est reprise. Faute d&apos;historique suffisant (machine récemment installée), c&apos;est le seuil en % de la machine qui s&apos;applique. Seules les machines Canon suivies par LEVAD sont concernées.
       </p>
+
+      {aVerifier.length > 0 && (
+        <section className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-5">
+          <h2 className="font-bold text-amber-900">Stock à vérifier ({aVerifier.length})</h2>
+          <p className="mt-1 text-sm text-amber-900">
+            Le niveau d&apos;encre de ces couleurs est brusquement remonté : une cartouche a été remplacée. Mais aucune cartouche n&apos;a été retirée du stock du client (il n&apos;y en avait pas de saisie à ce moment-là), alors qu&apos;il lui en reste aujourd&apos;hui. Si c&apos;est la cartouche du stock qui a été posée, répondez « Oui » pour la retirer ; sinon « Non » : la vérification est notée et l&apos;alerte disparaît.
+          </p>
+          <ul className="mt-3 divide-y divide-amber-200">
+            {aVerifier.map((a) => (
+              <li key={`${a.machineId}-${a.couleur}-${a.quand.getTime()}`} className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
+                <span>
+                  <strong>{a.client}</strong> — {libelleMachine(a.machine, 'Machine')} : {NOM_COULEUR[a.couleur as keyof typeof NOM_COULEUR]} passé de {a.avant} % à {a.apres} % le {formaterDate(a.quand)} · stock actuel : {a.stock}
+                </span>
+                <span className="flex gap-2">
+                  {(['oui', 'non'] as const).map((r) => (
+                    <Formulaire key={r} action={traiterChangement} message={r === 'oui' ? 'Cartouche retirée du stock' : 'Noté'}>
+                      <input type="hidden" name="machineId" value={a.machineId} />
+                      <input type="hidden" name="couleur" value={a.couleur} />
+                      <input type="hidden" name="quand" value={a.quand.toISOString()} />
+                      <input type="hidden" name="avant" value={a.avant} />
+                      <input type="hidden" name="apres" value={a.apres} />
+                      <input type="hidden" name="reponse" value={r} />
+                      <Bouton className="rounded-lg border border-amber-400 bg-white px-3 py-1 text-xs font-semibold">{r === 'oui' ? 'Oui, retirer 1 du stock' : 'Non, c’est correct'}</Bouton>
+                    </Formulaire>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {clients.length === 0 ? (
         <div className="mt-8 rounded-xl border bg-white p-10 text-center">

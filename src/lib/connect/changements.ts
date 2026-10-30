@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db'
-import { COULEURS } from './alertes'
+import { COULEURS, stockDuGroupe, stocksParGroupe } from './alertes'
 import { cleGroupe } from './gammes'
 
 // Changements de cartouche détectés d'après l'historique des niveaux d'encre d'une machine.
@@ -47,4 +47,57 @@ export async function rattraperChangements(machine: { id: number; clientId: numb
       dejaCompte.push({ date: quand })
     }
   }
+}
+
+export type ChangementAVerifier = {
+  machineId: number
+  clientId: number
+  client: string
+  machine: { id: number; clientId: number; modele: string | null; nomAffiche: string | null; marque: string | null; numeroSerie: string | null; site: string }
+  couleur: string
+  quand: Date
+  avant: number
+  apres: number
+  stock: number
+}
+
+/**
+ * Remplacements de cartouche vus dans les niveaux d'encre mais jamais retirés du stock (il n'y avait pas de stock saisi
+ * à ce moment-là), alors qu'il reste du stock aujourd'hui pour cette couleur : la cartouche posée est peut-être celle du stock.
+ */
+export async function changementsAVerifier(): Promise<ChangementAVerifier[]> {
+  const depuis = new Date(Date.now() - JOURS_HISTORIQUE * 86400000)
+  const machines = await prisma.connectMachine.findMany({ where: { categorie: 'mine', horsContrat: false }, include: { client: { select: { nom: true } } } })
+  if (!machines.length) return []
+  const ids = machines.map((m) => m.id)
+  const [releves, mouvements, stocks] = await Promise.all([
+    prisma.connectReleve.findMany({ where: { machineId: { in: ids }, date: { gte: depuis } }, orderBy: { date: 'asc' }, select: { machineId: true, date: true, encres: true } }),
+    prisma.connectStockMouvement.findMany({ where: { OR: [{ motif: 'changement' }, { motif: 'correction' }], date: { gte: new Date(depuis.getTime() - 86400000) } }, select: { clientId: true, groupe: true, couleur: true, motif: true, date: true, machineId: true } }),
+    stocksParGroupe(),
+  ])
+  const parMachine = new Map<number, typeof releves>()
+  for (const r of releves) if (Array.isArray(r.encres) && r.encres.length > 0) parMachine.set(r.machineId, [...(parMachine.get(r.machineId) ?? []), r])
+  const resultat: ChangementAVerifier[] = []
+  for (const m of machines) {
+    const rs = parMachine.get(m.id) ?? []
+    if (rs.length < 2) continue
+    const groupe = cleGroupe(m as Parameters<typeof cleGroupe>[0])
+    for (const couleur of COULEURS) {
+      const stock = stockDuGroupe(stocks, m.clientId, groupe)[couleur]
+      if (stock <= 0) continue
+      const correction = mouvements.filter((x) => x.motif === 'correction' && x.clientId === m.clientId && x.groupe === groupe && x.couleur === couleur).sort((a, b) => b.date.getTime() - a.date.getTime())[0]
+      const comptes = mouvements.filter((x) => x.motif === 'changement' && x.machineId === m.id && x.couleur === couleur)
+      const niveau = (r: (typeof rs)[number]) => ((r.encres as Niveau[]).find((x) => x.couleur === couleur)?.pourcent ?? null) as number | null
+      for (let i = 1; i < rs.length; i++) {
+        const avant = niveau(rs[i - 1])
+        const apres = niveau(rs[i])
+        if (avant === null || apres === null || apres < 90 || apres - avant < 25) continue
+        const quand = rs[i].date
+        if (correction && quand <= correction.date) continue
+        if (comptes.some((x) => Math.abs(x.date.getTime() - quand.getTime()) <= TOLERANCE_MS)) continue
+        resultat.push({ machineId: m.id, clientId: m.clientId, client: m.client.nom, machine: m, couleur, quand, avant, apres, stock })
+      }
+    }
+  }
+  return resultat.sort((a, b) => b.quand.getTime() - a.quand.getTime())
 }
