@@ -108,8 +108,8 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
 
     const encres = simplifier(m.encres)
 
-    // Changement de cartouche : le niveau d'une couleur remonte à 100 % alors qu'il était plus bas
-    // au relevé précédent -> on retire une cartouche du stock du client (jamais en dessous de zéro).
+    // Changement de cartouche : le niveau d'une couleur remonte nettement (vers 90 % ou plus)
+    // par rapport au relevé précédent -> on retire une cartouche du stock du client (jamais en dessous de zéro).
     if (machine.categorie === 'mine' && !machine.horsContrat) {
       const groupe = cleGroupe(machine)
       const precedent = avecEncres(
@@ -117,9 +117,10 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
       )
       const avant = (precedent?.encres ?? []) as Json[]
       for (const e of encres) {
-        if (e.pourcent !== 100 || !e.couleur || !(COULEURS as readonly string[]).includes(e.couleur)) continue
+        if (typeof e.pourcent !== 'number' || e.pourcent < 90 || !e.couleur || !(COULEURS as readonly string[]).includes(e.couleur)) continue
         const p = avant.find((x: Json) => x.couleur === e.couleur)?.pourcent
-        if (typeof p !== 'number' || p >= 100) continue
+        // cartouche remplacée = le niveau remonte d'au moins 25 points (une petite variation de la jauge n'en est pas une)
+        if (typeof p !== 'number' || e.pourcent - p < 25) continue
         const variante = await varianteADecompter(machine.clientId, groupe, e.couleur)
         if (variante !== null) {
           await prisma.connectStockMouvement.create({
@@ -130,7 +131,7 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
               couleur: e.couleur,
               delta: -1,
               motif: 'changement',
-              note: `Cartouche changée détectée (niveau passé de ${p} % à 100 %)`,
+              note: `Cartouche changée détectée (niveau passé de ${p} % à ${e.pourcent} %)`,
               machineId: machine.id,
             },
           })
