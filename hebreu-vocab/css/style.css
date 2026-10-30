@@ -570,6 +570,8 @@ body {
 }
 .search-row.is-verb { cursor: pointer; }
 .search-row.is-verb:hover { border-color: var(--accent); }
+/* Liste « Nouveauté » : réutilise les lignes de la recherche */
+.nouv-list { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.2rem; }
 .search-row[disabled] { opacity: 1; } /* les mots restent bien lisibles */
 .search-row .he { font-size: 1.4rem; font-weight: 700; min-width: 5.5rem; text-align: right; }
 .search-row .infos { flex: 1; min-width: 0; }

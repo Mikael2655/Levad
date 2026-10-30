@@ -251,6 +251,7 @@ const state = {
   confus: { mode: "qcm", family: null, current: null, reverse: false }, // sous-menu Verbes proches
   vocab: { mode: "flashcards", newOnly: false }, // onglet Vocabulaire
   combine: { phrase: null, reverse: false, newV: false, newN: false }, // onglet Combiné
+  nouv: { mode: "mots", recentFirst: false, openVerb: null }, // onglet Nouveauté (derniers ajouts)
   home: { vocabNew: false, verbNew: false }, // options de l'accueil
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
   search: { q: "", openVerb: null }, // onglet Recherche (openVerb = verbe déplié)
@@ -610,6 +611,7 @@ function render() {
     verbes: renderVerbes,
     vocab: renderVocab,
     combine: renderCombine,
+    nouveaute: renderNouveaute,
     search: renderSearch,
     tables: renderTables,
     review: renderReview,
@@ -1515,6 +1517,91 @@ function renderCombine() {
 
   screen.appendChild(groupsWrap);
   screen.appendChild(nextWrap);
+}
+
+/* ------------------------------------------------------------
+   🆕 Nouveauté : les derniers ajouts, au choix les 100 derniers
+   mots ou les 50 derniers verbes. Ordre chronologique par défaut
+   (le dernier de la liste de l'Excel = le plus récent) ; une case
+   permet d'inverser pour voir les plus récents en premier.
+   ------------------------------------------------------------ */
+const NOUV_WORDS_COUNT = 100;
+const NOUV_VERBS_COUNT = 50;
+function renderNouveaute() {
+  screen.appendChild(el("h2", "view-title", "🆕 Nouveauté"));
+
+  // Choix : derniers mots / derniers verbes
+  const seg = el("div", "segmented");
+  [
+    ["mots", "📚 100 derniers mots"],
+    ["verbes", "🔤 50 derniers verbes"],
+  ].forEach(([mode, label]) => {
+    const btn = el("button", "seg-btn" + (state.nouv.mode === mode ? " active" : ""), label);
+    btn.addEventListener("click", () => {
+      state.nouv.mode = mode;
+      state.nouv.openVerb = null;
+      render();
+    });
+    seg.appendChild(btn);
+  });
+  screen.appendChild(seg);
+
+  // Ordre : chronologique (par défaut) ou plus récents d'abord
+  const orderRow = el("div", "check-row");
+  const orderLab = el("label", "check-item" + (state.nouv.recentFirst ? " on" : ""));
+  orderLab.innerHTML = `<input type="checkbox"${state.nouv.recentFirst ? " checked" : ""}><span>🔽 Plus récents d'abord</span>`;
+  orderLab.querySelector("input").addEventListener("change", (e) => {
+    state.nouv.recentFirst = e.target.checked;
+    render();
+  });
+  orderRow.appendChild(orderLab);
+  screen.appendChild(orderRow);
+
+  const ordLabel = state.nouv.recentFirst ? "plus récents d'abord" : "ordre chronologique";
+  const list = el("div", "nouv-list");
+
+  if (state.nouv.mode === "mots") {
+    let items = VOCAB.slice(-NOUV_WORDS_COUNT); // les 100 derniers, ordre chronologique
+    if (state.nouv.recentFirst) items = items.slice().reverse();
+    screen.appendChild(el("p", "hint", `${items.length} derniers mots ajoutés (${ordLabel}).`));
+    screen.appendChild(list);
+    items.forEach((w) => {
+      const row = el("div", "search-row");
+      row.innerHTML =
+        `<div class="he">${w.he}</div>` +
+        `<div class="infos"><div class="fr">${w.fr}</div>` +
+        `<div class="translit">${w.translit}${w.note ? ` · 💡 ${w.note}` : ""}</div></div>` +
+        `${speakBtn(w.he)}`;
+      list.appendChild(row);
+    });
+  } else {
+    let idxs = VERBES.map((_, i) => i).slice(-NOUV_VERBS_COUNT);
+    if (state.nouv.recentFirst) idxs = idxs.slice().reverse();
+    screen.appendChild(el("p", "hint", `${idxs.length} derniers verbes ajoutés (${ordLabel}). Touchez un verbe pour sa conjugaison.`));
+    screen.appendChild(list);
+    idxs.forEach((vi) => {
+      const v = VERBES[vi];
+      const open = state.nouv.openVerb === vi;
+      const row = el("button", "search-row is-verb" + (open ? " open" : ""));
+      row.type = "button";
+      row.title = "Voir la conjugaison";
+      row.innerHTML =
+        `<div class="he">${v.inf}</div>` +
+        `<div class="infos"><div class="fr">${v.fr}</div>` +
+        `<div class="translit">${v.translit}${v.binyan ? ` · ${v.binyan}` : ""}</div></div>` +
+        `${speakBtn(v.inf)}`;
+      row.addEventListener("click", () => {
+        state.nouv.openVerb = open ? null : vi;
+        render();
+      });
+      list.appendChild(row);
+      if (open) {
+        const tbl = el("div", "search-conj");
+        tbl.innerHTML = verbTablesHtml(v);
+        list.appendChild(tbl);
+      }
+    });
+  }
 }
 
 /* ------------------------------------------------------------

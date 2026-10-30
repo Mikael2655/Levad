@@ -323,4 +323,25 @@ const COMBINE_PHRASES_RAW = [
   { v: "לאסור", vT: "Présent", vFr: "interdit", nHe: "הסתה", nFr: "incitation", frT: "Le juge {V} l'{N} à la haine.", heT: "השופט {V} את ה{N} לשנאה." },
   { v: "לתת", vT: "Présent", vFr: "donne", nHe: "כאפה", nFr: "gifle", frT: "En colère, il {V} une {N} à l'insolent.", heT: "בכעס הוא {V} {N} לחצוף." },
   { v: "לראות", vT: "Présent", vFr: "voit", nHe: "שטחים", nFr: "territoires", frT: "Aux informations, il {V} les {N} du conflit.", heT: "בחדשות הוא {V} את ה{N} של הסכסוך." },
+  // ============================================================
+  //  Ajout : 6 nouveaux verbes et de nouveaux mots
+  // ============================================================
+  { v: "לכבוש", vT: "Présent", vFr: "conquiert", nHe: "עיר", nFr: "ville", frT: "L'armée {V} la grande {N}.", heT: "הצבא {V} את ה{N} הגדולה." },
+  { v: "להחביא", vT: "Présent", vFr: "cache", nHe: "מפתח", nFr: "clé", frT: "Il {V} la {N} dans le tiroir.", heT: "הוא {V} את ה{N} במגירה." },
+  { v: "להפר הבטחה", vT: "Présent", vFr: "rompt sa promesse", nHe: "ידיד", nFr: "ami", frT: "Encore une fois, il {V} à son {N}.", heT: "שוב פעם הוא {V} ל{N}." },
+  { v: "להשיג", vT: "Présent", vFr: "obtient", nHe: "רוב", nFr: "majorité", frT: "Aux élections, il {V} la {N} des voix.", heT: "בבחירות הוא {V} את {N} הקולות." },
+  { v: "להדריך", vT: "Présent", vFr: "guide", nHe: "סיור", nFr: "excursion", frT: "Il {V} le groupe pendant l'{N}.", heT: "הוא {V} את הקבוצה במהלך ה{N}." },
+  { v: "לרשום", vT: "Présent", vFr: "note", nHe: "מושג", nFr: "concept", frT: "En classe, il {V} chaque {N} important.", heT: "בכיתה הוא {V} כל {N} חשוב." },
+  { v: "לצפות", vT: "Présent", vFr: "regarde", nHe: "איצטדיון", nFr: "stade", frT: "Au {N}, il {V} le match de football.", heT: "ב{N} הוא {V} במשחק הכדורגל." },
+  { v: "לספר", vT: "Présent", vFr: "raconte", nHe: "תעלול", nFr: "bêtise", frT: "Il {V} la {N} de l'enfant en riant.", heT: "הוא {V} על ה{N} של הילד בצחוק." },
+  { v: "לראות", vT: "Présent", vFr: "voit", nHe: "גבול", nFr: "frontière", frT: "Au loin, il {V} la {N} du pays.", heT: "מרחוק הוא {V} את ה{N} של המדינה." },
+  { v: "לאהוב", vT: "Présent", vFr: "aime", nHe: "דממה", nFr: "silence", frT: "La nuit, il {V} le {N} de la forêt.", heT: "בלילה הוא {V} את ה{N} של היער." },
+  { v: "לחפש", vT: "Présent", vFr: "cherche", nHe: "מושב", nFr: "siège", frT: "Dans le train, il {V} un {N} libre.", heT: "ברכבת הוא {V} {N} פנוי." },
+  { v: "לאהוב", vT: "Présent", vFr: "aime", nHe: "סביבה", nFr: "entourage", frT: "Il {V} beaucoup son {N}.", heT: "הוא {V} מאוד את ה{N} שלו." },
+  { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "מסובך", nFr: "compliqué", frT: "Le professeur {V} un sujet {N}.", heT: "המורה {V} נושא {N}." },
+  { v: "לראות", vT: "Présent", vFr: "voit", nHe: "סיירת", nFr: "commando", frT: "À la frontière, il {V} un {N} de soldats.", heT: "בגבול הוא {V} {N} של חיילים." },
+  { v: "לבקר", vT: "Présent", vFr: "visite", nHe: "התנחלות", nFr: "colonie", frT: "Il {V} une {N} en Cisjordanie.", heT: "הוא {V} ב{N} בגדה המערבית." },
+  { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "תובנה", nFr: "évidence", frT: "Après l'expérience, il {V} une nouvelle {N}.", heT: "אחרי הניסוי הוא {V} {N} חדשה." },
+  { v: "לראות", vT: "Présent", vFr: "voit", nHe: "גוש", nFr: "bloc", frT: "Sur la carte, il {V} un grand {N} de maisons.", heT: "במפה הוא {V} {N} גדול של בתים." },
+  { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "סוגיה", nFr: "enjeu", frT: "Le politicien {V} un {N} important.", heT: "הפוליטיקאי {V} {N} חשובה." },
 ];
