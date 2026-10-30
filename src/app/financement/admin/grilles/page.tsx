@@ -43,6 +43,7 @@ export default async function PageGrilles({ searchParams }: { searchParams: { f?
         {commerciaux.map(u => lien(`u${u.id}`, `${u.prenom} ${u.nom}`))}
       </div>
 
+      {financeur.baremeCommercialDeId && <p className="text-sm text-sky-900 bg-sky-50 border border-sky-200 rounded-xl px-3 py-2">Ce financeur reprend les taux commerciaux de <b>{financeurs.find(x => x.id === financeur.baremeCommercialDeId)?.nom}</b> tant qu’il n’a pas son propre barème commercial (voir Administration → Financeurs).</p>}
       <p className="text-sm text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2">
         Durées proposables à la saisie (présentes dans les deux barèmes) :{' '}
         <b>{durees.length ? durees.map(d => `${d} mois (${trimestres(d)})`).join(', ') : 'aucune'}</b>

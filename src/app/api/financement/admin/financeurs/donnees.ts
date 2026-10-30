@@ -11,6 +11,7 @@ export function donneesFinanceur(c: Record<string, any>): DonneesFinanceur {
     ...(typeof c.signatureElectronique === 'boolean' ? { signatureElectronique: c.signatureElectronique } : {}),
     ...(typeof c.envoiParMail === 'boolean' ? { envoiParMail: c.envoiParMail } : {}),
     ...(c.destinataireMailId !== undefined ? { destinataireMailId: c.destinataireMailId === null || c.destinataireMailId === '' ? null : Number(c.destinataireMailId) } : {}),
+    ...(c.baremeCommercialDeId !== undefined ? { baremeCommercialDeId: c.baremeCommercialDeId === null || c.baremeCommercialDeId === '' ? null : Number(c.baremeCommercialDeId) } : {}),
     ...(c.fraisDossierCentimes !== undefined ? { fraisDossierCentimes: Number(c.fraisDossierCentimes) } : {}),
   }
 }
