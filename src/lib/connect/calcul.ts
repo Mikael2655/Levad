@@ -6,7 +6,8 @@ export type Compteurs = Record<string, { v: number; nom?: string }>
 
 type Terme = [number, number] // [coefficient, numéro de compteur]
 
-export const RECETTES: { code: string; nom: string; formule: string; nb: Terme[]; couleur: Terme[] }[] = [
+// `sauf` : la recette ne s'applique pas si l'un de ces compteurs existe (machine couleur).
+export const RECETTES: { code: string; nom: string; formule: string; nb: Terme[]; couleur: Terme[]; sauf?: number[] }[] = [
   { code: 'A', nom: 'Directe', formule: '109 / 106', nb: [[1, 109]], couleur: [[1, 106]] },
   {
     code: 'B',
@@ -24,6 +25,8 @@ export const RECETTES: { code: string; nom: string; formule: string; nb: Terme[]
   },
   // Machine sans grand format (pas de 112 / 122) : le petit format est le total.
   { code: 'D', nom: 'Petit format seul', formule: '113 / 123', nb: [[1, 113]], couleur: [[1, 123]] },
+  // Machine noir et blanc seulement, qui ne donne que les totaux (101 / 102) : le total 2 compte chaque A3 double.
+  { code: 'E', nom: 'Noir et blanc seul', formule: '102 / 0', nb: [[1, 102]], couleur: [], sauf: [106, 122, 123, 125] },
 ]
 
 export type Resultat = { code: string; nom: string; formule: string; nb: number; couleur: number; utilises: number[] }
@@ -41,6 +44,7 @@ function somme(c: Compteurs, termes: Terme[]): number | null {
 export function calculer(c: Compteurs, choix?: string | null) {
   const applicables: Resultat[] = []
   for (const r of RECETTES) {
+    if (r.sauf?.some((n) => c[String(n)])) continue
     const nb = somme(c, r.nb)
     const couleur = somme(c, r.couleur)
     if (nb !== null && couleur !== null) {
