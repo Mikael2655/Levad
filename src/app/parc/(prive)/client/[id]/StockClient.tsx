@@ -272,7 +272,7 @@ export async function StockClient({ clientId }: { clientId: number }) {
                   const parGroupe = new Map<string, Mouvement[]>()
                   for (const l of e.lignes) parGroupe.set(l.groupe, [...(parGroupe.get(l.groupe) ?? []), l])
                   const total = e.lignes.reduce((n, l) => n + l.delta, 0)
-                  const titre = e.motif === 'envoi' ? `Envoi de ${total} cartouche${total > 1 ? 's' : ''}` : ({ correction: 'Correction', changement: 'Cartouche changée' }[e.motif] ?? e.motif)
+                  const titre = e.motif === 'envoi' ? `Envoi de ${total} cartouche${total > 1 ? 's' : ''}` : (e.motif === 'changement' && total === 0 ? 'Remplacement vérifié (stock inchangé)' : ({ correction: 'Correction', changement: 'Cartouche changée' }[e.motif] ?? e.motif))
                   return (
                     <tr key={e.cle} className="border-b align-top last:border-0">
                       <td className="whitespace-nowrap py-1.5 pr-4">{formaterDate(e.date)}</td>
