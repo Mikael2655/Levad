@@ -62,7 +62,6 @@ export default async function ExportsPage({ searchParams }: { searchParams: Reco
 
         <div className="flex flex-wrap gap-6 text-sm text-gray-700">
           <label className="flex items-center gap-2"><input type="checkbox" name="scans" value="1" defaultChecked={lu?.options.scans} className="h-4 w-4" /> Ajouter les scans (501)</label>
-          <label className="flex items-center gap-2"><input type="checkbox" name="dr" value="1" defaultChecked={lu?.options.dateReleve} className="h-4 w-4" /> Ajouter la date du relevé utilisé</label>
           <label className="flex items-center gap-2">
             Relevés trop anciens :
             <select name="anc" defaultValue={lu?.params.anciens ?? 'inclure'} className="rounded-lg border border-gray-300 bg-white px-2 py-1.5">
