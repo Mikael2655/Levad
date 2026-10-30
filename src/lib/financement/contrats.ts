@@ -217,14 +217,13 @@ export async function traiterImport(a: Acteur, p: DemandeImport) {
 
 // --- Transfert de portefeuille ----------------------------------------------------------------------------------------
 
-// Tous les contrats d'un commercial passent à un autre (ex. départ de LEVAD). Le montant « commercial » est recalculé
-// avec le barème du nouveau commercial, comme pour un changement unitaire ; le loyer ne change pas.
-export async function transfererContrats(a: Acteur, deId: number, versId: number): Promise<{ transferes: number }> {
-  if (a.role !== 'ADMIN') throw new ErreurMetier('Action non autorisée : réservée à l’administrateur.', 403)
-  if (deId === versId) throw new ErreurMetier('Choisissez deux commerciaux différents.')
+async function verifierNouveauCommercial(versId: number) {
   const vers = await prisma.finUtilisateur.findUnique({ where: { id: versId } })
   if (!vers || !vers.actif || (vers.role !== 'COMMERCIAL' && vers.role !== 'ADMIN')) throw new ErreurMetier('Le nouveau commercial doit être un compte actif.')
-  const contrats = await prisma.finContrat.findMany({ where: { commercialId: deId } })
+}
+
+// Rattache ces contrats au commercial : le montant « commercial » est recalculé avec son barème, le loyer ne change pas.
+async function rattacher(contrats: { id: number; financeurId: number; dureeMois: number; periodicite: string; loyerCentimes: number; montantCommercialCentimes: number | null }[], versId: number) {
   const financeurs = new Map((await prisma.finFinanceur.findMany()).map(f => [f.id, f]))
   const grilles = new Map<number, Awaited<ReturnType<typeof grilleCommercialePour>>>()
   const operations = []
@@ -235,7 +234,31 @@ export async function transfererContrats(a: Acteur, deId: number, versId: number
     operations.push(prisma.finContrat.update({ where: { id: c.id }, data: { commercialId: versId, montantCommercialCentimes: r?.montantCentimes ?? c.montantCommercialCentimes } }))
   }
   await prisma.$transaction(operations)
+}
+
+// Tous les contrats d'un commercial passent à un autre (ex. départ de LEVAD).
+export async function transfererContrats(a: Acteur, deId: number, versId: number): Promise<{ transferes: number }> {
+  if (a.role !== 'ADMIN') throw new ErreurMetier('Action non autorisée : réservée à l’administrateur.', 403)
+  if (deId === versId) throw new ErreurMetier('Choisissez deux commerciaux différents.')
+  await verifierNouveauCommercial(versId)
+  const contrats = await prisma.finContrat.findMany({ where: { commercialId: deId } })
+  await rattacher(contrats, versId)
   return { transferes: contrats.length }
+}
+
+export const MAX_ATTRIBUTION = 500
+
+// Attribution d'une sélection de contrats (cases cochées dans la liste) à un commercial. Administrateur et assistante.
+export async function attribuerContrats(a: Acteur, ids: number[], versId: number): Promise<{ attribues: number; dejaChezLui: number }> {
+  if (!peutModifierContrat(a)) throw new ErreurMetier('Action non autorisée.', 403)
+  const uniques = Array.from(new Set(ids.filter(n => Number.isInteger(n) && n > 0)))
+  if (uniques.length === 0) throw new ErreurMetier('Aucun contrat sélectionné.')
+  if (uniques.length > MAX_ATTRIBUTION) throw new ErreurMetier(`Trop de contrats à la fois (${MAX_ATTRIBUTION} au maximum).`)
+  await verifierNouveauCommercial(versId)
+  const contrats = await prisma.finContrat.findMany({ where: { id: { in: uniques } } })
+  const aChanger = contrats.filter(c => c.commercialId !== versId)
+  await rattacher(aChanger, versId)
+  return { attribues: aChanger.length, dejaChezLui: contrats.length - aChanger.length }
 }
 
 // --- Dénonciation ------------------------------------------------------------------------------------------------------
