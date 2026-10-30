@@ -31,6 +31,7 @@ async function fabriquer(req: Request) {
   const wb = new ExcelJS.Workbook()
   const ws = wb.addWorksheet('Compteurs')
   const colonnes: { header: string; key: string; width: number }[] = [
+    { header: 'Date', key: 'dateReleve', width: 14 },
     { header: 'Client', key: 'client', width: 30 },
     { header: 'Référence', key: 'reference', width: 24 },
     { header: 'N° de série', key: 'serie', width: 18 },
@@ -38,7 +39,6 @@ async function fabriquer(req: Request) {
     { header: 'Total couleur', key: 'couleur', width: 14 },
   ]
   if (options.scans) colonnes.push({ header: 'Scans (501)', key: 'scans', width: 14 })
-  if (options.dateReleve) colonnes.push({ header: 'Date du relevé', key: 'dateReleve', width: 16 })
   if (params.date2) {
     const d2 = params.date2.split('-').reverse().join('/')
     colonnes.push(
