@@ -380,3 +380,10 @@ DO $$ BEGIN
   ALTER TABLE "fin_demande" ADD CONSTRAINT "fin_demande_rachatId_fkey" FOREIGN KEY ("rachatId") REFERENCES "fin_rachat"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+ALTER TABLE "fin_financeur" ADD COLUMN IF NOT EXISTS "baremeCommercialDeId" INTEGER;
+
+DO $$ BEGIN
+  ALTER TABLE "fin_financeur" ADD CONSTRAINT "fin_financeur_baremeCommercialDeId_fkey" FOREIGN KEY ("baremeCommercialDeId") REFERENCES "fin_financeur"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

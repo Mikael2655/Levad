@@ -89,6 +89,7 @@ export interface DonneesFinanceur {
   signatureElectronique?: boolean
   envoiParMail?: boolean
   destinataireMailId?: number | null
+  baremeCommercialDeId?: number | null
 }
 
 function verifierFinanceur(d: DonneesFinanceur) {
@@ -112,6 +113,10 @@ export async function creerFinanceur(d: DonneesFinanceur & { nom: string }) {
 
 export async function modifierFinanceur(id: number, d: DonneesFinanceur) {
   verifierFinanceur(d)
+  if (d.baremeCommercialDeId != null) {
+    if (d.baremeCommercialDeId === id) throw new ErreurMetier('Un financeur ne peut pas emprunter son propre barème.')
+    if (!(await prisma.finFinanceur.findUnique({ where: { id: d.baremeCommercialDeId }, select: { id: true } }))) throw new ErreurMetier('Financeur du barème introuvable.')
+  }
   if (d.destinataireMailId != null) {
     const u = await prisma.finUtilisateur.findUnique({ where: { id: d.destinataireMailId } })
     if (!u || !u.actif || (u.role !== 'ADMIN' && u.role !== 'ASSISTANTE')) throw new ErreurMetier('Le destinataire doit être un administrateur ou une assistante actifs.')
@@ -133,6 +138,7 @@ export async function modifierFinanceur(id: number, d: DonneesFinanceur) {
       ...(d.signatureElectronique !== undefined ? { signatureElectronique: d.signatureElectronique } : {}),
       ...(d.envoiParMail !== undefined ? { envoiParMail: d.envoiParMail } : {}),
       ...(d.destinataireMailId !== undefined ? { destinataireMailId: d.destinataireMailId } : {}),
+      ...(d.baremeCommercialDeId !== undefined ? { baremeCommercialDeId: d.baremeCommercialDeId } : {}),
     },
   })
 }
@@ -207,7 +213,11 @@ export async function grilleReelle(financeurId: number): Promise<Grille | null> 
 }
 
 // Barème utilisé pour calculer les montants d'un commercial : le sien s'il en a un, sinon le barème commun.
-export async function grilleCommercialePour(financeurId: number, utilisateurId: number): Promise<Grille | null> {
+export async function grilleCommercialePour(financeurId: number, utilisateurId: number, dejaEmprunte = false): Promise<Grille | null> {
   const g = (await trouver({ financeurId, type: 'COMMERCIALE', utilisateurId })) ?? (await trouver({ financeurId, type: 'COMMERCIALE', utilisateurId: null }))
-  return g ? versGrille(g) : null
+  if (g) return versGrille(g)
+  // pas de barème commercial propre : celui du financeur désigné (un seul niveau d'emprunt)
+  if (dejaEmprunte) return null
+  const f = await prisma.finFinanceur.findUnique({ where: { id: financeurId }, select: { baremeCommercialDeId: true } })
+  return f?.baremeCommercialDeId ? grilleCommercialePour(f.baremeCommercialDeId, utilisateurId, true) : null
 }

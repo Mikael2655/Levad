@@ -45,7 +45,7 @@ const SYNONYMES: [Champ, string[]][] = [
   ['periodicite', ['periodicite', 'frequence', 'payment frequency', 'frequency', 'zahlweise']],
   ['duree', ['duree', 'duree mois', 'duration', 'term of lease', 'term', 'laufzeit', 'nombre de mois', 'periode', 'period', 'mois']],
   ['loyer', ['loyer', 'loyer ht', 'montant du loyer', 'mensualite', 'rent', 'installment', 'instalment', 'rate']],
-  ['montantReel', ['montant finance', 'montant du financement', 'financement', 'financed amount', 'financing amount', 'amount', 'nav', 'valeur financee', 'montant']],
+  ['montantReel', ['montant finance', 'montant du financement', 'financement', 'financed amount', 'financing amount', 'amount', 'nav', 'valeur financee', 'montant', 'total']],
   ['client', ['raison sociale', 'nom du client', 'client', 'locataire', 'preneur', 'lessee', 'customer', 'kunde']],
   ['materiel', ['materiel', 'objet', 'designation', 'bien', 'equipement', 'description', 'object']],
   ['commercial', ['commercial', 'vendeur', 'apporteur', 'sales', 'representant', 'conseiller']],

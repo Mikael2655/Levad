@@ -255,6 +255,9 @@ model FinFinanceur {
   envoiParMail            Boolean  @default(false) // vrai : à « Envoyée », un mail récapitulatif part vers le destinataire ci-dessous (qui le transmet au financeur)
   destinataireMailId      Int?
   destinataireMail        FinUtilisateur? @relation("FinanceurDestinataire", fields: [destinataireMailId], references: [id], onDelete: SetNull)
+  baremeCommercialDeId    Int? // financeur sans barème commercial propre : on utilise celui de ce financeur (ex. BNP -> taux Grenke que les commerciaux connaissent)
+  baremeCommercialDe      FinFinanceur? @relation("BaremeEmprunte", fields: [baremeCommercialDeId], references: [id], onDelete: SetNull)
+  empruntsDeBareme        FinFinanceur[] @relation("BaremeEmprunte")
 
   grilles          FinGrille[]
   correspondances  FinCorrespondanceStatut[]
