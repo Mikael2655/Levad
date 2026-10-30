@@ -23,6 +23,15 @@ export const LIBELLES_CHAMPS: Record<Champ, string> = {
   commercial: 'Commercial (e-mail ou nom)',
 }
 export const OBLIGATOIRES: Champ[] = ['client', 'loyer', 'duree']
+// Colonnes réellement manquantes : la durée peut se déduire des deux dates (1er loyer et fin).
+export const colonnesManquantes = (m: Mapping): Champ[] => OBLIGATOIRES.filter(c => m[c] === undefined && !(c === 'duree' && m.dateDebut !== undefined && m.dateFin !== undefined))
+
+// Durée en mois entre deux dates, arrondie ; au trimestre le plus proche si le loyer est trimestriel.
+export function dureeDepuisDates(debut: Date, fin: Date, periodicite: Periodicite): number | null {
+  const mois = (fin.getUTCFullYear() - debut.getUTCFullYear()) * 12 + (fin.getUTCMonth() - debut.getUTCMonth()) + (fin.getUTCDate() - debut.getUTCDate()) / 30
+  const arrondi = periodicite === 'TRIMESTRIELLE' ? Math.round(mois / 3) * 3 : Math.round(mois)
+  return arrondi >= 1 && arrondi <= 240 ? arrondi : null
+}
 
 export const normaliser = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
 
@@ -132,7 +141,7 @@ export function lireDureeMois(brut: string, unite: 'MOIS' | 'TRIMESTRES'): numbe
   const n = Number(m[1])
   const trimestres = m[2] ? /^(t|trim|q)/.test(m[2]) : unite === 'TRIMESTRES'
   const mois = trimestres ? n * 3 : n
-  return mois >= 1 && mois <= 120 ? mois : null
+  return mois >= 1 && mois <= 240 ? mois : null
 }
 
 // --- Lignes ------------------------------------------------------------------------------------------------------------
@@ -174,8 +183,6 @@ export function lireLignes(lignes: string[][], o: OptionsLecture): { lues: Ligne
     if (!client) problemes.push('client manquant')
     const loyer = lireMontantCentimes(valeur(l, 'loyer'))
     if (loyer === null || loyer <= 0) problemes.push('loyer illisible')
-    const duree = lireDureeMois(valeur(l, 'duree'), o.uniteDuree)
-    if (duree === null) problemes.push('durée illisible')
     const brutPeriodicite = valeur(l, 'periodicite')
     const periodicite = brutPeriodicite ? lirePeriodicite(brutPeriodicite) : o.periodiciteDefaut
     if (!periodicite) problemes.push(`périodicité inconnue (« ${brutPeriodicite} »)`)
@@ -185,6 +192,10 @@ export function lireLignes(lignes: string[][], o: OptionsLecture): { lues: Ligne
     const brutFin = valeur(l, 'dateFin')
     let dateFin = brutFin ? lireDate(brutFin) : null
     if (brutFin && !dateFin) problemes.push('date de fin illisible')
+    // durée : colonne dédiée, sinon déduite des dates de début et de fin
+    const brutDuree = valeur(l, 'duree')
+    const duree = brutDuree ? lireDureeMois(brutDuree, o.uniteDuree) : dateDebut && dateFin && periodicite ? dureeDepuisDates(dateDebut, dateFin, periodicite) : null
+    if (duree === null) problemes.push(brutDuree || !(dateDebut && dateFin) ? 'durée illisible' : 'durée non déductible des dates')
     const brutReel = valeur(l, 'montantReel')
     const montantReel = brutReel ? lireMontantCentimes(brutReel) : null
     if (brutReel && montantReel === null) problemes.push('montant financé illisible')

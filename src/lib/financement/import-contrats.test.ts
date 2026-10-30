@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { detecterUniteLoyer, lireCsv, lireDate, lireDureeMois, lireLignes, lireMontantCentimes, lirePeriodicite, suggererMapping } from './import-contrats'
+import { colonnesManquantes, detecterUniteLoyer, dureeDepuisDates, lireCsv, lireDate, lireDureeMois, lireLignes, lireMontantCentimes, lirePeriodicite, suggererMapping } from './import-contrats'
 
 describe('CSV', () => {
   it('séparateur « ; », guillemets, virgules françaises, BOM, lignes vides', () => {
@@ -115,5 +115,35 @@ describe('export Grenke « My Contracts »', () => {
     const trimestriel = lignes.map(l => [...l.slice(0, 6), String(Number(l[6]) * 3), ...l.slice(7)])
     expect(detecterUniteLoyer(trimestriel, suggererMapping(entetes), 'MOIS')).toBe('PAR_PERIODE')
     expect(detecterUniteLoyer(lignes.slice(0, 2), suggererMapping(entetes), 'MOIS')).toBeNull()
+  })
+})
+
+describe('contrats d’un ancien financeur (liste BNP sans durée ni loyer par défaut)', () => {
+  const entetes = ['Solde renouvelant', 'Raison sociale du client', 'N° Client', 'N° SIRET', 'N° Contrat', 'N° Lot', 'CP', 'Date début', 'Date fin', 'Matériel', 'Type/Modèle', 'Total']
+  it('les colonnes sont reconnues, la durée peut se déduire des deux dates', () => {
+    const m = suggererMapping(entetes)
+    expect(m).toMatchObject({ client: 1, siret: 3, ref: 4, dateDebut: 7, dateFin: 8, materiel: 9 })
+    expect(colonnesManquantes(m)).toEqual(['loyer'])
+    expect(colonnesManquantes({ client: 0, loyer: 1, duree: 2 })).toEqual([])
+    expect(colonnesManquantes({ client: 0, loyer: 1 })).toEqual(['duree'])
+  })
+  it('durée = écart entre les dates, au trimestre le plus proche pour un loyer trimestriel', () => {
+    const d = (s: string) => new Date(`${s}T00:00:00Z`)
+    expect(dureeDepuisDates(d('2022-07-01'), d('2027-10-01'), 'TRIMESTRIELLE')).toBe(63)
+    expect(dureeDepuisDates(d('2020-05-25'), d('2027-10-01'), 'TRIMESTRIELLE')).toBe(87)
+    expect(dureeDepuisDates(d('2022-07-01'), d('2023-07-01'), 'MENSUELLE')).toBe(12)
+    expect(dureeDepuisDates(d('2027-01-01'), d('2026-01-01'), 'MENSUELLE')).toBeNull()
+  })
+  it('lecture complète : loyer saisi à la main, durée déduite, dates au format français', () => {
+    const lignes = [['OUI', 'SAHAM EUROPE SAS', '11953118', '48007897100029', 'A1L65243', '1', '75008', '01/07/2022', '01/10/2027', 'COPIEUR MULTIFO...', '', '1512,20']]
+    const m = { client: 1, siret: 3, ref: 4, dateDebut: 7, dateFin: 8, materiel: 9, loyer: 11 }
+    const r = lireLignes(lignes, { mapping: m, uniteDuree: 'MOIS', uniteLoyer: 'PAR_PERIODE', periodiciteDefaut: 'TRIMESTRIELLE' })
+    expect(r.erreurs).toEqual([])
+    expect(r.lues[0]).toMatchObject({ client: 'SAHAM EUROPE SAS', ref: 'A1L65243', siret: '48007897100029', loyerCentimes: 151220, dureeMois: 63 })
+    expect(r.lues[0].dateFin?.toISOString().slice(0, 10)).toBe('2027-10-01')
+  })
+  it('durée impossible à déduire : message précis', () => {
+    const r = lireLignes([['X', '10', '2027-01-01', '2026-01-01']], { mapping: { client: 0, loyer: 1, dateDebut: 2, dateFin: 3 }, uniteDuree: 'MOIS', uniteLoyer: 'PAR_PERIODE', periodiciteDefaut: 'TRIMESTRIELLE' })
+    expect(r.erreurs[0].message).toContain('durée non déductible')
   })
 })

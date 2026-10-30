@@ -8,7 +8,7 @@ import { montantDepuisLoyer } from './calcul'
 import { estInterne, peutImporterContrats, peutModifierContrat, peutVoirBaremeReel, vueContrat, type Acteur } from './droits'
 import { ajouterMois, dateFinDepuisDebut, dernierLoyer, etatEcheance, moisRestants, prochaineReconduction, statutContrat } from './echeances'
 import { ErreurMetier } from './erreurs'
-import { lireLignes, normaliser, OBLIGATOIRES, type Mapping, type UniteLoyer } from './import-contrats'
+import { colonnesManquantes, lireLignes, normaliser, type Mapping, type UniteLoyer } from './import-contrats'
 
 export type FiltreStatut = 'en_cours' | 'tacite' | 'cloture' | 'tous'
 export type FiltreEcheance = 'toutes' | 'proche6' | 'proche12'
@@ -168,7 +168,7 @@ export async function traiterImport(a: Acteur, p: DemandeImport) {
   if (!peutImporterContrats(a)) throw new ErreurMetier('Action non autorisée.', 403)
   const financeur = await prisma.finFinanceur.findUnique({ where: { id: p.financeurId } })
   if (!financeur) throw new ErreurMetier('Financeur introuvable.', 404)
-  for (const champ of OBLIGATOIRES) if (p.mapping[champ] === undefined) throw new ErreurMetier('Indiquez la colonne du client, du loyer et de la durée.')
+  if (colonnesManquantes(p.mapping).length) throw new ErreurMetier('Indiquez la colonne du client, du loyer et de la durée (ou des deux dates : 1er loyer et fin).')
 
   const candidats: Candidat[] = (await prisma.finUtilisateur.findMany({ where: { actif: true, role: { in: ['COMMERCIAL', 'ADMIN'] } }, select: { id: true, prenom: true, nom: true, email: true } }))
   const defaut = p.commercialDefautId ? candidats.find(c => c.id === p.commercialDefautId) : undefined
