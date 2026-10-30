@@ -1,6 +1,8 @@
 // Test sur une vraie base PostgreSQL (voir acces.integration.test.ts) : statut des contrats, dénonciation, solde anticipé.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Mail } from './notifications'
+import { COMMERCIAL_LIGNES } from './baremes'
+import { lignesVersMatrice } from './grilles'
 
 const URL_TEST = process.env.FIN_TEST_DATABASE_URL
 const d = URL_TEST ? describe : describe.skip
@@ -63,6 +65,25 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
     const [tacite] = await ct.listerContrats(S(), { q: 'Tacite' })
     expect(tacite.reconduction).not.toBeNull()
     expect(tacite.statutContrat).toBe('TACITE')
+  })
+
+  it('attribution d’une sélection : seuls les contrats cochés changent de commercial (admin et assistante), montant commercial recalculé', async () => {
+    const g = (await admin.creerFinanceur({ nom: 'Financeur sélection' })).id
+    await admin.enregistrerGrille({ financeurId: g, type: 'COMMERCIALE', utilisateurId: null }, 'TRIMESTRIEL', lignesVersMatrice(COMMERCIAL_LIGNES))
+    const x = await nouveau({ raisonSociale: 'Sel 1', financeurId: g, montantCommercialCentimes: null, dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
+    const y = await nouveau({ raisonSociale: 'Sel 2', financeurId: g, dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
+    const z = await nouveau({ raisonSociale: 'Sel 3 (non coché)', financeurId: g, dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
+    await expect(ct.attribuerContrats(CA(), [x.id], ids.comB)).rejects.toThrow('non autorisée')
+    await expect(ct.attribuerContrats(S(), [], ids.comB)).rejects.toThrow('Aucun contrat')
+    await expect(ct.attribuerContrats(S(), [x.id], ids.assistante)).rejects.toThrow('actif')
+    const r = await ct.attribuerContrats(S(), [x.id, y.id, y.id, 0, -3], ids.comB)
+    expect(r).toEqual({ attribues: 2, dejaChezLui: 0 })
+    const apres = await prisma.finContrat.findMany({ where: { id: { in: [x.id, y.id, z.id] } }, orderBy: { id: 'asc' } })
+    expect(apres.map(c => c.commercialId)).toEqual([ids.comB, ids.comB, ids.comA])
+    expect(apres[0].montantCommercialCentimes).toBe(1215126) // 723 € à 5,95 % : recalculé avec les taux du nouveau commercial
+    expect((await ct.listerContrats(CB())).map(c => c.raisonSociale)).toEqual(expect.arrayContaining(['Sel 1', 'Sel 2']))
+    // deuxième passage : déjà chez lui, rien à faire
+    expect(await ct.attribuerContrats(A(), [x.id], ids.comB)).toEqual({ attribues: 0, dejaChezLui: 1 })
   })
 
   it('dénonciation : réservée à l’admin / assistante, réversible ; dernier loyer = fin - une période', async () => {

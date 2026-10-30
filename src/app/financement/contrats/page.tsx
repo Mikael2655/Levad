@@ -1,13 +1,14 @@
 import Link from 'next/link'
 import { compterContrats, compterEcheancesProches, listerContrats, type FiltreEcheance, type FiltreStatut } from '@/lib/financement/contrats'
 import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
-import { estInterne, peutImporterContrats, peutVoirBaremeReel } from '@/lib/financement/droits'
+import { estInterne, peutImporterContrats, peutModifierContrat, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
 import EnteteTri from '../EnteteTri'
 import FormulaireFiltres from '../FormulaireFiltres'
 import { lireOrdre, trier } from '@/lib/financement/tri'
 import { dateFr, dureeTrimestres, euros, loyerPeriode, materielAffiche } from '../format'
 import SelecteurMontant from '../SelecteurMontant'
+import BarreAttribution from './BarreAttribution'
 import BadgeStatutContrat, { LIBELLES_STATUT_CONTRAT } from './BadgeStatutContrat'
 
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
   const u = await exigerUtilisateur()
   const interne = estInterne(u)
   const reel = peutVoirBaremeReel(u)
+  const peutAttribuer = peutModifierContrat(u)
   const modeMontant = reel && searchParams.m === 'reel' ? 'reel' : 'commercial'
   const statut = STATUTS.some(([v]) => v === searchParams.s) ? (searchParams.s as FiltreStatut) : 'en_cours'
   const echeance = ECHEANCES.some(([v]) => v === searchParams.e) ? (searchParams.e as FiltreEcheance) : 'toutes'
@@ -82,8 +84,9 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
       </FormulaireFiltres>
 
       <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm overflow-x-auto">
-        <table className="w-full min-w-[92rem] table-fixed text-sm">
+        <table className="w-full min-w-[94rem] table-fixed text-sm">
           <colgroup>
+            {peutAttribuer && <col className="w-10" />}
             <col className="w-40" />
             <col className="w-64" />
             {interne && <col className="w-28" />}
@@ -98,6 +101,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
           </colgroup>
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-gray-500 bg-gray-50/70 border-b border-gray-100">
+              {peutAttribuer && <th className="px-3 py-3 w-10"><input type="checkbox" data-sel-tout aria-label="Tout sélectionner" className="h-4 w-4 accent-[#3d5745]" /></th>}
               {entete('reference', 'Référence')}
               {entete('client', 'Client')}
               {interne && entete('commercial', 'Commercial')}
@@ -114,6 +118,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
           <tbody className="divide-y divide-gray-100">
             {lignes.map(c => (
               <tr key={c.id} className={`hover:bg-leasing-50/70 transition-colors ${c.etat === 'PROCHE' && c.statutContrat === 'EN_COURS' ? 'bg-orange-50/40' : ''}`}>
+                {peutAttribuer && <td className="px-3 py-3.5"><input type="checkbox" data-sel-contrat value={c.id} aria-label={`Sélectionner ${c.raisonSociale}`} className="h-4 w-4 accent-[#3d5745]" /></td>}
                 <td className="px-3 py-3.5 whitespace-nowrap truncate"><Link href={`/financement/contrats/${c.id}`} className="font-medium text-leasing-700 underline">{c.reference ?? `Contrat ${c.id}`}</Link></td>
                 <td className="px-3 py-3.5" title={c.raisonSociale}><span className="line-clamp-2 break-words">{c.raisonSociale}</span>{c.importe && <span className="ml-1.5 text-xs bg-gray-100 text-gray-600 rounded-full px-1.5 py-0.5">importé</span>}</td>
                 {interne && <td className="px-3 py-3.5 whitespace-nowrap truncate" title={c.commercialNom}>{c.commercialAffiche}</td>}
@@ -128,7 +133,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
               </tr>
             ))}
             {contrats.length === 0 && (
-              <tr><td colSpan={interne ? 11 : 10} className="p-12 text-center">
+              <tr><td colSpan={(interne ? 11 : 10) + (peutAttribuer ? 1 : 0)} className="p-12 text-center">
                 <p className="text-4xl mb-2">📄</p>
                 <p className="font-medium text-gray-700">Aucun contrat ne correspond</p>
                 <p className="text-sm text-gray-400 mt-1">Modifiez les filtres, ou attendez qu’une demande soit signée : elle deviendra un contrat.</p>
@@ -137,6 +142,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
           </tbody>
         </table>
       </div>
+      {peutAttribuer && <BarreAttribution commerciaux={commerciaux.map(c => ({ id: c.id, nom: `${c.prenom} ${c.nom}` }))} />}
       <p className="text-xs text-gray-400">{contrats.length} contrat(s). Au terme, un contrat non dénoncé est prolongé tacitement d’un an.</p>
     </main>
   )
