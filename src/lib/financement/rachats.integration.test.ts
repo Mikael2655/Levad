@@ -57,11 +57,10 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
     await nouveau({ raisonSociale: 'Dénoncé', dateDebut: IL_Y_A(70), dateFin: IL_Y_A(7), denonceLe: IL_Y_A(10) })
     await nouveau({ raisonSociale: 'Soldé', dateDebut: IL_Y_A(6), dateFin: IL_Y_A(-57), clotureLe: IL_Y_A(1) })
     const noms = (l: { raisonSociale: string }[]) => l.map(x => x.raisonSociale).sort()
-    expect(noms(await ct.listerContrats(S()))).toEqual(['En cours'])
-    expect(noms(await ct.listerContrats(S(), { statut: 'tacite' }))).toEqual(['Tacite'])
+    expect(noms(await ct.listerContrats(S()))).toEqual(['En cours', 'Tacite']) // « en cours » comprend les reconductions tacites
     expect(noms(await ct.listerContrats(S(), { statut: 'cloture' }))).toEqual(['Dénoncé', 'Soldé'])
     expect(noms(await ct.listerContrats(S(), { statut: 'tous' }))).toHaveLength(4)
-    const [tacite] = await ct.listerContrats(S(), { statut: 'tacite' })
+    const [tacite] = await ct.listerContrats(S(), { q: 'Tacite' })
     expect(tacite.reconduction).not.toBeNull()
     expect(tacite.statutContrat).toBe('TACITE')
   })
@@ -126,7 +125,7 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
     it('refus : type inconnu, contrat non en cours, montant réel inconnu', async () => {
       await expect(rc.simulerSolde(CA(), contratId, { type: 'X', dateResiliation: jour('2030-01-01') })).rejects.toThrow('type de solde')
       const tacite = await nouveau({ raisonSociale: 'Tacite2', dateDebut: IL_Y_A(70), dateFin: IL_Y_A(7) })
-      await expect(rc.simulerSolde(S(), tacite.id, { type: 'RENOUVELANT', dateResiliation: new Date() })).rejects.toThrow('contrats en cours')
+      await expect(rc.simulerSolde(S(), tacite.id, { type: 'RENOUVELANT', dateResiliation: new Date() })).rejects.toThrow('avant leur terme')
       const sansReel = await nouveau({ raisonSociale: 'SansReel', montantReelCentimes: null, dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
       await expect(rc.simulerSolde(S(), sansReel.id, { type: 'RENOUVELANT', dateResiliation: new Date() })).rejects.toThrow('montant financé réel')
     })
@@ -169,7 +168,7 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
       expect(c.clotureMotif).toBe('Solde non renouvelant')
       expect((await ct.listerContrats(S())).some(x => x.id === contratId)).toBe(false)
       expect((await ct.listerContrats(S(), { statut: 'cloture' })).some(x => x.id === contratId)).toBe(true)
-      await expect(rc.simulerSolde(S(), contratId, { type: 'RENOUVELANT', dateResiliation: new Date() })).rejects.toThrow('contrats en cours')
+      await expect(rc.simulerSolde(S(), contratId, { type: 'RENOUVELANT', dateResiliation: new Date() })).rejects.toThrow('avant leur terme')
     })
     it('le commercial peut annuler sa propre simulation, pas celle d’un autre ni une demande envoyée', async () => {
       const c3 = await nouveau({ raisonSociale: 'Annul', dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })

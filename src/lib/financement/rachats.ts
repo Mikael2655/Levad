@@ -21,7 +21,7 @@ async function contratAccessible(a: Acteur, id: number) {
 function calculer(c: Awaited<ReturnType<typeof contratAccessible>>, type: string, dateResiliation: Date): ResultatRachat {
   if (!(TYPES_RACHAT as readonly string[]).includes(type)) throw new ErreurMetier('Choisissez le type de solde.')
   if (Number.isNaN(dateResiliation.getTime())) throw new ErreurMetier('Indiquez la date de résiliation souhaitée.')
-  if (statutContrat(c) !== 'EN_COURS') throw new ErreurMetier('Le solde anticipé ne concerne que les contrats en cours.')
+  if (statutContrat(c) !== 'EN_COURS') throw new ErreurMetier('Le solde anticipé ne concerne que les contrats avant leur terme (pas ceux en reconduction tacite ou clôturés : un contrat tacite se dénonce).')
   if (!c.dateDebut || !c.dateFin) throw new ErreurMetier('La date du 1er loyer est inconnue : renseignez-la dans la fiche du contrat.')
   if (c.montantReelCentimes == null) throw new ErreurMetier('Le montant financé réel du contrat est inconnu (nécessaire pour la valeur résiduelle de 1 %).')
   return simulerRachat({ loyerCentimes: c.loyerCentimes, periodicite: c.periodicite, dureeMois: c.dureeMois, dateDebut: c.dateDebut, montantReelCentimes: c.montantReelCentimes, type: type as TypeRachat, dateResiliation })

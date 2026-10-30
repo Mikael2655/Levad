@@ -10,7 +10,8 @@ import { ajouterMois, dateFinDepuisDebut, dernierLoyer, etatEcheance, moisRestan
 import { ErreurMetier } from './erreurs'
 import { colonnesManquantes, lireLignes, normaliser, type Mapping, type UniteLoyer } from './import-contrats'
 
-export type FiltreStatut = 'en_cours' | 'tacite' | 'cloture' | 'tous'
+// « En cours » comprend les contrats en reconduction tacite (le statut Tacite reste affiché dans la liste, mais n'est plus un filtre).
+export type FiltreStatut = 'en_cours' | 'cloture' | 'tous'
 export type FiltreEcheance = 'toutes' | 'proche6' | 'proche12'
 export interface FiltresContrats {
   financeurId?: number
@@ -25,8 +26,7 @@ export interface FiltresContrats {
 function conditionStatut(statut: FiltreStatut, maintenant: Date): Prisma.FinContratWhereInput {
   const termeDepasse: Prisma.FinContratWhereInput = { dateFin: { lt: maintenant } }
   const ouvert: Prisma.FinContratWhereInput = { clotureLe: null }
-  if (statut === 'en_cours') return { AND: [ouvert, { OR: [{ dateFin: null }, { dateFin: { gte: maintenant } }] }] }
-  if (statut === 'tacite') return { AND: [ouvert, termeDepasse] }
+  if (statut === 'en_cours') return { AND: [ouvert, { NOT: { AND: [termeDepasse, { denonceLe: { not: null } }] } }] }
   if (statut === 'cloture') return { OR: [{ clotureLe: { not: null } }, { AND: [termeDepasse, { denonceLe: { not: null } }] }] }
   return {}
 }
@@ -80,7 +80,7 @@ export async function listerContrats(a: Acteur, f: FiltresContrats = {}) {
   })
   // « dénoncé pendant la reconduction tacite » : le statut exact se calcule ici (cas rare, la requête SQL est une approximation)
   const statutVoulu = f.statut ?? 'en_cours'
-  return lignes.map(c => enrichir(a, c, maintenant)).filter(c => statutVoulu === 'tous' || c.statutContrat === { en_cours: 'EN_COURS', tacite: 'TACITE', cloture: 'CLOTURE' }[statutVoulu])
+  return lignes.map(c => enrichir(a, c, maintenant)).filter(c => statutVoulu === 'tous' || (statutVoulu === 'cloture' ? c.statutContrat === 'CLOTURE' : c.statutContrat !== 'CLOTURE'))
 }
 
 // Nombre de contrats en cours qui arrivent à échéance dans les 6 mois (bandeau du tableau de bord).
@@ -269,7 +269,7 @@ export async function supprimerContrat(a: Acteur, id: number) {
 export async function compterContrats(a: Acteur) {
   const tous = await listerContrats(a, { statut: 'tous' })
   return {
-    enCours: tous.filter(c => c.statutContrat === 'EN_COURS').length,
+    enCours: tous.filter(c => c.statutContrat !== 'CLOTURE').length, // reconductions tacites comprises
     aRenouveler: tous.filter(c => c.statutContrat === 'EN_COURS' && c.etat === 'PROCHE').length,
     tacites: tous.filter(c => c.statutContrat === 'TACITE').length,
     clotures: tous.filter(c => c.statutContrat === 'CLOTURE').length,

@@ -68,7 +68,7 @@ export default function SoldeContrat(p: { contratId: number; enCours: boolean; p
             </div>
           )}
         </div>
-      ) : <p className="text-sm text-gray-500">Le solde anticipé ne concerne que les contrats en cours.</p>}
+      ) : <p className="text-sm text-gray-500">Le solde anticipé ne concerne que les contrats avant leur terme (un contrat en reconduction tacite se dénonce).</p>}
 
       {p.rachats.length > 0 && (
         <div className="space-y-2 pt-1">
