@@ -12,7 +12,7 @@ import BadgeStatutContrat, { LIBELLES_STATUT_CONTRAT } from './BadgeStatutContra
 
 export const dynamic = 'force-dynamic'
 
-const STATUTS: [FiltreStatut, string][] = [['en_cours', 'En cours'], ['tacite', 'Tacite'], ['cloture', 'Clôturé'], ['tous', 'Tous']]
+const STATUTS: [FiltreStatut, string][] = [['en_cours', 'En cours'], ['cloture', 'Clôturé'], ['tous', 'Tous']]
 const ECHEANCES: [FiltreEcheance, string][] = [['toutes', 'Toutes'], ['proche6', 'Échéance < 6 mois'], ['proche12', 'Échéance < 12 mois']]
 
 interface Params { s?: string; e?: string; f?: string; c?: string; q?: string; m?: string; tri?: string; ordre?: string }
@@ -57,7 +57,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
         {[
           { href: '/financement/contrats', n: nb.enCours, t: 'Contrats en cours', icone: '📄', ton: 'bg-leasing-100 text-leasing-800' },
           { href: '/financement/contrats?e=proche6', n: nb.aRenouveler, t: 'À renouveler (< 6 mois)', icone: '🔔', ton: 'bg-orange-100 text-orange-800' },
-          { href: '/financement/contrats?s=tacite', n: nb.tacites, t: 'En reconduction tacite', icone: '🔁', ton: 'bg-violet-100 text-violet-800' },
+          { href: '/financement/contrats', n: nb.tacites, t: 'dont en reconduction tacite', icone: '🔁', ton: 'bg-violet-100 text-violet-800' },
           { href: '/financement/contrats?s=cloture', n: nb.clotures, t: 'Clôturés', icone: '✅', ton: 'bg-gray-100 text-gray-700' },
         ].map(k => (
           <Link key={k.t} href={k.href} data-garde-m className="group bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition">
