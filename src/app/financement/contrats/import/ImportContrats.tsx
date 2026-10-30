@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { CHAMPS, LIBELLES_CHAMPS, OBLIGATOIRES, detecterUniteLoyer, type Champ, type Mapping, type UniteLoyer } from '@/lib/financement/import-contrats'
+import { CHAMPS, LIBELLES_CHAMPS, OBLIGATOIRES, colonnesManquantes, detecterUniteLoyer, type Champ, type Mapping, type UniteLoyer } from '@/lib/financement/import-contrats'
 import { appel } from '../../appel'
 import { euros } from '../../format'
 
@@ -75,7 +75,7 @@ export default function ImportContrats({ financeurs, commerciaux }: { financeurs
 
   const statuts = useMemo(() => (analyse ? statutsDistincts(analyse.lignes, mapping.statut) : []), [analyse, mapping.statut])
   const suggestionLoyer = useMemo(() => (analyse ? detecterUniteLoyer(analyse.lignes, mapping, uniteDuree) : null), [analyse, mapping, uniteDuree])
-  const manquants = OBLIGATOIRES.filter(c => mapping[c] === undefined)
+  const manquants = colonnesManquantes(mapping)
   const modifie = (fn: () => void) => { setRapport(null); fn() }
 
   return (
