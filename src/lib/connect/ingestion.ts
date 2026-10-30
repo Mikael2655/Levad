@@ -1,9 +1,7 @@
 import { prisma } from '@/lib/db'
 import { cleClient } from './normaliser'
-import { COULEURS, varianteADecompter } from './alertes'
-import { cleGroupe } from './gammes'
+import { rattraperChangements } from './changements'
 import { modeleAutreMarque, resoudreModele } from './modeles'
-import { avecEncres } from './releves'
 
 // Enregistre dans la base les relevés envoyés par le programme Levad Connect.
 // Une société est reconnue par son nom simplifié ; une machine par son numéro de série.
@@ -108,37 +106,6 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
 
     const encres = simplifier(m.encres)
 
-    // Changement de cartouche : le niveau d'une couleur remonte nettement (vers 90 % ou plus)
-    // par rapport au relevé précédent -> on retire une cartouche du stock du client (jamais en dessous de zéro).
-    if (machine.categorie === 'mine' && !machine.horsContrat) {
-      const groupe = cleGroupe(machine)
-      const precedent = avecEncres(
-        await prisma.connectReleve.findMany({ where: { machineId: machine.id }, orderBy: { date: 'desc' }, take: 10, select: { encres: true } }),
-      )
-      const avant = (precedent?.encres ?? []) as Json[]
-      for (const e of encres) {
-        if (typeof e.pourcent !== 'number' || e.pourcent < 90 || !e.couleur || !(COULEURS as readonly string[]).includes(e.couleur)) continue
-        const p = avant.find((x: Json) => x.couleur === e.couleur)?.pourcent
-        // cartouche remplacée = le niveau remonte d'au moins 25 points (une petite variation de la jauge n'en est pas une)
-        if (typeof p !== 'number' || e.pourcent - p < 25) continue
-        const variante = await varianteADecompter(machine.clientId, groupe, e.couleur)
-        if (variante !== null) {
-          await prisma.connectStockMouvement.create({
-            data: {
-              clientId: machine.clientId,
-              groupe,
-              variante,
-              couleur: e.couleur,
-              delta: -1,
-              motif: 'changement',
-              note: `Cartouche changée détectée (niveau passé de ${p} % à ${e.pourcent} %)`,
-              machineId: machine.id,
-            },
-          })
-        }
-      }
-    }
-
     await prisma.connectReleve.create({
       data: {
         machineId: machine.id,
@@ -151,6 +118,8 @@ export async function enregistrerReleve(data: Json, clientImpose?: { id: number 
         pc: texte(data.pc, 80),
       },
     })
+    // changements de cartouche (nouveau relevé compris) : retirés du stock
+    await rattraperChangements(machine)
     nb++
   }
   return { machines: nb }
