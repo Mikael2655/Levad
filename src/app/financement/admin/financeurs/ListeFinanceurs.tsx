@@ -6,7 +6,7 @@ import { appel, bpVersPourcent, eurosVersCentimes, pourcentVersBp } from '../../
 
 interface F { id: number; nom: string; connecteur: string; actif: boolean; majorationMensuelleBp: number; commissionBp: number | null; fraisDossierCentimes: number; signatureElectronique: boolean; envoiParMail: boolean; destinataireMailId: number | null; baremeCommercialDeId: number | null }
 interface D { id: number; nom: string }
-const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leasing-400 transition'
+const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500/40 transition'
 
 function Ligne({ f, destinataires, autres, onErreur }: { f: F | null; destinataires: D[]; autres: D[]; onErreur: (m: string | null) => void }) {
   const router = useRouter()
@@ -44,7 +44,7 @@ function Ligne({ f, destinataires, autres, onErreur }: { f: F | null; destinatai
       {f && autres.length > 0 && <label><span className={etiquette}>Taux commerciaux repris de</span><select className={`${champ} bg-white`} value={emprunt} onChange={e => setEmprunt(e.target.value)}><option value="">— son propre barème —</option>{autres.filter(x => x.id !== f.id).map(x => <option key={x.id} value={x.id}>{x.nom}</option>)}</select></label>}
       {parMail && <label><span className={etiquette}>E-mail envoyé à</span><select className={`${champ} bg-white`} value={destinataire} onChange={e => setDestinataire(e.target.value)}><option value="">— choisir —</option>{destinataires.map(x => <option key={x.id} value={x.id}>{x.nom}</option>)}</select></label>}
       {f && <span className="text-sm text-gray-500 pb-2">Connecteur : {f.connecteur}</span>}
-      <button type="submit" className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-lg px-4 py-1.5 text-sm font-semibold">{f ? 'Enregistrer' : 'Ajouter'}</button>
+      <button type="submit" className="bg-accent-700 hover:bg-accent-800 text-white shadow-sm shadow-accent-800/20 transition rounded-lg px-4 py-1.5 text-sm font-semibold">{f ? 'Enregistrer' : 'Ajouter'}</button>
       {f && (
         <button type="button" className={`${champ} bg-white`} onClick={async () => {
           onErreur(null)
@@ -59,11 +59,11 @@ export default function ListeFinanceurs({ financeurs, destinataires }: { finance
   const [erreur, setErreur] = useState<string | null>(null)
   return (
     <div className="space-y-4">
-      {erreur && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{erreur}</p>}
-      <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+      {erreur && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{erreur}</p>}
+      <div className="carte divide-y divide-gray-100">
         {financeurs.map(f => <Ligne key={`${f.id}-${f.nom}-${f.majorationMensuelleBp}-${f.commissionBp}-${f.fraisDossierCentimes}-${f.signatureElectronique}-${f.envoiParMail}-${f.destinataireMailId}-${f.baremeCommercialDeId}`} f={f} destinataires={destinataires} autres={financeurs.map(x => ({ id: x.id, nom: x.nom }))} onErreur={setErreur} />)}
       </div>
-      <div className="bg-white rounded-lg border border-gray-200"><Ligne f={null} destinataires={destinataires} autres={[]} onErreur={setErreur} /></div>
+      <div className="carte"><Ligne f={null} destinataires={destinataires} autres={[]} onErreur={setErreur} /></div>
     </div>
   )
 }

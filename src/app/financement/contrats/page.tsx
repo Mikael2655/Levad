@@ -4,6 +4,7 @@ import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import { estInterne, peutImporterContrats, peutModifierContrat, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
 import EnteteTri from '../EnteteTri'
+import Indicateur from '../Indicateur'
 import FormulaireFiltres from '../FormulaireFiltres'
 import { lireOrdre, trier } from '@/lib/financement/tri'
 import { dateFr, dureeTrimestres, euros, loyerPeriode, materielAffiche } from '../format'
@@ -43,7 +44,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
   })
   const entete = (cle: string, libelle: React.ReactNode, droite = false) => <EnteteTri cle={cle} libelle={libelle} chemin="/financement/contrats" params={searchParams as Record<string, string | undefined>} tri={searchParams.tri} ordre={ordre} droite={droite} />
   const commerciaux = utilisateurs.filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN'))
-  const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
+  const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent-500/40 focus:border-accent-500 transition'
 
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-8 space-y-6">
@@ -52,24 +53,17 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Contrats</h1>
           <p className="text-sm text-gray-500 mt-1">Contrats de location, échéances et renouvellements à préparer.</p>
         </div>
-        {peutImporterContrats(u) && <Link href="/financement/contrats/import" className="ml-auto bg-white border border-gray-300 hover:bg-gray-50 rounded-md px-4 py-2 text-sm font-medium transition">Importer des contrats</Link>}
+        {peutImporterContrats(u) && <Link href="/financement/contrats/import" className="ml-auto bg-white border border-gray-300 hover:bg-gray-50 rounded-xl px-4 py-2 text-sm font-medium transition">Importer des contrats</Link>}
       </div>
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        {[
-          { href: '/financement/contrats', n: nb.enCours, t: 'Contrats en cours', point: 'bg-leasing-600' },
-          { href: '/financement/contrats?e=proche6', n: nb.aRenouveler, t: 'À renouveler (< 6 mois)', point: 'bg-orange-500' },
-          { href: '/financement/contrats', n: nb.tacites, t: 'dont en reconduction tacite', point: 'bg-emerald-500' },
-          { href: '/financement/contrats?s=cloture', n: nb.clotures, t: 'Clôturés', point: 'bg-gray-400' },
-        ].map(k => (
-          <Link key={k.t} href={k.href} data-garde-m className="group bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 hover:bg-gray-50/50 transition-colors">
-              <span className="flex items-center gap-2 text-sm font-medium text-gray-500"><span className={`w-2 h-2 rounded-full ${k.point}`} />{k.t}</span>
-              <span className="block mt-2 text-3xl font-semibold tracking-tight text-gray-900 tabular-nums">{k.n}</span>
-            </Link>
-        ))}
+        <Indicateur href="/financement/contrats" n={nb.enCours} titre="Contrats en cours" icone="contrat" ton="vert" />
+        <Indicateur href="/financement/contrats?e=proche6" n={nb.aRenouveler} titre="À renouveler (< 6 mois)" icone="cloche" ton="orange" />
+        <Indicateur href="/financement/contrats" n={nb.tacites} titre="dont en reconduction tacite" icone="cycle" ton="ciel" />
+        <Indicateur href="/financement/contrats?s=cloture" n={nb.clotures} titre="Clôturés" icone="coche" ton="gris" />
       </div>
 
-      <FormulaireFiltres className="bg-white rounded-lg border border-gray-200 p-3 flex flex-wrap items-end gap-3 text-sm">
+      <FormulaireFiltres className="carte p-3 flex flex-wrap items-end gap-3 text-sm">
         <label>Statut<br /><select name="s" defaultValue={statut} className={champ}>{STATUTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
         <label>Échéance<br /><select name="e" defaultValue={echeance} className={champ}>{ECHEANCES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
         <label>Financeur<br /><select name="f" defaultValue={searchParams.f ?? ''} className={champ}><option value="">Tous</option>{financeurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}</select></label>
@@ -80,7 +74,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
         <Link href="/financement/contrats" className="underline text-gray-500 pb-2">Réinitialiser</Link>
       </FormulaireFiltres>
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+      <div className="carte overflow-x-auto">
         <table className="w-full min-w-[86rem] table-fixed text-sm">
           <colgroup>
             {peutAttribuer && <col className="w-10" />}
@@ -97,8 +91,8 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
             <col className="w-40" />
           </colgroup>
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-gray-500 bg-gray-50/70 border-b border-gray-100">
-              {peutAttribuer && <th className="px-3 py-3 w-10"><input type="checkbox" data-sel-tout aria-label="Tout sélectionner" className="h-4 w-4 accent-[#3d5745]" /></th>}
+            <tr className="text-left text-xs uppercase tracking-wide text-gray-500 bg-sable-50 border-b border-black/5">
+              {peutAttribuer && <th className="px-3 py-3 w-10"><input type="checkbox" data-sel-tout aria-label="Tout sélectionner" className="h-4 w-4 accent-[#08865a]" /></th>}
               {entete('reference', 'Référence')}
               {entete('client', 'Client')}
               {interne && entete('commercial', 'Commercial')}
@@ -114,9 +108,9 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
           </thead>
           <tbody className="divide-y divide-gray-100">
             {lignes.map(c => (
-              <tr key={c.id} className={`hover:bg-gray-50 transition-colors ${c.etat === 'PROCHE' && c.statutContrat === 'EN_COURS' ? 'bg-orange-50/40' : ''}`}>
-                {peutAttribuer && <td className="px-3 py-3"><input type="checkbox" data-sel-contrat value={c.id} aria-label={`Sélectionner ${c.raisonSociale}`} className="h-4 w-4 accent-[#3d5745]" /></td>}
-                <td className="px-3 py-3 whitespace-nowrap truncate"><Link href={`/financement/contrats/${c.id}`} className="font-medium text-leasing-700 underline">{c.reference ?? `Contrat ${c.id}`}</Link></td>
+              <tr key={c.id} className={`hover:bg-sable-50 transition-colors ${c.etat === 'PROCHE' && c.statutContrat === 'EN_COURS' ? 'bg-orange-50/40' : ''}`}>
+                {peutAttribuer && <td className="px-3 py-3"><input type="checkbox" data-sel-contrat value={c.id} aria-label={`Sélectionner ${c.raisonSociale}`} className="h-4 w-4 accent-[#08865a]" /></td>}
+                <td className="px-3 py-3 whitespace-nowrap truncate"><Link href={`/financement/contrats/${c.id}`} className="font-medium text-accent-700 underline">{c.reference ?? `Contrat ${c.id}`}</Link></td>
                 <td className="px-3 py-3" title={c.raisonSociale}><span className="line-clamp-2 break-words">{c.raisonSociale}</span>{c.importe && <span className="ml-1.5 text-xs bg-gray-100 text-gray-600 rounded px-1.5 py-0.5">importé</span>}</td>
                 {interne && <td className="px-3 py-3 whitespace-nowrap truncate" title={c.commercialNom}>{c.commercialAffiche}</td>}
                 <td className="px-3 py-3 truncate">{c.financeurNom}{'banque' in c && c.banque ? <span className="text-gray-500"> · {c.banque}</span> : null}</td>
@@ -131,8 +125,8 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
             ))}
             {contrats.length === 0 && (
               <tr><td colSpan={(interne ? 11 : 10) + (peutAttribuer ? 1 : 0)} className="p-12 text-center">
-                                <p className="font-medium text-gray-700">Aucun contrat ne correspond</p>
-                <p className="text-sm text-gray-400 mt-1">Modifiez les filtres, ou attendez qu’une demande soit signée : elle deviendra un contrat.</p>
+                                <p className="font-semibold text-gray-900">Aucun contrat ne correspond</p>
+                <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">Essaie d’autres filtres. Et dès qu’une demande est signée, elle devient un contrat et apparaît ici.</p>
               </td></tr>
             )}
           </tbody>

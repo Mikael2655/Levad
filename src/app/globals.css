@@ -5,3 +5,10 @@
 /* Outil de financement : bascule instantanée entre montant « commerciaux » et montant « réel » (admin / assistante). */
 #zone-montant[data-m='commercial'] .m-reel,
 #zone-montant[data-m='reel'] .m-commercial { display: none; }
+
+/* Outil de financement : carte douce (coins très arrondis, ombre légère) */
+@layer components {
+  .carte {
+    @apply rounded-2xl bg-white border border-black/5 shadow-[0_1px_2px_rgba(60,50,20,0.04),0_8px_24px_-12px_rgba(60,50,20,0.10)];
+  }
+}

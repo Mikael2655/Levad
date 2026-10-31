@@ -24,13 +24,13 @@ export default async function FicheContrat({ params, searchParams }: { params: {
   const reel = peutVoirBaremeReel(u) ? (c as typeof c & { montantReelCentimes: number | null; banque: string | null; margeCentimes: number | null; refFinanceur: string | null; statutFinanceur: string | null }) : null
   const commerciaux = peutModifierContrat(u) ? (await listerUtilisateurs()).filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN')).map(x => ({ id: x.id, nom: `${x.prenom} ${x.nom}` })) : []
   const modeMontant = reel && searchParams.m === 'reel' ? 'reel' : 'commercial'
-  const section = 'bg-white rounded-lg border border-gray-200 p-5 sm:p-6'
+  const section = 'carte p-5 sm:p-6'
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '')
 
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/financement/contrats" className="text-sm text-gray-500 hover:text-leasing-700 bg-white border border-gray-300 rounded-md px-3 py-1 transition-colors">← Contrats</Link>
+        <Link href="/financement/contrats" className="text-sm text-gray-500 hover:text-accent-700 bg-white border border-gray-300 rounded-xl px-3 py-1 transition-colors">← Contrats</Link>
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{c.raisonSociale}</h1>
         <BadgeStatutContrat statut={c.statutContrat} etat={c.etat} mois={c.moisRestants} />
         {c.clotureLe && <span className="text-sm text-gray-500">clôturé le {dateFr(c.clotureLe)}{'clotureMotif' in c && c.clotureMotif ? ` (${c.clotureMotif})` : ''}</span>}
@@ -38,8 +38,8 @@ export default async function FicheContrat({ params, searchParams }: { params: {
       </div>
 
       <section className={section}>
-        <div className="flex flex-wrap items-end gap-3 pb-2 mb-1 border-b border-gray-200">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 pb-2">Contrat</h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <TitreSection icone="contrat">Contrat</TitreSection>
           {reel && <div className="ml-auto text-sm"><SelecteurMontant initial={modeMontant} /></div>}
         </div>
         <Ligne t="Financeur">{c.financeurNom}</Ligne>
@@ -63,7 +63,7 @@ export default async function FicheContrat({ params, searchParams }: { params: {
         <Ligne t="Statut">{LIBELLES_STATUT_CONTRAT[c.statutContrat]}</Ligne>
         {c.statutContrat === 'TACITE' && c.reconduction && <Ligne t="Reconduction tacite">Prolongé d’un an : prochaine reconduction le {dateFr(c.reconduction)}{c.denonceLe ? ' — dénoncé, il s’arrêtera à cette date' : ''}</Ligne>}
         {c.denonceLe && c.statutContrat !== 'TACITE' && <Ligne t="Dénonciation">Dénoncé le {dateFr(c.denonceLe)} : le contrat s’arrête au terme</Ligne>}
-        {c.demandeId && <p className="pt-2 text-sm"><Link className="underline text-leasing-700" href={`/financement/demandes/${c.demandeId}`}>Voir la demande d’origine</Link></p>}
+        {c.demandeId && <p className="pt-2 text-sm"><Link className="underline text-accent-700" href={`/financement/demandes/${c.demandeId}`}>Voir la demande d’origine</Link></p>}
       </section>
 
       {peutModifierContrat(u) && c.statutContrat !== 'CLOTURE' && <BoutonDenonciation id={c.id} denonce={!!c.denonceLe} />}

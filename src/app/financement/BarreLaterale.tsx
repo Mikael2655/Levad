@@ -64,8 +64,8 @@ export default function BarreLaterale(p: { prenom: string; nom: string; email: s
               const actif = e.actif(chemin)
               return (
                 <Link key={e.href} href={e.href} aria-current={actif ? 'page' : undefined}
-                  className={`group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors ${actif ? 'bg-leasing-50 text-leasing-800' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                  <Icone d={e.icone} className={`w-[18px] h-[18px] ${actif ? 'text-leasing-700' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${actif ? 'bg-accent-50 text-accent-800' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                  <Icone d={e.icone} className={`w-[18px] h-[18px] ${actif ? 'text-accent-700' : 'text-gray-400 group-hover:text-gray-600'}`} />
                   {e.libelle}
                 </Link>
               )
@@ -75,20 +75,20 @@ export default function BarreLaterale(p: { prenom: string; nom: string; email: s
       </nav>
       <div className="p-3 border-t border-gray-100 shrink-0 relative" ref={refProfil}>
         {profil && (
-          <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-lg border border-gray-200 shadow-lg py-1.5 text-sm z-50">
+          <div className="absolute bottom-full left-3 right-3 mb-2 carte shadow-lg py-1.5 text-sm z-50">
             <div className="px-4 py-2 border-b border-gray-100">
               <p className="font-medium text-gray-900">{p.prenom} {p.nom}</p>
               <p className="text-xs text-gray-500 break-all">{p.email}</p>
             </div>
-            <Link href="/financement/mot-de-passe" className="block w-full text-left px-4 py-2.5 text-gray-700 hover:bg-gray-50" onClick={() => setProfil(false)}>Changer mon mot de passe</Link>
-            <button className="block w-full text-left px-4 py-2.5 text-gray-700 hover:bg-gray-50" onClick={async () => {
+            <Link href="/financement/mot-de-passe" className="block w-full text-left px-4 py-2.5 text-gray-700 hover:bg-sable-50" onClick={() => setProfil(false)}>Changer mon mot de passe</Link>
+            <button className="block w-full text-left px-4 py-2.5 text-gray-700 hover:bg-sable-50" onClick={async () => {
               await fetch('/api/financement/deconnexion', { method: 'POST' })
               window.location.href = '/financement/connexion'
             }}>Déconnexion</button>
           </div>
         )}
-        <button className="w-full flex items-center gap-3 rounded-md px-3 py-2.5 hover:bg-gray-50 text-left" aria-expanded={profil} onClick={() => setProfil(!profil)}>
-          <span className="w-9 h-9 rounded-full bg-leasing-100 text-leasing-800 text-sm font-semibold flex items-center justify-center shrink-0">{initiales}</span>
+        <button className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-gray-50 text-left" aria-expanded={profil} onClick={() => setProfil(!profil)}>
+          <span className="w-9 h-9 rounded-full bg-accent-100 text-accent-800 text-sm font-semibold flex items-center justify-center shrink-0">{initiales}</span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium text-gray-900 truncate">{p.prenom} {p.nom[0] ? `${p.nom[0]}.` : ''}</span>
             <span className="block text-xs text-gray-500">{p.role}</span>

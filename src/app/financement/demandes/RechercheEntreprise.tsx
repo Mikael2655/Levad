@@ -37,7 +37,7 @@ export default function RechercheEntreprise({ onChoisir, siren }: { onChoisir: (
   return (
     <div className="space-y-2">
       <input
-        className="w-full border border-leasing-700/40 bg-blue-50/40 rounded-md px-3 py-2.5 text-sm"
+        className="w-full border border-accent-500/40 bg-accent-50/50 rounded-xl px-3 py-2.5 text-sm"
         placeholder="Rechercher l’entreprise : nom, adresse ou SIREN (ex. « Dupont Menuiserie Strasbourg »)"
         value={q}
         onChange={e => setQ(e.target.value)}
@@ -46,7 +46,7 @@ export default function RechercheEntreprise({ onChoisir, siren }: { onChoisir: (
       {erreur && <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{erreur}</p>}
       {resultats && resultats.length === 0 && !attente && <p className="text-sm text-gray-500">Aucune société active trouvée. Essayez avec la ville, ou saisissez à la main.</p>}
       {resultats && resultats.length > 0 && (
-        <ul className="border border-gray-200 rounded-md divide-y divide-gray-100 bg-white max-h-80 overflow-y-auto">
+        <ul className="border border-gray-200 rounded-xl divide-y divide-gray-100 bg-white max-h-80 overflow-y-auto">
           {resultats.map(e => (
             <li key={e.siren}>
               <button type="button" className="w-full text-left px-3 py-2 hover:bg-blue-50" onClick={() => { onChoisir(e); setQ(''); setResultats(null) }}>
