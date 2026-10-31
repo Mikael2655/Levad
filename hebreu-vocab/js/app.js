@@ -1170,7 +1170,8 @@ function renderQuiz() {
 
       // Enchaînement automatique (sauf si on a changé d'écran entre-temps)
       setTimeout(() => {
-        if (state.view === "vocab" && state.vocab.mode === "quiz" && state.currentWord === word) {
+        const onVocab = state.view === "vocab" || (state.view === "jeux" && state.jeux.sub === "vocab");
+        if (onVocab && state.vocab.mode === "quiz" && state.currentWord === word) {
           nextWord(pool, word);
           render();
         }
@@ -2333,7 +2334,8 @@ function renderConjQuiz() {
 
       // Enchaînement automatique
       setTimeout(() => {
-        if (state.view === "verbes" && state.conj.mode === "qcm" && state.conj.current === item) {
+        const onVerbs = state.view === "verbes" || (state.view === "jeux" && state.jeux.sub === "verbes");
+        if (onVerbs && state.conj.mode === "qcm" && state.conj.current === item) {
           pickConj(pool, item);
           render();
         }
