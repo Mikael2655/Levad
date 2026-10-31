@@ -4,37 +4,47 @@
    ============================================================ */
 
 :root {
-  --bg: #f6f4ef;
+  --bg: #f4f1fb;
+  --bg-grad: linear-gradient(165deg, #f3f0fe 0%, #fdf4f0 100%);
   --card: #ffffff;
-  --ink: #232323;
-  --muted: #6e6a63;
-  --accent: #2b5fa3;        /* bleu principal */
-  --accent-dark: #1e4679;
-  --good: #2e7d4f;
-  --good-bg: #e2f3e8;
-  --bad: #b3372f;
-  --bad-bg: #fbe7e5;
-  --gold: #c99a2e;
-  --radius: 14px;
-  --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  --line: #e3ded4;          /* bordures claires */
+  --ink: #20222e;
+  --muted: #6c7084;
+  --accent: #6d5efc;        /* violet principal */
+  --accent-dark: #4a3fd0;   /* fond des onglets */
+  --accent2: #ff7a59;       /* corail « fun » */
+  --grad-brand: linear-gradient(135deg, #6d5efc 0%, #9a6bff 55%, #c66bff 110%);
+  --good: #18a558;
+  --good-bg: #e3f7ec;
+  --bad: #e5484d;
+  --bad-bg: #fde8e8;
+  --gold: #f5a623;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 8px 24px rgba(76, 58, 160, 0.10), 0 1px 3px rgba(76, 58, 160, 0.06);
+  --shadow-sm: 0 2px 10px rgba(76, 58, 160, 0.08);
+  --line: #eae6f6;
+  --font-head: "Fredoka", "Nunito", system-ui, sans-serif;
 }
 
 /* 🌙 Mode sombre : on ne redéfinit que les couleurs */
 :root[data-theme="dark"] {
-  --bg: #16181c;
-  --card: #23262d;
-  --ink: #e8e6e1;
-  --muted: #9a978f;
-  --accent: #5b8fd6;
-  --accent-dark: #24313f;
-  --good: #55b37e;
-  --good-bg: #1e3a2b;
-  --bad: #e0736b;
-  --bad-bg: #3a2321;
-  --gold: #e0b354;
-  --line: #3a3e46;
-  --shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --bg: #13131c;
+  --bg-grad: linear-gradient(165deg, #15131f 0%, #121620 100%);
+  --card: #1f1f2c;
+  --ink: #ece9f7;
+  --muted: #9b9bb3;
+  --accent: #8b7dff;
+  --accent-dark: #262340;
+  --accent2: #ff8f6b;
+  --grad-brand: linear-gradient(135deg, #7b6bff 0%, #9a7dff 55%, #b97bff 110%);
+  --good: #4cc584;
+  --good-bg: #16331f;
+  --bad: #ef6b6b;
+  --bad-bg: #3a2222;
+  --gold: #e9b44c;
+  --line: #312f44;
+  --shadow: 0 8px 26px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.4);
 }
 
 * { box-sizing: border-box; }
@@ -42,7 +52,7 @@
 body {
   margin: 0;
   font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: var(--bg);
+  background: var(--bg) var(--bg-grad) fixed;
   color: var(--ink);
   min-height: 100vh;
   display: flex;
@@ -64,17 +74,22 @@ body {
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
-  padding: 0.8rem 1rem;
-  background: var(--accent);
+  padding: 0.85rem 1rem;
+  background: var(--grad-brand);
   color: #fff;
+  box-shadow: 0 4px 18px rgba(76, 58, 160, 0.28);
+  position: relative;
+  z-index: 5;
 }
 .logo {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-family: var(--font-head);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
   cursor: pointer;
 }
-.logo-he { color: #ffd97a; margin-inline-end: 0.35rem; }
+.logo-he { color: #ffe08a; margin-inline-end: 0.35rem; }
 
 .topbar-right {
   display: flex;
@@ -97,37 +112,42 @@ body {
   padding: 0.35rem 0.8rem;
   border: none;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.22);
   color: #fff;
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
 }
-.profile-chip:hover { background: rgba(255, 255, 255, 0.3); }
+.profile-chip:hover { background: rgba(255, 255, 255, 0.34); }
+.profile-chip:active { transform: scale(0.96); }
 
 .icon-btn {
   font-size: 1.1rem;
   line-height: 1;
-  padding: 0.3rem 0.5rem;
+  padding: 0.35rem 0.55rem;
   border: none;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
 }
-.icon-btn:hover { background: rgba(255, 255, 255, 0.3); }
+.icon-btn:hover { background: rgba(255, 255, 255, 0.34); }
+.icon-btn:active { transform: scale(0.92); }
 
 /* 🔊 Bouton haut-parleur près d'un mot */
 .speak-btn {
   font-size: 0.9em;
   line-height: 1;
-  padding: 0.15em 0.35em;
+  padding: 0.2em 0.4em;
   margin-inline-start: 0.3rem;
   border: none;
-  border-radius: 8px;
-  background: var(--bg);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--card));
   cursor: pointer;
   vertical-align: middle;
+  transition: background 0.15s ease, transform 0.1s ease;
 }
-.speak-btn:hover { background: var(--line); }
-.speak-btn:active { transform: scale(0.9); }
+.speak-btn:hover { background: color-mix(in srgb, var(--accent) 26%, var(--card)); }
+.speak-btn:active { transform: scale(0.88); }
 .cat-filter select {
   font: inherit;
   padding: 0.3rem 0.5rem;
@@ -140,23 +160,29 @@ body {
   display: flex;
   overflow-x: auto;
   background: var(--accent-dark);
+  padding: 0.3rem 0.4rem;
+  gap: 0.2rem;
+  scrollbar-width: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
 .tab {
   flex: 1 0 auto;
-  padding: 0.7rem 0.9rem;
+  padding: 0.55rem 0.9rem;
   border: none;
   background: none;
-  color: #cfe0f5;
+  color: rgba(255, 255, 255, 0.72);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  border-bottom: 3px solid transparent;
+  border-radius: 999px;
+  transition: color 0.15s ease, background 0.15s ease;
 }
+.tab:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
 .tab.active {
   color: #fff;
-  border-bottom-color: var(--gold);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.25);
 }
 
 /* ---------- Écran principal ---------- */
@@ -168,7 +194,13 @@ body {
   padding: 1.2rem 1rem 2rem;
 }
 
-.view-title { margin: 0.2rem 0 1rem; font-size: 1.3rem; }
+.view-title { margin: 0.2rem 0 1rem; font-size: 1.4rem; font-family: var(--font-head); font-weight: 600; }
+.home-title {
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 .hint { color: var(--muted); font-size: 0.92rem; }
 
 /* ---------- Accueil ---------- */
@@ -389,20 +421,21 @@ body {
 /* ---------- Boutons génériques ---------- */
 .btn {
   font: inherit;
-  font-weight: 700;
-  padding: 0.75rem 1.1rem;
+  font-weight: 800;
+  padding: 0.8rem 1.15rem;
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
-  transition: filter 0.12s ease, transform 0.08s ease;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
-.btn:active { transform: scale(0.98); }
-.btn-primary { background: var(--accent); color: #fff; }
-.btn-good    { background: var(--good);   color: #fff; }
-.btn-bad     { background: var(--bad);    color: #fff; }
-.btn-neutral { background: var(--line); color: var(--ink); }
-.btn:hover { filter: brightness(1.08); }
-.btn[disabled] { opacity: 0.45; cursor: default; }
+.btn:hover:not([disabled]) { transform: translateY(-2px); box-shadow: var(--shadow); filter: brightness(1.03); }
+.btn:active:not([disabled]) { transform: translateY(0) scale(0.98); }
+.btn-primary { background: var(--grad-brand); color: #fff; }
+.btn-good    { background: linear-gradient(135deg, var(--good), color-mix(in srgb, var(--good) 70%, #000)); color: #fff; }
+.btn-bad     { background: linear-gradient(135deg, var(--bad), color-mix(in srgb, var(--bad) 70%, #000)); color: #fff; }
+.btn-neutral { background: var(--line); color: var(--ink); box-shadow: none; }
+.btn[disabled] { opacity: 0.45; cursor: default; box-shadow: none; }
 
 /* ---------- QCM ---------- */
 .quiz-question {
@@ -427,9 +460,15 @@ body {
   border-radius: var(--radius);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.12s ease;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.14s ease, background 0.14s ease, transform 0.1s ease, box-shadow 0.14s ease;
 }
-.quiz-option:hover:not([disabled]) { border-color: var(--accent); }
+.quiz-option:hover:not([disabled]):not(.locked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
 .quiz-option.correct { background: var(--good-bg); border-color: var(--good); }
 .quiz-option.wrong   { background: var(--bad-bg);  border-color: var(--bad); }
 .quiz-option[disabled] { cursor: default; }
@@ -470,8 +509,8 @@ body {
 .segmented {
   display: flex;
   background: var(--line);
-  border-radius: var(--radius);
-  padding: 4px;
+  border-radius: 999px;
+  padding: 5px;
   gap: 4px;
   margin-bottom: 0.9rem;
 }
@@ -481,15 +520,16 @@ body {
   font-weight: 700;
   padding: 0.55rem 0.4rem;
   border: none;
-  border-radius: 10px;
+  border-radius: 999px;
   background: none;
   color: var(--muted);
   cursor: pointer;
+  transition: color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
 }
 .seg-btn.active {
   background: var(--card);
   color: var(--accent);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .conj-filter {
@@ -1042,3 +1082,41 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
 /* Option déjà répondue : bloquée logiquement mais le 🔊 reste actif */
 .quiz-option.locked { cursor: default; }
 .quiz-option.locked:not(.correct):not(.wrong):hover { border-color: var(--line); }
+
+/* ============================================================
+   ✨ Finitions « chic, fun & convivial »
+   (ne touche qu'à l'apparence : couleurs, reliefs, animations)
+   ============================================================ */
+/* Cartes nettes : fin liseré en plus de l'ombre douce */
+.quiz-question,
+.home-block,
+.stats-banner,
+.progress-summary,
+.verb-info-panel,
+.conf-recap,
+.daily-panel { border: 1px solid var(--line); }
+
+/* Petit effet de survol sur les blocs cliquables */
+.home-block { transition: transform 0.16s ease, box-shadow 0.16s ease; }
+.search-row.is-verb { transition: transform 0.12s ease, box-shadow 0.14s ease, border-color 0.14s ease; }
+.search-row.is-verb:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+
+/* Mots surlignés du jeu Combiné : accent chaleureux */
+.cb-hl { color: var(--accent); border-bottom: 3px solid var(--accent2); }
+
+/* Titres de section : police ronde et accent */
+.section-label { font-family: var(--font-head); font-weight: 600; color: var(--accent); }
+.hb-title { font-family: var(--font-head); font-weight: 600; }
+
+/* Pastille « série » (streak) bien visible et joyeuse */
+.daily-streak strong { color: var(--gold); }
+
+/* Champs de saisie : coins arrondis cohérents + focus accentué */
+.write-input:focus,
+.goal-select:focus,
+.verb-search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* Respecte la préférence « animations réduites » */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
