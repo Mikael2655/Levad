@@ -5752,4 +5752,94 @@ const VERBES = [
       ],
     },
   },
+  {
+    inf: "לכבוש", translit: "Likhboch", fr: "Conquérir / prendre",
+    racine: "כבש", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "כובש", t: "Kovech" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "כבש", t: "Kavach" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכבוש", t: "Yikhboch" },
+      ],
+    },
+  },
+  {
+    inf: "להחביא", translit: "Lehakhbi", fr: "Cacher / dissimuler",
+    racine: "חבא", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מחביא", t: "Markhbi" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "החביא", t: "Hekhbi" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחביא", t: "Yakhbi" },
+      ],
+    },
+  },
+  {
+    inf: "להפר הבטחה", translit: "Leafer havtakha", fr: "Annuler/trahir une promesse",
+    racine: "פרר", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מפר הבטחה", t: "Mefer havtakha" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הפר הבטחה", t: "Hefer havtakha" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפר הבטחה", t: "Yafer havtakha" },
+      ],
+    },
+  },
+  {
+    inf: "להשיג", translit: "Lehasig", fr: "Obtenir / atteindre",
+    racine: "נשג", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משיג", t: "Masig" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השיג", t: "Hisig" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישיג", t: "Yasig" },
+      ],
+    },
+  },
+  {
+    inf: "להדריך", translit: "Leadrikh", fr: "Guider",
+    racine: "דרך", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מדריך", t: "Madrikh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הדריך", t: "Hidrikh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידריך", t: "Yadrikh" },
+      ],
+    },
+  },
+  {
+    inf: "לרשום", translit: "Lirchom", fr: "Noter / écrire",
+    racine: "רשם", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "רושם", t: "Rochem" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "רשם", t: "Racham" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ירשום", t: "Yirchom" },
+      ],
+    },
+  },
 ];
