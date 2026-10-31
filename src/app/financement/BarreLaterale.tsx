@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 // Barre latérale de l'outil : logo, menu (page en cours en surbrillance), profil. Sur téléphone, elle se replie derrière un bouton.
 const ICONES = {
   nouvelle: 'M12 5v14M5 12h14',
+  accueil: 'M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1v-8Z',
   demandes: 'M9 12h6M9 16h6M9 8h6M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z',
   contrats: 'M4 7h16M4 12h16M4 17h10',
   admin: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14 3h-4l-.6 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-.9c.6.5 1.3.9 2 1.2L10 21h4l.6-2.6c.7-.3 1.4-.7 2-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z',
@@ -38,6 +39,7 @@ export default function BarreLaterale(p: { prenom: string; nom: string; email: s
   }, [profil])
 
   const entrees: Entree[] = [
+    { href: '/financement/accueil', libelle: 'Accueil', icone: ICONES.accueil, actif: c => c.startsWith('/financement/accueil') },
     { href: '/financement', libelle: 'Demandes en cours', icone: ICONES.demandes, actif: c => c === '/financement' || (c.startsWith('/financement/demandes') && !c.startsWith('/financement/demandes/nouvelle')) },
     { href: '/financement/demandes/nouvelle', libelle: 'Nouvelle demande', icone: ICONES.nouvelle, actif: c => c.startsWith('/financement/demandes/nouvelle') },
     { href: '/financement/contrats', libelle: 'Contrats', icone: ICONES.contrats, actif: c => c.startsWith('/financement/contrats') },
@@ -48,7 +50,7 @@ export default function BarreLaterale(p: { prenom: string; nom: string; email: s
   const contenu = (
     <>
       <div className="h-16 px-6 flex items-center border-b border-gray-100 shrink-0">
-        <Link href="/financement" className="flex items-center">
+        <Link href="/financement/accueil" className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/levad-logo.png" alt="LEVAD" className="h-8 w-auto" />
           <span className="ml-3 text-[11px] font-semibold uppercase tracking-widest text-gray-400">Leasing</span>
@@ -103,7 +105,7 @@ export default function BarreLaterale(p: { prenom: string; nom: string; email: s
       <aside className="hidden md:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex-col z-30">{contenu}</aside>
       {/* téléphone : barre du haut + tiroir */}
       <div className="md:hidden sticky top-0 z-30 h-14 bg-white border-b border-gray-200 px-4 flex items-center justify-between">
-        <Link href="/financement" className="flex items-center">
+        <Link href="/financement/accueil" className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/levad-logo.png" alt="LEVAD" className="h-7 w-auto" />
           <span className="ml-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400">Leasing</span>

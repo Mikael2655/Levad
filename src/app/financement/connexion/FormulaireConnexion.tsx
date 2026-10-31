@@ -20,7 +20,7 @@ export default function FormulaireConnexion({ suite }: { suite?: string }) {
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        window.location.href = suite && suite.startsWith('/financement') && !suite.startsWith('//') ? suite : '/financement'
+        window.location.href = suite && suite.startsWith('/financement') && !suite.startsWith('//') ? suite : '/financement/accueil'
         return
       }
       setErreur(data.error ?? 'Erreur de connexion')
