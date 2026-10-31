@@ -251,6 +251,7 @@ const state = {
   confus: { mode: "qcm", family: null, current: null, reverse: false }, // sous-menu Verbes proches
   vocab: { mode: "flashcards", newOnly: false }, // onglet Vocabulaire
   combine: { phrase: null, reverse: false, newV: false, newN: false }, // onglet Combiné
+  jeux: { sub: "verbes" }, // onglet « Jeux » : sous-jeu affiché (verbes / vocab / combine)
   nouv: { mode: "mots", recentFirst: false, openVerb: null }, // onglet Nouveauté (derniers ajouts)
   home: { vocabNew: false, verbNew: false }, // options de l'accueil
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
@@ -611,6 +612,7 @@ function render() {
     verbes: renderVerbes,
     vocab: renderVocab,
     combine: renderCombine,
+    jeux: renderJeux,
     nouveaute: renderNouveaute,
     search: renderSearch,
     tables: renderTables,
@@ -1259,6 +1261,34 @@ function conjPool() {
   if (b.size) pool = pool.filter((c) => b.has(c.verb.binyan));
   if (state.conj.newOnly) pool = pool.filter((c) => NEW_VERBS.has(c.verb));
   return pool;
+}
+
+/* ----- Onglet « Jeux » : regroupe Verbes, Mots et Combiné ----- */
+function renderJeux() {
+  const seg = el("div", "segmented jeux-seg");
+  [
+    ["verbes", "🔤 Verbes"],
+    ["vocab", "📚 Mots"],
+    ["combine", "🔀 Combiné"],
+  ].forEach(([sub, label]) => {
+    const btn = el("button", "seg-btn" + (state.jeux.sub === sub ? " active" : ""), label);
+    btn.addEventListener("click", () => {
+      if (state.jeux.sub === sub) return;
+      state.jeux.sub = sub;
+      // On repart proprement en changeant de jeu
+      state.session = { ok: 0, ko: 0 };
+      state.currentWord = null;
+      state.conj.current = null;
+      state.confus.current = null;
+      render();
+    });
+    seg.appendChild(btn);
+  });
+  screen.appendChild(seg);
+
+  if (state.jeux.sub === "vocab") renderVocab();
+  else if (state.jeux.sub === "combine") renderCombine();
+  else renderVerbes();
 }
 
 /* ----- Onglet Verbes (QCM / Écrire / Audio / Proches) ----- */
@@ -2495,11 +2525,7 @@ function renderTables() {
     VERBES[a].fr.localeCompare(VERBES[b].fr, "fr")
   );
 
-  const back = el("button", "btn-link tables-back", "← Retour à la recherche");
-  back.addEventListener("click", () => switchView("search"));
-  screen.appendChild(back);
-
-  screen.appendChild(el("h2", "view-title", "📖 Tableaux de conjugaison"));
+  screen.appendChild(el("h2", "view-title", "📖 Verbes — conjugaison"));
   screen.appendChild(
     el("p", "hint", "Cherchez un verbe, puis touchez-le pour voir sa conjugaison complète aux 3 temps.")
   );
