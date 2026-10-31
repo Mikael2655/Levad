@@ -17,7 +17,7 @@ export default function FormulaireMotDePasse({ obligatoire }: { obligatoire: boo
     try {
       await appel('/api/financement/mot-de-passe', 'POST', { ancien, nouveau })
       setFait(true)
-      if (obligatoire) window.location.href = '/financement'
+      if (obligatoire) window.location.href = '/financement/accueil'
     } catch (err) {
       setErreur((err as Error).message)
     }

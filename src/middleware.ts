@@ -28,7 +28,7 @@ export async function middleware(req: NextRequest) {
   // 0) Adresse dédiée au financement (leasing.levad.fr) : la racine mène à l'outil, et rien d'autre n'y est exposé
   // (ni les publications, ni le parc). L'accès à l'outil reste protégé par sa propre connexion (voir plus bas).
   if (hote.startsWith('leasing.')) {
-    if (pathname === '/') return NextResponse.redirect(new URL('/financement', req.url))
+    if (pathname === '/') return NextResponse.redirect(new URL('/financement/accueil', req.url))
     const autorise =
       pathname === '/financement' || pathname.startsWith('/financement/') || pathname.startsWith('/api/financement/') ||
       pathname.startsWith('/_next/') || pathname.startsWith('/icons/leasing-') ||
@@ -68,7 +68,7 @@ export async function middleware(req: NextRequest) {
       const suite = pathname + req.nextUrl.search
       url.pathname = '/financement/connexion'
       url.search = ''
-      if (suite !== '/financement') url.searchParams.set('suite', suite)
+      if (suite !== '/financement/accueil') url.searchParams.set('suite', suite)
       const res = NextResponse.redirect(url)
       res.cookies.delete(SESSION_FIN_COOKIE)
       return res
