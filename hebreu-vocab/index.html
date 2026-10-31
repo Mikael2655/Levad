@@ -5,15 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>עברית — Mon vocabulaire hébreu</title>
   <!-- Pour l'iPhone : icône et affichage en "vraie app" depuis l'écran d'accueil -->
-  <meta name="theme-color" content="#2b5fa3">
+  <meta name="theme-color" content="#6d5efc">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Hébreu">
   <link rel="apple-touch-icon" href="icon.png">
-  <!-- Police hébraïque lisible (avec repli sur les polices système si hors ligne) -->
+  <!-- Police hébraïque lisible + police ronde « fun » (repli système hors ligne) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;600;700&family=Nunito:wght@400;600;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS (thème assorti, reset désactivé pour ne rien casser) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    if (window.tailwind) tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT: "#6d5efc", dark: "#4a3fd0", fun: "#ff7a59" },
+          },
+          fontFamily: {
+            sans: ["Nunito", "system-ui", "sans-serif"],
+            head: ["Fredoka", "Nunito", "sans-serif"],
+          },
+          borderRadius: { xl: "18px", "2xl": "24px" },
+        },
+      },
+    };
+  </script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
