@@ -40,14 +40,22 @@
   <header class="topbar">
     <div class="tb-left">
       <h1 class="logo" data-action="home" role="button" tabindex="0">
-        <span class="logo-he" dir="rtl">עִבְרִית</span> Mon hébreu
+        <span class="logo-he" dir="rtl">עִבְרִית</span>
+        <span class="logo-fr">Mon hébreu</span>
       </h1>
     </div>
-    <div class="tb-mid" aria-hidden="true"></div>
+    <div class="tb-mid" aria-hidden="true">
+      <svg class="magen" viewBox="0 0 100 100" role="img" aria-label="Étoile de David">
+        <polygon points="50,6 12,71 88,71" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"></polygon>
+        <polygon points="50,94 12,29 88,29" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"></polygon>
+      </svg>
+    </div>
     <div class="tb-right">
       <div class="topbar-right">
-        <button id="search-btn" class="icon-btn" title="Rechercher" aria-label="Rechercher">🔍</button>
-        <button id="theme-toggle" class="icon-btn" title="Mode clair / sombre" aria-label="Mode clair / sombre">🌙</button>
+        <div class="tr-icons">
+          <button id="search-btn" class="icon-btn" title="Rechercher" aria-label="Rechercher">🔍</button>
+          <button id="theme-toggle" class="icon-btn" title="Mode clair / sombre" aria-label="Mode clair / sombre">🌙</button>
+        </div>
         <button id="profile-chip" class="profile-chip" title="Changer de profil"></button>
       </div>
     </div>
