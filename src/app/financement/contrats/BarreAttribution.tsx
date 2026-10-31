@@ -58,17 +58,17 @@ export default function BarreAttribution({ commerciaux }: { commerciaux: { id: n
 
   if (n === 0 && !message) return null
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-3xl bg-white rounded-2xl ring-1 ring-gray-900/10 shadow-2xl p-3 flex flex-wrap items-center gap-3 text-sm">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-3xl bg-white rounded-lg border border-gray-300 shadow-lg p-3 flex flex-wrap items-center gap-3 text-sm">
       {n > 0 && (
         <>
           <span className="font-semibold text-gray-900">{n} contrat{n > 1 ? 's' : ''} sélectionné{n > 1 ? 's' : ''}</span>
           <label className="flex items-center gap-2">Attribuer à
-            <select className="border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400" value={vers} onChange={e => setVers(e.target.value)}>
+            <select className="border border-gray-200 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400" value={vers} onChange={e => setVers(e.target.value)}>
               <option value="">— choisir —</option>
               {commerciaux.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
             </select>
           </label>
-          <button disabled={envoi || !vers} className="bg-leasing-700 hover:bg-leasing-800 text-white rounded-xl px-4 py-2 font-semibold transition disabled:opacity-50" onClick={attribuer}>{envoi ? 'Attribution…' : 'Attribuer'}</button>
+          <button disabled={envoi || !vers} className="bg-leasing-700 hover:bg-leasing-800 text-white rounded-md px-4 py-2 font-semibold transition disabled:opacity-50" onClick={attribuer}>{envoi ? 'Attribution…' : 'Attribuer'}</button>
           <button className="text-gray-500 underline" onClick={() => { toutDecocher(); setMessage(null) }}>Tout désélectionner</button>
         </>
       )}

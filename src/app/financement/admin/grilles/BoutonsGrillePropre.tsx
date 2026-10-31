@@ -17,7 +17,7 @@ export default function BoutonsGrillePropre({ financeurId, utilisateurId, aGrill
     }
   }
   return (
-    <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm flex flex-wrap items-center gap-3">
+    <div className="bg-white border border-gray-200 rounded-md px-4 py-3 text-sm flex flex-wrap items-center gap-3">
       {aGrille ? (
         <>
           <span className="text-gray-600">Ce commercial a son propre barème.</span>

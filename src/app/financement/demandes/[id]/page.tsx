@@ -20,19 +20,19 @@ export default async function FicheDemande({ params }: { params: { id: string } 
   const d = await lireDemande(u, Number(params.id))
   if (!d) notFound()
   const reel = peutVoirBaremeReel(u) && 'montantReelCentimes' in d ? d : null
-  const section = 'bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5'
+  const section = 'bg-white rounded-lg border border-gray-200 p-4 sm:p-5'
 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/financement" className="text-sm text-gray-500 hover:text-leasing-700 bg-white ring-1 ring-gray-900/10 rounded-full px-3 py-1 transition">← Demandes</Link>
-        <h1 className="text-2xl font-bold text-gray-900">{d.reference} <span className="text-gray-400 font-normal">·</span> {d.raisonSociale}</h1>
+        <Link href="/financement" className="text-sm text-gray-500 hover:text-leasing-700 bg-white border border-gray-300 rounded-md px-3 py-1 transition-colors">← Demandes</Link>
+        <h1 className="text-xl font-semibold text-gray-900">{d.reference} <span className="text-gray-400 font-normal">·</span> {d.raisonSociale}</h1>
         <BadgeStatut statut={d.statut} />
         {d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="text-sm text-violet-800">{libelleEtape(d.etapeSignature)}</span>}
-        {d.archivee && <span className="text-xs bg-gray-200 text-gray-600 rounded-full px-2 py-0.5">Archivée</span>}
+        {d.archivee && <span className="text-xs bg-gray-200 text-gray-600 rounded px-2 py-0.5">Archivée</span>}
       </div>
       {d.statut === 'INFOS_MANQUANTES' && d.infosManquantes && (
-        <p className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900"><b>Informations demandées par le financeur :</b> {d.infosManquantes}</p>
+        <p className="bg-amber-50 border border-amber-300 rounded-md px-4 py-3 text-sm text-amber-900"><b>Informations demandées par le financeur :</b> {d.infosManquantes}</p>
       )}
 
       <ActionsDemande
@@ -57,7 +57,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
       />
 
       <section className={section}>
-        <TitreSection icone="🏢">Client</TitreSection>
+        <TitreSection>Client</TitreSection>
         <Ligne t="Raison sociale">{d.raisonSociale}{d.formeJuridique ? ` (${d.formeJuridique})` : ''}</Ligne>
         <Ligne t="SIREN / SIRET">{d.siret || <span className="text-amber-700">à renseigner</span>}</Ligne>
         <Ligne t="Adresse">{[d.adresse, [d.codePostal, d.ville].filter(Boolean).join(' '), d.pays].filter(Boolean).join(', ')}</Ligne>
@@ -65,10 +65,10 @@ export default async function FicheDemande({ params }: { params: { id: string } 
       </section>
 
       <section className={section}>
-        <TitreSection icone="💶">Financement</TitreSection>
+        <TitreSection>Financement</TitreSection>
         <Ligne t="Financeur">{d.financeurNom}</Ligne>
         <Ligne t="Commercial">{d.commercialNom}{d.saisiParNom !== d.commercialNom ? ` (saisie par ${d.saisiParNom})` : ''}</Ligne>
-        <Ligne t="Durée / périodicité">{dureeLibelle(d.dureeMois)} · {libellePeriodicite(d.periodicite)}{d.periodicite === 'MENSUELLE' && <span className="ml-2 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">paiement mensuel : coefficient majoré</span>}</Ligne>
+        <Ligne t="Durée / périodicité">{dureeLibelle(d.dureeMois)} · {libellePeriodicite(d.periodicite)}{d.periodicite === 'MENSUELLE' && <span className="ml-2 text-xs bg-orange-100 text-orange-800 rounded px-2 py-0.5">paiement mensuel : coefficient majoré</span>}</Ligne>
         <Ligne t="Loyer HT"><b>{euros(d.loyerCentimes)}</b> par {d.periodicite === 'MENSUELLE' ? 'mois' : 'trimestre'}</Ligne>
         <Ligne t="Montant (barème commercial)">{euros(d.montantCommercialCentimes)} <span className="text-gray-400">— coefficient {pourcentCoef(d.coefficientCommercialPpm)}</span></Ligne>
         {d.rachat && <Ligne t="Rachat de contrat intégré"><b>{euros(d.rachat.totalCentimes)}</b> — contrat de <Link className="underline text-leasing-700" href={`/financement/contrats/${d.rachat.contratId}`}>{d.rachat.contratClient}</Link> ({d.rachat.type === 'RENOUVELANT' ? 'solde renouvelant' : 'solde non renouvelant'}), compris dans le montant ci-dessus</Ligne>}
@@ -83,7 +83,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
       </section>
 
       <section className={section}>
-        <TitreSection icone="🖨️">Matériel et prestations</TitreSection>
+        <TitreSection>Matériel et prestations</TitreSection>
         <table className="w-full text-sm">
           <thead><tr className="text-left text-gray-500"><th className="py-1 font-medium">Désignation</th><th className="font-medium">Constructeur</th><th className="font-medium text-right">Qté</th><th className="font-medium text-right">Montant HT</th></tr></thead>
           <tbody>
@@ -96,7 +96,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
 
       {d.signature && (
         <section className={section}>
-          <TitreSection icone="✍️">Signataires</TitreSection>
+          <TitreSection>Signataires</TitreSection>
           <Ligne t="Client">{d.signature.clientPrenom} {d.signature.clientNom} · {d.signature.clientEmail}</Ligne>
           <Ligne t="LEVAD">{d.signature.fournisseurPrenom} {d.signature.fournisseurNom} · {d.signature.fournisseurEmail}</Ligne>
         </section>
@@ -105,11 +105,11 @@ export default async function FicheDemande({ params }: { params: { id: string } 
       <PiecesJointes financeurAvecApi={d.financeurAvecApi} demandeId={d.id} moiId={u.id} interne={reel !== null} modifiable={d.statut !== 'ANNULEE' && d.statut !== 'SIGNEE'} pieces={d.pieces.map(x => JSON.parse(JSON.stringify(x)))} />
 
       <section className={section}>
-        <TitreSection icone="🕑">Historique</TitreSection>
+        <TitreSection>Historique</TitreSection>
         <ul className="relative border-l-2 border-leasing-100 ml-2 space-y-4 text-sm">
           {[...d.historique].reverse().map(h => (
             <li key={h.id} className="relative pl-6 flex flex-wrap gap-x-3 gap-y-0.5">
-              <span className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-leasing-400 ring-4 ring-white" aria-hidden />
+              <span className="absolute -left-[7px] top-1.5 w-3 h-3 rounded bg-leasing-400 ring-4 ring-white" aria-hidden />
               <span className="text-gray-400 w-32 shrink-0">{dateHeureFr(h.date)}</span>
               <span className="text-gray-700">{h.auteurNom}</span>
               {h.nouveauStatut && h.ancienStatut !== h.nouveauStatut && <span className="text-gray-900">{h.ancienStatut ? `${LIBELLES_STATUT[h.ancienStatut as keyof typeof LIBELLES_STATUT]} → ` : ''}<b>{LIBELLES_STATUT[h.nouveauStatut as keyof typeof LIBELLES_STATUT]}</b></span>}

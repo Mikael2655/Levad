@@ -15,8 +15,8 @@ export default async function PageGrenke() {
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <RetourAdmin />
-      <h1 className="text-2xl font-bold text-gray-900">Connexion à l’API Grenke</h1>
-      <section className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-2 text-sm">
+      <h1 className="text-xl font-semibold text-gray-900">Connexion à l’API Grenke</h1>
+      <section className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-2 text-sm">
         <h2 className="font-semibold text-gray-900">Configuration (variables d’environnement Vercel)</h2>
         <ul className="space-y-1">
           {VARIABLES_GRENKE.map(v => <li key={v}>{cfg.manquantes.includes(v) ? '❌' : '✅'} <code>{v}</code>{cfg.manquantes.includes(v) ? ` : absente de cet environnement${v === 'GRENKE_API_URL' ? ' (valeur de production donnée par Grenke : https://api.grenkeonline.com)' : ''}` : ''}</li>)}
@@ -31,7 +31,7 @@ export default async function PageGrenke() {
         )}
         {cfg.prete && <p className="text-green-700">Configuration complète : les essais ci-dessous sont possibles.</p>}
       </section>
-      <p className="text-sm text-gray-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+      <p className="text-sm text-gray-600 bg-amber-50 border border-amber-200 rounded-md px-4 py-3">
         Ces essais sont en <b>lecture seule</b> : aucune demande n’est créée chez Grenke. La simulation de loyer interroge leur calculateur (sans engagement). L’aperçu ne contacte pas Grenke du tout.
       </p>
       <EssaisGrenke prete={cfg.prete} demandes={demandes} />

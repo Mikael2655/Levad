@@ -7,7 +7,7 @@ import { ETAPES_SIGNATURE, LIBELLES_ETAPE } from '@/lib/financement/etapes'
 import { appel, eurosVersCentimes } from '../../appel'
 
 interface Sig { prenom: string; nom: string; email: string }
-const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
+const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 
 export default function ActionsDemande(p: {
   id: number
@@ -56,9 +56,9 @@ export default function ActionsDemande(p: {
   const demandeInfos = avancer.some(s => s.valeur === 'INFOS_MANQUANTES')
 
   return (
-    <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-4">
-      {infoOk && <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">{infoOk}</p>}
-      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{erreur}</p>}
+    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-4">
+      {infoOk && <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">{infoOk}</p>}
+      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">{erreur}</p>}
 
       {avancer.length > 0 && (
         <div className="space-y-2">
@@ -71,7 +71,7 @@ export default function ActionsDemande(p: {
           </div>
           <div className="flex flex-wrap gap-2">
             {avancer.map(s => (
-              <button key={s.valeur} className="bg-gray-800 hover:bg-gray-900 text-white rounded-xl transition px-3 py-1.5 text-sm" onClick={() => agir(async () => {
+              <button key={s.valeur} className="bg-gray-800 hover:bg-gray-900 text-white rounded-md transition px-3 py-1.5 text-sm" onClick={() => agir(async () => {
                 await appel(`${url}/statut`, 'POST', { statut: s.valeur, commentaire, infosManquantes: infos, refFinanceur: ref, ...(p.saisieMontantReel && montantReel.trim() ? { montantReelCentimes: eurosVersCentimes(montantReel) } : {}) })
                 setCommentaire(''); setInfos('')
               })}>→ {s.libelle}</button>
@@ -81,7 +81,7 @@ export default function ActionsDemande(p: {
       )}
 
       {p.miseEnPlace && (
-        <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+        <div className="space-y-2 bg-emerald-50 border border-emerald-200 rounded-md p-3">
           <p className="text-sm font-medium text-emerald-900">Contrat mis en place (pas de signature dans l’outil pour ce financeur)</p>
           <div className="flex flex-wrap gap-2 items-end">
             <label className="text-xs text-gray-600">Montant financé réel (€)<br /><input className={`${champ} w-40`} inputMode="decimal" value={montantReel} onChange={e => setMontantReel(e.target.value)} /></label>
@@ -109,7 +109,7 @@ export default function ActionsDemande(p: {
         <div className="space-y-2">
           <button className="bg-violet-700 text-white rounded-lg px-3 py-1.5 text-sm font-semibold" onClick={() => setOuvertSignature(!ouvertSignature)}>Envoyer en signature</button>
           {ouvertSignature && (
-            <div className="grid gap-3 sm:grid-cols-2 bg-violet-50 border border-violet-200 rounded-xl p-3">
+            <div className="grid gap-3 sm:grid-cols-2 bg-violet-50 border border-violet-200 rounded-md p-3">
               <p className="sm:col-span-2 text-xs text-violet-900">Indiquez ici qui signe, côté client et côté LEVAD (prénom, nom et e-mail obligatoires).</p>
               {([['Signataire client', client, setClient], ['Signataire LEVAD', fournisseur, setFournisseur]] as const).map(([titre, s, set]) => (
                 <fieldset key={titre} className="space-y-1.5">

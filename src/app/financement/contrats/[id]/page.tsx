@@ -24,29 +24,29 @@ export default async function FicheContrat({ params, searchParams }: { params: {
   const reel = peutVoirBaremeReel(u) ? (c as typeof c & { montantReelCentimes: number | null; banque: string | null; margeCentimes: number | null; refFinanceur: string | null; statutFinanceur: string | null }) : null
   const commerciaux = peutModifierContrat(u) ? (await listerUtilisateurs()).filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN')).map(x => ({ id: x.id, nom: `${x.prenom} ${x.nom}` })) : []
   const modeMontant = reel && searchParams.m === 'reel' ? 'reel' : 'commercial'
-  const section = 'bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5'
+  const section = 'bg-white rounded-lg border border-gray-200 p-4 sm:p-5'
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '')
 
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/financement/contrats" className="text-sm text-gray-500 hover:text-leasing-700 bg-white ring-1 ring-gray-900/10 rounded-full px-3 py-1 transition">← Contrats</Link>
-        <h1 className="text-2xl font-bold text-gray-900">{c.raisonSociale}</h1>
+        <Link href="/financement/contrats" className="text-sm text-gray-500 hover:text-leasing-700 bg-white border border-gray-300 rounded-md px-3 py-1 transition-colors">← Contrats</Link>
+        <h1 className="text-xl font-semibold text-gray-900">{c.raisonSociale}</h1>
         <BadgeStatutContrat statut={c.statutContrat} etat={c.etat} mois={c.moisRestants} />
         {c.clotureLe && <span className="text-sm text-gray-500">clôturé le {dateFr(c.clotureLe)}{'clotureMotif' in c && c.clotureMotif ? ` (${c.clotureMotif})` : ''}</span>}
-        {c.importe && <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">Importé</span>}
+        {c.importe && <span className="text-xs bg-gray-100 text-gray-600 rounded px-2 py-0.5">Importé</span>}
       </div>
 
       <section className={section}>
-        <div className="flex flex-wrap items-start gap-3">
-          <TitreSection icone="📄">Contrat</TitreSection>
+        <div className="flex flex-wrap items-end gap-3 pb-2 mb-1 border-b border-gray-200">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 pb-2">Contrat</h2>
           {reel && <div className="ml-auto text-sm"><SelecteurMontant initial={modeMontant} /></div>}
         </div>
         <Ligne t="Financeur">{c.financeurNom}</Ligne>
         <Ligne t="Commercial">{c.commercialNom}</Ligne>
         {c.siret && <Ligne t="SIREN / SIRET">{c.siret}</Ligne>}
         <Ligne t="Matériel">{materielAffiche(c.materiel)}</Ligne>
-        <Ligne t="Loyer HT"><b>{euros(c.loyerCentimes)}</b> ({libellePeriodicite(c.periodicite)}){c.periodicite === 'MENSUELLE' && <span className="ml-2 text-xs bg-orange-100 text-orange-800 rounded-full px-2 py-0.5">mensuel</span>}</Ligne>
+        <Ligne t="Loyer HT"><b>{euros(c.loyerCentimes)}</b> ({libellePeriodicite(c.periodicite)}){c.periodicite === 'MENSUELLE' && <span className="ml-2 text-xs bg-orange-100 text-orange-800 rounded px-2 py-0.5">mensuel</span>}</Ligne>
         <Ligne t="Durée">{dureeLibelle(c.dureeMois)}</Ligne>
         <Ligne t="1er loyer">{c.dateDebut ? dateFr(c.dateDebut) : <span className="text-amber-700">à renseigner</span>}</Ligne>
         <Ligne t="Dernier loyer">{c.dernierLoyer ? dateFr(c.dernierLoyer) : '—'}</Ligne>

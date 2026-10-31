@@ -28,7 +28,7 @@ interface Calcul {
   } | null
 }
 
-const champ = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
+const champ = 'w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 const Etiquette = ({ t, children }: { t: string; children: React.ReactNode }) => <label className="block text-sm"><span className="text-gray-600 text-xs">{t}</span>{children}</label>
 
 export default function FormulaireDemande(p: {
@@ -98,12 +98,12 @@ export default function FormulaireDemande(p: {
   }
 
   const r = calcul?.resultat
-  const section = 'bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3'
+  const section = 'bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3'
 
   return (
     <form onSubmit={enregistrer} className="space-y-4">
       <section className={section}>
-        <TitreSection icone="🏢">Client</TitreSection>
+        <TitreSection>Client</TitreSection>
         <RechercheEntreprise onChoisir={choisirEntreprise} siren={v.siret} />
         <div className="grid gap-3 sm:grid-cols-2">
           <Etiquette t="Raison sociale *"><input className={champ} value={v.raisonSociale} onChange={e => set('raisonSociale', e.target.value)} required /></Etiquette>
@@ -117,7 +117,7 @@ export default function FormulaireDemande(p: {
       </section>
 
       <section className={section}>
-        <TitreSection icone="🖨️">Matériel et prestations</TitreSection>
+        <TitreSection>Matériel et prestations</TitreSection>
         <div className="space-y-2">
           {v.lignes.map((l, i) => (
             <div key={i} className="grid gap-2 sm:grid-cols-[1fr_5rem_auto] items-end border-b border-gray-100 pb-2">
@@ -131,7 +131,7 @@ export default function FormulaireDemande(p: {
       </section>
 
       <section className={section}>
-        <TitreSection icone="💶">Financement</TitreSection>
+        <TitreSection>Financement</TitreSection>
         <div className="grid gap-3 sm:grid-cols-3">
           <Etiquette t="Financeur *">
             <select className={champ} value={v.financeurId} onChange={e => set('financeurId', e.target.value)} required>
@@ -165,7 +165,7 @@ export default function FormulaireDemande(p: {
         </div>
 
         {p.rachat && v.rachatId && (
-          <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-sm space-y-1">
+          <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm space-y-1">
             <p className="font-medium text-emerald-900">Rachat du contrat de {p.rachat.contrat} intégré ({p.rachat.type === 'RENOUVELANT' ? 'solde renouvelant' : 'solde non renouvelant'})</p>
             <p>Montant du rachat : <b>{euros(p.rachat.totalCentimes)}</b> — il est <b>compris</b> dans le montant à financer ci-dessous.</p>
             {r && <p>Reste pour le nouveau matériel : <b className={r.commercial.montantCentimes < p.rachat.totalCentimes ? 'text-red-700' : ''}>{euros(r.commercial.montantCentimes - p.rachat.totalCentimes)}</b>{r.commercial.montantCentimes < p.rachat.totalCentimes && ' — le rachat dépasse le montant financé : augmentez le loyer.'}</p>}
@@ -174,7 +174,7 @@ export default function FormulaireDemande(p: {
         )}
         {erreurCalcul && <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{erreurCalcul}</p>}
         {r && (
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm grid gap-x-6 gap-y-1 sm:grid-cols-2">
+          <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm grid gap-x-6 gap-y-1 sm:grid-cols-2">
             <p>Loyer {v.periodicite === 'MENSUELLE' ? 'mensuel' : 'trimestriel'} : <b>{euros(r.loyerCentimes)}</b></p>
             <p>Montant (barème commercial) : <b>{euros(r.commercial.montantCentimes)}</b> <span className="text-gray-400">— coefficient {pourcentCoef(r.commercial.coefficientPpm)}</span></p>
             {r.reel && <p>Montant financé réel : <b>{euros(r.reel.montantCentimes)}</b> <span className="text-gray-400">— coefficient {pourcentCoef(r.reel.coefficientPpm)}</span></p>}
@@ -185,9 +185,9 @@ export default function FormulaireDemande(p: {
         )}
       </section>
 
-      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{erreur}</p>}
+      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-4 py-2">{erreur}</p>}
       <div className="flex gap-3">
-        <button disabled={envoi} className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-60">{p.mode === 'creation' ? 'Enregistrer en brouillon' : 'Enregistrer les modifications'}</button>
+        <button disabled={envoi} className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-md px-6 py-2.5 text-sm font-semibold disabled:opacity-60">{p.mode === 'creation' ? 'Enregistrer en brouillon' : 'Enregistrer les modifications'}</button>
         <button type="button" className="text-sm underline text-gray-600" onClick={() => router.back()}>Annuler</button>
       </div>
     </form>

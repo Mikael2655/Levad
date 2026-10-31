@@ -13,5 +13,5 @@ const COULEURS: Record<string, string> = {
 }
 
 export default function BadgeStatut({ statut }: { statut: string }) {
-  return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${COULEURS[statut] ?? 'bg-gray-100'}`}>{LIBELLES_STATUT[statut as Statut] ?? statut}</span>
+  return <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${COULEURS[statut] ?? 'bg-gray-100'}`}>{LIBELLES_STATUT[statut as Statut] ?? statut}</span>
 }

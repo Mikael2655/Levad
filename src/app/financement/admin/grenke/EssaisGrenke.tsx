@@ -26,7 +26,7 @@ export default function EssaisGrenke({ prete, demandes }: { prete: boolean; dema
   const d = resultat?.donnees
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3">
         <h2 className="font-semibold text-gray-900">Essais en lecture seule</h2>
         <div className="flex flex-wrap gap-2">
           <button disabled={!prete || occupe} className={bouton} onClick={() => lancer('Connexion', { action: 'connexion' })}>1. Tester la connexion</button>
@@ -38,11 +38,11 @@ export default function EssaisGrenke({ prete, demandes }: { prete: boolean; dema
         {!prete && <p className="text-sm text-gray-500">Disponible quand la configuration ci-dessus est complète.</p>}
       </div>
 
-      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3">
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3">
         <h2 className="font-semibold text-gray-900">Aperçu d’une demande (rien n’est envoyé)</h2>
         <p className="text-sm text-gray-500">Montre exactement ce qui partirait chez Grenke : le <b>montant réel</b> réparti sur les matériels, le client, la périodicité.</p>
         <div className="flex flex-wrap gap-2 items-center">
-          <select className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition" value={demandeId} onChange={e => setDemandeId(e.target.value)}>
+          <select className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition" value={demandeId} onChange={e => setDemandeId(e.target.value)}>
             {demandes.map(x => <option key={x.id} value={x.id}>{x.reference} · {x.raisonSociale}</option>)}
             {demandes.length === 0 && <option value="">Aucune demande</option>}
           </select>
@@ -50,11 +50,11 @@ export default function EssaisGrenke({ prete, demandes }: { prete: boolean; dema
         </div>
       </div>
 
-      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{erreur}</p>}
+      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-4 py-3">{erreur}</p>}
       {occupe && <p className="text-sm text-gray-500">En cours…</p>}
 
       {resultat && (
-        <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3">
           <h2 className="font-semibold text-gray-900">{resultat.titre}</h2>
           {resultat.titre === 'Comparaison des calculs' && (
             <>

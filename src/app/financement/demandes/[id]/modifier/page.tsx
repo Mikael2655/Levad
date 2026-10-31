@@ -26,7 +26,7 @@ export default async function ModifierDemande({ params }: { params: { id: string
   }
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
-      <h1 className="text-2xl font-bold text-gray-900">Modifier {d.reference}</h1>
+      <h1 className="text-xl font-semibold text-gray-900">Modifier {d.reference}</h1>
       <FormulaireDemande rachat={d.rachat ? { id: d.rachat.id, totalCentimes: d.rachat.totalCentimes, type: d.rachat.type, contrat: d.rachat.contratClient } : null} mode="modification" demandeId={d.id} initial={initial} financeurs={financeurs.map(f => ({ id: f.id, nom: f.nom }))} commerciaux={commerciaux} interne={interne} />
     </main>
   )

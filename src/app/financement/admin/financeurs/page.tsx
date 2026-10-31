@@ -12,7 +12,7 @@ export default async function PageFinanceurs() {
   return (
     <main className="max-w-5xl mx-auto p-6 space-y-4">
       <RetourAdmin />
-      <h1 className="text-2xl font-bold text-gray-900">Financeurs</h1>
+      <h1 className="text-xl font-semibold text-gray-900">Financeurs</h1>
       <ListeFinanceurs financeurs={financeurs} destinataires={destinataires} />
     </main>
   )

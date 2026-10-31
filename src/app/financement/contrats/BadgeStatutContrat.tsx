@@ -6,7 +6,7 @@ export default function BadgeStatutContrat({ statut, etat, mois }: { statut: Sta
   const proche = statut === 'EN_COURS' && etat === 'PROCHE'
   const classe = statut === 'CLOTURE' ? 'bg-gray-200 text-gray-600' : statut === 'TACITE' ? 'bg-violet-100 text-violet-800' : proche ? 'bg-orange-100 text-orange-800 font-semibold' : 'bg-green-50 text-green-800'
   return (
-    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs ${classe}`} title={proche && mois !== null ? `${mois} mois restant${mois > 1 ? 's' : ''} · à renouveler` : undefined}>
+    <span className={`inline-block rounded px-2 py-0.5 text-xs ${classe}`} title={proche && mois !== null ? `${mois} mois restant${mois > 1 ? 's' : ''} · à renouveler` : undefined}>
       {LIBELLES_STATUT_CONTRAT[statut]}{proche ? ' · à renouveler' : ''}
     </span>
   )
