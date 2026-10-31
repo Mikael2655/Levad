@@ -6,7 +6,7 @@
    copie locale.
    ============================================================ */
 
-const CACHE = "hebreu-vocab-v22";
+const CACHE = "hebreu-vocab-v23";
 const CORE = [
   "./",
   "index.html",
@@ -36,6 +36,10 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  // On ne gère que les fichiers de l'app (même origine). Les requêtes
+  // externes (audio TTS, polices…) passent directement au réseau, sans
+  // être mises en cache ni interceptées (sinon l'audio en streaming casse).
+  if (new URL(event.request.url).origin !== self.location.origin) return;
   event.respondWith(
     fetch(event.request)
       .then((resp) => {
