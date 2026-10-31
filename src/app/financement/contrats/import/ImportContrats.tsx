@@ -18,7 +18,7 @@ function statutsDistincts(lignes: string[][], colonne: number | undefined): { va
   return Array.from(n, ([valeur, nombre]) => ({ valeur, nombre })).sort((a, b) => b.nombre - a.nombre)
 }
 
-const section = 'bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3'
+const section = 'bg-white rounded-lg border border-gray-200 p-5 sm:p-6 space-y-5'
 
 export default function ImportContrats({ financeurs, commerciaux }: { financeurs: { id: number; nom: string }[]; commerciaux: { id: number; nom: string }[] }) {
   const [financeurId, setFinanceurId] = useState(financeurs.length === 1 ? String(financeurs[0].id) : '')

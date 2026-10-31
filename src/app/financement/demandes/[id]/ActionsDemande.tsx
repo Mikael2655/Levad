@@ -56,7 +56,7 @@ export default function ActionsDemande(p: {
   const demandeInfos = avancer.some(s => s.valeur === 'INFOS_MANQUANTES')
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-4">
+    <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6 space-y-5">
       {infoOk && <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">{infoOk}</p>}
       {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">{erreur}</p>}
 

@@ -19,9 +19,9 @@ export default async function PageNotifications() {
   const choix = utilisateurs.filter(x => x.actif && (x.role === 'ADMIN' || x.role === 'ASSISTANTE')).map(x => ({ id: x.id, nom: `${x.prenom} ${x.nom}` }))
   const mailActif = !!process.env.RESEND_API_KEY
   return (
-    <main className="max-w-5xl mx-auto p-6 space-y-4">
+    <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <RetourAdmin />
-      <h1 className="text-xl font-semibold text-gray-900">Notifications par e-mail</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Notifications par e-mail</h1>
       {!mailActif && <p className="bg-amber-50 border border-amber-300 rounded-md px-4 py-3 text-sm text-amber-900">L’envoi d’e-mails n’est pas encore activé : ajoutez <code>RESEND_API_KEY</code> (et <code>FIN_MAIL_FROM</code>) dans Vercel, puis redéployez.</p>}
       <FormulaireNotifications choix={choix} signataireLevadId={signataire ?? ''} dossierCompletId={complet ?? ''} />
       <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">

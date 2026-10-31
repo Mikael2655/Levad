@@ -59,23 +59,23 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
   const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400'
 
   return (
-    <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-6 space-y-4">
+    <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-8 space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">{filtres.archivees ? 'Demandes archivées' : 'Demandes en cours'}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{filtres.archivees ? 'Demandes archivées' : 'Demandes en cours'}</h1>
         {!filtres.archivees && <p className="text-sm text-gray-500 mt-1">Suivi des demandes de financement{interne ? '' : ' de vos clients'}.</p>}
       </div>
 
       {!filtres.archivees && (
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           {[
-            { href: lien(undefined), n: total, t: 'Demandes en cours', accent: 'border-l-leasing-700' },
-            { href: lien('INFOS_MANQUANTES'), n: compteurs.INFOS_MANQUANTES ?? 0, t: 'Pièces à fournir', accent: 'border-l-amber-500' },
-            { href: lien('PRETE_A_SIGNER'), n: (compteurs.PRETE_A_SIGNER ?? 0) + (compteurs.EN_SIGNATURE ?? 0), t: 'À signer', accent: 'border-l-violet-500' },
-            { href: '/financement/contrats?e=proche6', n: echeancesProches, t: 'Contrats à renouveler (< 6 mois)', accent: 'border-l-orange-500' },
+            { href: lien(undefined), n: total, t: 'Demandes en cours', point: 'bg-leasing-600' },
+            { href: lien('INFOS_MANQUANTES'), n: compteurs.INFOS_MANQUANTES ?? 0, t: 'Pièces à fournir', point: 'bg-amber-500' },
+            { href: lien('PRETE_A_SIGNER'), n: (compteurs.PRETE_A_SIGNER ?? 0) + (compteurs.EN_SIGNATURE ?? 0), t: 'À signer', point: 'bg-emerald-500' },
+            { href: '/financement/contrats?e=proche6', n: echeancesProches, t: 'Contrats à renouveler (< 6 mois)', point: 'bg-orange-500' },
           ].map(k => (
-            <Link key={k.t} href={k.href} data-garde-m className={`group bg-white border border-gray-200 border-l-4 ${k.accent} rounded-lg px-4 py-3 hover:border-gray-300 transition-colors`}>
-              <span className="block text-2xl font-semibold text-gray-900 leading-none tabular-nums">{k.n}</span>
-              <span className="block text-sm text-gray-500 mt-1.5">{k.t}</span>
+            <Link key={k.t} href={k.href} data-garde-m className="group bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 hover:bg-gray-50/50 transition-colors">
+              <span className="flex items-center gap-2 text-sm font-medium text-gray-500"><span className={`w-2 h-2 rounded-full ${k.point}`} />{k.t}</span>
+              <span className="block mt-2 text-3xl font-semibold tracking-tight text-gray-900 tabular-nums">{k.n}</span>
             </Link>
           ))}
         </div>
@@ -103,17 +103,17 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
       </FormulaireFiltres>
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
-        <table className="w-full min-w-[84rem] table-fixed text-sm">
+        <table className="w-full min-w-[78rem] table-fixed text-sm">
           <colgroup>
+            <col className="w-36" />
+            <col className="w-56" />
+            {interne && <col className="w-24" />}
+            <col className="w-24" />
             <col className="w-40" />
-            <col className="w-64" />
-            {interne && <col className="w-28" />}
             <col className="w-28" />
-            <col className="w-44" />
-            <col className="w-32" />
-            <col className="w-20" />
-            <col className="w-32" />
-            <col className="w-40" />
+            <col className="w-16" />
+            <col className="w-28" />
+            <col className="w-48" />
             <col className="w-24" />
           </colgroup>
           <thead>

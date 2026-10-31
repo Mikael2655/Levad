@@ -29,7 +29,7 @@ interface Calcul {
 }
 
 const champ = 'w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
-const Etiquette = ({ t, children }: { t: string; children: React.ReactNode }) => <label className="block text-sm"><span className="text-gray-600 text-xs">{t}</span>{children}</label>
+const Etiquette = ({ t, children }: { t: string; children: React.ReactNode }) => <label className="block"><span className="block text-sm font-medium text-gray-700 mb-1.5">{t}</span>{children}</label>
 
 export default function FormulaireDemande(p: {
   mode: 'creation' | 'modification'
@@ -98,14 +98,14 @@ export default function FormulaireDemande(p: {
   }
 
   const r = calcul?.resultat
-  const section = 'bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3'
+  const section = 'bg-white rounded-lg border border-gray-200 p-5 sm:p-6 space-y-5'
 
   return (
     <form onSubmit={enregistrer} className="space-y-4">
       <section className={section}>
         <TitreSection>Client</TitreSection>
         <RechercheEntreprise onChoisir={choisirEntreprise} siren={v.siret} />
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Etiquette t="Raison sociale *"><input className={champ} value={v.raisonSociale} onChange={e => set('raisonSociale', e.target.value)} required /></Etiquette>
           <Etiquette t="SIREN / SIRET (obligatoire avant envoi au financeur)"><input className={champ} value={v.siret} onChange={e => set('siret', e.target.value)} inputMode="numeric" /></Etiquette>
           <Etiquette t="Forme juridique (SAS, SARL…)"><input className={champ} value={v.formeJuridique} onChange={e => set('formeJuridique', e.target.value)} /></Etiquette>
@@ -120,7 +120,7 @@ export default function FormulaireDemande(p: {
         <TitreSection>Matériel et prestations</TitreSection>
         <div className="space-y-2">
           {v.lignes.map((l, i) => (
-            <div key={i} className="grid gap-2 sm:grid-cols-[1fr_5rem_auto] items-end border-b border-gray-100 pb-2">
+            <div key={i} className="grid gap-4 sm:grid-cols-[1fr_6rem_auto] items-end border-b border-gray-100 pb-4">
               <Etiquette t="Désignation *"><input className={champ} value={l.designation} onChange={e => setV(x => ({ ...x, lignes: x.lignes.map((y, k) => (k === i ? { ...y, designation: e.target.value } : y)) }))} /></Etiquette>
               <Etiquette t="Qté"><input className={champ} inputMode="numeric" value={l.quantite} onChange={e => setV(x => ({ ...x, lignes: x.lignes.map((y, k) => (k === i ? { ...y, quantite: e.target.value } : y)) }))} /></Etiquette>
               {v.lignes.length > 1 && <button type="button" className="text-gray-400 hover:text-red-600 pb-2" title="Supprimer la ligne" onClick={() => setV(x => ({ ...x, lignes: x.lignes.filter((_, k) => k !== i) }))}>×</button>}
@@ -132,7 +132,7 @@ export default function FormulaireDemande(p: {
 
       <section className={section}>
         <TitreSection>Financement</TitreSection>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-3">
           <Etiquette t="Financeur *">
             <select className={champ} value={v.financeurId} onChange={e => set('financeurId', e.target.value)} required>
               <option value="">Choisir…</option>

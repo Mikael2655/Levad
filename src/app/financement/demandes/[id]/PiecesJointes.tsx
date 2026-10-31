@@ -50,7 +50,7 @@ export default function PiecesJointes(p: { financeurAvecApi: boolean; demandeId:
   }
 
   return (
-    <section className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3">
+    <section className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6 space-y-5">
       <TitreSection>Pièces jointes</TitreSection>
       {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">{erreur}</p>}
 
