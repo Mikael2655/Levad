@@ -688,8 +688,13 @@ function renderProfileGate() {
 
 function updateProfileChip() {
   const chip = document.getElementById("profile-chip");
-  chip.textContent = activeProfile ? `👤 ${activeProfile}` : "👤";
+  const name = activeProfile || "";
+  chip.textContent = activeProfile ? name : "👤";
   chip.style.display = activeProfile ? "" : "none";
+  // Noms longs (ex. « Jean-François ») : on réduit la police pour que
+  // la bande bleue garde exactement la même taille pour tout le monde.
+  const n = name.length;
+  chip.style.fontSize = n > 12 ? "0.6rem" : n > 10 ? "0.66rem" : n > 8 ? "0.72rem" : "";
 }
 
 /* ----- Accueil ----- */
