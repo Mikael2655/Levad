@@ -21,10 +21,10 @@ export default async function PageNotifications() {
   return (
     <main className="max-w-5xl mx-auto p-6 space-y-4">
       <RetourAdmin />
-      <h1 className="text-2xl font-bold text-gray-900">Notifications par e-mail</h1>
-      {!mailActif && <p className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900">L’envoi d’e-mails n’est pas encore activé : ajoutez <code>RESEND_API_KEY</code> (et <code>FIN_MAIL_FROM</code>) dans Vercel, puis redéployez.</p>}
+      <h1 className="text-xl font-semibold text-gray-900">Notifications par e-mail</h1>
+      {!mailActif && <p className="bg-amber-50 border border-amber-300 rounded-md px-4 py-3 text-sm text-amber-900">L’envoi d’e-mails n’est pas encore activé : ajoutez <code>RESEND_API_KEY</code> (et <code>FIN_MAIL_FROM</code>) dans Vercel, puis redéployez.</p>}
       <FormulaireNotifications choix={choix} signataireLevadId={signataire ?? ''} dossierCompletId={complet ?? ''} />
-      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm overflow-x-auto">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
         <p className="p-3 font-semibold text-gray-900 text-sm">Derniers envois</p>
         <table className="w-full text-sm">
           <thead><tr className="text-left text-gray-500 border-b border-gray-100"><th className="p-3 font-medium">Date</th><th className="p-3 font-medium">Destinataire</th><th className="p-3 font-medium">Objet</th><th className="p-3 font-medium">Résultat</th></tr></thead>

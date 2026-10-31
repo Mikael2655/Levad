@@ -11,7 +11,7 @@ export default async function PageUtilisateurs() {
   return (
     <main className="max-w-5xl mx-auto p-6 space-y-4">
       <RetourAdmin />
-      <h1 className="text-2xl font-bold text-gray-900">Utilisateurs</h1>
+      <h1 className="text-xl font-semibold text-gray-900">Utilisateurs</h1>
       <TableUtilisateurs moiId={moi.id} utilisateurs={utilisateurs.map(u => ({ ...u, creeLe: u.creeLe.toISOString() }))} />
     </main>
   )

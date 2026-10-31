@@ -33,7 +33,7 @@ export default async function PageGrilles({ searchParams }: { searchParams: { f?
   return (
     <main className="max-w-5xl mx-auto p-6 space-y-4">
       <RetourAdmin />
-      <h1 className="text-2xl font-bold text-gray-900">Barèmes</h1>
+      <h1 className="text-xl font-semibold text-gray-900">Barèmes</h1>
       <div className="flex flex-wrap gap-2">
         {financeurs.map(f => <Link key={f.id} href={`/financement/admin/grilles?f=${f.id}`} className={`px-3 py-1.5 rounded-lg text-sm border ${f.id === financeur.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 text-gray-700'}`}>{f.nom}</Link>)}
       </div>
@@ -43,8 +43,8 @@ export default async function PageGrilles({ searchParams }: { searchParams: { f?
         {commerciaux.map(u => lien(`u${u.id}`, `${u.prenom} ${u.nom}`))}
       </div>
 
-      {financeur.baremeCommercialDeId && <p className="text-sm text-sky-900 bg-sky-50 border border-sky-200 rounded-xl px-3 py-2">Ce financeur reprend les taux commerciaux de <b>{financeurs.find(x => x.id === financeur.baremeCommercialDeId)?.nom}</b> tant qu’il n’a pas son propre barème commercial (voir Administration → Financeurs).</p>}
-      <p className="text-sm text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2">
+      {financeur.baremeCommercialDeId && <p className="text-sm text-sky-900 bg-sky-50 border border-sky-200 rounded-md px-3 py-2">Ce financeur reprend les taux commerciaux de <b>{financeurs.find(x => x.id === financeur.baremeCommercialDeId)?.nom}</b> tant qu’il n’a pas son propre barème commercial (voir Administration → Financeurs).</p>}
+      <p className="text-sm text-gray-600 bg-white border border-gray-200 rounded-md px-3 py-2">
         Durées proposables à la saisie (présentes dans les deux barèmes) :{' '}
         <b>{durees.length ? durees.map(d => `${d} mois (${trimestres(d)})`).join(', ') : 'aucune'}</b>
       </p>

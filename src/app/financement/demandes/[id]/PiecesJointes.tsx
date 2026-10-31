@@ -13,7 +13,7 @@ const LIBELLE: Record<string, string> = Object.fromEntries(TYPES)
 const MORCEAU = 3 * 1024 * 1024 // doit rester sous la limite de 4,5 Mo par requête
 const TAILLE_MAX = 10 * 1024 * 1024
 const CONSERVATION_JOURS = 60
-const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
+const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 
 const taille = (o: number) => (o >= 1024 * 1024 ? `${(o / 1024 / 1024).toFixed(1).replace('.', ',')} Mo` : `${Math.max(1, Math.round(o / 1024))} Ko`)
 
@@ -50,9 +50,9 @@ export default function PiecesJointes(p: { financeurAvecApi: boolean; demandeId:
   }
 
   return (
-    <section className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3">
-      <TitreSection icone="📎">Pièces jointes</TitreSection>
-      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{erreur}</p>}
+    <section className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3">
+      <TitreSection>Pièces jointes</TitreSection>
+      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">{erreur}</p>}
 
       {p.pieces.length > 0 ? (
         <ul className="divide-y divide-gray-100 text-sm">
@@ -61,7 +61,7 @@ export default function PiecesJointes(p: { financeurAvecApi: boolean; demandeId:
             const jours = Math.max(0, Math.ceil((fin.getTime() - Date.now()) / 86_400_000))
             return (
               <li key={x.id} className="py-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">{LIBELLE[x.type] ?? x.type}</span>
+                <span className="text-xs bg-gray-100 text-gray-700 rounded px-2 py-0.5">{LIBELLE[x.type] ?? x.type}</span>
                 <a className="font-medium text-leasing-700 underline break-all" href={`/api/financement/pieces/${x.id}`}>{x.nomFichier}</a>
                 <span className="text-gray-400">{taille(x.taille)}</span>
                 <span className="text-gray-400">ajoutée le {dateFr(x.ajouteLe)} par {x.ajouteParNom}</span>

@@ -20,7 +20,7 @@ const TYPES = [
 ] as const
 const LIBELLE_TYPE: Record<string, string> = { RENOUVELANT: 'Solde renouvelant', NON_RENOUVELANT: 'Solde non renouvelant' }
 const LIBELLE_STATUT: Record<string, string> = { SIMULEE: 'Enregistrée', ENVOYEE: 'Envoyée au financeur', SIGNEE: 'Signée', ANNULEE: 'Annulée' }
-const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
+const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 
 export default function SoldeContrat(p: { contratId: number; enCours: boolean; peutEnvoyer: boolean; peutAnnuler: boolean; rachats: Rachat[] }) {
   const router = useRouter()
@@ -45,20 +45,20 @@ export default function SoldeContrat(p: { contratId: number; enCours: boolean; p
   )
 
   return (
-    <section className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 sm:p-5 space-y-3">
-      <TitreSection icone="🔄">Solde anticipé (rachat du contrat)</TitreSection>
-      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{erreur}</p>}
-      {info && <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">{info}</p>}
+    <section className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3">
+      <TitreSection>Solde anticipé (rachat du contrat)</TitreSection>
+      {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">{erreur}</p>}
+      {info && <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">{info}</p>}
 
       {p.enCours ? (
         <div className="space-y-2">
           <div className="flex flex-wrap gap-3 items-end text-sm">
             <label className="min-w-[16rem] flex-1">Type de solde<br /><select className={`${champ} w-full`} value={type} onChange={e => { setType(e.target.value); setSim(null) }}>{TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
             <label>Date de résiliation souhaitée<br /><input type="date" className={champ} value={date} onChange={e => { setDate(e.target.value); setSim(null) }} /></label>
-            <button className="bg-gray-800 hover:bg-gray-900 text-white rounded-xl transition px-4 py-1.5" onClick={() => agir(async () => setSim(await appel<Simulation>(url, 'POST', { type, dateResiliation: date })))}>Simuler</button>
+            <button className="bg-gray-800 hover:bg-gray-900 text-white rounded-md transition px-4 py-1.5" onClick={() => agir(async () => setSim(await appel<Simulation>(url, 'POST', { type, dateResiliation: date })))}>Simuler</button>
           </div>
           {sim && (
-            <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3">
+            <div className="bg-sky-50 border border-sky-200 rounded-md px-4 py-3">
               <p className="text-sm text-sky-900">Montant du solde : <b className="text-lg">{euros(sim.totalCentimes)}</b> HT</p>
               {detail(sim) || <p className="text-xs text-sky-800">{sim.nbLoyersRestants} loyer(s) restant(s) à la date choisie.</p>}
               <div className="mt-2 flex flex-wrap gap-2 items-center">
@@ -74,12 +74,12 @@ export default function SoldeContrat(p: { contratId: number; enCours: boolean; p
         <div className="space-y-2 pt-1">
           <p className="text-sm font-medium text-gray-700">Demandes de solde</p>
           {p.rachats.map(r => (
-            <div key={r.id} className="border border-gray-200 rounded-xl px-3 py-2 text-sm">
+            <div key={r.id} className="border border-gray-200 rounded-md px-3 py-2 text-sm">
               <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
                 <b>{LIBELLE_TYPE[r.type] ?? r.type}</b>
                 <span>résiliation au {dateFr(r.dateResiliation)}</span>
                 <span>{euros(r.totalCentimes)} HT</span>
-                <span className={`rounded-full px-2 py-0.5 text-xs ${r.statut === 'SIGNEE' ? 'bg-green-100 text-green-800' : r.statut === 'ENVOYEE' ? 'bg-violet-100 text-violet-800' : r.statut === 'ANNULEE' ? 'bg-gray-200 text-gray-600' : 'bg-amber-100 text-amber-800'}`}>{LIBELLE_STATUT[r.statut] ?? r.statut}</span>
+                <span className={`rounded px-2 py-0.5 text-xs ${r.statut === 'SIGNEE' ? 'bg-green-100 text-green-800' : r.statut === 'ENVOYEE' ? 'bg-violet-100 text-violet-800' : r.statut === 'ANNULEE' ? 'bg-gray-200 text-gray-600' : 'bg-amber-100 text-amber-800'}`}>{LIBELLE_STATUT[r.statut] ?? r.statut}</span>
                 <span className="text-gray-400">enregistrée le {dateFr(r.creeLe)}</span>
               </div>
               {detail(r)}

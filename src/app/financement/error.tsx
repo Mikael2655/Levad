@@ -4,7 +4,7 @@
 export default function ErreurFinancement({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <main className="max-w-xl mx-auto p-6">
-      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-6 space-y-3 text-sm text-gray-700">
+      <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-3 text-sm text-gray-700">
         <h1 className="text-lg font-bold text-gray-900">Une erreur est survenue</h1>
         <p>La page n’a pas pu s’afficher. Vos données ne sont pas perdues.</p>
         <ul className="list-disc list-inside text-gray-600">

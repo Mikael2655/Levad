@@ -6,7 +6,7 @@ import { appel } from '../../appel'
 
 interface U { id: number; email: string; prenom: string; nom: string; role: string; actif: boolean; doitChangerMotDePasse: boolean }
 const ROLES = [['ADMIN', 'Administrateur'], ['ASSISTANTE', 'Assistante'], ['COMMERCIAL', 'Commercial']]
-const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leasing-400 transition'
+const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leasing-400 transition'
 
 export default function TableUtilisateurs({ moiId, utilisateurs }: { moiId: number; utilisateurs: U[] }) {
   const router = useRouter()
@@ -26,9 +26,9 @@ export default function TableUtilisateurs({ moiId, utilisateurs }: { moiId: numb
 
   return (
     <div className="space-y-4">
-      {erreur && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{erreur}</p>}
+      {erreur && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{erreur}</p>}
       {secret && (
-        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 text-sm space-y-1">
+        <div className="bg-amber-50 border border-amber-300 rounded-md p-4 text-sm space-y-1">
           <p>Mot de passe provisoire de <b>{secret.email}</b> :</p>
           <p className="font-mono text-base select-all">{secret.motDePasse}</p>
           <p className="text-amber-800">À lui communiquer maintenant : il ne sera plus affiché. Il devra le remplacer à sa première connexion.</p>
@@ -36,7 +36,7 @@ export default function TableUtilisateurs({ moiId, utilisateurs }: { moiId: numb
         </div>
       )}
 
-      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm divide-y divide-gray-100">
+      <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
         {utilisateurs.map(u => (
           <div key={u.id} className={`p-4 flex flex-wrap items-center gap-3 ${u.actif ? '' : 'opacity-60'}`}>
             <div className="min-w-[14rem] flex-1">
@@ -60,7 +60,7 @@ export default function TableUtilisateurs({ moiId, utilisateurs }: { moiId: numb
       </div>
 
       <form
-        className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 flex flex-wrap items-end gap-3"
+        className="bg-white rounded-lg border border-gray-200 p-4 flex flex-wrap items-end gap-3"
         onSubmit={e => {
           e.preventDefault()
           agir(async () => {

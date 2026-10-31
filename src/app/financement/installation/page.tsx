@@ -11,7 +11,7 @@ export default async function PageInstallation() {
       {etat === 'POSSIBLE' ? (
         <FormulaireInstallation />
       ) : (
-        <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-6 text-sm text-gray-600 space-y-2">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 text-sm text-gray-600 space-y-2">
           {etat === 'DEJA_INSTALLEE' ? (
             <p>L’outil est déjà installé. Connectez-vous avec votre compte administrateur.</p>
           ) : etat === 'BASE_NON_PRETE' ? (

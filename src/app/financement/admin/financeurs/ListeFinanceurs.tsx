@@ -6,7 +6,7 @@ import { appel, bpVersPourcent, eurosVersCentimes, pourcentVersBp } from '../../
 
 interface F { id: number; nom: string; connecteur: string; actif: boolean; majorationMensuelleBp: number; commissionBp: number | null; fraisDossierCentimes: number; signatureElectronique: boolean; envoiParMail: boolean; destinataireMailId: number | null; baremeCommercialDeId: number | null }
 interface D { id: number; nom: string }
-const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leasing-400 transition'
+const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leasing-400 transition'
 
 function Ligne({ f, destinataires, autres, onErreur }: { f: F | null; destinataires: D[]; autres: D[]; onErreur: (m: string | null) => void }) {
   const router = useRouter()
@@ -59,11 +59,11 @@ export default function ListeFinanceurs({ financeurs, destinataires }: { finance
   const [erreur, setErreur] = useState<string | null>(null)
   return (
     <div className="space-y-4">
-      {erreur && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{erreur}</p>}
-      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm divide-y divide-gray-100">
+      {erreur && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{erreur}</p>}
+      <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
         {financeurs.map(f => <Ligne key={`${f.id}-${f.nom}-${f.majorationMensuelleBp}-${f.commissionBp}-${f.fraisDossierCentimes}-${f.signatureElectronique}-${f.envoiParMail}-${f.destinataireMailId}-${f.baremeCommercialDeId}`} f={f} destinataires={destinataires} autres={financeurs.map(x => ({ id: x.id, nom: x.nom }))} onErreur={setErreur} />)}
       </div>
-      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm"><Ligne f={null} destinataires={destinataires} autres={[]} onErreur={setErreur} /></div>
+      <div className="bg-white rounded-lg border border-gray-200"><Ligne f={null} destinataires={destinataires} autres={[]} onErreur={setErreur} /></div>
     </div>
   )
 }

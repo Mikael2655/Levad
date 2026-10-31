@@ -56,44 +56,41 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
     for (const [k, v] of Object.entries({ ...searchParams, statut })) if (v) p.set(k, v)
     return `/financement?${p.toString()}`
   }
-  const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400'
+  const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400'
 
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-6 space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{filtres.archivees ? 'Demandes archivées' : `Bonjour ${u.prenom} 👋`}</h1>
-        {!filtres.archivees && <p className="text-gray-500 mt-1">Voici où en sont les demandes de financement{interne ? '' : ' de vos clients'}.</p>}
+        <h1 className="text-xl font-semibold text-gray-900">{filtres.archivees ? 'Demandes archivées' : 'Demandes en cours'}</h1>
+        {!filtres.archivees && <p className="text-sm text-gray-500 mt-1">Suivi des demandes de financement{interne ? '' : ' de vos clients'}.</p>}
       </div>
 
       {!filtres.archivees && (
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
           {[
-            { href: lien(undefined), n: total, t: 'Demandes en cours', icone: '📋', ton: 'bg-leasing-100 text-leasing-800' },
-            { href: lien('INFOS_MANQUANTES'), n: compteurs.INFOS_MANQUANTES ?? 0, t: 'Pièces à fournir', icone: '📎', ton: 'bg-amber-100 text-amber-800' },
-            { href: lien('PRETE_A_SIGNER'), n: (compteurs.PRETE_A_SIGNER ?? 0) + (compteurs.EN_SIGNATURE ?? 0), t: 'À signer', icone: '✍️', ton: 'bg-violet-100 text-violet-800' },
-            { href: '/financement/contrats?e=proche6', n: echeancesProches, t: 'Contrats à renouveler (< 6 mois)', icone: '🔔', ton: 'bg-orange-100 text-orange-800' },
+            { href: lien(undefined), n: total, t: 'Demandes en cours', accent: 'border-l-leasing-700' },
+            { href: lien('INFOS_MANQUANTES'), n: compteurs.INFOS_MANQUANTES ?? 0, t: 'Pièces à fournir', accent: 'border-l-amber-500' },
+            { href: lien('PRETE_A_SIGNER'), n: (compteurs.PRETE_A_SIGNER ?? 0) + (compteurs.EN_SIGNATURE ?? 0), t: 'À signer', accent: 'border-l-violet-500' },
+            { href: '/financement/contrats?e=proche6', n: echeancesProches, t: 'Contrats à renouveler (< 6 mois)', accent: 'border-l-orange-500' },
           ].map(k => (
-            <Link key={k.t} href={k.href} data-garde-m className="group bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-4 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition">
-              <span className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${k.ton}`}>{k.icone}</span>
-              <span>
-                <span className="block text-2xl font-bold text-gray-900 leading-none">{k.n}</span>
-                <span className="block text-xs text-gray-500 mt-1">{k.t}</span>
-              </span>
+            <Link key={k.t} href={k.href} data-garde-m className={`group bg-white border border-gray-200 border-l-4 ${k.accent} rounded-lg px-4 py-3 hover:border-gray-300 transition-colors`}>
+              <span className="block text-2xl font-semibold text-gray-900 leading-none tabular-nums">{k.n}</span>
+              <span className="block text-sm text-gray-500 mt-1.5">{k.t}</span>
             </Link>
           ))}
         </div>
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Link href={lien(undefined)} data-garde-m className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${!filtres.statut ? 'bg-leasing-700 hover:bg-leasing-800 text-white transition shadow-sm' : 'bg-white ring-1 ring-gray-900/10 text-gray-700 hover:bg-leasing-50'}`}>Toutes ({total})</Link>
+        <Link href={lien(undefined)} data-garde-m className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${!filtres.statut ? 'bg-gray-900 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Toutes ({total})</Link>
         {STATUTS.filter(s => compteurs[s] || filtres.statut === s).map(s => (
-          <Link key={s} href={lien(s)} data-garde-m className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${filtres.statut === s ? 'bg-leasing-700 hover:bg-leasing-800 text-white transition shadow-sm' : 'bg-white ring-1 ring-gray-900/10 text-gray-700 hover:bg-leasing-50'}`}>
+          <Link key={s} href={lien(s)} data-garde-m className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${filtres.statut === s ? 'bg-gray-900 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
             {LIBELLES_STATUT[s]} ({compteurs[s] ?? 0})
           </Link>
         ))}
       </div>
 
-      <FormulaireFiltres className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm p-3 flex flex-wrap items-end gap-3 text-sm">
+      <FormulaireFiltres className="bg-white rounded-lg border border-gray-200 p-3 flex flex-wrap items-end gap-3 text-sm">
         {filtres.statut && <input type="hidden" name="statut" value={filtres.statut} />}
         {searchParams.tri && <><input type="hidden" name="tri" value={searchParams.tri} /><input type="hidden" name="ordre" value={ordre} /></>}
         <label>Financeur<br /><select name="f" defaultValue={searchParams.f ?? ''} className={champ}><option value="">Tous</option>{financeurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}</select></label>
@@ -105,7 +102,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
         <Link href="/financement" className="underline text-gray-500 pb-2">Réinitialiser</Link>
       </FormulaireFiltres>
 
-      <div className="bg-white rounded-2xl ring-1 ring-gray-900/5 shadow-sm overflow-x-auto">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
         <table className="w-full min-w-[84rem] table-fixed text-sm">
           <colgroup>
             <col className="w-40" />
@@ -135,25 +132,24 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
           </thead>
           <tbody className="divide-y divide-gray-100">
             {lignes.map(d => (
-              <tr key={d.id} className="hover:bg-leasing-50/70 transition-colors">
-                <td className="px-3 py-3.5 whitespace-nowrap"><Link href={`/financement/demandes/${d.id}`} className="font-medium text-leasing-700 underline">{d.reference}</Link></td>
-                <td className="px-3 py-3.5" title={d.raisonSociale}><span className="line-clamp-2 break-words">{d.raisonSociale}</span></td>
-                {interne && <td className="px-3 py-3.5 whitespace-nowrap truncate" title={d.commercialNom}>{d.commercialAffiche}</td>}
-                <td className="px-3 py-3.5 truncate">{d.financeurNom}</td>
-                <td className="px-3 py-3.5 truncate" title={d.materiel}>{d.materiel}</td>
-                <td className="px-3 py-3.5 text-right whitespace-nowrap tabular-nums">{loyerPeriode(d.loyerCentimes, d.periodicite)}</td>
-                <td className="px-3 py-3.5 text-right whitespace-nowrap">{dureeTrimestres(d.dureeMois)}</td>
-                <td className="px-3 py-3.5 text-right whitespace-nowrap tabular-nums">{peutChoisir && 'montantReelCentimes' in d ? <><span className="m-commercial">{euros(d.montantCommercialCentimes)}</span><span className="m-reel">{euros(d.montantReelCentimes)}</span></> : euros(d.montantCommercialCentimes)}</td>
-                <td className="px-3 py-3.5"><BadgeStatut statut={d.statut} />{d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="block text-xs text-violet-800 mt-0.5">{libelleEtape(d.etapeSignature)}</span>}</td>
-                <td className="px-3 py-3.5 whitespace-nowrap text-gray-500">{dateFr(d.creeLe)}</td>
+              <tr key={d.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-3 py-3 whitespace-nowrap"><Link href={`/financement/demandes/${d.id}`} className="font-medium text-leasing-700 underline">{d.reference}</Link></td>
+                <td className="px-3 py-3" title={d.raisonSociale}><span className="line-clamp-2 break-words">{d.raisonSociale}</span></td>
+                {interne && <td className="px-3 py-3 whitespace-nowrap truncate" title={d.commercialNom}>{d.commercialAffiche}</td>}
+                <td className="px-3 py-3 truncate">{d.financeurNom}</td>
+                <td className="px-3 py-3 truncate" title={d.materiel}>{d.materiel}</td>
+                <td className="px-3 py-3 text-right whitespace-nowrap tabular-nums">{loyerPeriode(d.loyerCentimes, d.periodicite)}</td>
+                <td className="px-3 py-3 text-right whitespace-nowrap">{dureeTrimestres(d.dureeMois)}</td>
+                <td className="px-3 py-3 text-right whitespace-nowrap tabular-nums">{peutChoisir && 'montantReelCentimes' in d ? <><span className="m-commercial">{euros(d.montantCommercialCentimes)}</span><span className="m-reel">{euros(d.montantReelCentimes)}</span></> : euros(d.montantCommercialCentimes)}</td>
+                <td className="px-3 py-3"><BadgeStatut statut={d.statut} />{d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="block text-xs text-violet-800 mt-0.5">{libelleEtape(d.etapeSignature)}</span>}</td>
+                <td className="px-3 py-3 whitespace-nowrap text-gray-500">{dateFr(d.creeLe)}</td>
               </tr>
             ))}
             {demandes.length === 0 && (
               <tr><td colSpan={interne ? 10 : 9} className="p-12 text-center">
-                <p className="text-4xl mb-2">📭</p>
-                <p className="font-medium text-gray-700">Aucune demande pour le moment</p>
+                                <p className="font-medium text-gray-700">Aucune demande</p>
                 <p className="text-sm text-gray-400 mt-1">Les demandes de financement apparaîtront ici dès leur création.</p>
-                <Link href="/financement/demandes/nouvelle" className="inline-block mt-4 bg-leasing-700 hover:bg-leasing-800 text-white rounded-xl px-5 py-2 text-sm font-semibold transition">Créer une demande</Link>
+                <Link href="/financement/demandes/nouvelle" className="inline-block mt-4 bg-leasing-700 hover:bg-leasing-800 text-white rounded-md px-5 py-2 text-sm font-semibold transition">Créer une demande</Link>
               </td></tr>
             )}
           </tbody>
