@@ -99,12 +99,11 @@ body {
   background: var(--flag-blue);
   display: flex;
   align-items: center;
-  padding: 0.5rem 0.8rem;
+  justify-content: center;
+  padding: 0.5rem 0.6rem;
   min-width: 0;
-  flex: 0 0 27%;
+  flex: 0 0 28%;
 }
-.tb-left { justify-content: flex-start; }
-.tb-right { justify-content: flex-end; }
 .tb-mid {
   flex: 1 1 auto;
   min-width: 44px;
@@ -113,12 +112,13 @@ body {
   align-items: center;
   justify-content: center;
 }
-.magen { color: var(--flag-blue); width: 40px; height: 40px; display: block; }
+.magen { color: var(--flag-blue); width: 48px; height: 48px; display: block; }
 .logo {
   margin: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
   line-height: 1.05;
   font-family: var(--font-head);
   font-weight: 600;
@@ -132,8 +132,9 @@ body {
 .topbar-right {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.3rem;
+  max-width: 100%;
 }
 .tr-icons { display: flex; gap: 0.35rem; }
 
@@ -154,6 +155,10 @@ body {
   background: rgba(255, 255, 255, 0.22);
   color: #fff;
   cursor: pointer;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: background 0.15s ease, transform 0.1s ease;
 }
 .profile-chip:hover { background: rgba(255, 255, 255, 0.34); }
@@ -798,7 +803,7 @@ body {
   .tb-mid { min-width: 30px; }
   .logo-he { font-size: 1rem; }
   .logo-fr { font-size: 0.72rem; }
-  .magen { width: 34px; height: 34px; }
+  .magen { width: 44px; height: 44px; }
   .icon-btn { font-size: 0.85rem; padding: 0.2rem 0.32rem; }
   .profile-chip { font-size: 0.72rem; padding: 0.22rem 0.5rem; }
   .tab { padding: 0.45rem 0.8rem; font-size: 0.88rem; }
