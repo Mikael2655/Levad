@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { appel } from '../../appel'
 import { TitreSection } from '../../Fiche'
 
-const champ = 'w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
+const champ = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent-500/40 focus:border-accent-500 transition'
 
 export default function FormulaireContrat(p: { id: number; commercialId: number; commerciaux: { id: number; nom: string }[]; materiel: string; refFinanceur: string; dateDebut: string; dateFin: string }) {
   const router = useRouter()
@@ -32,8 +32,8 @@ export default function FormulaireContrat(p: { id: number; commercialId: number;
   }
 
   return (
-    <form onSubmit={enregistrer} className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6 space-y-5">
-      <TitreSection>Corriger le contrat</TitreSection>
+    <form onSubmit={enregistrer} className="carte p-5 sm:p-6 space-y-5">
+      <TitreSection icone="modifier">Corriger le contrat</TitreSection>
       <div className="grid gap-5 sm:grid-cols-2">
         <label className="text-sm sm:col-span-2"><span className="block text-sm font-medium text-gray-700 mb-1.5">Commercial (changer le commercial recalcule le montant avec sa grille ; le loyer ne change pas)</span>
           <select className={champ} value={v.commercialId} onChange={e => setV({ ...v, commercialId: e.target.value })}>
@@ -46,7 +46,7 @@ export default function FormulaireContrat(p: { id: number; commercialId: number;
         <label className="text-sm sm:col-span-2"><span className="block text-sm font-medium text-gray-700 mb-1.5">Matériel</span><input className={champ} value={v.materiel} onChange={e => setV({ ...v, materiel: e.target.value })} /></label>
       </div>
       {message && <p className={`text-sm ${message.ok ? 'text-green-700' : 'text-red-700'}`}>{message.texte}</p>}
-      <button className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-md px-5 py-2 text-sm font-semibold">Enregistrer</button>
+      <button className="bg-accent-700 hover:bg-accent-800 text-white shadow-sm shadow-accent-800/20 transition rounded-xl px-5 py-2 text-sm font-semibold">Enregistrer</button>
     </form>
   )
 }

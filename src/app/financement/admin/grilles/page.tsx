@@ -27,7 +27,7 @@ export default async function PageGrilles({ searchParams }: { searchParams: { f?
   const durees = reelle && commune ? dureesDisponibles(reelle, commune) : []
 
   const lien = (cible: string, texte: string) => (
-    <Link key={cible} href={`/financement/admin/grilles?f=${financeur.id}&c=${cible}`} className={`px-3 py-1.5 rounded-lg text-sm border ${c === cible ? 'bg-leasing-700 hover:bg-leasing-800 text-white transition border-leasing-700' : 'bg-white border-gray-300 text-gray-700'}`}>{texte}</Link>
+    <Link key={cible} href={`/financement/admin/grilles?f=${financeur.id}&c=${cible}`} className={`px-3 py-1.5 rounded-lg text-sm border ${c === cible ? 'bg-accent-700 hover:bg-accent-800 text-white shadow-sm shadow-accent-800/20 transition border-accent-700' : 'bg-white border-gray-300 text-gray-700'}`}>{texte}</Link>
   )
 
   return (
@@ -43,8 +43,8 @@ export default async function PageGrilles({ searchParams }: { searchParams: { f?
         {commerciaux.map(u => lien(`u${u.id}`, `${u.prenom} ${u.nom}`))}
       </div>
 
-      {financeur.baremeCommercialDeId && <p className="text-sm text-sky-900 bg-sky-50 border border-sky-200 rounded-md px-3 py-2">Ce financeur reprend les taux commerciaux de <b>{financeurs.find(x => x.id === financeur.baremeCommercialDeId)?.nom}</b> tant qu’il n’a pas son propre barème commercial (voir Administration → Financeurs).</p>}
-      <p className="text-sm text-gray-600 bg-white border border-gray-200 rounded-md px-3 py-2">
+      {financeur.baremeCommercialDeId && <p className="text-sm text-sky-900 bg-sky-50 border border-sky-200 rounded-xl px-3 py-2">Ce financeur reprend les taux commerciaux de <b>{financeurs.find(x => x.id === financeur.baremeCommercialDeId)?.nom}</b> tant qu’il n’a pas son propre barème commercial (voir Administration → Financeurs).</p>}
+      <p className="text-sm text-gray-600 bg-white border border-gray-200 rounded-xl px-3 py-2">
         Durées proposables à la saisie (présentes dans les deux barèmes) :{' '}
         <b>{durees.length ? durees.map(d => `${d} mois (${trimestres(d)})`).join(', ') : 'aucune'}</b>
       </p>

@@ -9,6 +9,7 @@ import { LIBELLES_STATUT } from '@/lib/financement/statuts'
 import BadgeStatut from './BadgeStatut'
 import SelecteurMontant from './SelecteurMontant'
 import EnteteTri from './EnteteTri'
+import Indicateur from './Indicateur'
 import FormulaireFiltres from './FormulaireFiltres'
 import { lireOrdre, trier } from '@/lib/financement/tri'
 import { dateFr, dureeTrimestres, euros, loyerPeriode } from './format'
@@ -56,7 +57,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
     for (const [k, v] of Object.entries({ ...searchParams, statut })) if (v) p.set(k, v)
     return `/financement?${p.toString()}`
   }
-  const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400'
+  const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent-500/40'
 
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-8 space-y-6">
@@ -67,30 +68,23 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
 
       {!filtres.archivees && (
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          {[
-            { href: lien(undefined), n: total, t: 'Demandes en cours', point: 'bg-leasing-600' },
-            { href: lien('INFOS_MANQUANTES'), n: compteurs.INFOS_MANQUANTES ?? 0, t: 'Pièces à fournir', point: 'bg-amber-500' },
-            { href: lien('PRETE_A_SIGNER'), n: (compteurs.PRETE_A_SIGNER ?? 0) + (compteurs.EN_SIGNATURE ?? 0), t: 'À signer', point: 'bg-emerald-500' },
-            { href: '/financement/contrats?e=proche6', n: echeancesProches, t: 'Contrats à renouveler (< 6 mois)', point: 'bg-orange-500' },
-          ].map(k => (
-            <Link key={k.t} href={k.href} data-garde-m className="group bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 hover:bg-gray-50/50 transition-colors">
-              <span className="flex items-center gap-2 text-sm font-medium text-gray-500"><span className={`w-2 h-2 rounded-full ${k.point}`} />{k.t}</span>
-              <span className="block mt-2 text-3xl font-semibold tracking-tight text-gray-900 tabular-nums">{k.n}</span>
-            </Link>
-          ))}
+          <Indicateur href={lien(undefined)} n={total} titre="Demandes en cours" icone="contrat" ton="vert" />
+          <Indicateur href={lien('INFOS_MANQUANTES')} n={compteurs.INFOS_MANQUANTES ?? 0} titre="Pièces à fournir" icone="crayon" ton="ambre" />
+          <Indicateur href={lien('PRETE_A_SIGNER')} n={(compteurs.PRETE_A_SIGNER ?? 0) + (compteurs.EN_SIGNATURE ?? 0)} titre="À signer" icone="signature" ton="violet" />
+          <Indicateur href="/financement/contrats?e=proche6" n={echeancesProches} titre="Contrats à renouveler (< 6 mois)" icone="cloche" ton="orange" />
         </div>
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Link href={lien(undefined)} data-garde-m className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${!filtres.statut ? 'bg-gray-900 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Toutes ({total})</Link>
+        <Link href={lien(undefined)} data-garde-m className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${!filtres.statut ? 'bg-accent-700 text-white shadow-sm' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>Toutes ({total})</Link>
         {STATUTS.filter(s => compteurs[s] || filtres.statut === s).map(s => (
-          <Link key={s} href={lien(s)} data-garde-m className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${filtres.statut === s ? 'bg-gray-900 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
+          <Link key={s} href={lien(s)} data-garde-m className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${filtres.statut === s ? 'bg-accent-700 text-white shadow-sm' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
             {LIBELLES_STATUT[s]} ({compteurs[s] ?? 0})
           </Link>
         ))}
       </div>
 
-      <FormulaireFiltres className="bg-white rounded-lg border border-gray-200 p-3 flex flex-wrap items-end gap-3 text-sm">
+      <FormulaireFiltres className="carte p-3 flex flex-wrap items-end gap-3 text-sm">
         {filtres.statut && <input type="hidden" name="statut" value={filtres.statut} />}
         {searchParams.tri && <><input type="hidden" name="tri" value={searchParams.tri} /><input type="hidden" name="ordre" value={ordre} /></>}
         <label>Financeur<br /><select name="f" defaultValue={searchParams.f ?? ''} className={champ}><option value="">Tous</option>{financeurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}</select></label>
@@ -102,7 +96,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
         <Link href="/financement" className="underline text-gray-500 pb-2">Réinitialiser</Link>
       </FormulaireFiltres>
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+      <div className="carte overflow-x-auto">
         <table className="w-full min-w-[78rem] table-fixed text-sm">
           <colgroup>
             <col className="w-36" />
@@ -117,7 +111,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
             <col className="w-24" />
           </colgroup>
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-gray-500 bg-gray-50/70 border-b border-gray-100">
+            <tr className="text-left text-xs uppercase tracking-wide text-gray-500 bg-sable-50 border-b border-black/5">
               {entete('reference', 'Référence')}
               {entete('client', 'Client')}
               {interne && entete('commercial', 'Commercial')}
@@ -132,8 +126,8 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
           </thead>
           <tbody className="divide-y divide-gray-100">
             {lignes.map(d => (
-              <tr key={d.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-3 py-3 whitespace-nowrap"><Link href={`/financement/demandes/${d.id}`} className="font-medium text-leasing-700 underline">{d.reference}</Link></td>
+              <tr key={d.id} className="hover:bg-sable-50 transition-colors">
+                <td className="px-3 py-3 whitespace-nowrap"><Link href={`/financement/demandes/${d.id}`} className="font-medium text-accent-700 underline">{d.reference}</Link></td>
                 <td className="px-3 py-3" title={d.raisonSociale}><span className="line-clamp-2 break-words">{d.raisonSociale}</span></td>
                 {interne && <td className="px-3 py-3 whitespace-nowrap truncate" title={d.commercialNom}>{d.commercialAffiche}</td>}
                 <td className="px-3 py-3 truncate">{d.financeurNom}</td>
@@ -147,9 +141,9 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
             ))}
             {demandes.length === 0 && (
               <tr><td colSpan={interne ? 10 : 9} className="p-12 text-center">
-                                <p className="font-medium text-gray-700">Aucune demande</p>
-                <p className="text-sm text-gray-400 mt-1">Les demandes de financement apparaîtront ici dès leur création.</p>
-                <Link href="/financement/demandes/nouvelle" className="inline-block mt-4 bg-leasing-700 hover:bg-leasing-800 text-white rounded-md px-5 py-2 text-sm font-semibold transition">Créer une demande</Link>
+                                <p className="font-semibold text-gray-900">Pas encore de demande par ici</p>
+                <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">Dès que tu en créeras une, elle apparaîtra ici avec son avancement. Lance la première, ça prend deux minutes !</p>
+                <Link href="/financement/demandes/nouvelle" className="inline-block mt-4 bg-accent-700 hover:bg-accent-800 text-white rounded-xl px-5 py-2 text-sm font-semibold transition">Créer une demande</Link>
               </td></tr>
             )}
           </tbody>

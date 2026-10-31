@@ -12,7 +12,7 @@ const LIBELLE_ROLE = { ADMIN: 'Administrateur', ASSISTANTE: 'Assistante', COMMER
 export default async function LayoutFinancement({ children }: { children: React.ReactNode }) {
   const u = await utilisateurCourant()
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 antialiased [font-feature-settings:'cv11','ss01']">
+    <div className="min-h-screen bg-sable-50 text-gray-900 antialiased [font-feature-settings:'cv11','ss01']">
       {u && <BarreLaterale prenom={u.prenom} nom={u.nom} email={u.email} role={LIBELLE_ROLE[u.role]} admin={u.role === 'ADMIN'} menuVisible={!u.doitChangerMotDePasse} />}
       <div className={u ? 'md:pl-64' : ''}>{children}</div>
     </div>

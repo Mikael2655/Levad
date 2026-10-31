@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { appel } from '../../appel'
 
-const champ = 'border border-gray-200 rounded-md px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
+const champ = 'border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent-500/40 focus:border-accent-500 transition'
 
 export default function FormulaireNotifications(p: { choix: { id: number; nom: string }[]; signataireLevadId: string; dossierCompletId: string }) {
   const router = useRouter()
@@ -26,12 +26,12 @@ export default function FormulaireNotifications(p: { choix: { id: number; nom: s
   }
 
   return (
-    <form onSubmit={enregistrer} className="bg-white rounded-lg border border-gray-200 p-4 space-y-3 text-sm">
+    <form onSubmit={enregistrer} className="carte p-4 space-y-3 text-sm">
       <p className="text-gray-600">Le <b>commercial de la demande</b> reçoit toujours : les retours du financeur (accord, refus, pièces complémentaires), « le client a signé », « confirmation de livraison » et « dossier complet ». Choisissez ici qui reçoit en plus :</p>
       <label className="block">Quand LEVAD doit signer, prévenir<br /><select className={champ} value={signataire} onChange={e => setSignataire(e.target.value)}>{options}</select></label>
       <label className="block">Quand le dossier est complet, prévenir aussi<br /><select className={champ} value={complet} onChange={e => setComplet(e.target.value)}>{options}</select></label>
       <div className="flex items-center gap-3">
-        <button className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-lg px-4 py-1.5 font-semibold">Enregistrer</button>
+        <button className="bg-accent-700 hover:bg-accent-800 text-white shadow-sm shadow-accent-800/20 transition rounded-lg px-4 py-1.5 font-semibold">Enregistrer</button>
         {message && <span className={message.ok ? 'text-green-700' : 'text-red-700'}>{message.texte}</span>}
       </div>
     </form>
