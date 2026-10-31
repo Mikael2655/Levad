@@ -32,18 +32,18 @@ export default function FormulaireContrat(p: { id: number; commercialId: number;
   }
 
   return (
-    <form onSubmit={enregistrer} className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3">
+    <form onSubmit={enregistrer} className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6 space-y-5">
       <TitreSection>Corriger le contrat</TitreSection>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm sm:col-span-2"><span className="text-xs text-gray-600">Commercial (changer le commercial recalcule le montant avec sa grille ; le loyer ne change pas)</span>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <label className="text-sm sm:col-span-2"><span className="block text-sm font-medium text-gray-700 mb-1.5">Commercial (changer le commercial recalcule le montant avec sa grille ; le loyer ne change pas)</span>
           <select className={champ} value={v.commercialId} onChange={e => setV({ ...v, commercialId: e.target.value })}>
             {p.commerciaux.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>
         </label>
-        <label className="text-sm"><span className="text-xs text-gray-600">Date du 1er loyer</span><input type="date" className={champ} value={v.dateDebut} onChange={e => setV({ ...v, dateDebut: e.target.value })} /></label>
-        <label className="text-sm"><span className="text-xs text-gray-600">Date de fin (calculée = 1er loyer + durée, modifiable)</span><input type="date" className={champ} value={v.dateFin} onChange={e => setV({ ...v, dateFin: e.target.value })} /></label>
-        <label className="text-sm"><span className="text-xs text-gray-600">N° de contrat chez le financeur</span><input className={champ} value={v.refFinanceur} onChange={e => setV({ ...v, refFinanceur: e.target.value })} /></label>
-        <label className="text-sm sm:col-span-2"><span className="text-xs text-gray-600">Matériel</span><input className={champ} value={v.materiel} onChange={e => setV({ ...v, materiel: e.target.value })} /></label>
+        <label className="text-sm"><span className="block text-sm font-medium text-gray-700 mb-1.5">Date du 1er loyer</span><input type="date" className={champ} value={v.dateDebut} onChange={e => setV({ ...v, dateDebut: e.target.value })} /></label>
+        <label className="text-sm"><span className="block text-sm font-medium text-gray-700 mb-1.5">Date de fin (calculée = 1er loyer + durée, modifiable)</span><input type="date" className={champ} value={v.dateFin} onChange={e => setV({ ...v, dateFin: e.target.value })} /></label>
+        <label className="text-sm"><span className="block text-sm font-medium text-gray-700 mb-1.5">N° de contrat chez le financeur</span><input className={champ} value={v.refFinanceur} onChange={e => setV({ ...v, refFinanceur: e.target.value })} /></label>
+        <label className="text-sm sm:col-span-2"><span className="block text-sm font-medium text-gray-700 mb-1.5">Matériel</span><input className={champ} value={v.materiel} onChange={e => setV({ ...v, materiel: e.target.value })} /></label>
       </div>
       {message && <p className={`text-sm ${message.ok ? 'text-green-700' : 'text-red-700'}`}>{message.texte}</p>}
       <button className="bg-leasing-700 hover:bg-leasing-800 text-white transition rounded-md px-5 py-2 text-sm font-semibold">Enregistrer</button>

@@ -46,26 +46,26 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
   const champ = 'border border-gray-200 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-leasing-400 focus:border-leasing-400 transition'
 
   return (
-    <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-6 space-y-4">
+    <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-8 space-y-6">
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Contrats</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Contrats</h1>
           <p className="text-sm text-gray-500 mt-1">Contrats de location, échéances et renouvellements à préparer.</p>
         </div>
         {peutImporterContrats(u) && <Link href="/financement/contrats/import" className="ml-auto bg-white border border-gray-300 hover:bg-gray-50 rounded-md px-4 py-2 text-sm font-medium transition">Importer des contrats</Link>}
       </div>
 
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {[
-          { href: '/financement/contrats', n: nb.enCours, t: 'Contrats en cours', accent: 'border-l-leasing-700' },
-          { href: '/financement/contrats?e=proche6', n: nb.aRenouveler, t: 'À renouveler (< 6 mois)', accent: 'border-l-orange-500' },
-          { href: '/financement/contrats', n: nb.tacites, t: 'dont en reconduction tacite', accent: 'border-l-violet-500' },
-          { href: '/financement/contrats?s=cloture', n: nb.clotures, t: 'Clôturés', accent: 'border-l-gray-400' },
+          { href: '/financement/contrats', n: nb.enCours, t: 'Contrats en cours', point: 'bg-leasing-600' },
+          { href: '/financement/contrats?e=proche6', n: nb.aRenouveler, t: 'À renouveler (< 6 mois)', point: 'bg-orange-500' },
+          { href: '/financement/contrats', n: nb.tacites, t: 'dont en reconduction tacite', point: 'bg-emerald-500' },
+          { href: '/financement/contrats?s=cloture', n: nb.clotures, t: 'Clôturés', point: 'bg-gray-400' },
         ].map(k => (
-          <Link key={k.t} href={k.href} data-garde-m className={`group bg-white border border-gray-200 border-l-4 ${k.accent} rounded-lg px-4 py-3 hover:border-gray-300 transition-colors`}>
-            <span className="block text-2xl font-semibold text-gray-900 leading-none tabular-nums">{k.n}</span>
-            <span className="block text-sm text-gray-500 mt-1.5">{k.t}</span>
-          </Link>
+          <Link key={k.t} href={k.href} data-garde-m className="group bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 hover:bg-gray-50/50 transition-colors">
+              <span className="flex items-center gap-2 text-sm font-medium text-gray-500"><span className={`w-2 h-2 rounded-full ${k.point}`} />{k.t}</span>
+              <span className="block mt-2 text-3xl font-semibold tracking-tight text-gray-900 tabular-nums">{k.n}</span>
+            </Link>
         ))}
       </div>
 
@@ -81,20 +81,20 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
       </FormulaireFiltres>
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
-        <table className="w-full min-w-[94rem] table-fixed text-sm">
+        <table className="w-full min-w-[86rem] table-fixed text-sm">
           <colgroup>
             {peutAttribuer && <col className="w-10" />}
+            <col className="w-36" />
+            <col className="w-56" />
+            {interne && <col className="w-24" />}
+            <col className="w-36" />
             <col className="w-40" />
-            <col className="w-64" />
-            {interne && <col className="w-28" />}
-            <col className={reel ? 'w-40' : 'w-28'} />
-            <col className="w-44" />
-            <col className="w-32" />
-            <col className="w-20" />
-            <col className="w-32" />
             <col className="w-28" />
+            <col className="w-16" />
             <col className="w-28" />
-            <col className="w-28" />
+            <col className="w-24" />
+            <col className="w-24" />
+            <col className="w-40" />
           </colgroup>
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-gray-500 bg-gray-50/70 border-b border-gray-100">

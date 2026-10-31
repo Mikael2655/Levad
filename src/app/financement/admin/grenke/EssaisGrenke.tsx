@@ -26,7 +26,7 @@ export default function EssaisGrenke({ prete, demandes }: { prete: boolean; dema
   const d = resultat?.donnees
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3">
+      <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6 space-y-5">
         <h2 className="font-semibold text-gray-900">Essais en lecture seule</h2>
         <div className="flex flex-wrap gap-2">
           <button disabled={!prete || occupe} className={bouton} onClick={() => lancer('Connexion', { action: 'connexion' })}>1. Tester la connexion</button>
@@ -38,7 +38,7 @@ export default function EssaisGrenke({ prete, demandes }: { prete: boolean; dema
         {!prete && <p className="text-sm text-gray-500">Disponible quand la configuration ci-dessus est complète.</p>}
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3">
+      <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6 space-y-5">
         <h2 className="font-semibold text-gray-900">Aperçu d’une demande (rien n’est envoyé)</h2>
         <p className="text-sm text-gray-500">Montre exactement ce qui partirait chez Grenke : le <b>montant réel</b> réparti sur les matériels, le client, la périodicité.</p>
         <div className="flex flex-wrap gap-2 items-center">
@@ -54,7 +54,7 @@ export default function EssaisGrenke({ prete, demandes }: { prete: boolean; dema
       {occupe && <p className="text-sm text-gray-500">En cours…</p>}
 
       {resultat && (
-        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 space-y-3">
+        <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-6 space-y-5">
           <h2 className="font-semibold text-gray-900">{resultat.titre}</h2>
           {resultat.titre === 'Comparaison des calculs' && (
             <>

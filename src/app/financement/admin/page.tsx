@@ -18,9 +18,9 @@ export default async function AdminAccueil() {
   await exigerUtilisateur({ roles: ['ADMIN'] })
   const base = await verifierSchemaBase().catch(() => null)
   return (
-    <main className="max-w-5xl mx-auto p-6 space-y-4">
+    <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Administration</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Administration</h1>
         <p className="text-sm text-gray-500 mt-1">Utilisateurs, financeurs, barèmes et réglages de l’outil.</p>
       </div>
       {base && !base.ok && (

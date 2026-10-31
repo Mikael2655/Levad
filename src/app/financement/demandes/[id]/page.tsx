@@ -20,13 +20,13 @@ export default async function FicheDemande({ params }: { params: { id: string } 
   const d = await lireDemande(u, Number(params.id))
   if (!d) notFound()
   const reel = peutVoirBaremeReel(u) && 'montantReelCentimes' in d ? d : null
-  const section = 'bg-white rounded-lg border border-gray-200 p-4 sm:p-5'
+  const section = 'bg-white rounded-lg border border-gray-200 p-5 sm:p-6'
 
   return (
-    <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
+    <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <Link href="/financement" className="text-sm text-gray-500 hover:text-leasing-700 bg-white border border-gray-300 rounded-md px-3 py-1 transition-colors">← Demandes</Link>
-        <h1 className="text-xl font-semibold text-gray-900">{d.reference} <span className="text-gray-400 font-normal">·</span> {d.raisonSociale}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{d.reference} <span className="text-gray-400 font-normal">·</span> {d.raisonSociale}</h1>
         <BadgeStatut statut={d.statut} />
         {d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="text-sm text-violet-800">{libelleEtape(d.etapeSignature)}</span>}
         {d.archivee && <span className="text-xs bg-gray-200 text-gray-600 rounded px-2 py-0.5">Archivée</span>}

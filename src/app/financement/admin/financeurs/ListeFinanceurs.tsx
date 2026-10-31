@@ -32,7 +32,7 @@ function Ligne({ f, destinataires, autres, onErreur }: { f: F | null; destinatai
     }
   }
 
-  const etiquette = 'text-xs text-gray-500 block'
+  const etiquette = 'text-sm font-medium text-gray-700 block mb-1.5'
   return (
     <form onSubmit={enregistrer} className={`p-4 flex flex-wrap items-end gap-3 ${f && !f.actif ? 'opacity-60' : ''}`}>
       <label className="flex-1 min-w-[10rem]"><span className={etiquette}>{f ? 'Nom' : 'Nouveau financeur'}</span><input className={`${champ} w-full`} value={nom} onChange={e => setNom(e.target.value)} required /></label>

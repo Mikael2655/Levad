@@ -31,9 +31,9 @@ export default async function PageGrilles({ searchParams }: { searchParams: { f?
   )
 
   return (
-    <main className="max-w-5xl mx-auto p-6 space-y-4">
+    <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <RetourAdmin />
-      <h1 className="text-xl font-semibold text-gray-900">Barèmes</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Barèmes</h1>
       <div className="flex flex-wrap gap-2">
         {financeurs.map(f => <Link key={f.id} href={`/financement/admin/grilles?f=${f.id}`} className={`px-3 py-1.5 rounded-lg text-sm border ${f.id === financeur.id ? 'bg-gray-900 text-white border-gray-900' : 'bg-white border-gray-300 text-gray-700'}`}>{f.nom}</Link>)}
       </div>
