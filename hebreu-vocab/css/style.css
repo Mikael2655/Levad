@@ -660,10 +660,15 @@ body {
 /* Liste « Nouveauté » : réutilise les lignes de la recherche */
 .nouv-list { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.2rem; }
 .search-row[disabled] { opacity: 1; } /* les mots restent bien lisibles */
-.search-row .he { font-size: 1.4rem; font-weight: 700; min-width: 5.5rem; text-align: right; color: var(--blue-he); }
+.search-row .he { font-size: 1.4rem; font-weight: 700; min-width: 5.5rem; max-width: 52%; text-align: right; color: var(--blue-he); }
 .search-row .infos { flex: 1; min-width: 0; }
 .search-row .infos .fr { font-weight: 700; color: var(--blue-fr); }
 .search-row .infos .translit { font-size: 0.85rem; color: var(--blue-tr); }
+/* Entrées longues (expressions) : empilées sur 2 lignes */
+.search-row.nr-long { flex-direction: column; align-items: stretch; gap: 0.35rem; }
+.search-row.nr-long .nr-heline { display: flex; align-items: center; gap: 0.6rem; }
+.search-row.nr-long .nr-heline .he { flex: 1 1 auto; max-width: none; min-width: 0; }
+.search-row.nr-long .infos { text-align: left; }
 .search-tag {
   font-size: 0.72rem;
   color: var(--muted);

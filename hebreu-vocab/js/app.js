@@ -1562,6 +1562,19 @@ function renderCombine() {
    ------------------------------------------------------------ */
 const NOUV_WORDS_COUNT = 100;
 const NOUV_VERBS_COUNT = 50;
+// Construit une ligne de la liste « Nouveauté ». Les entrées longues
+// (expressions de plusieurs mots) passent sur 2 lignes empilées pour
+// éviter un retour à la ligne mot par mot.
+function nouvRowHtml(he, fr, translit, suffix) {
+  const words = he.trim().split(/\s+/).length;
+  const letters = he.replace(/\s/g, "").length;
+  const long = words >= 3 || letters > 11; // expressions / mots hébreux larges
+  const infos = `<div class="infos"><div class="fr">${fr}</div><div class="translit">${translit}${suffix || ""}</div></div>`;
+  const html = long
+    ? `<div class="nr-heline">${speakBtn(he)}<div class="he">${he}</div></div>${infos}`
+    : `<div class="he">${he}</div>${infos}${speakBtn(he)}`;
+  return { html, long };
+}
 function renderNouveaute() {
   screen.appendChild(el("h2", "view-title", "🆕 Nouveauté"));
 
@@ -1607,12 +1620,9 @@ function renderNouveaute() {
     screen.appendChild(el("p", "hint", `${items.length} derniers mots ajoutés (${ordLabel}).`));
     screen.appendChild(list);
     items.forEach((w) => {
-      const row = el("div", "search-row");
-      row.innerHTML =
-        `<div class="he">${w.he}</div>` +
-        `<div class="infos"><div class="fr">${w.fr}</div>` +
-        `<div class="translit">${w.translit}${w.note ? ` · 💡 ${w.note}` : ""}</div></div>` +
-        `${speakBtn(w.he)}`;
+      const { html, long } = nouvRowHtml(w.he, w.fr, w.translit, w.note ? ` · 💡 ${w.note}` : "");
+      const row = el("div", "search-row" + (long ? " nr-long" : ""));
+      row.innerHTML = html;
       list.appendChild(row);
     });
   } else {
@@ -1625,14 +1635,11 @@ function renderNouveaute() {
     idxs.forEach((vi) => {
       const v = VERBES[vi];
       const open = state.nouv.openVerb === vi;
-      const row = el("button", "search-row is-verb" + (open ? " open" : ""));
+      const { html, long } = nouvRowHtml(v.inf, v.fr, v.translit, v.binyan ? ` · ${v.binyan}` : "");
+      const row = el("button", "search-row is-verb" + (open ? " open" : "") + (long ? " nr-long" : ""));
       row.type = "button";
       row.title = "Voir la conjugaison";
-      row.innerHTML =
-        `<div class="he">${v.inf}</div>` +
-        `<div class="infos"><div class="fr">${v.fr}</div>` +
-        `<div class="translit">${v.translit}${v.binyan ? ` · ${v.binyan}` : ""}</div></div>` +
-        `${speakBtn(v.inf)}`;
+      row.innerHTML = html;
       row.addEventListener("click", () => {
         state.nouv.openVerb = open ? null : vi;
         render();
@@ -2838,7 +2845,9 @@ function speak(text, lang) {
     toSpeak = toSpeak.split(/(\s+)/).map((tok) => NIQQUD[tok] || tok).join("");
   }
   try {
-    speechSynthesis.cancel();
+    // iOS : ne couper que si quelque chose est en cours (un cancel() « à vide »
+    // peut rendre la lecture suivante muette), et réveiller la file au cas où.
+    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(toSpeak);
     u.lang = code;
     const voices = speechSynthesis.getVoices() || [];
@@ -2846,6 +2855,7 @@ function speak(text, lang) {
     if (v) u.voice = v;
     // un peu plus lent pour bien détacher les syllabes (surtout l'hébreu)
     u.rate = lang === "fr" ? 0.9 : 0.75;
+    speechSynthesis.resume();
     speechSynthesis.speak(u);
   } catch {
     /* pas de synthèse vocale disponible : on ignore silencieusement */
