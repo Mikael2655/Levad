@@ -1179,3 +1179,23 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* Message éphémère pour l'état audio (diagnostic) */
+.audio-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.2rem;
+  transform: translateX(-50%) translateY(1rem);
+  background: rgba(20, 30, 50, 0.92);
+  color: #fff;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 50;
+}
+.audio-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

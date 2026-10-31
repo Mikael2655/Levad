@@ -2834,6 +2834,35 @@ if (navigator.storage && navigator.storage.persist) {
    hébreu. Écouté en capture pour ne pas déclencher le clic de
    l'élément qui l'entoure (carte, ligne de résultat…). */
 let ttsEl = null;
+// Petit message éphémère pour savoir ce qui se passe côté audio.
+function audioToast(msg) {
+  let t = document.getElementById("audio-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "audio-toast";
+    t.className = "audio-toast";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove("show"), 2000);
+}
+// Lecteur média : on utilise un <video> (hors écran). Sur iPhone, la lecture
+// vidéo s'entend MÊME quand l'interrupteur silencieux est activé, ce qui
+// n'est pas garanti pour un <audio> court ni pour la synthèse vocale.
+function getTtsEl() {
+  if (!ttsEl) {
+    ttsEl = document.createElement("video");
+    ttsEl.setAttribute("playsinline", "");
+    ttsEl.setAttribute("webkit-playsinline", "");
+    ttsEl.muted = false;
+    ttsEl.volume = 1;
+    ttsEl.style.cssText = "position:fixed;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
+    document.body.appendChild(ttsEl);
+  }
+  return ttsEl;
+}
 function speak(text, lang) {
   if (!text) return;
   // Pour l'hébreu : version vocalisée (niqqud) → bien meilleure prononciation.
@@ -2842,20 +2871,21 @@ function speak(text, lang) {
     toSpeak = toSpeak.split(/(\s+)/).map((tok) => NIQQUD[tok] || tok).join("");
   }
   const code = lang === "fr" ? "fr-FR" : "he-IL";
-  // En ligne : on lit l'audio via un vrai lecteur <audio> (média). Sur iPhone,
-  // un média s'entend MÊME en mode silencieux (contrairement à la synthèse
-  // vocale, que l'interrupteur silencieux coupe). Hors ligne ou en cas d'échec,
-  // on se rabat sur la synthèse vocale du navigateur.
+  // En ligne : on lit l'audio via un vrai lecteur média (s'entend même en
+  // mode silencieux sur iPhone). Hors ligne ou en cas d'échec, on se rabat
+  // sur la synthèse vocale du navigateur (coupée par le silencieux).
   if (navigator.onLine !== false) {
     try {
-      if (!ttsEl) { ttsEl = new Audio(); ttsEl.playsInline = true; }
+      const el = getTtsEl();
       const tl = lang === "fr" ? "fr" : "iw";
-      ttsEl.onerror = () => speakSynth(toSpeak, code, lang);
-      ttsEl.src =
-        "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=" +
-        tl + "&q=" + encodeURIComponent(toSpeak);
-      const p = ttsEl.play();
-      if (p && p.catch) p.catch(() => speakSynth(toSpeak, code, lang));
+      let fellBack = false;
+      const fallback = () => { if (fellBack) return; fellBack = true; audioToast("🔇 Audio en ligne indisponible"); speakSynth(toSpeak, code, lang); };
+      el.onerror = fallback;
+      el.src =
+        "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=" + tl +
+        "&q=" + encodeURIComponent(toSpeak) + "&total=1&idx=0&textlen=" + toSpeak.length;
+      const p = el.play();
+      if (p && p.catch) p.catch(fallback);
       return;
     } catch (_) {
       /* on tente la synthèse vocale ci-dessous */
