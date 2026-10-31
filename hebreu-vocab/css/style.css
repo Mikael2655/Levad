@@ -9,18 +9,18 @@
   --card: #ffffff;
   --ink: #15233b;
   --muted: #5b6b82;
-  --accent: #0038b8;        /* bleu du drapeau d'Israël */
-  --accent-dark: #002a8c;   /* fond des onglets */
+  --accent: #0046c7;        /* bleu du drapeau d'Israël */
+  --accent-dark: #0038a8;   /* fond des onglets */
   --accent2: #e3a92a;       /* or de l'emblème de Jérusalem */
-  --flag-blue: #0038b8;     /* bleu exact du drapeau (barre du haut) */
-  --menu-blue: #002a8c;     /* bleu un peu plus foncé (barre du menu) */
+  --flag-blue: #0046c7;     /* bleu du drapeau (barre du haut) */
+  --menu-blue: #0038a8;     /* bleu un peu plus foncé (barre du menu) */
   --flag-white: #ffffff;    /* bande blanche du drapeau */
   --menu-bar-bg: #ffffff;   /* barre du menu, blanche */
-  --blue-he: #0038b8;       /* hébreu : bleu le plus intense */
-  --blue-fr: #1f63d6;       /* français : bleu moyen */
-  --blue-tr: #6f93cd;       /* phonétique : bleu clair */
-  --grad-brand: linear-gradient(135deg, #0038b8 0%, #0b57e0 55%, #2f7bff 115%);
-  --grad-title: linear-gradient(120deg, #0038b8 0%, #0b57e0 45%, #e3a92a 115%);
+  --blue-he: #0046c7;       /* hébreu : bleu le plus intense */
+  --blue-fr: #2a6ce0;       /* français : bleu moyen */
+  --blue-tr: #7098d2;       /* phonétique : bleu clair */
+  --grad-brand: linear-gradient(135deg, #0046c7 0%, #1860ea 55%, #3f82ff 115%);
+  --grad-title: linear-gradient(120deg, #0046c7 0%, #1860ea 45%, #e3a92a 115%);
   --good: #1a9d54;
   --good-bg: #e3f6ec;
   --bad: #d4342c;
@@ -44,8 +44,8 @@
   --accent: #4d86ff;
   --accent-dark: #16233d;
   --accent2: #f0c450;
-  --flag-blue: #0038b8;
-  --menu-blue: #00246f;
+  --flag-blue: #0046c7;
+  --menu-blue: #0038a8;
   --flag-white: #ffffff;
   --menu-bar-bg: #e7edf7;
   --blue-he: #86b2ff;       /* hébreu : bleu clair bien lisible */
