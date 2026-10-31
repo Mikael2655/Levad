@@ -252,7 +252,7 @@ const state = {
   vocab: { mode: "flashcards", newOnly: false }, // onglet Vocabulaire
   combine: { phrase: null, reverse: false, newV: false, newN: false }, // onglet Combiné
   jeux: { sub: "verbes" }, // onglet « Jeux » : sous-jeu affiché (verbes / vocab / combine)
-  nouv: { mode: "mots", recentFirst: false, openVerb: null }, // onglet Nouveauté (derniers ajouts)
+  nouv: { mode: "mots", order: "recent", openVerb: null }, // onglet Nouveauté (derniers ajouts)
   home: { vocabNew: false, verbNew: false }, // options de l'accueil
   prog: { content: "Tout", status: "Tous", level: "Tous", rouge: "Tous", shown: 300 }, // filtres Progrès
   search: { q: "", openVerb: null }, // onglet Recherche (openVerb = verbe déplié)
@@ -1551,9 +1551,8 @@ function renderCombine() {
 
 /* ------------------------------------------------------------
    🆕 Nouveauté : les derniers ajouts, au choix les 100 derniers
-   mots ou les 50 derniers verbes. Ordre chronologique par défaut
-   (le dernier de la liste de l'Excel = le plus récent) ; une case
-   permet d'inverser pour voir les plus récents en premier.
+   mots ou les 50 derniers verbes. Les plus récents d'abord par
+   défaut ; une option permet l'ordre alphabétique (A→Z).
    ------------------------------------------------------------ */
 const NOUV_WORDS_COUNT = 100;
 const NOUV_VERBS_COUNT = 50;
@@ -1576,23 +1575,29 @@ function renderNouveaute() {
   });
   screen.appendChild(seg);
 
-  // Ordre : chronologique (par défaut) ou plus récents d'abord
-  const orderRow = el("div", "check-row");
-  const orderLab = el("label", "check-item" + (state.nouv.recentFirst ? " on" : ""));
-  orderLab.innerHTML = `<input type="checkbox"${state.nouv.recentFirst ? " checked" : ""}><span>🔽 Plus récents d'abord</span>`;
-  orderLab.querySelector("input").addEventListener("change", (e) => {
-    state.nouv.recentFirst = e.target.checked;
-    render();
-  });
-  orderRow.appendChild(orderLab);
-  screen.appendChild(orderRow);
-
-  const ordLabel = state.nouv.recentFirst ? "plus récents d'abord" : "ordre chronologique";
+  // Ordre d'affichage : plus récents d'abord (défaut) ou alphabétique
+  screen.appendChild(
+    checkSingle(
+      "Ordre :",
+      [
+        { val: "recent", text: "🕐 Récents d'abord" },
+        { val: "alpha", text: "🔤 A → Z" },
+      ],
+      state.nouv.order,
+      (v) => {
+        state.nouv.order = v;
+        render();
+      }
+    )
+  );
+  const ordLabel = state.nouv.order === "alpha" ? "ordre alphabétique" : "plus récents d'abord";
   const list = el("div", "nouv-list");
 
   if (state.nouv.mode === "mots") {
-    let items = VOCAB.slice(-NOUV_WORDS_COUNT); // les 100 derniers, ordre chronologique
-    if (state.nouv.recentFirst) items = items.slice().reverse();
+    let items = VOCAB.slice(-NOUV_WORDS_COUNT); // les 100 derniers ajouts
+    items = state.nouv.order === "alpha"
+      ? items.slice().sort((a, b) => a.fr.localeCompare(b.fr, "fr"))
+      : items.slice().reverse();
     screen.appendChild(el("p", "hint", `${items.length} derniers mots ajoutés (${ordLabel}).`));
     screen.appendChild(list);
     items.forEach((w) => {
@@ -1606,7 +1611,9 @@ function renderNouveaute() {
     });
   } else {
     let idxs = VERBES.map((_, i) => i).slice(-NOUV_VERBS_COUNT);
-    if (state.nouv.recentFirst) idxs = idxs.slice().reverse();
+    idxs = state.nouv.order === "alpha"
+      ? idxs.slice().sort((a, b) => VERBES[a].fr.localeCompare(VERBES[b].fr, "fr"))
+      : idxs.slice().reverse();
     screen.appendChild(el("p", "hint", `${idxs.length} derniers verbes ajoutés (${ordLabel}). Touchez un verbe pour sa conjugaison.`));
     screen.appendChild(list);
     idxs.forEach((vi) => {
@@ -2578,7 +2585,7 @@ function renderTables() {
       const row = el(
         "button",
         "verb-result" + (open ? " open" : ""),
-        `<strong>${v.fr}</strong> — <span class="he">${v.inf}</span> · ${v.translit}`
+        `<span class="vr-fr">${v.fr}</span> — <span class="he vr-he">${v.inf}</span> · <span class="vr-tr">${v.translit}</span>`
       );
       row.type = "button";
       row.addEventListener("click", () => {
