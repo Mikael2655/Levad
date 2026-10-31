@@ -2833,68 +2833,58 @@ if (navigator.storage && navigator.storage.persist) {
    Un clic sur n'importe quel bouton [data-speak] lit le mot en
    hébreu. Écouté en capture pour ne pas déclencher le clic de
    l'élément qui l'entoure (carte, ligne de résultat…). */
+let ttsEl = null;
 function speak(text, lang) {
-  if (!("speechSynthesis" in window) || !text) return;
-  const code = lang === "fr" ? "fr-FR" : "he-IL";
-  const re = lang === "fr" ? /fr([-_]?[A-Z]{2})?/i : /he([-_]?IL)?/i;
-  // Pour l'hébreu : on remplace chaque mot connu par sa version vocalisée
-  // (niqqud), ce qui améliore nettement la prononciation. L'affichage,
-  // lui, reste sans points — seul le texte envoyé au moteur audio change.
+  if (!text) return;
+  // Pour l'hébreu : version vocalisée (niqqud) → bien meilleure prononciation.
   let toSpeak = String(text);
   if (lang !== "fr" && typeof NIQQUD !== "undefined") {
     toSpeak = toSpeak.split(/(\s+)/).map((tok) => NIQQUD[tok] || tok).join("");
   }
+  const code = lang === "fr" ? "fr-FR" : "he-IL";
+  // En ligne : on lit l'audio via un vrai lecteur <audio> (média). Sur iPhone,
+  // un média s'entend MÊME en mode silencieux (contrairement à la synthèse
+  // vocale, que l'interrupteur silencieux coupe). Hors ligne ou en cas d'échec,
+  // on se rabat sur la synthèse vocale du navigateur.
+  if (navigator.onLine !== false) {
+    try {
+      if (!ttsEl) { ttsEl = new Audio(); ttsEl.playsInline = true; }
+      const tl = lang === "fr" ? "fr" : "iw";
+      ttsEl.onerror = () => speakSynth(toSpeak, code, lang);
+      ttsEl.src =
+        "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=" +
+        tl + "&q=" + encodeURIComponent(toSpeak);
+      const p = ttsEl.play();
+      if (p && p.catch) p.catch(() => speakSynth(toSpeak, code, lang));
+      return;
+    } catch (_) {
+      /* on tente la synthèse vocale ci-dessous */
+    }
+  }
+  speakSynth(toSpeak, code, lang);
+}
+
+// Repli : synthèse vocale du navigateur (marche hors ligne, mais coupée par
+// l'interrupteur silencieux sur iPhone).
+function speakSynth(toSpeak, code, lang) {
+  if (!("speechSynthesis" in window)) return;
+  const re = lang === "fr" ? /fr([-_]?[A-Z]{2})?/i : /he([-_]?IL)?/i;
   try {
-    // iOS : ne couper que si quelque chose est en cours (un cancel() « à vide »
-    // peut rendre la lecture suivante muette), et réveiller la file au cas où.
     if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(toSpeak);
     u.lang = code;
     const voices = speechSynthesis.getVoices() || [];
     const v = voices.find((x) => re.test(x.lang));
     if (v) u.voice = v;
-    // un peu plus lent pour bien détacher les syllabes (surtout l'hébreu)
     u.rate = lang === "fr" ? 0.9 : 0.75;
     speechSynthesis.resume();
     speechSynthesis.speak(u);
-  } catch {
-    /* pas de synthèse vocale disponible : on ignore silencieusement */
-  }
+  } catch (_) {}
 }
-// getVoices() est parfois vide au démarrage : on force son chargement
 if ("speechSynthesis" in window) {
   speechSynthesis.getVoices();
   speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 }
-/* ------------------------------------------------------------
-   🔈 Son même en mode silencieux (iPhone)
-   Sur iOS, la synthèse vocale est coupée par l'interrupteur
-   silencieux (traitée comme une notification). Pour qu'elle
-   s'entende quand même, dès que l'on touche un bouton 🔊 on
-   garde en boucle une piste parfaitement silencieuse : la page
-   bascule alors en session audio « lecture » (comme une vidéo
-   ou un morceau de musique), que l'interrupteur silencieux
-   n'arrête pas. La voix passe ensuite par cette session.
-   (On ne la démarre qu'au 1er clic sur 🔊 pour ne pas couper
-   la musique de quelqu'un qui ouvre juste l'appli.)
-   ------------------------------------------------------------ */
-const SILENT_CLIP = "data:audio/wav;base64,UklGRqQMAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YYAMAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==";
-let keepAudio = null;
-function unlockAudio() {
-  try {
-    if (!keepAudio) {
-      keepAudio = new Audio(SILENT_CLIP);
-      keepAudio.loop = true;
-      keepAudio.playsInline = true;
-    }
-    if (keepAudio.paused) { const p = keepAudio.play(); if (p && p.catch) p.catch(() => {}); }
-  } catch (_) {}
-  try { if ("speechSynthesis" in window) speechSynthesis.resume(); } catch (_) {}
-}
-// iOS met la piste en pause quand l'appli passe en arrière-plan : on la relance au retour.
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && keepAudio) unlockAudio();
-});
 
 document.addEventListener(
   "click",
@@ -2903,7 +2893,6 @@ document.addEventListener(
     if (btn) {
       e.preventDefault();
       e.stopPropagation();
-      unlockAudio();
       speak(btn.getAttribute("data-speak"), btn.getAttribute("data-lang") || "he");
     }
   },
