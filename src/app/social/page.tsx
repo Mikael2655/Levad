@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { applyBoldMarkup, toggleBold } from '@/lib/unicode-bold'
 
 interface SocialPost {
   id: number
@@ -78,7 +79,9 @@ function SocialPageInner() {
   const [personalKind, setPersonalKind] = useState<'metier' | 'parcours'>('metier')
   const [personalHint, setPersonalHint] = useState('')
   const [generatingPersonal, setGeneratingPersonal] = useState(false)
-  const [rewriting, setRewriting] = useState(false)
+  const [rewriting, setRewriting] = useState<'claude' | 'chatgpt' | null>(null)
+  const liRef = useRef<HTMLTextAreaElement>(null)
+  const igRef = useRef<HTMLTextAreaElement>(null)
   const [rewriteAllProgress, setRewriteAllProgress] = useState<string | null>(null)
   const [previousText, setPreviousText] = useState<{ id: number; li: string | null; ig: string | null } | null>(null)
 
@@ -302,21 +305,40 @@ function SocialPageInner() {
     return data.post
   }
 
-  async function handleRewrite() {
+  async function handleRewrite(engine: 'claude' | 'chatgpt' = 'claude') {
     if (!selected) return
-    setRewriting(true)
+    setRewriting(engine)
     try {
       const before = { id: selected.id, li: selected.contentLI, ig: selected.contentIG }
-      const post = await rewriteCall({ id: selected.id, contentLI: selected.contentLI ?? '', contentIG: selected.contentIG ?? '' })
+      const post = await rewriteCall({ id: selected.id, engine, contentLI: selected.contentLI ?? '', contentIG: selected.contentIG ?? '' })
       setPreviousText(before)
       setSelected(prev => prev && prev.id === post.id ? { ...prev, contentLI: post.contentLI, contentIG: post.contentIG } : prev)
       await loadPosts()
-      showToast('Texte réécrit, plus percutant : relisez-le')
+      showToast(engine === 'chatgpt' ? 'Texte reformulé par ChatGPT : relisez-le' : 'Texte réécrit, plus percutant : relisez-le')
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Erreur de réécriture', false)
     } finally {
-      setRewriting(false)
+      setRewriting(null)
     }
+  }
+
+  function applyBoldToSelection() {
+    if (!selected || selected.status === 'published') return
+    const field = activeTab === 'linkedin' ? 'contentLI' : 'contentIG'
+    const el = (activeTab === 'linkedin' ? liRef : igRef).current
+    if (!el) return
+    const { selectionStart: start, selectionEnd: end } = el
+    if (start === end) {
+      showToast('Sélectionnez d\'abord le texte à mettre en gras', false)
+      return
+    }
+    const value = selected[field] ?? ''
+    const converted = toggleBold(value.slice(start, end))
+    setSelected({ ...selected, [field]: value.slice(0, start) + converted + value.slice(end) })
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(start, start + converted.length)
+    })
   }
 
   async function handleUndoRewrite() {
@@ -526,7 +548,7 @@ function SocialPageInner() {
                     </div>
                   </div>
                   <div className="text-sm text-stone-800 whitespace-pre-wrap leading-relaxed">
-                    {selected.contentLI}
+                    {applyBoldMarkup(selected.contentLI ?? '')}
                   </div>
                 </div>
                 {selectedPhotoUrl && (
@@ -820,9 +842,14 @@ function SocialPageInner() {
                             className="px-3 py-1.5 text-sm border border-stone-300 bg-white text-stone-700 rounded-lg hover:bg-sable-50 transition disabled:opacity-40 font-medium">
                             {saving ? 'Sauvegarde...' : 'Sauvegarder'}
                           </button>
-                          <button onClick={handleRewrite} disabled={rewriting}
+                          <button onClick={() => handleRewrite('claude')} disabled={!!rewriting}
                             className="px-3 py-1.5 text-sm border border-stone-300 bg-white text-stone-700 rounded-lg hover:bg-sable-50 transition disabled:opacity-50 font-medium">
-                            {rewriting ? 'Réécriture…' : 'Rendre plus punchy'}
+                            {rewriting === 'claude' ? 'Réécriture…' : 'Rendre plus punchy'}
+                          </button>
+                          <button onClick={() => handleRewrite('chatgpt')} disabled={!!rewriting}
+                            title="Reformule les deux textes avec ChatGPT (API OpenAI)"
+                            className="px-3 py-1.5 text-sm border border-stone-300 bg-white text-stone-700 rounded-lg hover:bg-sable-50 transition disabled:opacity-50 font-medium">
+                            {rewriting === 'chatgpt' ? 'ChatGPT réfléchit…' : 'Reformuler avec ChatGPT'}
                           </button>
                           {previousText && previousText.id === selected.id && (
                             <button onClick={handleUndoRewrite}
@@ -899,30 +926,48 @@ function SocialPageInner() {
                   <div className="p-5 sm:p-6">
                     {activeTab === 'linkedin' && (
                       <div>
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-2 gap-3">
                           <label className="text-sm font-medium text-stone-700">Texte LinkedIn</label>
-                          <span className="text-xs text-stone-500">{(selected.contentLI ?? '').length} car.</span>
+                          <div className="flex items-center gap-3">
+                            <button type="button" onClick={applyBoldToSelection} disabled={selected.status === 'published'}
+                              title="Mettre la sélection en gras (Ctrl/Cmd + B)"
+                              className="px-2.5 py-1 text-sm border border-stone-300 bg-white text-stone-800 rounded-md hover:bg-sable-50 transition disabled:opacity-40">
+                              <span className="font-extrabold">G</span><span className="ml-1.5 text-xs font-medium text-stone-600">Gras</span>
+                            </button>
+                            <span className="text-xs text-stone-500">{Array.from(selected.contentLI ?? '').length} car.</span>
+                          </div>
                         </div>
                         <textarea
+                          ref={liRef}
                           value={selected.contentLI ?? ''}
                           onChange={e => setSelected({ ...selected, contentLI: e.target.value })}
+                          onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); applyBoldToSelection() } }}
                           disabled={selected.status === 'published'}
                           rows={12}
                           className="w-full border border-sable-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-leasing-500/30 focus:border-leasing-600 resize-none leading-relaxed disabled:bg-sable-50 disabled:text-stone-600"
                         />
-                        <p className="text-xs text-stone-500 mt-1">Recommandé : 90 à 160 mots. Cliquez dans le texte pour modifier.</p>
+                        <p className="text-xs text-stone-500 mt-1">Recommandé : 90 à 160 mots. Pour mettre un passage en gras, sélectionnez-le puis cliquez sur Gras (ou Ctrl/Cmd + B) : à utiliser avec parcimonie, une accroche ou une phrase clé.</p>
                       </div>
                     )}
 
                     {activeTab === 'instagram' && (
                       <div>
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between mb-2 gap-3">
                           <label className="text-sm font-medium text-stone-700">Texte Instagram</label>
-                          <span className="text-xs text-stone-500">{(selected.contentIG ?? '').length} car.</span>
+                          <div className="flex items-center gap-3">
+                            <button type="button" onClick={applyBoldToSelection} disabled={selected.status === 'published'}
+                              title="Mettre la sélection en gras (Ctrl/Cmd + B)"
+                              className="px-2.5 py-1 text-sm border border-stone-300 bg-white text-stone-800 rounded-md hover:bg-sable-50 transition disabled:opacity-40">
+                              <span className="font-extrabold">G</span><span className="ml-1.5 text-xs font-medium text-stone-600">Gras</span>
+                            </button>
+                            <span className="text-xs text-stone-500">{Array.from(selected.contentIG ?? '').length} car.</span>
+                          </div>
                         </div>
                         <textarea
+                          ref={igRef}
                           value={selected.contentIG ?? ''}
                           onChange={e => setSelected({ ...selected, contentIG: e.target.value })}
+                          onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); applyBoldToSelection() } }}
                           disabled={selected.status === 'published'}
                           rows={10}
                           className="w-full border border-sable-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-leasing-500/30 focus:border-leasing-600 resize-none leading-relaxed disabled:bg-sable-50 disabled:text-stone-600"

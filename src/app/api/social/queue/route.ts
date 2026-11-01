@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'rewrite') {
       const current = body.contentLI !== undefined ? { contentLI: body.contentLI, contentIG: body.contentIG } : undefined
-      const post = await rewritePost(Number(body.id), current)
+      const post = await rewritePost(Number(body.id), current, body.engine === 'chatgpt' ? 'chatgpt' : 'claude')
       return NextResponse.json({ post })
     }
 
@@ -72,6 +72,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'action inconnue' }, { status: 400 })
   } catch (err) {
     console.error('[queue]', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

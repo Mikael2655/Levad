@@ -195,7 +195,7 @@ Réponds uniquement avec ce JSON (sans markdown) :
   return extractJson<GeneratedContent & { topic: string }>(text)
 }
 
-export async function rewritePunchy(params: {
+export interface RewriteInput {
   topic: string
   contentLI: string
   contentIG: string
@@ -203,43 +203,47 @@ export async function rewritePunchy(params: {
   companyDesc: string
   targetAudience: string
   firstPerson: boolean
-}): Promise<{ linkedin: string; instagram: string }> {
-  const { topic, contentLI, contentIG, companyName, companyDesc, targetAudience, firstPerson } = params
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+}
 
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1500,
-    messages: [{
-      role: 'user',
-      content: `Tu es un copywriter B2B redoutable. Réécris ces deux textes pour qu'ils soient bien plus percutants et commerciaux, qu'ils donnent envie de répondre.
+export function buildRewritePrompt(p: RewriteInput): string {
+  return `Tu es un copywriter B2B redoutable. Réécris ces deux textes pour qu'ils soient bien plus percutants et commerciaux, qu'ils donnent envie de répondre.
 
-Entreprise: ${companyName} — ${companyDesc}
-Audience: ${targetAudience}
-Sujet: ${topic}
+Entreprise: ${p.companyName} — ${p.companyDesc}
+Audience: ${p.targetAudience}
+Sujet: ${p.topic}
 Date du jour: ${todayFr()}
-${firstPerson ? "Ce post est écrit à la première personne (« je »), au nom du dirigeant : garde cette voix.\n" : ''}
+${p.firstPerson ? "Ce post est écrit à la première personne (« je »), au nom du dirigeant : garde cette voix.\n" : ''}
 TEXTE LINKEDIN ACTUEL :
 """
-${contentLI}
+${p.contentLI}
 """
 
 TEXTE INSTAGRAM ACTUEL :
 """
-${contentIG}
+${p.contentIG}
 """
 
-À CONSERVER : le sujet, et TOUS les faits, chiffres, dates et noms présents dans les textes. N'en ajoute aucun nouveau, n'invente rien. Si une année ou une date est présente, garde-la telle quelle.
+À CONSERVER : le sujet, et TOUS les faits, chiffres, dates et noms présents dans les textes. N'en ajoute aucun nouveau, n'invente rien. Si une année ou une date est présente, garde-la telle quelle. Si un passage est entouré de ** (gras), garde-le entouré de **.
 
 ${COPY_RULES}
 
 LONGUEUR : LinkedIn 90 à 160 mots, Instagram 60 à 110 mots.
 
 Réponds uniquement avec ce JSON (sans markdown) :
-{"linkedin": "...", "instagram": "..."}`,
-    }],
-  })
+{"linkedin": "...", "instagram": "..."}`
+}
 
-  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+export function parseRewrite(text: string): { linkedin: string; instagram: string } {
   return extractJson<{ linkedin: string; instagram: string }>(text)
+}
+
+export async function rewritePunchy(params: RewriteInput): Promise<{ linkedin: string; instagram: string }> {
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const message = await anthropic.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1500,
+    messages: [{ role: 'user', content: buildRewritePrompt(params) }],
+  })
+  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  return parseRewrite(text)
 }

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db'
+import { rewriteWithChatGPT } from '@/lib/openai-ai'
 import { generatePersonalPost, generateSocialPosts, NEWS_THEMES, rewritePunchy, selectTopic, type PersonalKind, type SelectedTopic } from '@/lib/claude-ai'
 
 export const SLOT_HOUR_PARIS = 18
@@ -313,12 +314,17 @@ export async function holdUntilDay(day: string | null): Promise<void> {
 }
 
 // Réécrit le texte d'un post de façon plus percutante (texte fourni, sinon celui enregistré).
-export async function rewritePost(id: number, current?: { contentLI?: string | null; contentIG?: string | null }) {
+export async function rewritePost(
+  id: number,
+  current?: { contentLI?: string | null; contentIG?: string | null },
+  engine: 'claude' | 'chatgpt' = 'claude',
+) {
   const [config, post] = await Promise.all([
     loadConfig(),
     prisma.socialPost.findUniqueOrThrow({ where: { id }, omit: { imageUrl: true } }),
   ])
-  const rewritten = await rewritePunchy({
+  const rewrite = engine === 'chatgpt' ? rewriteWithChatGPT : rewritePunchy
+  const rewritten = await rewrite({
     topic: post.topic,
     contentLI: current?.contentLI ?? post.contentLI ?? '',
     contentIG: current?.contentIG ?? post.contentIG ?? '',

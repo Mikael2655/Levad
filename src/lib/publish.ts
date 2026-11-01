@@ -1,4 +1,5 @@
 import { publishToLinkedIn } from '@/lib/linkedin'
+import { applyBoldMarkup } from '@/lib/unicode-bold'
 import { publishToInstagram } from '@/lib/instagram'
 
 export async function publishEverywhere(
@@ -16,7 +17,7 @@ export async function publishEverywhere(
       errors.push('LinkedIn non configuré (LINKEDIN_ACCESS_TOKEN manquant)')
     } else {
       try {
-        linkedinPostId = await publishToLinkedIn(post.contentLI, token, imageUrl ?? undefined)
+        linkedinPostId = await publishToLinkedIn(applyBoldMarkup(post.contentLI), token, imageUrl ?? undefined)
       } catch (e) {
         errors.push(`LinkedIn: ${String(e)}`)
       }
@@ -30,7 +31,7 @@ export async function publishEverywhere(
       errors.push('Instagram non configuré (INSTAGRAM_ACCESS_TOKEN / INSTAGRAM_ACCOUNT_ID manquants)')
     } else {
       try {
-        instagramPostId = await publishToInstagram(post.contentIG, token, accountId)
+        instagramPostId = await publishToInstagram(applyBoldMarkup(post.contentIG), token, accountId)
       } catch (e) {
         errors.push(`Instagram: ${String(e)}`)
       }
