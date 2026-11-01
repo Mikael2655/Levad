@@ -18,5 +18,5 @@ export const appMetadata: Metadata = {
 }
 
 export const appViewport: Viewport = {
-  themeColor: '#1e3a5f',
+  themeColor: '#3d5745',
 }

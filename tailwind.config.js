@@ -3,6 +3,14 @@ module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {
+      boxShadow: {
+        card: '0 1px 2px rgba(60,50,20,0.04), 0 8px 24px -12px rgba(60,50,20,0.10)',
+        pop: '0 6px 20px -6px rgba(38,56,45,0.35)',
+      },
+      keyframes: {
+        'fade-up': { '0%': { opacity: '0', transform: 'translateY(6px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+      },
+      animation: { 'fade-up': 'fade-up 0.35s ease-out both' },
       colors: {
         // Outil de financement : vert du logo LEVAD (#7b9980 = leasing-400)
         leasing: {
