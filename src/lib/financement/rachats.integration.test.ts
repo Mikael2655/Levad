@@ -114,10 +114,13 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
     const c = await nouveau({ raisonSociale: 'A supprimer', demandeId: demande.id, dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
     await expect(ct.supprimerContrat(S(), c.id)).rejects.toThrow('administrateur')
     await expect(ct.supprimerContrat(CA(), c.id)).rejects.toThrow('administrateur')
-    await ct.supprimerContrat(A(), c.id)
+    await expect(ct.supprimerContrat(A(), c.id)).rejects.toThrow('non confirmée')
+    await expect(ct.supprimerContrat(A(), c.id, 'supprimer')).rejects.toThrow('non confirmée') // le mot exact est exigé
+    expect(await prisma.finContrat.count({ where: { id: c.id } })).toBe(1)
+    await ct.supprimerContrat(A(), c.id, 'SUPPRIMER')
     expect(await prisma.finContrat.count({ where: { id: c.id } })).toBe(0)
     expect(await prisma.finDemande.count({ where: { id: demande.id } })).toBe(0)
-    await expect(ct.supprimerContrat(A(), c.id)).rejects.toThrow('introuvable')
+    await expect(ct.supprimerContrat(A(), c.id, 'SUPPRIMER')).rejects.toThrow('introuvable')
   })
 
   describe('solde anticipé', () => {

@@ -28,8 +28,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   )
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const u = await acteurApi()
   if (u instanceof NextResponse) return u
-  return repondre(() => supprimerContrat(u, Number(params.id)))
+  const c = await corps(req)
+  return repondre(() => supprimerContrat(u, Number(params.id), typeof c.confirmation === 'string' ? c.confirmation : undefined))
 }
