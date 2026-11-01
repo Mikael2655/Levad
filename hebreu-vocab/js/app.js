@@ -240,6 +240,10 @@ if (activeProfile && !getProfiles().includes(activeProfile)) activeProfile = nul
 let progress = loadProgress();
 let stats = loadStats();
 let reviewScope = localStorage.getItem("hebreu-vocab-review-scope") || "tout"; // Tout / mots / verbes
+// Mode audio : "media" = s'entend même en silencieux (via lecteur média, mais
+// iOS affiche brièvement une commande de lecture) ; "voice" = voix du système
+// (aucune commande, mais coupée par l'interrupteur silencieux de l'iPhone).
+let audioMode = localStorage.getItem("hebreu-vocab-audio") || "media";
 
 const state = {
   view: "home",
@@ -792,6 +796,33 @@ function renderHome() {
       state.home.vocabNew = v;
       render();
     })
+  );
+
+  // Réglage audio : son en mode silencieux vs voix du système
+  screen.appendChild(el("div", "section-label", "🔊 Son de prononciation"));
+  screen.appendChild(
+    checkSingle(
+      "",
+      [
+        { val: "media", text: "🔕 Marche en silencieux" },
+        { val: "voice", text: "🗣️ Voix du système" },
+      ],
+      audioMode,
+      (v) => {
+        audioMode = v;
+        try { localStorage.setItem("hebreu-vocab-audio", v); } catch (_) {}
+        render();
+      }
+    )
+  );
+  screen.appendChild(
+    el(
+      "p",
+      "hint",
+      audioMode === "media"
+        ? "S'entend même quand l'iPhone est en silencieux (nécessite internet). iOS peut afficher brièvement une commande de lecture."
+        : "Utilise la voix de l'iPhone : pas de commande de lecture, mais le son est coupé si le téléphone est en silencieux."
+    )
   );
 }
 
@@ -2857,7 +2888,13 @@ let ttsReleaseTimer = null;
 function releaseTts() {
   clearTimeout(ttsReleaseTimer);
   try {
-    if (ttsEl) { ttsEl.pause(); ttsEl.removeAttribute("src"); ttsEl.load(); }
+    if (ttsEl) {
+      ttsEl.pause();
+      ttsEl.removeAttribute("src");
+      ttsEl.load();
+      ttsEl.remove();   // on détruit l'élément → iOS libère la session au plus vite
+      ttsEl = null;
+    }
   } catch (_) {}
   try {
     if (navigator.mediaSession) {
@@ -2890,10 +2927,10 @@ function speak(text, lang) {
     toSpeak = toSpeak.split(/(\s+)/).map((tok) => NIQQUD[tok] || tok).join("");
   }
   const code = lang === "fr" ? "fr-FR" : "he-IL";
-  // En ligne : on lit l'audio via un vrai lecteur média (s'entend même en
-  // mode silencieux sur iPhone). Hors ligne ou en cas d'échec, on se rabat
-  // sur la synthèse vocale du navigateur (coupée par le silencieux).
-  if (navigator.onLine !== false) {
+  // En ligne et en mode « média » : on lit l'audio via un vrai lecteur média
+  // (s'entend même en mode silencieux sur iPhone). Sinon (mode « voix » choisi,
+  // hors ligne, ou échec), on se rabat sur la synthèse vocale du navigateur.
+  if (audioMode === "media" && navigator.onLine !== false) {
     try {
       const el = getTtsEl();
       const tl = lang === "fr" ? "fr" : "iw";
