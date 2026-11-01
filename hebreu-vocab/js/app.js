@@ -2851,6 +2851,21 @@ function audioToast(msg) {
 // Lecteur média : on utilise un <video> (hors écran). Sur iPhone, la lecture
 // vidéo s'entend MÊME quand l'interrupteur silencieux est activé, ce qui
 // n'est pas garanti pour un <audio> court ni pour la synthèse vocale.
+let ttsReleaseTimer = null;
+// Libère la « session média » (sinon iOS laisse un lecteur sur l'écran
+// verrouillé et assombrit l'écran d'accueil).
+function releaseTts() {
+  clearTimeout(ttsReleaseTimer);
+  try {
+    if (ttsEl) { ttsEl.pause(); ttsEl.removeAttribute("src"); ttsEl.load(); }
+  } catch (_) {}
+  try {
+    if (navigator.mediaSession) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = "none";
+    }
+  } catch (_) {}
+}
 function getTtsEl() {
   if (!ttsEl) {
     ttsEl = document.createElement("video");
@@ -2858,7 +2873,11 @@ function getTtsEl() {
     ttsEl.setAttribute("webkit-playsinline", "");
     ttsEl.muted = false;
     ttsEl.volume = 1;
+    ttsEl.disableRemotePlayback = true;
     ttsEl.style.cssText = "position:fixed;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
+    // Dès que le mot est lu, on relâche la session média.
+    ttsEl.addEventListener("ended", releaseTts);
+    ttsEl.addEventListener("error", releaseTts);
     document.body.appendChild(ttsEl);
   }
   return ttsEl;
@@ -2880,12 +2899,17 @@ function speak(text, lang) {
       const tl = lang === "fr" ? "fr" : "iw";
       let fellBack = false;
       const fallback = () => { if (fellBack) return; fellBack = true; audioToast("🔇 Audio en ligne indisponible"); speakSynth(toSpeak, code, lang); };
-      el.onerror = fallback;
+      el.onerror = () => { releaseTts(); fallback(); };
       el.src =
         "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=" + tl +
         "&q=" + encodeURIComponent(toSpeak) + "&total=1&idx=0&textlen=" + toSpeak.length;
+      // On évite le titre « Now Playing » sur l'écran verrouillé
+      try { if (navigator.mediaSession) navigator.mediaSession.metadata = null; } catch (_) {}
       const p = el.play();
       if (p && p.catch) p.catch(fallback);
+      // Filet de sécurité : si « ended » ne se déclenche pas, on relâche après 8 s.
+      clearTimeout(ttsReleaseTimer);
+      ttsReleaseTimer = setTimeout(releaseTts, 8000);
       return;
     } catch (_) {
       /* on tente la synthèse vocale ci-dessous */
