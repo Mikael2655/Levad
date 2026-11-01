@@ -277,8 +277,12 @@ export async function definirDenonciation(a: Acteur, id: number, denonce: boolea
 
 // Réservé à l'administrateur (contrat de test, saisie par erreur). Supprime aussi les demandes de solde du contrat
 // et, si le contrat vient d'une demande, cette demande avec son historique.
-export async function supprimerContrat(a: Acteur, id: number) {
+export const MOT_CONFIRMATION_SUPPRESSION = 'SUPPRIMER'
+
+// La suppression demande une confirmation explicite (le mot SUPPRIMER) : le navigateur la recueille en trois étapes, et le serveur la revérifie.
+export async function supprimerContrat(a: Acteur, id: number, confirmation?: string) {
   if (a.role !== 'ADMIN') throw new ErreurMetier('Seul un administrateur peut supprimer un contrat.', 403)
+  if (confirmation !== MOT_CONFIRMATION_SUPPRESSION) throw new ErreurMetier('Suppression non confirmée : tapez le mot SUPPRIMER pour valider.')
   const c = await prisma.finContrat.findUnique({ where: { id } })
   if (!c) throw new ErreurMetier('Contrat introuvable.', 404)
   await prisma.$transaction([
