@@ -7,6 +7,7 @@ import { calculer, echo, listerContrats, listerDemandes, typesObjets, version } 
 import type { ConfigGrenke } from './config'
 import { construireDemandeGrenke, type OptionsGrenke } from './demande'
 import { versStatutCommun } from './statuts'
+import { TYPE_BIEN_PAR_DEFAUT } from './types-biens'
 
 export async function essaiConnexion(c: ConfigGrenke) {
   return { heureGrenke: await echo(c), versionApi: await version(c) }
@@ -52,7 +53,7 @@ export async function apercuDemande(demandeId: number, modePaiementConfigure?: '
   const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { lignes: true, financeur: true } })
   if (!d) throw new ErreurMetier('Demande introuvable.', 404)
   if (d.montantReelCentimes == null) throw new ErreurMetier('Cette demande n’a pas de montant financé réel (financeur sans barème réel) : rien à envoyer à Grenke.')
-  const options: OptionsGrenke = { modePaiement: modePaiementConfigure ?? 'Invoice', commissionPourcent: d.financeur.commissionBp != null ? d.financeur.commissionBp / 100 : null, typeObjetParDefaut: 7, formatIdentifiant: 'SIREN' }
+  const options: OptionsGrenke = { modePaiement: modePaiementConfigure ?? 'Invoice', commissionPourcent: d.financeur.commissionBp != null ? d.financeur.commissionBp / 100 : null, typeObjetParDefaut: TYPE_BIEN_PAR_DEFAUT, formatIdentifiant: 'SIREN' }
   const r = construireDemandeGrenke(
     { raisonSociale: d.raisonSociale, siret: d.siret, adresse: d.adresse, codePostal: d.codePostal, ville: d.ville, pays: d.pays, contactEmail: d.contactEmail, contactTel: d.contactTel, dureeMois: d.dureeMois, periodicite: d.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE', montantReelCentimes: d.montantReelCentimes, lignes: d.lignes.map(l => ({ designation: l.designation, quantite: l.quantite, constructeur: l.constructeur, typeBien: l.typeBien, montantHtCentimes: l.montantHtCentimes })) },
     options,
