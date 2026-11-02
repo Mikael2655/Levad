@@ -45,6 +45,7 @@ export default async function ParcPage() {
       : []
 
   const machines = clients.flatMap((c) => c.machines.map((m) => ({ ...m, client: c })))
+  const installations = clients.flatMap((c) => c.postes.filter((p) => !p.vueLe).map((p) => ({ ...p, client: c }))).sort((a, b) => b.premiereConnexion.getTime() - a.premiereConnexion.getTime())
   const nouvelles = machines.filter((m) => !m.vueLe).sort((a, b) => b.creeLe.getTime() - a.creeLe.getTime())
 
   return (
@@ -70,6 +71,28 @@ export default async function ParcPage() {
           )
         })}
       </div>
+
+      {installations.length > 0 && (
+        <section className="mt-5 rounded-xl border-2 bg-white p-4" style={{ borderColor: VERT }}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-bold">
+              {installations.length} nouvelle{installations.length > 1 ? 's' : ''} installation{installations.length > 1 ? 's' : ''} de Levad Connect
+            </h2>
+            <Formulaire action={marquerMachinesVues} message="Marquées comme vues">
+              <Bouton className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-semibold hover:bg-gray-50">Tout marquer comme vu</Bouton>
+            </Formulaire>
+          </div>
+          <ul className="mt-2 divide-y text-sm">
+            {installations.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-1.5">
+                <Link href={`/parc/client/${p.client.id}#lien`} className="font-semibold underline">{p.client.nom}</Link>
+                <span className="text-gray-600">{p.nom} ({p.site})</span>
+                <span className="text-xs text-gray-500">{p.systeme ?? 'système inconnu'} · installé le {jour(p.premiereConnexion)} · {p.client.machines.length} machine{p.client.machines.length > 1 ? 's' : ''} déjà au parc</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {nouvelles.length > 0 && (
         <section className="mt-5 rounded-xl border-2 bg-white p-4" style={{ borderColor: VERT }}>

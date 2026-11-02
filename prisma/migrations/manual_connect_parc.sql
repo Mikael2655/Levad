@@ -187,3 +187,12 @@ END $$;
 
 -- v18 : chez qui l'envoi de cartouches a été commandé (Carol, Copyclic, ou les deux)
 ALTER TABLE "connect_stock_mouvement" ADD COLUMN IF NOT EXISTS "fournisseurs" TEXT;
+
+-- v19 : installations « nouvelles » (ordinateur qui vient d'installer le programme, pas encore marqué comme vu).
+-- Les ordinateurs déjà présents au moment du collage sont considérés comme vus.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'connect_poste' AND column_name = 'vueLe') THEN
+    ALTER TABLE "connect_poste" ADD COLUMN "vueLe" TIMESTAMP(3);
+    UPDATE "connect_poste" SET "vueLe" = now();
+  END IF;
+END $$;
