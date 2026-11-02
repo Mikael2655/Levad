@@ -10,6 +10,7 @@ import { listerRachats } from '@/lib/financement/rachats'
 import BadgeStatutContrat, { LIBELLES_STATUT_CONTRAT } from '../BadgeStatutContrat'
 import BoutonDenonciation from './BoutonDenonciation'
 import BoutonSupprimer from './BoutonSupprimer'
+import { LienRetour } from '../../MemoireListe'
 import SelecteurMontant from '../../SelecteurMontant'
 import SoldeContrat from './SoldeContrat'
 import FormulaireContrat from './FormulaireContrat'
@@ -30,7 +31,7 @@ export default async function FicheContrat({ params, searchParams }: { params: {
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/financement/contrats" className="text-sm text-gray-500 hover:text-accent-700 bg-white border border-gray-300 rounded-xl px-3 py-1 transition-colors">← Contrats</Link>
+        <LienRetour nom="contrats" defaut="/financement/contrats" className="text-sm text-gray-500 hover:text-accent-700 bg-white border border-gray-300 rounded-xl px-3 py-1 transition-colors">← Contrats</LienRetour>
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{c.raisonSociale}</h1>
         <BadgeStatutContrat statut={c.statutContrat} etat={c.etat} mois={c.moisRestants} />
         {c.clotureLe && <span className="text-sm text-gray-500">clôturé le {dateFr(c.clotureLe)}{'clotureMotif' in c && c.clotureMotif ? ` (${c.clotureMotif})` : ''}</span>}

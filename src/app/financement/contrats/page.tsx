@@ -9,6 +9,7 @@ import FormulaireFiltres from '../FormulaireFiltres'
 import { lireOrdre, ordreContratsParDefaut, trier } from '@/lib/financement/tri'
 import { dateFr, dureeTrimestres, euros, loyerPeriode, materielAffiche } from '../format'
 import SelecteurMontant from '../SelecteurMontant'
+import { MemoireListe } from '../MemoireListe'
 import BarreAttribution from './BarreAttribution'
 import BadgeStatutContrat, { LIBELLES_STATUT_CONTRAT } from './BadgeStatutContrat'
 
@@ -49,6 +50,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
 
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-8 space-y-6">
+      <MemoireListe nom="contrats" />
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Contrats</h1>
