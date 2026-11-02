@@ -4,7 +4,7 @@
 import { dateFinDepuisDebut } from './echeances'
 import type { Periodicite } from './calcul'
 
-export const CHAMPS = ['ref', 'statut', 'client', 'siret', 'materiel', 'loyer', 'periodicite', 'duree', 'dateDebut', 'dateFin', 'montantReel', 'commercial'] as const
+export const CHAMPS = ['ref', 'statut', 'client', 'siret', 'materiel', 'loyer', 'periodicite', 'duree', 'dateDebut', 'dateFin', 'montantReel', 'commercial', 'banque'] as const
 export type Champ = (typeof CHAMPS)[number]
 export type Mapping = Partial<Record<Champ, number>> // numéro de colonne (0 = première)
 
@@ -21,6 +21,7 @@ export const LIBELLES_CHAMPS: Record<Champ, string> = {
   dateFin: 'Date de fin',
   montantReel: 'Montant financé (réel)',
   commercial: 'Commercial (e-mail ou nom)',
+  banque: 'Banque (contrat placé par un courtier)',
 }
 export const OBLIGATOIRES: Champ[] = ['client', 'loyer', 'duree']
 // Colonnes réellement manquantes : la durée peut se déduire des deux dates (1er loyer et fin).
@@ -48,6 +49,7 @@ const SYNONYMES: [Champ, string[]][] = [
   ['montantReel', ['montant finance', 'montant du financement', 'financement', 'financed amount', 'financing amount', 'amount', 'nav', 'valeur financee', 'montant', 'total']],
   ['client', ['raison sociale', 'nom du client', 'client', 'locataire', 'preneur', 'lessee', 'customer', 'kunde']],
   ['materiel', ['materiel', 'objet', 'designation', 'bien', 'equipement', 'description', 'object']],
+  ['banque', ['banque', 'bank', 'etablissement', 'organisme financeur', 'organisme']],
   ['commercial', ['commercial', 'vendeur', 'apporteur', 'sales', 'representant', 'conseiller']],
 ]
 
@@ -168,6 +170,7 @@ export interface LigneLue {
   dateDebut: Date | null
   dateFin: Date | null
   montantReelCentimes: number | null
+  banque: string | null
   commercial: string | null
 }
 
@@ -204,7 +207,7 @@ export function lireLignes(lignes: string[][], o: OptionsLecture): { lues: Ligne
     const loyerPeriode = o.uniteLoyer === 'PAR_MOIS' && periodicite === 'TRIMESTRIELLE' ? loyer! * 3 : loyer!
     lues.push({
       numero, ref: valeur(l, 'ref') || null, statut: valeur(l, 'statut') || null, client, siret: valeur(l, 'siret').replace(/\D/g, '') || null, materiel: valeur(l, 'materiel') || null,
-      loyerCentimes: loyerPeriode, periodicite: periodicite!, dureeMois: duree!, dateDebut, dateFin, montantReelCentimes: montantReel, commercial: valeur(l, 'commercial') || null,
+      loyerCentimes: loyerPeriode, periodicite: periodicite!, dureeMois: duree!, dateDebut, dateFin, montantReelCentimes: montantReel, commercial: valeur(l, 'commercial') || null, banque: valeur(l, 'banque').slice(0, 80) || null,
     })
   })
   return { lues, erreurs }

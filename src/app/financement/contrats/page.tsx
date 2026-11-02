@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { compterContrats, compterEcheancesProches, listerContrats, type FiltreEcheance, type FiltreStatut } from '@/lib/financement/contrats'
+import { compterContrats, compterEcheancesProches, listerBanques, listerContrats, type FiltreEcheance, type FiltreStatut } from '@/lib/financement/contrats'
 import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import { estInterne, peutImporterContrats, peutModifierContrat, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
@@ -35,6 +35,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
     interne ? listerUtilisateurs() : Promise.resolve([]),
     compterContrats(u),
   ])
+  const banques = peutAttribuer ? await listerBanques() : []
   const ordre = lireOrdre(searchParams.ordre)
   // Sans choix de colonne : échéances dans les 12 mois, puis reconductions tacites, puis le reste, chacun par ordre alphabétique
   const lignes = !searchParams.tri ? ordreContratsParDefaut(contrats) : trier(contrats, searchParams.tri, ordre, {
@@ -135,7 +136,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
           </tbody>
         </table>
       </div>
-      {peutAttribuer && <BarreAttribution commerciaux={commerciaux.map(c => ({ id: c.id, nom: `${c.prenom} ${c.nom}` }))} />}
+      {peutAttribuer && <BarreAttribution banques={banques} commerciaux={commerciaux.map(c => ({ id: c.id, nom: `${c.prenom} ${c.nom}` }))} />}
       <p className="text-xs text-gray-400">{contrats.length} contrat(s).{!searchParams.tri && ' Classés par échéance dans les 12 mois, puis reconductions tacites, puis ordre alphabétique (cliquez sur une colonne pour trier autrement).'} Au terme, un contrat non dénoncé est prolongé tacitement d’un an.</p>
     </main>
   )

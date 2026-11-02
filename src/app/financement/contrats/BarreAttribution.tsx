@@ -8,10 +8,11 @@ import { appel } from '../appel'
 // « Tout sélectionner » coche tous les contrats affichés (donc ceux du filtre en cours).
 const cases = () => Array.from(document.querySelectorAll<HTMLInputElement>('input[data-sel-contrat]'))
 
-export default function BarreAttribution({ commerciaux }: { commerciaux: { id: number; nom: string }[] }) {
+export default function BarreAttribution({ commerciaux, banques }: { commerciaux: { id: number; nom: string }[]; banques: string[] }) {
   const router = useRouter()
   const [n, setN] = useState(0)
   const [vers, setVers] = useState('')
+  const [banque, setBanque] = useState('')
   const [envoi, setEnvoi] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null)
 
@@ -56,6 +57,23 @@ export default function BarreAttribution({ commerciaux }: { commerciaux: { id: n
     }
   }
 
+  async function appliquerBanque() {
+    const ids = cases().filter(c => c.checked).map(c => Number(c.value))
+    if (!confirm(`${banque.trim() ? `Indiquer la banque « ${banque.trim()} »` : 'Effacer la banque'} pour ${ids.length} contrat${ids.length > 1 ? 's' : ''} ?`)) return
+    setEnvoi(true)
+    setMessage(null)
+    try {
+      const r = await appel<{ modifies: number }>('/api/financement/contrats/banque', 'POST', { ids, banque })
+      setMessage({ ok: true, texte: `Banque ${banque.trim() ? `« ${banque.trim()} » enregistrée` : 'effacée'} pour ${r.modifies} contrat${r.modifies > 1 ? 's' : ''}.` })
+      toutDecocher()
+      router.refresh()
+    } catch (e) {
+      setMessage({ ok: false, texte: (e as Error).message })
+    } finally {
+      setEnvoi(false)
+    }
+  }
+
   if (n === 0 && !message) return null
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-3xl bg-white rounded-lg border border-gray-300 shadow-lg p-3 flex flex-wrap items-center gap-3 text-sm">
@@ -69,6 +87,12 @@ export default function BarreAttribution({ commerciaux }: { commerciaux: { id: n
             </select>
           </label>
           <button disabled={envoi || !vers} className="bg-accent-700 hover:bg-accent-800 text-white rounded-xl px-4 py-2 font-semibold transition disabled:opacity-50" onClick={attribuer}>{envoi ? 'Attribution…' : 'Attribuer'}</button>
+          <span className="hidden sm:block h-6 w-px bg-gray-200" />
+          <label className="flex items-center gap-2">Banque
+            <input list="banques-selection" value={banque} onChange={e => setBanque(e.target.value)} placeholder="ex. Locam" autoComplete="off" className="w-36 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-accent-500/40" />
+            <datalist id="banques-selection">{banques.map(b => <option key={b} value={b} />)}</datalist>
+          </label>
+          <button disabled={envoi} className="border border-gray-300 bg-white hover:bg-gray-50 rounded-xl px-3 py-2 font-medium transition disabled:opacity-50" onClick={appliquerBanque}>Appliquer</button>
           <button className="text-gray-500 underline" onClick={() => { toutDecocher(); setMessage(null) }}>Tout désélectionner</button>
         </>
       )}

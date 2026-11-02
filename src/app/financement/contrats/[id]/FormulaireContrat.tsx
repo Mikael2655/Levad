@@ -7,7 +7,7 @@ import { TitreSection } from '../../Fiche'
 
 const champ = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent-500/40 focus:border-accent-500 transition'
 
-export default function FormulaireContrat(p: { id: number; commercialId: number; commerciaux: { id: number; nom: string }[]; materiel: string; refFinanceur: string; dateDebut: string; dateFin: string }) {
+export default function FormulaireContrat(p: { id: number; commercialId: number; commerciaux: { id: number; nom: string }[]; materiel: string; refFinanceur: string; dateDebut: string; dateFin: string; banque: string; banques: string[] }) {
   const router = useRouter()
   const [v, setV] = useState({ ...p, commercialId: String(p.commercialId) })
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null)
@@ -20,6 +20,7 @@ export default function FormulaireContrat(p: { id: number; commercialId: number;
         commercialId: Number(v.commercialId),
         materiel: v.materiel,
         refFinanceur: v.refFinanceur,
+        banque: v.banque,
         dateDebut: v.dateDebut,
         // si seul le 1er loyer a changé, la fin est recalculée (1er loyer + durée)
         ...(v.dateFin !== p.dateFin || !v.dateDebut ? { dateFin: v.dateFin } : {}),
@@ -43,6 +44,7 @@ export default function FormulaireContrat(p: { id: number; commercialId: number;
         <label className="text-sm"><span className="block text-sm font-medium text-gray-700 mb-1.5">Date du 1er loyer</span><input type="date" className={champ} value={v.dateDebut} onChange={e => setV({ ...v, dateDebut: e.target.value })} /></label>
         <label className="text-sm"><span className="block text-sm font-medium text-gray-700 mb-1.5">Date de fin (calculée = 1er loyer + durée, modifiable)</span><input type="date" className={champ} value={v.dateFin} onChange={e => setV({ ...v, dateFin: e.target.value })} /></label>
         <label className="text-sm"><span className="block text-sm font-medium text-gray-700 mb-1.5">N° de contrat chez le financeur</span><input className={champ} value={v.refFinanceur} onChange={e => setV({ ...v, refFinanceur: e.target.value })} /></label>
+        <label className="text-sm"><span className="block text-sm font-medium text-gray-700 mb-1.5">Banque (contrat placé par un courtier, ex. Solubail)</span><input className={champ} list="banques-connues" value={v.banque} onChange={e => setV({ ...v, banque: e.target.value })} placeholder="ex. Locam, BNP…" autoComplete="off" /><datalist id="banques-connues">{p.banques.map(b => <option key={b} value={b} />)}</datalist></label>
         <label className="text-sm sm:col-span-2"><span className="block text-sm font-medium text-gray-700 mb-1.5">Matériel</span><input className={champ} value={v.materiel} onChange={e => setV({ ...v, materiel: e.target.value })} /></label>
       </div>
       {message && <p className={`text-sm ${message.ok ? 'text-green-700' : 'text-red-700'}`}>{message.texte}</p>}

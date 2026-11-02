@@ -86,6 +86,35 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
     expect(await ct.attribuerContrats(A(), [x.id], ids.comB)).toEqual({ attribues: 0, dejaChezLui: 1 })
   })
 
+  it('un commercial voit son contrat mais ne peut ni le modifier, ni le supprimer, ni le dénoncer, ni le réattribuer, ni changer sa banque ; il peut le simuler', async () => {
+    const c = await nouveau({ raisonSociale: 'Droits commercial', dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
+    expect(await ct.lireContrat(CA(), c.id)).not.toBeNull()
+    await expect(ct.modifierContrat(CA(), c.id, { materiel: 'Autre matériel' })).rejects.toThrow('non autorisée')
+    await expect(ct.modifierContrat(CA(), c.id, { banque: 'Locam' })).rejects.toThrow('non autorisée')
+    await expect(ct.modifierContrat(CA(), c.id, { commercialId: ids.comB })).rejects.toThrow('non autorisée')
+    await expect(ct.supprimerContrat(CA(), c.id, 'SUPPRIMER')).rejects.toThrow('administrateur')
+    await expect(ct.definirDenonciation(CA(), c.id, true)).rejects.toThrow('non autorisée')
+    await expect(ct.attribuerContrats(CA(), [c.id], ids.comB)).rejects.toThrow('non autorisée')
+    await expect(ct.definirBanque(CA(), [c.id], 'Locam')).rejects.toThrow('non autorisée')
+    await expect(ct.transfererContrats(CA(), ids.comA, ids.comB)).rejects.toThrow('administrateur')
+    const sim = await rc.simulerSolde(CA(), c.id, { type: 'RENOUVELANT', dateResiliation: IL_Y_A(-1) })
+    expect(Object.keys(sim).sort()).toEqual(['nbLoyersRestants', 'totalCentimes'])
+    const apres = await prisma.finContrat.findUniqueOrThrow({ where: { id: c.id } })
+    expect(apres).toMatchObject({ materiel: c.materiel, banque: null, commercialId: ids.comA, denonceLe: null })
+  })
+  it('banque : renseignée sur un contrat ou sur une sélection (admin et assistante), jamais visible du commercial', async () => {
+    const x = await nouveau({ raisonSociale: 'Banque 1', dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
+    const y = await nouveau({ raisonSociale: 'Banque 2', dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
+    await ct.modifierContrat(S(), x.id, { banque: '  Locam ' })
+    expect((await prisma.finContrat.findUniqueOrThrow({ where: { id: x.id } })).banque).toBe('Locam')
+    await expect(ct.definirBanque(S(), [], 'BNP')).rejects.toThrow('Aucun contrat')
+    expect(await ct.definirBanque(A(), [x.id, y.id], 'BNP Leasing')).toEqual({ modifies: 2 })
+    expect((await ct.listerBanques())).toEqual(expect.arrayContaining(['BNP Leasing']))
+    expect(JSON.stringify(await ct.listerContrats(CA(), { statut: 'tous' }))).not.toContain('BNP Leasing')
+    await ct.definirBanque(S(), [x.id], '  ') // vide : efface
+    expect((await prisma.finContrat.findUniqueOrThrow({ where: { id: x.id } })).banque).toBeNull()
+  })
+
   it('dénonciation : réservée à l’admin / assistante, réversible ; dernier loyer = fin - une période', async () => {
     const c = await nouveau({ raisonSociale: 'A dénoncer', dateDebut: jour('2030-01-01'), dateFin: jour('2033-04-01') })
     await expect(ct.definirDenonciation(CA(), c.id, true)).rejects.toThrow('non autorisée')
