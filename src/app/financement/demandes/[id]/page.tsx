@@ -4,6 +4,7 @@ import { lireDemande } from '@/lib/financement/acces'
 import { peutAnnuler, peutArchiver, peutModifier, peutSupprimer, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
 import { Ligne, TitreSection } from '../../Fiche'
+import { LienRetour } from '../../MemoireListe'
 import { purgeOpportuniste } from '@/lib/financement/pieces'
 import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT, peutEnvoyerEnSignature, statutsAccessibles } from '@/lib/financement/statuts'
@@ -25,7 +26,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/financement" className="text-sm text-gray-500 hover:text-accent-700 bg-white border border-gray-300 rounded-xl px-3 py-1 transition-colors">← Demandes</Link>
+        <LienRetour nom="demandes" defaut="/financement" className="text-sm text-gray-500 hover:text-accent-700 bg-white border border-gray-300 rounded-xl px-3 py-1 transition-colors">← Demandes</LienRetour>
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{d.reference} <span className="text-gray-400 font-normal">·</span> {d.raisonSociale}</h1>
         <BadgeStatut statut={d.statut} />
         {d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="text-sm text-violet-800">{libelleEtape(d.etapeSignature)}</span>}

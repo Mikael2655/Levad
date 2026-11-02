@@ -9,6 +9,7 @@ import { LIBELLES_STATUT } from '@/lib/financement/statuts'
 import BadgeStatut from './BadgeStatut'
 import SelecteurMontant from './SelecteurMontant'
 import EnteteTri from './EnteteTri'
+import { MemoireListe } from './MemoireListe'
 import Indicateur from './Indicateur'
 import FormulaireFiltres from './FormulaireFiltres'
 import { lireOrdre, trier } from '@/lib/financement/tri'
@@ -61,6 +62,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
 
   return (
     <main id="zone-montant" data-m={modeMontant} className="max-w-[96rem] mx-auto p-4 sm:p-8 space-y-6">
+      <MemoireListe nom="demandes" />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{filtres.archivees ? 'Demandes archivées' : 'Demandes en cours'}</h1>
         {!filtres.archivees && <p className="text-sm text-gray-500 mt-1">Suivi des demandes de financement{interne ? '' : ' de vos clients'}.</p>}
