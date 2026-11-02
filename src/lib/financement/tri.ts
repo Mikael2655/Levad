@@ -28,3 +28,22 @@ export function trier<T>(lignes: T[], cle: string | undefined, ordre: Ordre, ext
     })
     .map(x => x.l)
 }
+
+// --- Ordre par défaut de la liste des contrats ---------------------------------------------------------------------------
+// D'abord les contrats qui arrivent à échéance dans les 12 mois (opportunités de renouvellement), puis les contrats en
+// reconduction tacite, puis tous les autres ; à l'intérieur de chaque groupe, ordre alphabétique du client.
+import { ajouterMois, statutContrat } from './echeances'
+
+export interface ContratPourTri { raisonSociale: string; dateFin: Date | null; denonceLe: Date | null; clotureLe: Date | null }
+
+export function rangContrat(c: ContratPourTri, maintenant: Date = new Date()): 0 | 1 | 2 {
+  const statut = statutContrat(c, maintenant)
+  if (statut === 'EN_COURS' && c.dateFin && c.dateFin.getTime() <= ajouterMois(maintenant, 12).getTime()) return 0
+  if (statut === 'TACITE') return 1
+  return 2
+}
+
+export function ordreContratsParDefaut<T extends ContratPourTri>(contrats: T[], maintenant: Date = new Date()): T[] {
+  const alphabetique = trier(contrats, 'client', 'asc', { client: c => c.raisonSociale })
+  return alphabetique.map((c, i) => ({ c, i, r: rangContrat(c, maintenant) })).sort((a, b) => a.r - b.r || a.i - b.i).map(x => x.c)
+}
