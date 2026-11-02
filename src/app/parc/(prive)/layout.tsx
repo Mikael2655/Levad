@@ -23,7 +23,7 @@ export default async function PriveLayout({ children }: { children: React.ReactN
   try {
     nbAlertes = (await clientsEnAlerte()).length
     nbDeconnectes = (await postesDeconnectes()).length
-    nbNouvelles = await prisma.connectMachine.count({ where: { vueLe: null } })
+    nbNouvelles = (await prisma.connectMachine.count({ where: { vueLe: null } })) + (await prisma.connectPoste.count({ where: { vueLe: null } }))
   } catch {
     // base pas encore prête : la page concernée l'expliquera
   }
