@@ -6,7 +6,7 @@ import { exigerUtilisateur } from '@/lib/financement/garde'
 import EnteteTri from '../EnteteTri'
 import Indicateur from '../Indicateur'
 import FormulaireFiltres from '../FormulaireFiltres'
-import { lireOrdre, trier } from '@/lib/financement/tri'
+import { lireOrdre, ordreContratsParDefaut, trier } from '@/lib/financement/tri'
 import { dateFr, dureeTrimestres, euros, loyerPeriode, materielAffiche } from '../format'
 import SelecteurMontant from '../SelecteurMontant'
 import BarreAttribution from './BarreAttribution'
@@ -35,7 +35,8 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
     compterContrats(u),
   ])
   const ordre = lireOrdre(searchParams.ordre)
-  const lignes = trier(contrats, searchParams.tri, ordre, {
+  // Sans choix de colonne : échéances dans les 12 mois, puis reconductions tacites, puis le reste, chacun par ordre alphabétique
+  const lignes = !searchParams.tri ? ordreContratsParDefaut(contrats) : trier(contrats, searchParams.tri, ordre, {
     reference: c => c.reference ?? '', client: c => c.raisonSociale, commercial: c => c.commercialNom,
     financeur: c => `${c.financeurNom}${'banque' in c && c.banque ? ` ${c.banque}` : ''}`, materiel: c => materielAffiche(c.materiel),
     loyer: c => c.loyerCentimes / (c.periodicite === 'MENSUELLE' ? 1 : 3), duree: c => c.dureeMois,
@@ -133,7 +134,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
         </table>
       </div>
       {peutAttribuer && <BarreAttribution commerciaux={commerciaux.map(c => ({ id: c.id, nom: `${c.prenom} ${c.nom}` }))} />}
-      <p className="text-xs text-gray-400">{contrats.length} contrat(s). Au terme, un contrat non dénoncé est prolongé tacitement d’un an.</p>
+      <p className="text-xs text-gray-400">{contrats.length} contrat(s).{!searchParams.tri && ' Classés par échéance dans les 12 mois, puis reconductions tacites, puis ordre alphabétique (cliquez sur une colonne pour trier autrement).'} Au terme, un contrat non dénoncé est prolongé tacitement d’un an.</p>
     </main>
   )
 }
