@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { listerUtilisateurs } from '@/lib/financement/admin'
-import { lireContrat } from '@/lib/financement/contrats'
+import { lireContrat, listerBanques } from '@/lib/financement/contrats'
 import { peutModifierContrat, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
 import { Ligne, TitreSection } from '../../Fiche'
@@ -25,6 +25,7 @@ export default async function FicheContrat({ params, searchParams }: { params: {
   const reel = peutVoirBaremeReel(u) ? (c as typeof c & { montantReelCentimes: number | null; banque: string | null; margeCentimes: number | null; refFinanceur: string | null; statutFinanceur: string | null }) : null
   const commerciaux = peutModifierContrat(u) ? (await listerUtilisateurs()).filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN')).map(x => ({ id: x.id, nom: `${x.prenom} ${x.nom}` })) : []
   const modeMontant = reel && searchParams.m === 'reel' ? 'reel' : 'commercial'
+  const banques = peutModifierContrat(u) ? await listerBanques() : []
   const section = 'carte p-5 sm:p-6'
   const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '')
 
@@ -80,7 +81,7 @@ export default async function FicheContrat({ params, searchParams }: { params: {
       {u.role === 'ADMIN' && <BoutonSupprimer id={c.id} client={c.raisonSociale} avecDemande={c.demandeId !== null} />}
 
       {peutModifierContrat(u) && (
-        <FormulaireContrat id={c.id} commercialId={c.commercialId} commerciaux={commerciaux} materiel={c.materiel} refFinanceur={reel?.refFinanceur ?? ''} dateDebut={iso(c.dateDebut)} dateFin={iso(c.dateFin)} />
+        <FormulaireContrat id={c.id} commercialId={c.commercialId} commerciaux={commerciaux} materiel={c.materiel} refFinanceur={reel?.refFinanceur ?? ''} banque={reel?.banque ?? ''} banques={banques} dateDebut={iso(c.dateDebut)} dateFin={iso(c.dateFin)} />
       )}
     </main>
   )

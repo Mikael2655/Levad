@@ -93,7 +93,7 @@ export async function lireContrat(a: Acteur, id: number) {
   return c ? enrichir(a, c, new Date()) : null
 }
 
-export async function modifierContrat(a: Acteur, id: number, d: { materiel?: string; refFinanceur?: string | null; dateDebut?: Date | null; dateFin?: Date | null; commercialId?: number }) {
+export async function modifierContrat(a: Acteur, id: number, d: { materiel?: string; refFinanceur?: string | null; dateDebut?: Date | null; dateFin?: Date | null; commercialId?: number; banque?: string | null }) {
   if (!peutModifierContrat(a)) throw new ErreurMetier('Action non autorisée.', 403)
   const c = await prisma.finContrat.findUnique({ where: { id } })
   if (!c) throw new ErreurMetier('Contrat introuvable.', 404)
@@ -117,6 +117,7 @@ export async function modifierContrat(a: Acteur, id: number, d: { materiel?: str
     data: {
       ...(rattachement ?? {}),
       ...(d.materiel !== undefined ? { materiel: d.materiel.trim() } : {}),
+      ...(d.banque !== undefined ? { banque: d.banque?.trim().slice(0, 80) || null } : {}),
       ...(d.refFinanceur !== undefined ? { refFinanceur: d.refFinanceur?.trim() || null } : {}),
       dateDebut,
       dateFin,
@@ -205,7 +206,7 @@ export async function traiterImport(a: Acteur, p: DemandeImport) {
     aCreer.push({
       importe: true, refFinanceur: l.ref, statutFinanceur: l.statut, financeurId: financeur.id, commercialId: commercial.id, raisonSociale: l.client, siret: l.siret, materiel: l.materiel ?? 'Non précisé',
       periodicite: l.periodicite, dureeMois: l.dureeMois, loyerCentimes: l.loyerCentimes, dateDebut: l.dateDebut, dateFin: l.dateFin,
-      montantCommercialCentimes: recalcule?.montantCentimes ?? null, montantReelCentimes: montantReel,
+      montantCommercialCentimes: recalcule?.montantCentimes ?? null, montantReelCentimes: montantReel, banque: l.banque,
     })
   }
 
@@ -301,4 +302,23 @@ export async function compterContrats(a: Acteur) {
     tacites: tous.filter(c => c.statutContrat === 'TACITE').length,
     clotures: tous.filter(c => c.statutContrat === 'CLOTURE').length,
   }
+}
+
+// --- Banque ------------------------------------------------------------------------------------------------------------
+
+// Banque chez qui un courtier (ex. Solubail) a placé le contrat : renseignée contrat par contrat, ou pour une sélection.
+// Visible seulement par l'administrateur et l'assistante.
+export async function definirBanque(a: Acteur, ids: number[], banque: string | null): Promise<{ modifies: number }> {
+  if (!peutModifierContrat(a)) throw new ErreurMetier('Action non autorisée.', 403)
+  const uniques = Array.from(new Set(ids.filter(n => Number.isInteger(n) && n > 0)))
+  if (uniques.length === 0) throw new ErreurMetier('Aucun contrat sélectionné.')
+  if (uniques.length > MAX_ATTRIBUTION) throw new ErreurMetier(`Trop de contrats à la fois (${MAX_ATTRIBUTION} au maximum).`)
+  const nom = banque?.trim().slice(0, 80) || null
+  const r = await prisma.finContrat.updateMany({ where: { id: { in: uniques } }, data: { banque: nom } })
+  return { modifies: r.count }
+}
+
+export async function listerBanques(): Promise<string[]> {
+  const l = await prisma.finContrat.findMany({ where: { banque: { not: null } }, distinct: ['banque'], select: { banque: true }, orderBy: { banque: 'asc' } })
+  return l.map(x => x.banque!).filter(Boolean)
 }

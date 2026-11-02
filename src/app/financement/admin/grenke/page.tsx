@@ -2,7 +2,9 @@ import { prisma } from '@/lib/db'
 import { lireConfigGrenke, VARIABLES_GRENKE } from '@/lib/financement/connecteurs/grenke/config'
 import { exigerUtilisateur } from '@/lib/financement/garde'
 import { dateFr } from '../../format'
+import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import EssaisGrenke from './EssaisGrenke'
+import SynchroGrenke from './SynchroGrenke'
 import RetourAdmin from '../RetourAdmin'
 
 export const dynamic = 'force-dynamic'
@@ -11,6 +13,8 @@ export default async function PageGrenke() {
   await exigerUtilisateur({ roles: ['ADMIN'] })
   const cfg = lireConfigGrenke()
   const demandes = await prisma.finDemande.findMany({ orderBy: { id: 'desc' }, take: 30, select: { id: true, reference: true, raisonSociale: true } })
+  const [financeurs, utilisateurs] = await Promise.all([listerFinanceurs(), listerUtilisateurs()])
+  const commerciaux = utilisateurs.filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN')).map(x => ({ id: x.id, nom: `${x.prenom} ${x.nom}` }))
   const mode = process.env.GRENKE_PAYMENT_METHOD
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
@@ -35,6 +39,7 @@ export default async function PageGrenke() {
         Ces essais sont en <b>lecture seule</b> : aucune demande n’est créée chez Grenke. La simulation de loyer interroge leur calculateur (sans engagement). L’aperçu ne contacte pas Grenke du tout.
       </p>
       <EssaisGrenke prete={cfg.prete} demandes={demandes} />
+      <SynchroGrenke prete={cfg.prete} financeurs={financeurs.map(f => ({ id: f.id, nom: f.nom }))} commerciaux={commerciaux} />
     </main>
   )
 }
