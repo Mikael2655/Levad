@@ -28,7 +28,12 @@ jobs:
             nom: Windows
           - os: macos-latest
             nom: Mac
+          # Mac à processeur Intel (macOS plus ancien) : si cette fabrication échoue, les autres programmes sont quand même publiés
+          - os: macos-15-intel
+            nom: Mac-Intel
+            facultatif: true
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.facultatif == true }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -42,7 +47,7 @@ jobs:
         if: matrix.nom == 'Windows'
         run: python -m PyInstaller --onefile --windowed --icon icone.ico --name Levad-Connect --paths levad-connect --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi levad-connect/levad_connect_gui.py
       - name: "Fabriquer le programme (Mac : une application)"
-        if: matrix.nom == 'Mac'
+        if: startsWith(matrix.nom, 'Mac')
         run: python -m PyInstaller --windowed --icon icone.icns --name "Levad Connect" --osx-bundle-identifier fr.levad.connect --paths levad-connect --hidden-import config_envoi --hidden-import releve_snmp --collect-data certifi levad-connect/levad_connect_gui.py
       - name: Windows - connexion à Azure (signature)
         if: matrix.nom == 'Windows' && vars.SIGNATURE_WINDOWS == 'oui' && github.ref == 'refs/heads/main'
@@ -95,7 +100,7 @@ jobs:
           if (-not (Test-Path $drapeau)) { throw "La copie relancée n'a pas démarré correctement (même panne que lors d'une mise à jour)" }
           Write-Host "Relance : OK"
       - name: Mac - texte d'autorisation réseau local, signature locale, essai, zip
-        if: matrix.nom == 'Mac'
+        if: startsWith(matrix.nom, 'Mac')
         run: |
           APP="dist/Levad Connect.app"
           plutil -insert NSLocalNetworkUsageDescription -string "Levad Connect cherche les copieurs de votre réseau pour lire leurs compteurs." "$APP/Contents/Info.plist"
@@ -107,7 +112,7 @@ jobs:
           mkdir -p envoi mac-zip
           cp -R "$APP" mac-zip/
           printf "Levad Connect : double-cliquez sur l'application « Levad Connect » de ce dossier, puis cliquez sur Installer.\n" > mac-zip/LISEZMOI.txt
-          ditto -c -k --sequesterRsrc mac-zip envoi/Levad-Connect-Mac.zip
+          ditto -c -k --sequesterRsrc mac-zip "envoi/Levad-Connect-${{ matrix.nom }}.zip"
       - name: Windows - le programme seul (pas de zip à ouvrir pour le client)
         if: matrix.nom == 'Windows'
         shell: bash
@@ -136,6 +141,9 @@ jobs:
           mkdir -p public/telechargements
           cp programmes-fabriques/Levad-Connect-Windows/Levad-Connect.exe public/telechargements/
           cp programmes-fabriques/Levad-Connect-Mac/Levad-Connect-Mac.zip public/telechargements/
+          if [ -f programmes-fabriques/Levad-Connect-Mac-Intel/Levad-Connect-Mac-Intel.zip ]; then
+            cp programmes-fabriques/Levad-Connect-Mac-Intel/Levad-Connect-Mac-Intel.zip public/telechargements/
+          fi
       - name: Informations de mise à jour automatique (version, empreinte)
         run: |
           VERSION=$(grep -oP 'VERSION_AGENT = "\K[^"]+' levad-connect/levad_agent.py)
@@ -143,9 +151,13 @@ jobs:
           TAILLE=$(stat -c%s public/telechargements/Levad-Connect.exe)
           SHA_MAC=$(sha256sum public/telechargements/Levad-Connect-Mac.zip | cut -d' ' -f1)
           TAILLE_MAC=$(stat -c%s public/telechargements/Levad-Connect-Mac.zip)
+          MAC_INTEL=""
+          if [ -f public/telechargements/Levad-Connect-Mac-Intel.zip ]; then
+            MAC_INTEL=$(printf ',\n  "mac_intel": {"sha256": "%s", "taille": %s}' "$(sha256sum public/telechargements/Levad-Connect-Mac-Intel.zip | cut -d' ' -f1)" "$(stat -c%s public/telechargements/Levad-Connect-Mac-Intel.zip)")
+          fi
           SIGNE=false
           if [ "${{ vars.SIGNATURE_WINDOWS }}" = "oui" ]; then SIGNE=true; fi
-          printf '{\n  "version": "%s",\n  "sha256": "%s",\n  "taille": %s,\n  "signe": %s,\n  "signataire": "%s",\n  "mac": {"sha256": "%s", "taille": %s}\n}\n' "$VERSION" "$SHA" "$TAILLE" "$SIGNE" "${{ vars.SIGNATURE_SIGNATAIRE }}" "$SHA_MAC" "$TAILLE_MAC" > public/telechargements/version.json
+          printf '{\n  "version": "%s",\n  "sha256": "%s",\n  "taille": %s,\n  "signe": %s,\n  "signataire": "%s",\n  "mac": {"sha256": "%s", "taille": %s}%s\n}\n' "$VERSION" "$SHA" "$TAILLE" "$SIGNE" "${{ vars.SIGNATURE_SIGNATAIRE }}" "$SHA_MAC" "$TAILLE_MAC" "$MAC_INTEL" > public/telechargements/version.json
           cat public/telechargements/version.json
       - name: Publier dans le dépôt
         run: |

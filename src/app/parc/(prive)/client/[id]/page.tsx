@@ -143,6 +143,8 @@ export default async function ClientPage({ params }: { params: { id: string } })
               Windows : {urlsTelechargement(client.codeLien).windows}
               <br />
               Mac : {urlsTelechargement(client.codeLien).mac}
+              <br />
+              Mac Intel (ancien) : {urlsTelechargement(client.codeLien).macIntel}
             </p>
             <details className="mt-3 rounded-lg border border-gray-200 p-3 text-sm">
               <summary className="cursor-pointer font-semibold text-gray-700">Linux (sans fenêtre, pour un serveur ou une machine virtuelle)</summary>

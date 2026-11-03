@@ -19,6 +19,7 @@ export async function envoyerLienClient(id: number, valides: string[]): Promise<
 
   <p style="margin:22px 0 4px"><strong>1. Téléchargez le programme (un clic) :</strong></p>
   <p style="margin:0 0 18px">${bouton(liens.windows, 'Télécharger pour Windows')}${bouton(liens.mac, 'Télécharger pour Mac')}</p>
+  <p style="margin:-10px 0 18px;font-size:13px;color:#555">Mac ancien à processeur Intel : <a href="${liens.macIntel}" style="color:#4b6b4b">télécharger la version pour Mac Intel</a>.</p>
 
   <p style="margin:0 0 4px"><strong>2. Ouvrez-le et cliquez sur « Installer » :</strong></p>
   <ul style="margin:0 0 18px;padding-left:20px">
