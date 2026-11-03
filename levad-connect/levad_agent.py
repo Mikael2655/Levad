@@ -315,10 +315,11 @@ def chercher_mise_a_jour(config):
     if _numeros(info.get("version", "0")) <= _numeros(VERSION_AGENT):
         return None
     if sys.platform == "darwin":                  # Mac : l'application est livrée dans un zip, avec sa propre empreinte
-        mac = info.get("mac") or {}
+        intel = R.platform.machine() in ("x86_64", "AMD64")      # Mac à processeur Intel : son propre programme
+        mac = info.get("mac_intel" if intel else "mac") or {}
         if not mac:
             return None
-        info.update({"url": base + "/Levad-Connect-Mac.zip", "sha256": mac.get("sha256", ""), "taille": mac.get("taille", 0), "signe": False})
+        info.update({"url": base + ("/Levad-Connect-Mac-Intel.zip" if intel else "/Levad-Connect-Mac.zip"), "sha256": mac.get("sha256", ""), "taille": mac.get("taille", 0), "signe": False})
     else:
         info["url"] = base + "/Levad-Connect.exe"
     return info

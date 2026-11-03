@@ -6,10 +6,12 @@ const VERT = '#8c9e8b'
 export function PageTelechargement({
   lienWindows = '/telechargements/Levad-Connect.exe',
   lienMac = '/telechargements/Levad-Connect-Mac.zip',
+  lienMacIntel = '/telechargements/Levad-Connect-Mac-Intel.zip',
   resident = false,
 }: {
   lienWindows?: string
   lienMac?: string
+  lienMacIntel?: string
   resident?: boolean
 }) {
   return (
@@ -52,6 +54,11 @@ export function PageTelechargement({
             </span>
           </a>
         </div>
+
+        <p className="mt-4 text-center text-sm text-gray-500">
+          Mac ancien, à processeur Intel (macOS 11 ou plus ancien, par exemple) :{' '}
+          <a href={lienMacIntel} download className="underline">télécharger la version pour Mac Intel</a>
+        </p>
 
         <CommentFaire resident={resident} />
 
