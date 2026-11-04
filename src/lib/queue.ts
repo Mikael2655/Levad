@@ -8,7 +8,8 @@ export const QUEUE_STATUSES = ['draft', 'scheduled'] // draft = à valider, sche
 const HOLD_STATUS = 'hold' // ligne technique : « ne rien publier avant scheduledAt »
 const CURSOR_STATUS = 'themecursor' // ligne technique : ordre des thèmes (contentLI = JSON)
 const PERSONA_STATUS = 'persona' // ligne technique : « mon histoire » + rythme (contentLI = JSON)
-export const TECH_STATUSES = [HOLD_STATUS, CURSOR_STATUS, PERSONA_STATUS]
+const FILL_STATUS = 'fillreq' // ligne technique : « il reste N posts à préparer » (contentLI = JSON)
+export const TECH_STATUSES = [HOLD_STATUS, CURSOR_STATUS, PERSONA_STATUS, FILL_STATUS]
 export const PERSONAL_PREFIX = 'En mon nom · '
 
 export function queueTarget(): number {
@@ -338,4 +339,61 @@ export async function rewritePost(
     data: { contentLI: rewritten.linkedin, contentIG: rewritten.instagram },
     omit: { imageUrl: true },
   })
+}
+
+// ---- Préparation de plusieurs posts : le « reste à faire » est gardé côté serveur, pour que la
+// préparation puisse reprendre (navigateur fermé, iPhone mis en veille) ou être poursuivie par le cron.
+async function readFill() {
+  const row = await prisma.socialPost.findFirst({ where: { status: FILL_STATUS } })
+  let remaining = 0
+  let at: Date | null = null
+  try {
+    if (row?.contentLI) {
+      const j = JSON.parse(row.contentLI)
+      remaining = Math.max(0, Number(j.remaining) || 0)
+      at = j.at ? new Date(j.at) : null
+    }
+  } catch { /* état illisible : rien à faire */ }
+  return { row, remaining, at }
+}
+
+async function writeFill(row: { id: number } | null, remaining: number) {
+  const data = { contentLI: JSON.stringify({ remaining, at: new Date().toISOString() }) }
+  if (row) await prisma.socialPost.update({ where: { id: row.id }, data })
+  else await prisma.socialPost.create({ data: { topic: '__fill__', status: FILL_STATUS, ...data } })
+}
+
+export async function getFillRemaining(): Promise<number> {
+  return (await readFill()).remaining
+}
+
+export async function startFill(count: number): Promise<number> {
+  const n = Math.min(30, Math.max(1, Math.round(count) || 1))
+  const { row } = await readFill()
+  await writeFill(row, n)
+  return n
+}
+
+export async function cancelFill(): Promise<void> {
+  const { row } = await readFill()
+  if (row) await writeFill(row, 0)
+}
+
+// Un post du lot vient d'être créé : on retire 1 au reste à faire.
+export async function noteFillProgress(): Promise<number> {
+  const { row, remaining } = await readFill()
+  const next = Math.max(0, remaining - 1)
+  await writeFill(row, next)
+  return next
+}
+
+// Appelé par le cron : si le navigateur a lâché la préparation (aucune activité depuis 3 min), on avance d'un post.
+export async function workFillJobIfIdle(idleMs = 3 * 60 * 1000): Promise<boolean> {
+  const { remaining, at } = await readFill()
+  if (remaining <= 0) return false
+  if (at && Date.now() - at.getTime() < idleMs) return false
+  const picked = await pickTopic()
+  await writeQueuedPost(picked)
+  await noteFillProgress()
+  return true
 }

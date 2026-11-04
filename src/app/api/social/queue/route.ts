@@ -3,7 +3,7 @@ export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { generateQueuedPost, holdUntilDay, movePost, pickTopic, rebuildSlots, rewritePost, shiftOneSlot, writeQueuedPost } from '@/lib/queue'
+import { generateQueuedPost, holdUntilDay, movePost, cancelFill, getFillRemaining, noteFillProgress, pickTopic, rebuildSlots, rewritePost, shiftOneSlot, startFill, writeQueuedPost } from '@/lib/queue'
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,6 +31,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ post })
     }
 
+    if (body.action === 'fill-start') {
+      return NextResponse.json({ remaining: await startFill(Number(body.count)) })
+    }
+
+    if (body.action === 'fill-status') {
+      return NextResponse.json({ remaining: await getFillRemaining() })
+    }
+
+    if (body.action === 'fill-cancel') {
+      await cancelFill()
+      return NextResponse.json({ remaining: 0 })
+    }
+
     if (body.action === 'pick') {
       return NextResponse.json({ picked: await pickTopic() })
     }
@@ -39,7 +52,8 @@ export async function POST(req: NextRequest) {
       const { topic, angle, facts, personal, hint } = body.picked ?? {}
       if (!topic && !personal) return NextResponse.json({ error: 'sujet manquant' }, { status: 400 })
       const post = await writeQueuedPost({ topic: topic ?? '', angle: angle ?? '', facts, personal, hint })
-      return NextResponse.json({ post })
+      const remaining = body.fill ? await noteFillProgress() : undefined
+      return NextResponse.json({ post, remaining })
     }
 
     if (body.action === 'generate') {

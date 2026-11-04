@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { getHold, rebuildSlots, TECH_STATUSES } from '@/lib/queue'
+import { getFillRemaining, getHold, rebuildSlots, TECH_STATUSES } from '@/lib/queue'
 
 export async function GET(req: NextRequest) {
   const id = new URL(req.url).searchParams.get('id')
@@ -17,7 +17,8 @@ export async function GET(req: NextRequest) {
     omit: { imageUrl: true },
   })
   const hold = await getHold()
-  return NextResponse.json({ posts, hold: hold ? hold.toISOString() : null })
+  const fill = await getFillRemaining()
+  return NextResponse.json({ posts, hold: hold ? hold.toISOString() : null, fill })
 }
 
 export async function PATCH(req: NextRequest) {

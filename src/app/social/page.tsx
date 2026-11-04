@@ -72,6 +72,9 @@ function SocialPageInner() {
   const [fillCount, setFillCount] = useState(10)
   const [fillProgress, setFillProgress] = useState<string | null>(null)
   const [fillError, setFillError] = useState<string | null>(null)
+  const [fillRemaining, setFillRemaining] = useState(0)
+  const fillRunning = useRef(false)
+  const autoResumed = useRef(false)
   const [hold, setHold] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [persona, setPersona] = useState<{ bio: string; rhythm: number }>({ bio: '', rhythm: 4 })
@@ -96,6 +99,7 @@ function SocialPageInner() {
     const list: SocialPost[] = data.posts ?? []
     setPosts(list)
     setHold(data.hold ?? null)
+    setFillRemaining(data.fill ?? 0)
     setLoaded(true)
     const idParam = searchParams.get('post')
     if (idParam) {
@@ -402,7 +406,7 @@ function SocialPageInner() {
       body: JSON.stringify(body),
     })
     const text = await res.text()
-    let data: { error?: string; picked?: unknown; post?: unknown } = {}
+    let data: { error?: string; picked?: unknown; post?: unknown; remaining?: number } = {}
     try { data = JSON.parse(text) } catch { /* réponse non JSON (délai dépassé) */ }
     if (!res.ok || data.error) {
       throw new Error(data.error ?? `Erreur serveur ${res.status}${res.status === 504 ? ' (délai dépassé)' : ''}`)
@@ -410,25 +414,94 @@ function SocialPageInner() {
     return data
   }
 
-  async function handleFill() {
-    setFillError(null)
-    let done = 0
-    for (let i = 1; i <= fillCount; i++) {
-      try {
-        setFillProgress(`Recherche du sujet ${i}/${fillCount}…`)
-        const { picked } = await queueCall({ action: 'pick' })
-        setFillProgress(`Rédaction ${i}/${fillCount}…`)
-        await queueCall({ action: 'write', picked })
-        done++
-        await loadPosts()
-      } catch (e) {
-        setFillError(`Arrêt après ${done} post${done > 1 ? 's' : ''} : ${e instanceof Error ? e.message : String(e)}`)
-        break
+  const isNetworkError = (e: unknown) =>
+    e instanceof TypeError || /load failed|failed to fetch|network|connexion/i.test(e instanceof Error ? e.message : String(e))
+
+  function waitUntilVisible(): Promise<void> {
+    if (!document.hidden) return Promise.resolve()
+    return new Promise(resolve => {
+      const onChange = () => {
+        if (!document.hidden) {
+          document.removeEventListener('visibilitychange', onChange)
+          resolve()
+        }
       }
-    }
-    setFillProgress(null)
-    if (done > 0) showToast(`${done} post${done > 1 ? 's' : ''} ajouté${done > 1 ? 's' : ''} à la file`)
+      document.addEventListener('visibilitychange', onChange)
+    })
   }
+
+  // Prépare des posts un par un. Le « reste à faire » est gardé sur le serveur : si la page est quittée
+  // (iPhone en veille, onglet fermé), la préparation reprend à votre retour et le cron la poursuit entre-temps.
+  async function runFill(startCount?: number) {
+    if (fillRunning.current) return
+    fillRunning.current = true
+    setFillError(null)
+    let remaining = startCount ?? fillRemaining
+    try {
+      if (startCount) remaining = (await queueCall({ action: 'fill-start', count: startCount }) as { remaining: number }).remaining
+      setFillRemaining(remaining)
+      const total = Math.max(remaining, 1)
+      let created = 0
+      while (remaining > 0) {
+        await waitUntilVisible()
+        const step = total - remaining + 1
+        let attempts = 0
+        for (;;) {
+          try {
+            setFillProgress(`Recherche du sujet ${step}/${total}…`)
+            const { picked } = await queueCall({ action: 'pick' })
+            setFillProgress(`Rédaction ${step}/${total}…`)
+            const res = await queueCall({ action: 'write', picked, fill: true }) as { remaining?: number }
+            remaining = res.remaining ?? remaining - 1
+            created++
+            break
+          } catch (e) {
+            if (!isNetworkError(e) || attempts >= 4) throw e
+            attempts++
+            setFillProgress(`Connexion perdue, reprise… (${attempts}/4)`)
+            await waitUntilVisible()
+            await new Promise(r => setTimeout(r, 1500 * attempts))
+            // La requête précédente a pu aboutir côté serveur : on relit le reste à faire avant de recommencer.
+            const status = await queueCall({ action: 'fill-status' }) as { remaining: number }
+            if (status.remaining < remaining) {
+              remaining = status.remaining
+              created++
+              break
+            }
+          }
+        }
+        setFillRemaining(remaining)
+        await loadPosts()
+      }
+      if (created > 0) showToast(`${created} post${created > 1 ? 's' : ''} ajouté${created > 1 ? 's' : ''} à la file`)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setFillError(isNetworkError(e)
+        ? 'Connexion perdue. Vos posts déjà prêts sont dans la file ; la préparation reprendra à votre retour.'
+        : `Arrêt : ${msg}. Les posts déjà prêts sont dans la file.`)
+    } finally {
+      fillRunning.current = false
+      setFillProgress(null)
+      await loadPosts().catch(() => {})
+    }
+  }
+
+  async function cancelFillJob() {
+    try {
+      await queueCall({ action: 'fill-cancel' })
+    } catch { /* hors ligne : le prochain essai réussira */ }
+    setFillRemaining(0)
+    setFillError(null)
+  }
+
+  // À l'ouverture de la page : si une préparation était en cours, on la reprend (une seule fois).
+  useEffect(() => {
+    if (loaded && fillRemaining > 0 && !fillRunning.current && !autoResumed.current && !document.hidden) {
+      autoResumed.current = true
+      runFill()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, fillRemaining])
 
   async function handleDelete() {
     if (!selected || !confirm('Supprimer ce post définitivement ?')) return
@@ -668,12 +741,19 @@ function SocialPageInner() {
                       className="border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white">
                       {[5, 10, 20].map(n => <option key={n} value={n}>{n} posts</option>)}
                     </select>
-                    <button onClick={handleFill} disabled={!!fillProgress}
+                    <button onClick={() => runFill(fillCount)} disabled={!!fillProgress}
                       className="flex-1 bg-white border border-stone-300 text-stone-800 py-2 rounded-lg text-sm font-medium hover:bg-sable-50 transition disabled:opacity-50">
                       {fillProgress ?? 'Remplir la file'}
                     </button>
                   </div>
                   {fillError && <p className="text-xs text-red-600 mt-2 break-words">{fillError}</p>}
+                  {fillRemaining > 0 && !fillProgress && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                      <span>Préparation interrompue : {fillRemaining} post{fillRemaining > 1 ? 's' : ''} restant{fillRemaining > 1 ? 's' : ''}.</span>
+                      <button onClick={() => runFill()} className="font-semibold underline underline-offset-2 hover:text-amber-950">Reprendre</button>
+                      <button onClick={cancelFillJob} className="text-amber-800/80 hover:text-amber-950">Annuler</button>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-4 pt-3 border-t border-sable-200">
                   <p className="text-xs text-stone-500 mb-2">

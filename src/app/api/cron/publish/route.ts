@@ -4,7 +4,7 @@ export const maxDuration = 60
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { publishEverywhere } from '@/lib/publish'
-import { generateQueuedPost, getHold, latestSlotAtOrBefore, rebuildSlots, sortQueue } from '@/lib/queue'
+import { generateQueuedPost, getHold, latestSlotAtOrBefore, rebuildSlots, sortQueue, workFillJobIfIdle } from '@/lib/queue'
 
 const SLOT_WINDOW_MS = 6 * 3600000
 
@@ -16,6 +16,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const response = await publishPass()
+
+  // Aucune publication ce coup-ci : si une préparation de posts a été abandonnée par le navigateur, on avance d'un post.
+  try {
+    const body = await response.clone().json()
+    if (response.status === 200 && !body.published) await workFillJobIfIdle()
+  } catch (e) {
+    console.error('[cron/publish] fill job', e)
+  }
+  return response
+}
+
+async function publishPass(): Promise<NextResponse> {
   try {
     const config = await prisma.socialConfig.findFirst({ where: { id: 1 } })
     if (!config) return NextResponse.json({ skipped: 'no config' })
