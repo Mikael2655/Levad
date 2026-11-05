@@ -81,7 +81,7 @@ export default async function FicheContrat({ params, searchParams }: { params: {
       {u.role === 'ADMIN' && <BoutonSupprimer id={c.id} client={c.raisonSociale} avecDemande={c.demandeId !== null} />}
 
       {peutModifierContrat(u) && (
-        <FormulaireContrat id={c.id} commercialId={c.commercialId} commerciaux={commerciaux} materiel={c.materiel} refFinanceur={reel?.refFinanceur ?? ''} banque={reel?.banque ?? ''} banques={banques} dateDebut={iso(c.dateDebut)} dateFin={iso(c.dateFin)} />
+        <FormulaireContrat id={c.id} commercialId={c.commercialId} commerciaux={commerciaux} materiel={c.materiel} refFinanceur={reel?.refFinanceur ?? ''} banque={reel?.banque ?? ''} banques={banques} dureeMois={c.dureeMois} periodicite={c.periodicite} dateDebut={iso(c.dateDebut)} dateFin={iso(c.dateFin)} />
       )}
     </main>
   )
