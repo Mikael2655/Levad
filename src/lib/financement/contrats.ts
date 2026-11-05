@@ -8,7 +8,7 @@ import { montantDepuisLoyer } from './calcul'
 import { estInterne, peutImporterContrats, peutModifierContrat, peutVoirBaremeReel, vueContrat, type Acteur } from './droits'
 import { ajouterMois, dateFinDepuisDebut, dernierLoyer, etatEcheance, moisRestants, prochaineReconduction, statutContrat } from './echeances'
 import { ErreurMetier } from './erreurs'
-import { colonnesManquantes, lireLignes, normaliser, type Mapping, type UniteLoyer } from './import-contrats'
+import { colonnesManquantes, dureeDepuisDates, lireLignes, normaliser, type Mapping, type UniteLoyer } from './import-contrats'
 
 // « En cours » comprend les contrats en reconduction tacite (le statut Tacite reste affiché dans la liste, mais n'est plus un filtre).
 export type FiltreStatut = 'en_cours' | 'cloture' | 'tous'
@@ -93,15 +93,25 @@ export async function lireContrat(a: Acteur, id: number) {
   return c ? enrichir(a, c, new Date()) : null
 }
 
-export async function modifierContrat(a: Acteur, id: number, d: { materiel?: string; refFinanceur?: string | null; dateDebut?: Date | null; dateFin?: Date | null; commercialId?: number; banque?: string | null }) {
+export async function modifierContrat(a: Acteur, id: number, d: { materiel?: string; refFinanceur?: string | null; dateDebut?: Date | null; dateFin?: Date | null; commercialId?: number; banque?: string | null; dureeMois?: number }) {
   if (!peutModifierContrat(a)) throw new ErreurMetier('Action non autorisée.', 403)
   const c = await prisma.finContrat.findUnique({ where: { id } })
   if (!c) throw new ErreurMetier('Contrat introuvable.', 404)
   if (d.materiel !== undefined && !d.materiel.trim()) throw new ErreurMetier('Le matériel ne peut pas être vide.')
   const dateDebut = d.dateDebut !== undefined ? d.dateDebut : c.dateDebut
-  // fin explicite si fournie ; sinon, un nouveau 1er loyer recalcule la fin
-  const dateFin = d.dateFin !== undefined ? d.dateFin : d.dateDebut !== undefined && dateDebut ? dateFinDepuisDebut(dateDebut, c.dureeMois) : c.dateFin
+  // Durée : fournie, ou déduite des dates quand on corrige la date de fin ; la fin suit la durée et le 1er loyer quand elle n'est pas donnée.
+  let dureeMois = c.dureeMois
+  if (d.dureeMois !== undefined) {
+    if (!Number.isInteger(d.dureeMois) || d.dureeMois < 1 || d.dureeMois > 240) throw new ErreurMetier('Durée invalide (entre 1 et 240 mois).')
+    dureeMois = d.dureeMois
+  }
+  const dureeChangee = d.dureeMois !== undefined && d.dureeMois !== c.dureeMois
+  const dateFin = d.dateFin !== undefined ? d.dateFin : dateDebut && (d.dateDebut !== undefined || dureeChangee) ? dateFinDepuisDebut(dateDebut, dureeMois) : c.dateFin
   if (dateDebut && dateFin && dateFin <= dateDebut) throw new ErreurMetier('La date de fin doit être postérieure au 1er loyer.')
+  if (d.dateFin !== undefined && d.dureeMois === undefined && dateDebut && dateFin) {
+    const deduite = dureeDepuisDates(dateDebut, dateFin, c.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE')
+    if (deduite) dureeMois = deduite
+  }
   // Changement de commercial : le montant commercial est recalculé avec la grille du nouveau commercial (le loyer ne change pas).
   let rattachement: { commercialId: number; montantCommercialCentimes: number | null } | null = null
   if (d.commercialId !== undefined && d.commercialId !== c.commercialId) {
@@ -109,13 +119,24 @@ export async function modifierContrat(a: Acteur, id: number, d: { materiel?: str
     if (!u || !u.actif || (u.role !== 'COMMERCIAL' && u.role !== 'ADMIN')) throw new ErreurMetier('Commercial invalide.')
     const financeur = await prisma.finFinanceur.findUniqueOrThrow({ where: { id: c.financeurId } })
     const grille = await grilleCommercialePour(c.financeurId, u.id)
-    const r = grille ? montantDepuisLoyer(grille, c.dureeMois, c.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE', financeur.majorationMensuelleBp, c.loyerCentimes) : null
+    const r = grille ? montantDepuisLoyer(grille, dureeMois, c.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE', financeur.majorationMensuelleBp, c.loyerCentimes) : null
     rattachement = { commercialId: u.id, montantCommercialCentimes: r?.montantCentimes ?? null }
+  }
+  // Durée modifiée (directement, ou par la date de fin) : le montant « commercial » dépend de la durée, il est recalculé avec le barème du commercial.
+  let nouveauMontant: { montantCommercialCentimes: number | null } | null = null
+  if (dureeMois !== c.dureeMois && !rattachement) {
+    const grille = await grilleCommercialePour(c.financeurId, c.commercialId)
+    if (grille) {
+      const financeur = await prisma.finFinanceur.findUniqueOrThrow({ where: { id: c.financeurId } })
+      nouveauMontant = { montantCommercialCentimes: montantDepuisLoyer(grille, dureeMois, c.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE', financeur.majorationMensuelleBp, c.loyerCentimes)?.montantCentimes ?? null }
+    }
   }
   await prisma.finContrat.update({
     where: { id },
     data: {
       ...(rattachement ?? {}),
+      ...(nouveauMontant ?? {}),
+      dureeMois,
       ...(d.materiel !== undefined ? { materiel: d.materiel.trim() } : {}),
       ...(d.banque !== undefined ? { banque: d.banque?.trim().slice(0, 80) || null } : {}),
       ...(d.refFinanceur !== undefined ? { refFinanceur: d.refFinanceur?.trim() || null } : {}),

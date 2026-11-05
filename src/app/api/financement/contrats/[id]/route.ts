@@ -23,6 +23,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       ...(typeof c.refFinanceur === 'string' || c.refFinanceur === null ? { refFinanceur: c.refFinanceur } : {}),
       ...(c.commercialId ? { commercialId: Number(c.commercialId) } : {}),
       ...(typeof c.banque === 'string' || c.banque === null ? { banque: c.banque } : {}),
+      ...(c.dureeMois !== undefined && c.dureeMois !== null && c.dureeMois !== '' ? { dureeMois: Number(c.dureeMois) } : {}),
       dateDebut: date(c.dateDebut),
       dateFin: date(c.dateFin),
     }),

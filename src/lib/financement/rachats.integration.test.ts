@@ -102,6 +102,37 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
     const apres = await prisma.finContrat.findUniqueOrThrow({ where: { id: c.id } })
     expect(apres).toMatchObject({ materiel: c.materiel, banque: null, commercialId: ids.comA, denonceLe: null })
   })
+  it('correction de la durée : la date de fin corrige la durée, la durée corrige la date de fin, le montant commercial suit', async () => {
+    const g = (await admin.creerFinanceur({ nom: 'Financeur durée' })).id
+    await admin.enregistrerGrille({ financeurId: g, type: 'COMMERCIALE', utilisateurId: null }, 'TRIMESTRIEL', lignesVersMatrice(COMMERCIAL_LIGNES))
+    const c = await nouveau({ raisonSociale: 'Erreur de date', financeurId: g, dateDebut: jour('2026-01-01'), dateFin: jour('2031-04-01') })
+    const lire = () => prisma.finContrat.findUniqueOrThrow({ where: { id: c.id } })
+    // date de fin corrigée : la durée est déduite (2026-01-01 -> 2030-01-01 = 48 mois), le montant commercial est recalculé
+    await ct.modifierContrat(S(), c.id, { dateFin: jour('2030-01-01') })
+    let apres = await lire()
+    expect(apres.dureeMois).toBe(48)
+    expect(apres.dateFin).toEqual(jour('2030-01-01'))
+    expect(apres.montantCommercialCentimes).toBeGreaterThan(900000)
+    expect(apres.montantCommercialCentimes).toBeLessThan(1000000)
+    expect(apres.loyerCentimes).toBe(72300) // le loyer ne change jamais
+    // durée corrigée : la fin suit (1er loyer + durée), le montant revient
+    await ct.modifierContrat(S(), c.id, { dureeMois: 63 })
+    apres = await lire()
+    expect(apres.dureeMois).toBe(63)
+    expect(apres.dateFin).toEqual(jour('2031-04-01'))
+    expect(apres.montantCommercialCentimes).toBe(1215126)
+    // valeurs explicites : respectées telles quelles
+    await ct.modifierContrat(S(), c.id, { dureeMois: 60, dateFin: jour('2031-01-01') })
+    expect(await lire()).toMatchObject({ dureeMois: 60, dateFin: jour('2031-01-01') })
+    await expect(ct.modifierContrat(S(), c.id, { dureeMois: 0 })).rejects.toThrow('Durée invalide')
+    await expect(ct.modifierContrat(S(), c.id, { dureeMois: 241 })).rejects.toThrow('Durée invalide')
+    await expect(ct.modifierContrat(S(), c.id, { dureeMois: 12.5 })).rejects.toThrow('Durée invalide')
+  })
+  it('durée corrigée sans barème commercial : le montant déjà enregistré est conservé ; sans 1er loyer, la date de fin ne bouge pas', async () => {
+    const c = await nouveau({ raisonSociale: 'Sans barème', dateDebut: null, dateFin: jour('2031-04-01') })
+    await ct.modifierContrat(S(), c.id, { dureeMois: 48 })
+    expect(await prisma.finContrat.findUniqueOrThrow({ where: { id: c.id } })).toMatchObject({ dureeMois: 48, montantCommercialCentimes: 1215126, dateFin: jour('2031-04-01') })
+  })
   it('banque : renseignée sur un contrat ou sur une sélection (admin et assistante), jamais visible du commercial', async () => {
     const x = await nouveau({ raisonSociale: 'Banque 1', dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
     const y = await nouveau({ raisonSociale: 'Banque 2', dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
