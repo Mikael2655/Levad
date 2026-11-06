@@ -44,6 +44,8 @@ export default async function FicheContrat({ params, searchParams }: { params: {
           <TitreSection icone="contrat">Contrat</TitreSection>
           {reel && <div className="ml-auto text-sm"><SelecteurMontant initial={modeMontant} /></div>}
         </div>
+        {c.reference && <Ligne t="Référence">{c.reference}</Ligne>}
+        {c.refFinanceur && c.refFinanceur !== c.reference && <Ligne t="N° de contrat">{c.refFinanceur}</Ligne>}
         <Ligne t="Financeur">{c.financeurNom}</Ligne>
         <Ligne t="Commercial">{c.commercialNom}</Ligne>
         {c.siret && <Ligne t="SIREN / SIRET">{c.siret}</Ligne>}
@@ -59,7 +61,6 @@ export default async function FicheContrat({ params, searchParams }: { params: {
         {reel && (
           <>
             {reel.banque && <Ligne t="Banque">{reel.banque}</Ligne>}
-            {reel.refFinanceur && <Ligne t="N° de contrat financeur">{reel.refFinanceur}</Ligne>}
           </>
         )}
         <Ligne t="Statut">{LIBELLES_STATUT_CONTRAT[c.statutContrat]}</Ligne>

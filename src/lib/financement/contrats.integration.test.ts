@@ -106,7 +106,8 @@ d('contrats (base réelle)', () => {
     })
     it('aucune donnée réelle ne part vers un commercial', async () => {
       const json = JSON.stringify(await ct.listerContrats(CA(), { statut: 'tous' }))
-      for (const interdit of ['montantReel', 'marge', '1255208', 'SECRET-REF']) expect(json).not.toContain(interdit)
+      for (const interdit of ['montantReel', 'marge', '1255208']) expect(json).not.toContain(interdit)
+      expect(json).toContain('SECRET-REF') // le numéro de contrat n'est pas confidentiel
       expect(json).toContain('1215126')
       expect(JSON.stringify(await ct.listerContrats(S()))).toContain('1255208')
     })

@@ -55,7 +55,7 @@ describe('vue contrat commerciale', () => {
     const json = JSON.stringify(vueContrat(comA, c))
     expect(json).not.toContain('montantReel')
     expect(json).not.toContain('marge')
-    expect(json).not.toContain('refFinanceur')
+    expect(json).toContain('"refFinanceur":"X"') // numéro de contrat : visible des commerciaux
     expect(json).not.toContain('statutFinanceur')
   })
 })
