@@ -119,9 +119,10 @@ d('Solubail, notifications et transfert (base réelle)', () => {
     expect((await acces.listerDemandes(CA())).some(x => x.id === demandeId)).toBe(false)
     expect((await acces.compterParStatut(S())).SIGNEE).toBeUndefined()
   })
-  it('le commercial voit son contrat sans montant réel ni banque', async () => {
+  it('le commercial voit son contrat et sa banque, sans montant financé réel ni marge', async () => {
     const liste = await contrats.listerContrats(CA())
-    expect(JSON.stringify(liste)).not.toMatch(/banque|montantReel|Locam|marge/)
+    expect(JSON.stringify(liste)).toContain('Locam')
+    expect(JSON.stringify(liste)).not.toMatch(/montantReel|marge/)
     const vue = await acces.lireDemande(CA(), demandeId)
     expect(JSON.stringify(vue)).not.toMatch(/montantReel|marge/)
     const interne = (await contrats.listerContrats(S()))[0] as Record<string, unknown>

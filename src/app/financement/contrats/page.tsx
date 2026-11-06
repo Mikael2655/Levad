@@ -100,7 +100,7 @@ export default async function PageContrats({ searchParams }: { searchParams: Par
               {entete('reference', 'Référence')}
               {entete('client', 'Client')}
               {interne && entete('commercial', 'Commercial')}
-              {entete('financeur', <>Financeur{reel && ' · banque'}</>)}
+              {entete('financeur', 'Financeur · banque')}
               {entete('materiel', 'Matériel')}
               {entete('loyer', 'Loyer', true)}
               {entete('duree', 'Durée', true)}

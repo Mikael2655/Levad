@@ -27,10 +27,13 @@ describe('visibilité', () => {
 
 describe('vue commerciale : rien du réel ne sort', () => {
   const json = JSON.stringify(vueDemande(comA, demande))
-  it('aucun champ réel ni marge ni référence financeur', () => {
-    for (const interdit of ['montantReel', 'coefficientReel', 'marge', 'refFinanceur', '1255208', '57600', 'GRK-SECRET']) {
+  it('aucun champ réel ni marge (seuls le montant financé réel et la marge sont confidentiels)', () => {
+    for (const interdit of ['montantReel', 'coefficientReel', 'marge', '1255208', '57600']) {
       expect(json).not.toContain(interdit)
     }
+  })
+  it('le numéro de dossier chez le financeur n’est pas confidentiel', () => {
+    expect(json).toContain('GRK-SECRET')
   })
   it('mais il a son montant et son coefficient', () => {
     expect(json).toContain('montantCommercialCentimes')
