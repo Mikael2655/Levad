@@ -158,7 +158,8 @@ d('demandes (base réelle)', () => {
       expect(fiche!.historique.map(h => h.nouveauStatut)).toEqual(['BROUILLON', 'BROUILLON', 'ENVOYEE', 'ENVOYEE', 'INFOS_MANQUANTES', 'PRETE_A_SIGNER', 'EN_SIGNATURE', 'SIGNEE'])
       expect(fiche!.historique[4].commentaire).toContain('Bilan 2025 et RIB')
       const json = JSON.stringify(fiche)
-      for (const interdit of ['Reel', 'marge', '1255208', 'GRK-123', 'assist@t.fr', 'boss@t.fr', 'ca@t.fr']) expect(json).not.toContain(interdit)
+      for (const interdit of ['Reel', 'marge', '1255208', 'assist@t.fr', 'boss@t.fr', 'ca@t.fr']) expect(json).not.toContain(interdit)
+      expect(json).toContain('GRK-123') // numéro de dossier chez le financeur : visible du commercial
     })
     it('un commercial mène sa demande seul, de la saisie à la signature ; le n° de dossier financeur lui reste caché', async () => {
       const x = (await dem.creerDemande(CA(), entree())).id

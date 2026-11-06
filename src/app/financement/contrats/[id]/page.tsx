@@ -60,9 +60,9 @@ export default async function FicheContrat({ params, searchParams }: { params: {
         </Ligne>
         {reel && (
           <>
-            {reel.banque && <Ligne t="Banque">{reel.banque}</Ligne>}
           </>
         )}
+        {c.banque && <Ligne t="Banque">{c.banque}</Ligne>}
         <Ligne t="Statut">{LIBELLES_STATUT_CONTRAT[c.statutContrat]}</Ligne>
         {c.statutContrat === 'TACITE' && c.reconduction && <Ligne t="Reconduction tacite">Prolongé d’un an : prochaine reconduction le {dateFr(c.reconduction)}{c.denonceLe ? ' — dénoncé, il s’arrêtera à cette date' : ''}</Ligne>}
         {c.denonceLe && c.statutContrat !== 'TACITE' && <Ligne t="Dénonciation">Dénoncé le {dateFr(c.denonceLe)} : le contrat s’arrête au terme</Ligne>}

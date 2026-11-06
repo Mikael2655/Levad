@@ -59,7 +59,7 @@ export function peutAnnuler(a: Acteur, d: AvecStatut): boolean {
 // Archiver (la demande disparaît de la liste) : admin et assistante pour toute demande, le commercial pour les siennes.
 export const peutArchiver = (a: Acteur, d: Possedee) => peutVoir(a, d)
 
-// Renseigner le n° de dossier chez le financeur (donnée réelle, que le commercial ne voit jamais) : réservé à l'interne.
+// Renseigner le n° de dossier chez le financeur : réservé à l'interne (le commercial le voit, mais ne le modifie pas).
 // Le changement de statut lui-même est ouvert à tous sur les demandes visibles (voir statuts.ts).
 export const peutChangerStatut = (a: Acteur) => estInterne(a)
 
@@ -111,6 +111,7 @@ export function vueCommerciale(d: DemandeBase) {
     archivee: d.archivee,
     infosManquantes: d.infosManquantes,
     etapeSignature: d.etapeSignature,
+    refFinanceur: d.refFinanceur, // numéro de dossier chez le financeur : visible des commerciaux (pas confidentiel)
     financeurId: d.financeurId,
     commercialId: d.commercialId,
     saisiParId: d.saisiParId,
@@ -185,6 +186,7 @@ export function vueContrat(a: Acteur, c: ContratBase) {
     dateFin: c.dateFin,
     montantCommercialCentimes: c.montantCommercialCentimes,
     refFinanceur: c.refFinanceur, // numéro de contrat : visible des commerciaux (pas confidentiel)
+    banque: c.banque, // banque du contrat (courtier) : visible des commerciaux ; seuls le montant financé réel et la marge sont confidentiels
     denonceLe: c.denonceLe,
     clotureLe: c.clotureLe,
   }

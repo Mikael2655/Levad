@@ -133,7 +133,7 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
     await ct.modifierContrat(S(), c.id, { dureeMois: 48 })
     expect(await prisma.finContrat.findUniqueOrThrow({ where: { id: c.id } })).toMatchObject({ dureeMois: 48, montantCommercialCentimes: 1215126, dateFin: jour('2031-04-01') })
   })
-  it('banque : renseignée sur un contrat ou sur une sélection (admin et assistante), jamais visible du commercial', async () => {
+  it('banque : renseignée sur un contrat ou sur une sélection (admin et assistante), visible du commercial (non confidentielle)', async () => {
     const x = await nouveau({ raisonSociale: 'Banque 1', dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
     const y = await nouveau({ raisonSociale: 'Banque 2', dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
     await ct.modifierContrat(S(), x.id, { banque: '  Locam ' })
@@ -141,7 +141,9 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
     await expect(ct.definirBanque(S(), [], 'BNP')).rejects.toThrow('Aucun contrat')
     expect(await ct.definirBanque(A(), [x.id, y.id], 'BNP Leasing')).toEqual({ modifies: 2 })
     expect((await ct.listerBanques())).toEqual(expect.arrayContaining(['BNP Leasing']))
-    expect(JSON.stringify(await ct.listerContrats(CA(), { statut: 'tous' }))).not.toContain('BNP Leasing')
+    const vueCommercial = JSON.stringify(await ct.listerContrats(CA(), { statut: 'tous' }))
+    expect(vueCommercial).toContain('BNP Leasing')
+    expect(vueCommercial).not.toMatch(/montantReel|marge/) // seuls le montant financé réel et la marge restent confidentiels
     await ct.definirBanque(S(), [x.id], '  ') // vide : efface
     expect((await prisma.finContrat.findUniqueOrThrow({ where: { id: x.id } })).banque).toBeNull()
   })
