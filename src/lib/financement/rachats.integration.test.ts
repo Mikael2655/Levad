@@ -158,15 +158,15 @@ d('statut des contrats et solde anticipé (base réelle)', () => {
     await ct.modifierContrat(S(), c.id, { materiel: 'X' }) // inchangé par ailleurs
   })
 
-  it('référence : numéro du financeur ; Solubail : numéro de demande ; commercial : jamais le numéro du financeur', async () => {
+  it('référence : numéro du financeur ; Solubail : numéro de demande ; identique pour le commercial et pour l\'administrateur', async () => {
     const demande = await prisma.finDemande.create({ data: { reference: 'LEV-2026-0042', financeurId: ids.solubail, commercialId: ids.comA, saisiParId: ids.comA, statut: 'SIGNEE', raisonSociale: 'SOL', siret: '', adresse: '', contactPrenom: '', contactNom: '', contactEmail: '', dureeMois: 63, periodicite: 'TRIMESTRIELLE', loyerCentimes: 1, montantCommercialCentimes: 1, coefficientCommercialPpm: 1 } as never })
     const g = await nouveau({ raisonSociale: 'Réf Grenke', refFinanceur: 'GRK-123', dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
     const s = await nouveau({ raisonSociale: 'Réf Solubail', financeurId: ids.solubail, refFinanceur: 'SB-9', demandeId: demande.id, dateDebut: IL_Y_A(1), dateFin: IL_Y_A(-62) })
     expect((await ct.lireContrat(S(), g.id))!.reference).toBe('GRK-123')
     expect((await ct.lireContrat(S(), s.id))!.reference).toBe('LEV-2026-0042')
-    expect((await ct.lireContrat(CA(), g.id))!.reference).toBeNull()
+    expect((await ct.lireContrat(CA(), g.id))!.reference).toBe('GRK-123')
     expect((await ct.lireContrat(CA(), s.id))!.reference).toBe('LEV-2026-0042')
-    expect(JSON.stringify(await ct.listerContrats(CA()))).not.toMatch(/GRK-123|SB-9/)
+    expect(JSON.stringify(await ct.listerContrats(CA()))).toContain('GRK-123')
   })
 
   it('suppression d\'un contrat : administrateur seulement ; emporte la demande d\'origine', async () => {

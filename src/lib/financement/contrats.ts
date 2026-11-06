@@ -52,10 +52,9 @@ const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: {
 
 function enrichir(a: Acteur, c: Prisma.FinContratGetPayload<{ include: typeof NOMS }>, maintenant: Date) {
   const { commercial, financeur, demande, ...base } = c
-  const interne = peutVoirBaremeReel(a)
-  // Référence affichée : numéro de contrat du financeur ; pour un financeur sans API (ex. Solubail) le numéro de demande.
-  // Un commercial ne voit jamais le numéro du financeur : numéro de demande, ou rien pour un contrat importé.
-  const reference = interne ? (financeur.envoiParMail && demande ? demande.reference : base.refFinanceur ?? demande?.reference ?? null) : demande?.reference ?? null
+  // Référence affichée, la même pour tout le monde : numéro de contrat du financeur ; pour un financeur sans API (ex. Solubail),
+  // le numéro de demande ; à défaut, le numéro de demande d'origine.
+  const reference = financeur.envoiParMail && demande ? demande.reference : base.refFinanceur ?? demande?.reference ?? null
   const statut = statutContrat(base, maintenant)
   return {
     ...vueContrat(a, base),

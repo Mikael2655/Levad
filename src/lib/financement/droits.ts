@@ -184,6 +184,7 @@ export function vueContrat(a: Acteur, c: ContratBase) {
     dateDebut: c.dateDebut,
     dateFin: c.dateFin,
     montantCommercialCentimes: c.montantCommercialCentimes,
+    refFinanceur: c.refFinanceur, // numéro de contrat : visible des commerciaux (pas confidentiel)
     denonceLe: c.denonceLe,
     clotureLe: c.clotureLe,
   }
