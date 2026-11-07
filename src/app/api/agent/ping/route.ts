@@ -9,8 +9,16 @@ import { clientParRequete, listeIps } from '@/lib/connect/agent'
 
 export const dynamic = 'force-dynamic'
 
-// Un signal de vie toutes les 5 minutes : moins d'appels au site et à la base. « Lire maintenant » démarre donc dans les 5 minutes.
-const PAUSE_SIGNAL_SECONDES = 300
+// Un signal de vie toutes les 30 minutes (programme 1.15 et plus), en même temps que le relevé des compteurs et des niveaux d'encre :
+// peu d'appels au site et à la base. « Lire maintenant » démarre donc dans les 30 minutes.
+const PAUSE_SIGNAL_SECONDES = 1800
+const INTERVALLE_RELEVE_MINUTES = 30
+
+/** Le programme respecte le rythme demandé par le site à partir de la version 1.15. */
+function respecteLeRythme(version: string | null) {
+  const [a = 0, b = 0] = (version ?? '').split('.').map((x) => parseInt(x, 10) || 0)
+  return a > 1 || (a === 1 && b >= 15)
+}
 
 export async function POST(req: Request) {
   const client = await clientParRequete(req)
@@ -82,7 +90,8 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: true,
     client: client.nom,
-    intervalleMinutes: 30,
+    // le signal n'arrive qu'une fois par pause : on lance le relevé un peu avant l'échéance pour qu'il tombe toutes les 30 minutes
+    intervalleMinutes: respecteLeRythme(version) ? INTERVALLE_RELEVE_MINUTES - 5 : INTERVALLE_RELEVE_MINUTES,
     pauseSecondes: PAUSE_SIGNAL_SECONDES, // rythme des signaux de vie (programme 1.15 et plus ; les versions précédentes gardent 1 minute)
     ips: listeIps(client.ipsManuelles),
     commandes: commandes.map((c) => ({ id: c.id, type: c.type, machineId: c.machineId })),
