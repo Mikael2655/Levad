@@ -9,6 +9,9 @@ import { clientParRequete, listeIps } from '@/lib/connect/agent'
 
 export const dynamic = 'force-dynamic'
 
+// Un signal de vie toutes les 5 minutes : moins d'appels au site et à la base. « Lire maintenant » démarre donc dans les 5 minutes.
+const PAUSE_SIGNAL_SECONDES = 300
+
 export async function POST(req: Request) {
   const client = await clientParRequete(req)
   if (!client) return NextResponse.json({ error: 'code inconnu' }, { status: 401 })
@@ -80,6 +83,7 @@ export async function POST(req: Request) {
     ok: true,
     client: client.nom,
     intervalleMinutes: 30,
+    pauseSecondes: PAUSE_SIGNAL_SECONDES, // rythme des signaux de vie (programme 1.15 et plus ; les versions précédentes gardent 1 minute)
     ips: listeIps(client.ipsManuelles),
     commandes: commandes.map((c) => ({ id: c.id, type: c.type, machineId: c.machineId })),
   })
