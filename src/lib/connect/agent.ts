@@ -76,11 +76,11 @@ export function urlsTelechargement(code: string): { windows: string; mac: string
 
 export type StatutConnexion = 'jamais' | 'connecte' | 'inactif' | 'deconnecte'
 
-/** connecté : signal de moins de 10 minutes ; déconnecté : plus de signal depuis le délai réglé (10 jours par défaut). */
+/** connecté : signal de moins de 15 minutes ; déconnecté : plus de signal depuis le délai réglé (10 jours par défaut). */
 export function statutConnexion(derniere: Date | null, seuilJours: number): StatutConnexion {
   if (!derniere) return 'jamais'
   const ageMs = Date.now() - derniere.getTime()
-  if (ageMs < 10 * 60 * 1000) return 'connecte'
+  if (ageMs < 15 * 60 * 1000) return 'connecte'
   if (ageMs < seuilJours * 24 * 3600 * 1000) return 'inactif'
   return 'deconnecte'
 }

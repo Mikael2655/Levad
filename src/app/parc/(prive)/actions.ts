@@ -386,14 +386,14 @@ export async function marquerMachinesVues(): Promise<string | void> {
   return `${n} élément${n > 1 ? 's' : ''} marqué${n > 1 ? 's' : ''} comme vu${n > 1 ? 's' : ''}`
 }
 
-// Lecture immédiate demandée depuis la fiche du client (utile quand il n'a encore aucune machine) : le programme la fait à son prochain signal (moins d'une minute).
+// Lecture immédiate demandée depuis la fiche du client (utile quand il n'a encore aucune machine) : le programme la fait à son prochain signal (dans les 5 minutes).
 export async function demanderLectureClient(formData: FormData): Promise<string | void> {
   if (!connecte()) throw new Error('Non connecté')
   const clientId = Number(formData.get('id'))
   const deja = await prisma.connectCommande.findFirst({ where: { clientId, faiteLe: null } })
   if (!deja) await prisma.connectCommande.create({ data: { clientId } })
   revalidatePath(`/parc/client/${clientId}`)
-  return 'Lecture demandée : le programme la fait dans la minute (si le PC est allumé)'
+  return 'Lecture demandée : le programme la fait dans les 5 minutes (si le PC est allumé)'
 }
 
 // ---- Machine hors contrat : plus d'alerte d'encre, et exclue des exports -------------------------
