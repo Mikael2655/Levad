@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { applyBoldMarkup, toggleBold } from '@/lib/unicode-bold'
+import { DEFAULT_SLOTS, normalizeSlots, upcomingSlots, type SlotConfig } from '@/lib/slots'
 
 interface SocialPost {
   id: number
@@ -73,6 +74,8 @@ function SocialPageInner() {
   const [fillProgress, setFillProgress] = useState<string | null>(null)
   const [fillError, setFillError] = useState<string | null>(null)
   const [fillRemaining, setFillRemaining] = useState(0)
+  const [slots, setSlots] = useState<SlotConfig>(DEFAULT_SLOTS)
+  const [savingSlots, setSavingSlots] = useState(false)
   const fillRunning = useRef(false)
   const autoResumed = useRef(false)
   const [hold, setHold] = useState<string | null>(null)
@@ -115,6 +118,10 @@ function SocialPageInner() {
     try {
       const pr = await fetch('/api/social/persona')
       if (pr.ok) setPersona(await pr.json())
+    } catch { /* section facultative */ }
+    try {
+      const sr = await fetch('/api/social/slots')
+      if (sr.ok) setSlots(normalizeSlots(await sr.json()))
     } catch { /* section facultative */ }
   }, [])
 
@@ -255,6 +262,35 @@ function SocialPageInner() {
       body: JSON.stringify({ action: 'move', id, direction }),
     })
     await loadPosts()
+  }
+
+  function toggleSlotDay(day: number) {
+    setSlots(prev => {
+      const days = prev.days.includes(day) ? prev.days.filter(d => d !== day) : [...prev.days, day]
+      return { ...prev, days: days.sort((a, b) => a - b) }
+    })
+  }
+
+  async function handleSaveSlots() {
+    if (slots.days.length === 0) return
+    setSavingSlots(true)
+    try {
+      const res = await fetch('/api/social/slots', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(slots),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setSlots(normalizeSlots(data))
+        await loadPosts()
+        showToast('Créneaux enregistrés : la file a été redistribuée')
+      } else {
+        showToast(data.error ?? 'Erreur de sauvegarde des créneaux', false)
+      }
+    } finally {
+      setSavingSlots(false)
+    }
   }
 
   async function handleSavePersona() {
@@ -1217,6 +1253,66 @@ function SocialPageInner() {
                 <input value={config.notifyEmail} onChange={e => setConfig({ ...config, notifyEmail: e.target.value })}
                   type="email" className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-leasing-500/30 focus:border-leasing-600" />
                 <p className="text-xs text-stone-500 mt-1">Reçoit un email dès qu&apos;un post est prêt à valider</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-sable-200 shadow-card p-6 space-y-4">
+              <div>
+                <h2 className="text-sm font-semibold text-stone-900">Créneaux de publication</h2>
+                <p className="text-xs text-stone-500 mt-1">
+                  Choisissez les jours et l&apos;heure (heure de Paris) où vos posts <strong>validés</strong> sont publiés automatiquement.
+                  Un créneau = un post. Par exemple « mercredi à 18h30 » pour un post par semaine.
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-stone-700 mb-2">Jours</p>
+                <div className="flex flex-wrap gap-2">
+                  {([[1, 'Lun'], [2, 'Mar'], [3, 'Mer'], [4, 'Jeu'], [5, 'Ven'], [6, 'Sam'], [0, 'Dim']] as [number, string][]).map(([day, label]) => {
+                    const on = slots.days.includes(day)
+                    return (
+                      <button key={day} type="button" onClick={() => toggleSlotDay(day)} aria-pressed={on}
+                        className={`min-w-[3.25rem] px-3 py-1.5 rounded-lg border text-sm font-medium transition ${on ? 'bg-leasing-700 border-leasing-700 text-white' : 'bg-white border-stone-300 text-stone-700 hover:bg-sable-50'}`}>
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <label htmlFor="slot-time" className="text-sm font-medium text-stone-700">Heure</label>
+                <input id="slot-time" type="time" step={300}
+                  value={`${String(slots.hour).padStart(2, '0')}:${String(slots.minute).padStart(2, '0')}`}
+                  onChange={e => {
+                    const [h, m] = e.target.value.split(':').map(Number)
+                    if (Number.isFinite(h) && Number.isFinite(m)) setSlots(prev => ({ ...prev, hour: h, minute: m }))
+                  }}
+                  className="border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-leasing-600 focus:ring-2 focus:ring-leasing-500/30" />
+                <button type="button" onClick={() => setSlots(DEFAULT_SLOTS)} className="text-xs text-stone-500 underline underline-offset-2 hover:text-stone-800">
+                  Rétablir mardi + jeudi 18h
+                </button>
+              </div>
+              <div className="rounded-lg bg-sable-50 border border-sable-200 px-3 py-2.5">
+                {slots.days.length === 0 ? (
+                  <p className="text-xs text-amber-800">Choisissez au moins un jour.</p>
+                ) : (
+                  <>
+                    <p className="text-xs font-medium text-stone-700 mb-1.5">Prochains créneaux ({slots.days.length} par semaine)</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {upcomingSlots(new Date(), 4, slots).map(d => (
+                        <span key={d.toISOString()} className="rounded-md bg-white border border-sable-200 px-2 py-1 text-xs text-stone-700">
+                          {d.toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <p className="text-xs text-stone-500 max-w-sm">À l&apos;enregistrement, la file se réorganise : les posts gardent leur ordre et prennent les nouveaux créneaux.</p>
+                <button onClick={handleSaveSlots} disabled={savingSlots || slots.days.length === 0}
+                  className="px-4 py-2 bg-leasing-700 text-white rounded-lg text-sm font-medium hover:bg-leasing-800 transition disabled:opacity-50">
+                  {savingSlots ? 'Sauvegarde...' : 'Sauvegarder les créneaux'}
+                </button>
               </div>
             </div>
 

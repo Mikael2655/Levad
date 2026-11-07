@@ -1,15 +1,15 @@
 import { prisma } from '@/lib/db'
+import { DEFAULT_SLOTS, nextSlotAfter, normalizeSlots, parisToUtc, type SlotConfig } from '@/lib/slots'
 import { rewriteWithChatGPT } from '@/lib/openai-ai'
 import { generatePersonalPost, generateSocialPosts, NEWS_THEMES, rewritePunchy, selectTopic, type PersonalKind, type SelectedTopic } from '@/lib/claude-ai'
 
-export const SLOT_HOUR_PARIS = 18
-const SLOT_WEEKDAYS = [2, 4] // mardi, jeudi
 export const QUEUE_STATUSES = ['draft', 'scheduled'] // draft = à valider, scheduled = validé
 const HOLD_STATUS = 'hold' // ligne technique : « ne rien publier avant scheduledAt »
 const CURSOR_STATUS = 'themecursor' // ligne technique : ordre des thèmes (contentLI = JSON)
 const PERSONA_STATUS = 'persona' // ligne technique : « mon histoire » + rythme (contentLI = JSON)
 const FILL_STATUS = 'fillreq' // ligne technique : « il reste N posts à préparer » (contentLI = JSON)
-export const TECH_STATUSES = [HOLD_STATUS, CURSOR_STATUS, PERSONA_STATUS, FILL_STATUS]
+const SLOTS_STATUS = 'slotcfg' // ligne technique : jours et heure de publication (contentLI = JSON)
+export const TECH_STATUSES = [HOLD_STATUS, CURSOR_STATUS, PERSONA_STATUS, FILL_STATUS, SLOTS_STATUS]
 export const PERSONAL_PREFIX = 'En mon nom · '
 
 export function queueTarget(): number {
@@ -17,44 +17,25 @@ export function queueTarget(): number {
   return Number.isFinite(n) && n > 0 ? n : 10
 }
 
-function parisOffsetHours(at: Date): number {
-  const part = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Paris', timeZoneName: 'shortOffset' })
-    .formatToParts(at).find(p => p.type === 'timeZoneName')?.value ?? 'GMT+1'
-  const m = part.match(/GMT([+-]\d+)/)
-  return m ? parseInt(m[1], 10) : 1
-}
-
-export function parisToUtc(y: number, m0: number, d: number, hour: number): Date {
-  const guess = new Date(Date.UTC(y, m0, d, hour))
-  return new Date(guess.getTime() - parisOffsetHours(guess) * 3600000)
-}
-
-function parisDateParts(at: Date): { y: number; m0: number; d: number } {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' })
-    .formatToParts(at)
-  const get = (t: string) => parseInt(parts.find(p => p.type === t)!.value, 10)
-  return { y: get('year'), m0: get('month') - 1, d: get('day') }
-}
-
-export function nextSlotAfter(after: Date): Date {
-  const { y, m0, d } = parisDateParts(after)
-  for (let i = 0; i < 15; i++) {
-    const day = new Date(Date.UTC(y, m0, d + i))
-    if (!SLOT_WEEKDAYS.includes(day.getUTCDay())) continue
-    const candidate = parisToUtc(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), SLOT_HOUR_PARIS)
-    if (candidate.getTime() > after.getTime()) return candidate
+// Jours et heure de publication (réglage de la page Configuration). Défaut : mardi + jeudi 18h.
+export async function getSlots(): Promise<SlotConfig> {
+  const row = await prisma.socialPost.findFirst({ where: { status: SLOTS_STATUS } })
+  try {
+    return row?.contentLI ? normalizeSlots(JSON.parse(row.contentLI)) : DEFAULT_SLOTS
+  } catch {
+    return DEFAULT_SLOTS
   }
-  throw new Error('Aucun créneau trouvé')
 }
 
-export function latestSlotAtOrBefore(now: Date): Date | null {
-  let s = nextSlotAfter(new Date(now.getTime() - 8 * 86400000))
-  let last: Date | null = null
-  while (s.getTime() <= now.getTime()) {
-    last = s
-    s = nextSlotAfter(s)
-  }
-  return last
+// Enregistre le réglage puis redistribue la file sur les nouveaux créneaux (les posts gardent leur ordre).
+export async function setSlots(input: unknown): Promise<SlotConfig> {
+  const cfg = normalizeSlots(input)
+  const data = { contentLI: JSON.stringify(cfg) }
+  const row = await prisma.socialPost.findFirst({ where: { status: SLOTS_STATUS } })
+  if (row) await prisma.socialPost.update({ where: { id: row.id }, data })
+  else await prisma.socialPost.create({ data: { topic: '__slots__', status: SLOTS_STATUS, ...data } })
+  await rebuildSlots()
+  return cfg
 }
 
 type QueueRow = { id: number; status: string; scheduledAt: Date | null }
@@ -70,7 +51,7 @@ export function sortQueue<T extends QueueRow>(rows: T[]): T[] {
   })
 }
 
-// Réattribue un créneau (mardi/jeudi 18h Paris) à chaque post de la file, dans l'ordre :
+// Réattribue un créneau (selon le réglage « Créneaux de publication ») à chaque post de la file, dans l'ordre :
 // d'abord les posts validés, puis ceux à valider.
 // includePast = true : renvoie aussi un décalage dont l'heure est passée (le cron en a besoin
 // pour ne pas publier le créneau sauté). Les décalages vieux de plus d'un jour sont supprimés.
@@ -95,18 +76,19 @@ async function setHold(until: Date | null): Promise<void> {
 
 export async function rebuildSlots(): Promise<void> {
   const hold = await getHold()
+  const slots = await getSlots()
   const queue = await prisma.socialPost.findMany({
     where: { status: { in: QUEUE_STATUSES } },
     select: { id: true, status: true, scheduledAt: true },
   })
   const now = new Date()
-  let slot = nextSlotAfter(hold && hold.getTime() > now.getTime() ? hold : now)
+  let slot = nextSlotAfter(hold && hold.getTime() > now.getTime() ? hold : now, slots)
   const ops = []
   for (const p of sortQueue(queue)) {
     if (!p.scheduledAt || p.scheduledAt.getTime() !== slot.getTime()) {
       ops.push(prisma.socialPost.update({ where: { id: p.id }, data: { scheduledAt: slot } }))
     }
-    slot = nextSlotAfter(slot)
+    slot = nextSlotAfter(slot, slots)
   }
   if (ops.length > 0) await prisma.$transaction(ops)
 }
@@ -297,7 +279,7 @@ export async function shiftOneSlot(): Promise<void> {
   await rebuildSlots()
   const hold = await getHold()
   const now = new Date()
-  const head = nextSlotAfter(hold && hold.getTime() > now.getTime() ? hold : now)
+  const head = nextSlotAfter(hold && hold.getTime() > now.getTime() ? hold : now, await getSlots())
   await setHold(head)
   await rebuildSlots()
 }
