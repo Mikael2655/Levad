@@ -1093,11 +1093,15 @@
     var rowsHtml = keys.map(function (k) {
       return ruleRow(k, (k === 'pool') ? poolStarted() : roundStarted(k));
     }).join('');
-    // Conversion « tout en 1 manche » : si les poules sont en 2 manches et ont
-    // commencé, proposer de ne garder qu'une manche par match (supprime la 2e).
-    var poolMulti = keys.indexOf('pool') >= 0 && poolStarted() && L.fmtFor(rules(), 'pool').base > 1;
+    // Conversion « tout en 1 manche ». On la propose dès qu'il y a de quoi
+    // fusionner : soit des matchs de poule stockés en manches (_mN), soit des
+    // poules réglées en 2 manches et déjà commencées. Indépendant du format
+    // courant (utile même après être déjà passé en « match sec »).
+    var hasPool = keys.indexOf('pool') >= 0;
+    var hasPoolManches = store.matches.some(function (m) { return m && m.phase === 'pool' && /_m\d+$/.test(m.id) && m.proposal; });
+    var poolMulti = hasPool && (hasPoolManches || (poolStarted() && L.fmtFor(rules(), 'pool').base > 1));
     var convert = poolMulti
-      ? '<div class="notice" style="margin-top:14px">Les poules sont en <b>2 manches</b>. Pour tout repasser en <b>match sec</b> en ne gardant qu\'<b>une seule manche par match</b> (la 2ᵉ manche est supprimée partout) :</div>' +
+      ? '<div class="notice" style="margin-top:14px">Des matchs de poule sont en <b>2 manches</b>. Pour tout repasser en <b>match sec</b> en ne gardant qu\'<b>une seule manche par match</b> (la 2ᵉ manche est supprimée partout) :</div>' +
         '<button class="btn small block" data-act="merge-single" data-key="pool">↩️ Ne garder qu\'une manche — repasser en match sec</button>'
       : '';
     return '<div style="height:20px"></div><h3>Points &amp; format des rencontres</h3>' +
