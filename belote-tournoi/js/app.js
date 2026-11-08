@@ -1062,17 +1062,19 @@
     if (key === 'p3') return 'Petite finale';
     return L.roundLabel(key);
   }
-  function ruleRow(key, locked) {
+  function ruleRow(key, started) {
     var r = L.ruleFor(rules(), key);
     var fmtOpts = Object.keys(L.FORMATS).map(function (fk) {
       return '<option value="' + fk + '"' + (r.format === fk ? ' selected' : '') + '>' + esc(L.FORMATS[fk].label) + '</option>';
     }).join('');
-    var dis = locked ? ' disabled' : '';
+    // Une phase commencée reste modifiable (les matchs déjà joués gardent leur
+    // règle) ; on signale « commencé » et on demande confirmation au changement.
+    var ds = started ? ' data-started="1"' : '';
     return '<div class="rule-row">' +
-      '<div class="rule-name">' + phaseLabel(key) + (locked ? ' <span class="sub">· démarré</span>' : '') + '</div>' +
+      '<div class="rule-name">' + phaseLabel(key) + (started ? ' <span class="sub">· commencé</span>' : '') + '</div>' +
       '<div class="rule-fields">' +
-      '<input class="rule-pts" type="number" min="100" step="10" id="rz-pts-' + key + '" value="' + r.target + '"' + dis + ' aria-label="Points ' + esc(phaseLabel(key)) + '">' +
-      '<select class="rule-fmt" id="rz-fmt-' + key + '"' + dis + ' aria-label="Format ' + esc(phaseLabel(key)) + '">' + fmtOpts + '</select>' +
+      '<input class="rule-pts" type="number" min="100" step="10" id="rz-pts-' + key + '" value="' + r.target + '"' + ds + ' aria-label="Points ' + esc(phaseLabel(key)) + '">' +
+      '<select class="rule-fmt" id="rz-fmt-' + key + '"' + ds + ' aria-label="Format ' + esc(phaseLabel(key)) + '">' + fmtOpts + '</select>' +
       '</div></div>';
   }
   // Éditeur « points & format » par phase (poule + chaque tour du tableau).
@@ -1093,7 +1095,8 @@
     }).join('');
     return '<div style="height:20px"></div><h3>Points &amp; format des rencontres</h3>' +
       '<p class="sub">Réglez les <b>points par match</b> et le <b>nombre de manches</b>, phase par phase. ' +
-      'Modifiable tant que la phase n\'a pas démarré (dès qu\'un score y est saisi, elle se verrouille).</p>' +
+      'Une phase <b>déjà commencée</b> reste modifiable : les matchs <b>déjà joués gardent leur règle</b>, ' +
+      'les matchs <b>suivants</b> suivent le nouveau réglage.</p>' +
       '<div class="rule-row rule-head"><div class="rule-name">Phase</div><div class="rule-fields"><span>Points</span><span>Format</span></div></div>' +
       rowsHtml;
   }
@@ -1186,13 +1189,25 @@
     var m = el.id.match(/^rz-(pts|fmt)-(.+)$/);
     if (!m) return;
     var field = m[1] === 'pts' ? 'target' : 'format', key = m[2];
+    var started = (key === 'pool') ? poolStarted() : roundStarted(key);
     var val = field === 'target' ? Math.max(100, parseInt(el.value, 10) || L.POOL_TARGET) : el.value;
     var cur = (store.config && store.config.rules) || {};
-    var next = {};
-    Object.keys(cur).forEach(function (k) { next[k] = Object.assign({}, cur[k]); });
-    next[key] = Object.assign({}, next[key]); next[key][field] = val;
-    runBusy('Enregistrement…', DB.updateConfig(state.tid, { rules: next }), 'Réglage enregistré')
-      .then(function () { render(); }, function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
+    var oldFormat = L.ruleFor(rules(), key).format;
+    function apply() {
+      var next = {};
+      Object.keys(cur).forEach(function (k) { next[k] = Object.assign({}, cur[k]); });
+      next[key] = Object.assign({}, next[key]); next[key][field] = val;
+      // Phase commencée + changement de format : on mémorise l'ancien format pour
+      // que les matchs déjà joués restent décodés avec leur règle d'origine.
+      if (field === 'format' && started && val !== oldFormat) next[key].prevFormat = oldFormat;
+      runBusy('Enregistrement…', DB.updateConfig(state.tid, { rules: next }), 'Réglage enregistré')
+        .then(function () { render(); }, function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
+    }
+    if (started) {
+      modalConfirm('Cette phase a déjà des scores. Les matchs déjà joués garderont leur règle actuelle ; ' +
+        'seuls les matchs pas encore joués suivront le nouveau réglage. Continuer ?', 'Modifier')
+        .then(function (ok) { if (ok) apply(); else render(); });
+    } else apply();
   }
   screen.addEventListener('focusout', function () {
     setTimeout(function () {

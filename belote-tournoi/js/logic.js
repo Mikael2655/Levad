@@ -139,9 +139,10 @@
   function poolEncounters(pool, teams, map, rules) {
     var members = teams.filter(function (t) { return t.pool === pool && t.assigned; });
     var size = members.length;
-    var fmt = fmtFor(rules, 'pool'), target = targetFor(rules, 'pool');
+    var target = targetFor(rules, 'pool');
     return scheduledPairs(size).map(function (pair) {
       var id = 'pool-' + pool + '-' + pair[0] + '-' + pair[1];
+      var fmt = effFormat(rules, 'pool', id, map); // tolérant à un changement de format en cours
       var enc = resolveEncounter(id, pool + pair[0], pool + pair[1], fmt, target, map, false);
       enc.pool = pool; enc.slotA = pair[0]; enc.slotB = pair[1];
       return enc;
@@ -512,6 +513,23 @@
   function targetFor(rules, roundKey) { return ruleFor(rules, roundKey).target; }
   function roundTarget() { return POOL_TARGET; } // compat
   function koFormat(key, rules) { return fmtFor(rules, key); }
+  // Format EFFECTIF d'une rencontre précise. Tolérant à un changement de format
+  // en cours de tournoi : une rencontre DÉJÀ jouée garde le format sous lequel
+  // elle a été saisie (rien n'est perdu), les rencontres pas encore jouées
+  // suivent le format configuré. prevFormat (posé à la modification) lève
+  // l'ambiguïté entre « 2 manches » et « aller-retour + belle ».
+  function effFormat(rules, key, id, results) {
+    results = results || {};
+    var r = (rules && rules[key]) || {};
+    var cfg = formatByKey(r.format || defaultFormatKey(key));
+    if (scoreOf(results[mancheId(id, cfg, 1)])) return cfg;      // jouée au format courant
+    if (r.prevFormat) {
+      var prev = formatByKey(r.prevFormat);
+      if (scoreOf(results[mancheId(id, prev, 1)])) return prev;  // jouée sous l'ancien format
+    }
+    if (scoreOf(results[id + '_m1'])) return FORMATS.diff;       // repli : manches sans prevFormat
+    return cfg;                                                  // pas encore jouée
+  }
 
   // Identifiant de la manche n (1..) d'une rencontre. Une rencontre à une seule
   // manche (format sec) garde l'identifiant de la rencontre (compatibilité).
@@ -573,7 +591,7 @@
       manches: manches, raw: raw };
   }
   function buildKoMatch(id, key, ta, tb, bye, results, rules) {
-    var enc = resolveEncounter(id, ta, tb, fmtFor(rules, key), targetFor(rules, key), results, bye);
+    var enc = resolveEncounter(id, ta, tb, effFormat(rules, key, id, results), targetFor(rules, key), results, bye);
     enc.key = key;
     return enc;
   }
@@ -661,7 +679,7 @@
     allSeeds: allSeeds, qualifyFor: qualifyFor, validBracketSizes: validBracketSizes,
     standardSeedPositions: standardSeedPositions, seedBracket: seedBracket,
     resolveBracket: resolveBracket, bracketMatchList: bracketMatchList,
-    koFormat: koFormat, mancheId: mancheId, decideKo: decideKo,
+    koFormat: koFormat, mancheId: mancheId, decideKo: decideKo, effFormat: effFormat,
     decideEncounter: decideEncounter, resolveEncounter: resolveEncounter,
     poolMatchList: poolMatchList, poolEncounters: poolEncounters,
     roundKeysForSize: roundKeysForSize,
