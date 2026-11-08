@@ -1102,8 +1102,14 @@
     var poolMulti = hasPool && (hasPoolManches || (poolStarted() && L.fmtFor(rules(), 'pool').base > 1));
     var convert = poolMulti
       ? '<div class="notice" style="margin-top:14px">Des matchs de poule sont en <b>2 manches</b>. Pour tout repasser en <b>match sec</b> en ne gardant qu\'<b>une seule manche par match</b> (la 2ᵉ manche est supprimée partout) :</div>' +
-        '<button class="btn small block" data-act="merge-single" data-key="pool">↩️ Ne garder qu\'une manche — repasser en match sec</button>'
+        '<button class="btn small block" data-act="merge-single" data-key="pool">↩️ Poules : ne garder qu\'une manche</button>'
       : '';
+    // Même conversion pour le tableau (tours en 2 manches / belle).
+    var hasKoManches = store.matches.some(function (m) { return m && m.phase === 'ko' && /_m\d+$/.test(m.id) && m.proposal; });
+    if (hasKoManches) {
+      convert += '<div class="notice" style="margin-top:14px">Des matchs du <b>tableau</b> sont en <b>2 manches</b> (ou belle). Pour les repasser en <b>match sec</b> en ne gardant qu\'<b>une seule manche par match</b> :</div>' +
+        '<button class="btn small block" data-act="merge-single-ko">↩️ Tableau : ne garder qu\'une manche</button>';
+    }
     return '<div style="height:20px"></div><h3>Points &amp; format des rencontres</h3>' +
       '<p class="sub">Réglez les <b>points par match</b> et le <b>nombre de manches</b>, phase par phase. ' +
       'Une phase <b>déjà commencée</b> reste modifiable : les matchs <b>déjà joués gardent leur règle</b>, ' +
@@ -1195,49 +1201,52 @@
     }
     if (/^rz-(pts|fmt)-/.test(ev.target.id)) onRuleChange(ev.target);
   });
-  // Convertit toutes les poules en « match sec » : pour chaque rencontre on ne
-  // garde qu'UNE manche (la 1re saisie), la 2e/3e est supprimée, et le format
-  // de la poule passe à « single ». Rien d'autre n'est touché.
-  function convertPoolToSingle(tid) {
+  // Convertit une phase (poules ou tableau) en « match sec » : pour chaque
+  // rencontre on ne garde qu'UNE manche (la 1re saisie), la 2e/3e est supprimée,
+  // et le format des tours concernés passe à « single ». Rien d'autre n'est touché.
+  // phase : 'pool' (toutes les poules) ou 'ko' (tous les tours du tableau).
+  function convertToSingle(tid, phase) {
     var c = store.config;
     var byId = {};
-    store.matches.forEach(function (m) { if (m && m.phase === 'pool') byId[m.id] = m; });
-    // Identifiants de base des rencontres ayant des manches.
+    store.matches.forEach(function (m) { if (m && m.phase === phase) byId[m.id] = m; });
     var bases = {};
     Object.keys(byId).forEach(function (id) {
-      var mm = id.match(/^(pool-[A-Za-z]+-\d+-\d+)_m\d+$/);
+      var mm = id.match(/^(.+)_m\d+$/);
       if (mm) bases[mm[1]] = true;
     });
-    var target = L.targetFor(rules(), 'pool');
-    var ops = [];
+    var ops = [], roundsToSingle = {};
+    if (phase === 'pool') roundsToSingle.pool = true; // toutes les poules en single
+    if (phase === 'ko') { // tout le tableau en single (y compris les tours pas encore joués, ex. la finale)
+      var size = (c.bracket && c.bracket.size) || c.numTeams || chosenBracketSize(teamCount()) || 0;
+      L.roundKeysForSize(size).forEach(function (rk) { roundsToSingle[rk] = true; });
+    }
     Object.keys(bases).forEach(function (bid) {
-      var pm = bid.match(/^pool-([A-Za-z]+)-(\d+)-(\d+)$/);
-      if (!pm) return;
-      var pool = pm[1], sa = parseInt(pm[2], 10), sb = parseInt(pm[3], 10);
-      // Score conservé = 1re manche saisie (ou la suivante si besoin).
-      var keep = null;
+      var keep = null, kd = null;
       ['_m1', '_m2', '_m3'].forEach(function (suf) {
         var d = byId[bid + suf];
-        if (!keep && d && d.proposal) keep = d.proposal;
+        if (!keep && d && d.proposal) { keep = d.proposal; kd = d; }
       });
-      if (keep) {
-        ops.push(DB.adminSet(tid, bid, {
-          phase: 'pool', pool: pool, slotA: sa, slotB: sb,
-          teamA: pool + sa, teamB: pool + sb, target: target
-        }, keep.scoreA, keep.scoreB));
+      if (keep && kd) {
+        var base = { phase: phase, target: kd.target, teamA: kd.teamA, teamB: kd.teamB };
+        if (phase === 'pool') { base.pool = kd.pool; base.slotA = kd.slotA; base.slotB = kd.slotB; }
+        else { base.roundKey = kd.roundKey || roundKeyOfId(bid); }
+        ops.push(DB.adminSet(tid, bid, base, keep.scoreA, keep.scoreB));
+        roundsToSingle[phase === 'pool' ? 'pool' : roundKeyOfId(bid)] = true;
       }
       ['_m1', '_m2', '_m3'].forEach(function (suf) {
         if (byId[bid + suf]) ops.push(DB.adminClear(tid, bid + suf));
       });
     });
-    // Format poule → single (sans ancien format mémorisé).
+    // Format des tours concernés → single (sans ancien format mémorisé).
     var cur = (c && c.rules) || {}, next = {};
     Object.keys(cur).forEach(function (k) { next[k] = Object.assign({}, cur[k]); });
-    next.pool = Object.assign({}, next.pool, { format: 'single' });
-    delete next.pool.prevFormat;
+    Object.keys(roundsToSingle).forEach(function (rk) {
+      next[rk] = Object.assign({}, next[rk], { format: 'single' });
+      delete next[rk].prevFormat;
+    });
     ops.push(DB.updateConfig(tid, { rules: next }));
-    runBusy('Conversion en match sec…', Promise.all(ops), 'Poules repassées en match sec')
-      .then(function () { ui.adminTab = 'poules'; render(); },
+    runBusy('Conversion en match sec…', Promise.all(ops), 'Repassé en match sec')
+      .then(function () { ui.adminTab = (phase === 'pool' ? 'poules' : 'tableau'); render(); },
         function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
   }
   // Enregistre un réglage points/format d'une phase, en préservant les autres.
@@ -1422,7 +1431,12 @@
     }
     if (act === 'merge-single') {
       modalConfirm('Repasser toutes les poules en MATCH SEC ? Pour chaque match, on ne garde que la 1re manche saisie — la 2ᵉ manche est supprimée partout. Les matchs non commencés se joueront en une seule manche. (Action définitive sur les scores déjà saisis.)', 'Convertir')
-        .then(function (ok) { if (ok) convertPoolToSingle(tid); });
+        .then(function (ok) { if (ok) convertToSingle(tid, 'pool'); });
+      return;
+    }
+    if (act === 'merge-single-ko') {
+      modalConfirm('Repasser les matchs du TABLEAU en MATCH SEC ? Pour chaque match, on ne garde que la 1re manche saisie — la 2ᵉ manche (ou la belle) est supprimée. Les matchs non commencés se joueront en une seule manche. (Action définitive sur les scores déjà saisis.)', 'Convertir')
+        .then(function (ok) { if (ok) convertToSingle(tid, 'ko'); });
       return;
     }
     if (act === 'lock-admin') { sessionStorage.removeItem('bt:admin:' + tid); go('#/classement'); return; }
