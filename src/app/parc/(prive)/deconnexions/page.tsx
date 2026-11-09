@@ -37,9 +37,9 @@ export default async function DeconnexionsPage() {
                 <p className="font-semibold">{p.clientNom}</p>
                 <p className="text-sm text-gray-600">{p.site} · {p.nom}</p>
                 <p className={`text-sm ${p.niveau === 'rouge' ? 'font-semibold text-red-600' : 'text-gray-900'}`}>
-                  Dernier signal : {formaterDate(p.derniere)} ({depuis(p.derniere)})
+                  Dernier signal : {formaterDate(p.derniere)}
                 </p>
-                <p className="text-sm text-gray-500 md:text-right">Délai : {p.seuilJours} jours</p>
+                <p className={`text-sm md:text-right ${p.niveau === 'rouge' ? 'font-semibold text-red-600' : 'text-gray-500'}`}>{depuis(p.derniere)}</p>
               </Link>
             ))}
           </div>
