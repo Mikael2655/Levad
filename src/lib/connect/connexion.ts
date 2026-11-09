@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db'
 import { statutConnexion } from '@/lib/connect/agent'
 import { trierParNom } from '@/lib/connect/tri'
+import { libelleMachine } from '@/lib/connect/libelle'
 
 export type PosteDeconnecte = {
   id: number
@@ -51,4 +52,44 @@ export async function postesEnRetard(): Promise<PosteEnRetard[]> {
         : []
     })
   )
+}
+
+export type MachineNonReleve = {
+  id: number
+  clientId: number
+  clientNom: string
+  nom: string
+  site: string
+  seuilJours: number
+  derniere: Date
+  niveau: 'orange' | 'rouge'
+}
+
+/**
+ * Machines sous contrat qui ne sont plus relevées alors que le programme du client, lui, répond : au moins un de ses
+ * ordinateurs a donné signe de vie récemment. Sans cette alerte, une machine oubliée (changement de réseau, copieur
+ * éteint, adresse modifiée) ne remonte plus d'alerte d'encre sans que personne le voie.
+ * Mêmes seuils que les ordinateurs : 3 jours (noir), délai du client (rouge).
+ */
+export async function machinesNonReleves(): Promise<MachineNonReleve[]> {
+  const clients = await prisma.connectClient.findMany({
+    where: { modeReleve: 'agent', postes: { some: {} } },
+    include: {
+      postes: true,
+      machines: { where: { categorie: 'mine', horsContrat: false }, include: { releves: { orderBy: { date: 'desc' }, take: 1, select: { date: true } } } },
+    },
+    orderBy: { nom: 'asc' },
+  })
+  const maintenant = Date.now()
+  return trierParNom(clients).flatMap((c) => {
+    // si tous les ordinateurs du client sont en retard, c'est déjà signalé dans la liste des ordinateurs
+    const unPosteRepond = c.postes.some((p) => (maintenant - p.derniereConnexion.getTime()) / 86400000 < Math.min(SEUIL_ORANGE_JOURS, c.seuilDeconnexionJours))
+    if (!unPosteRepond) return []
+    return c.machines.flatMap((m): MachineNonReleve[] => {
+      const derniere = m.releves[0]?.date ?? m.creeLe
+      const jours = (maintenant - derniere.getTime()) / 86400000
+      if (jours < Math.min(SEUIL_ORANGE_JOURS, c.seuilDeconnexionJours)) return []
+      return [{ id: m.id, clientId: c.id, clientNom: c.nom, nom: libelleMachine(m, 'Machine inconnue'), site: m.site, seuilJours: c.seuilDeconnexionJours, derniere, niveau: jours >= c.seuilDeconnexionJours ? 'rouge' : 'orange' }]
+    })
+  })
 }
