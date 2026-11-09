@@ -1,13 +1,15 @@
 import Link from 'next/link'
 import { depuis, formaterDate } from '@/components/connect/affichage'
-import { postesEnRetard, type PosteEnRetard } from '@/lib/connect/connexion'
+import { machinesNonReleves, postesEnRetard, type MachineNonReleve, type PosteEnRetard } from '@/lib/connect/connexion'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DeconnexionsPage() {
   let postes: PosteEnRetard[]
+  let machines: MachineNonReleve[]
   try {
     postes = (await postesEnRetard()).sort((a, b) => Number(b.niveau === 'rouge') - Number(a.niveau === 'rouge') || a.derniere.getTime() - b.derniere.getTime())
+    machines = (await machinesNonReleves()).sort((a, b) => Number(b.niveau === 'rouge') - Number(a.niveau === 'rouge') || a.derniere.getTime() - b.derniere.getTime())
   } catch {
     return <p className="rounded-xl border border-amber-300 bg-amber-50 p-6">La base de données n&apos;est pas encore prête.</p>
   }
@@ -15,16 +17,16 @@ export default async function DeconnexionsPage() {
     <>
       <h1 className="text-2xl font-bold">Alerte déconnexion</h1>
       <p className="mt-1 text-gray-600">
-        Ordinateurs (un par site chez le client) dont le programme ne donne plus signe de vie.
+        Ordinateurs (un par site chez le client) dont le programme ne donne plus signe de vie, et machines sous contrat qui ne sont plus relevées alors que l&apos;ordinateur du client répond.
       </p>
       <ul className="mt-2 space-y-1 text-sm text-gray-600">
         <li><span className="font-semibold text-gray-900">Noir</span> : 3 jours ou plus sans signal. Simple avertissement, pas de mail.</li>
         <li><span className="font-semibold text-red-600">Rouge</span> : 10 jours ou plus (délai réglable pour chaque client dans sa fiche). Un mail d&apos;alerte est envoyé.</li>
       </ul>
-      {postes.length === 0 ? (
+      {postes.length === 0 && machines.length === 0 ? (
         <div className="mt-8 rounded-xl border bg-white p-10 text-center">
-          <p className="text-lg font-semibold text-green-700">Aucun ordinateur en retard</p>
-          <p className="mt-1 text-gray-600">Tous les programmes installés ont donné signe de vie depuis moins de 3 jours.</p>
+          <p className="text-lg font-semibold text-green-700">Aucun ordinateur ni machine en retard</p>
+          <p className="mt-1 text-gray-600">Tous les programmes installés ont donné signe de vie et toutes les machines sous contrat ont été relevées depuis moins de 3 jours.</p>
         </div>
       ) : (
         <>
@@ -40,6 +42,26 @@ export default async function DeconnexionsPage() {
                   Dernier signal : {formaterDate(p.derniere)}
                 </p>
                 <p className={`text-sm md:text-right ${p.niveau === 'rouge' ? 'font-semibold text-red-600' : 'text-gray-500'}`}>{depuis(p.derniere)}</p>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+      {machines.length > 0 && (
+        <>
+          <h2 className="mt-8 text-lg font-bold">Machines sous contrat non relevées ({machines.length})</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Le programme du client répond, mais ces machines n&apos;ont plus été lues : leurs niveaux d&apos;encre ne sont plus à jour, donc une alerte d&apos;encre pourrait être manquée.
+          </p>
+          <div className="mt-4 divide-y rounded-xl border bg-white">
+            {machines.map((m) => (
+              <Link key={m.id} href={`/parc/machine/${m.id}`} className={`grid items-center gap-2 border-l-4 px-5 py-4 md:grid-cols-[1.4fr_1.2fr_2fr_0.8fr] ${m.niveau === 'rouge' ? 'border-red-500 hover:bg-red-50' : 'border-gray-900 hover:bg-gray-100'}`}>
+                <p className="font-semibold">{m.clientNom}</p>
+                <p className="text-sm text-gray-600">{m.site} · {m.nom}</p>
+                <p className={`text-sm ${m.niveau === 'rouge' ? 'font-semibold text-red-600' : 'text-gray-900'}`}>
+                  Dernier relevé : {formaterDate(m.derniere)}
+                </p>
+                <p className={`text-sm md:text-right ${m.niveau === 'rouge' ? 'font-semibold text-red-600' : 'text-gray-500'}`}>{depuis(m.derniere)}</p>
               </Link>
             ))}
           </div>

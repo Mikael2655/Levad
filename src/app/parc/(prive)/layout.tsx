@@ -7,7 +7,7 @@ import { prisma } from '@/lib/db'
 import { VERT } from '@/components/connect/affichage'
 import { clientsEnAlerte } from '@/lib/connect/alertes'
 import { Menu } from '@/components/connect/Menu'
-import { postesDeconnectes } from '@/lib/connect/connexion'
+import { machinesNonReleves, postesDeconnectes } from '@/lib/connect/connexion'
 import { RafraichissementAuto } from '@/components/connect/RafraichissementAuto'
 
 export const metadata: Metadata = connectMetadata
@@ -22,7 +22,7 @@ export default async function PriveLayout({ children }: { children: React.ReactN
   let nbNouvelles = 0
   try {
     nbAlertes = (await clientsEnAlerte()).length
-    nbDeconnectes = (await postesDeconnectes()).length
+    nbDeconnectes = (await postesDeconnectes()).length + (await machinesNonReleves()).filter((m) => m.niveau === 'rouge').length
     nbNouvelles = (await prisma.connectMachine.count({ where: { vueLe: null } })) + (await prisma.connectPoste.count({ where: { vueLe: null } }))
   } catch {
     // base pas encore prête : la page concernée l'expliquera
