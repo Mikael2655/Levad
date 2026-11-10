@@ -4,6 +4,7 @@ import { exigerUtilisateur } from '@/lib/financement/garde'
 import { dateFr } from '../../format'
 import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import EssaisGrenke from './EssaisGrenke'
+import MajBareme from './MajBareme'
 import SynchroGrenke from './SynchroGrenke'
 import RetourAdmin from '../RetourAdmin'
 
@@ -39,6 +40,7 @@ export default async function PageGrenke() {
         Ces essais sont en <b>lecture seule</b> : aucune demande n’est créée chez Grenke. La simulation de loyer interroge leur calculateur (sans engagement). L’aperçu ne contacte pas Grenke du tout.
       </p>
       <EssaisGrenke prete={cfg.prete} demandes={demandes} />
+      <MajBareme prete={cfg.prete} />
       <SynchroGrenke prete={cfg.prete} financeurs={financeurs.map(f => ({ id: f.id, nom: f.nom }))} commerciaux={commerciaux} />
     </main>
   )
