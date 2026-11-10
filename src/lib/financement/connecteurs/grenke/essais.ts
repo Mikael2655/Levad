@@ -49,7 +49,7 @@ export async function essaiCalculs(c: ConfigGrenke) {
 }
 
 // Aperçu de ce qui PARTIRAIT chez Grenke pour une demande existante. Aucun envoi, aucun accès réseau.
-export async function apercuDemande(demandeId: number, modePaiementConfigure?: 'Invoice' | 'Direct Debit') {
+export async function apercuDemande(demandeId: number, modePaiementConfigure?: 'Invoice' | 'DirectDebit') {
   const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { lignes: true, financeur: true } })
   if (!d) throw new ErreurMetier('Demande introuvable.', 404)
   if (d.montantReelCentimes == null) throw new ErreurMetier('Cette demande n’a pas de montant financé réel (financeur sans barème réel) : rien à envoyer à Grenke.')

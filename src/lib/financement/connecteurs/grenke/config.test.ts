@@ -55,6 +55,6 @@ describe('configuration Grenke', () => {
     expect(lireConfigGrenke(env({ GRENKE_API_URL: 'http://api.test' })).problemes.join(' ')).toContain('https')
     expect(lireConfigGrenke(env({ GRENKE_CERT_BASE64: b64('n importe quoi') })).problemes.join(' ')).toContain('illisible')
     expect(lireConfigGrenke(env({ GRENKE_PAYMENT_METHOD: 'Cash' })).problemes.join(' ')).toContain('Invoice')
-    expect(lireConfigGrenke(env({ GRENKE_PAYMENT_METHOD: 'Direct Debit' })).config?.modePaiement).toBe('Direct Debit')
+    expect(lireConfigGrenke(env({ GRENKE_PAYMENT_METHOD: 'Direct Debit' })).config?.modePaiement).toBe('DirectDebit')
   })
 })

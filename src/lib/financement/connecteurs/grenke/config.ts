@@ -5,7 +5,7 @@
 //   GRENKE_KEY_PASSPHRASE   (facultatif) mot de passe de la clé, si elle en a un
 //   GRENKE_CA_BASE64        (probablement nécessaire) les certificats publics de Grenke (« GRENKE Public Root CA » et « GRENKE Public Leasing Api CA »,
 //                           à télécharger sur pki.grenkeonline.com), chacun encodé en base64, séparés par une virgule
-//   GRENKE_PAYMENT_METHOD   (envoi réel de demandes) « Invoice » ou « Direct Debit »
+//   GRENKE_PAYMENT_METHOD   (envoi réel de demandes) « Invoice » ou « DirectDebit »
 import { X509Certificate, createPrivateKey } from 'crypto'
 
 export interface ConfigGrenke {
@@ -14,7 +14,7 @@ export interface ConfigGrenke {
   key: string // PEM
   passphrase?: string
   ca?: string // autorités de confiance supplémentaires (PEM) : celles de Grenke, ou le faux serveur des tests
-  modePaiement?: 'Invoice' | 'Direct Debit'
+  modePaiement?: 'Invoice' | 'DirectDebit'
 }
 
 export const VARIABLES_GRENKE = ['GRENKE_API_URL', 'GRENKE_CERT_BASE64', 'GRENKE_KEY_BASE64'] as const
@@ -74,8 +74,10 @@ export function lireConfigGrenke(env: Record<string, string | undefined> = proce
     }
   }
 
-  const mode = env.GRENKE_PAYMENT_METHOD?.trim()
-  if (mode && mode !== 'Invoice' && mode !== 'Direct Debit') problemes.push('GRENKE_PAYMENT_METHOD doit valoir « Invoice » ou « Direct Debit ».')
+  const modeBrut = env.GRENKE_PAYMENT_METHOD?.trim()
+  // Grenke attend « DirectDebit » (sans espace) ; on tolère aussi « Direct Debit ».
+  const mode = modeBrut === 'Direct Debit' ? 'DirectDebit' : modeBrut
+  if (mode && mode !== 'Invoice' && mode !== 'DirectDebit') problemes.push('GRENKE_PAYMENT_METHOD doit valoir « Invoice » ou « DirectDebit ».')
   if (problemes.length) return { prete: false, manquantes: [], problemes, certificat }
   return {
     prete: true, manquantes: [], problemes: [], certificat,
