@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { lireDemande } from '@/lib/financement/acces'
-import { peutAnnuler, peutArchiver, peutModifier, peutSupprimer, peutVoirBaremeReel } from '@/lib/financement/droits'
+import { estAdmin, peutAnnuler, peutArchiver, peutModifier, peutSupprimer, peutVoirBaremeReel } from '@/lib/financement/droits'
 import { exigerUtilisateur } from '@/lib/financement/garde'
 import { Ligne, TitreSection } from '../../Fiche'
 import { LienRetour } from '../../MemoireListe'
@@ -49,6 +49,7 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         saisieMontantReel={reel !== null && "sansBaremeReel" in d && d.sansBaremeReel === true}
         miseEnPlace={reel !== null && !d.signatureElectronique && d.statut === 'PRETE_A_SIGNER'}
         peutRenvoyerMail={reel !== null && d.envoiParMail && d.statut !== 'BROUILLON' && d.statut !== 'ANNULEE'}
+        peutEnvoyerGrenke={estAdmin(u) && d.financeurAvecApi && !d.refFinanceur && (d.statut === 'BROUILLON' || d.statut === 'INFOS_MANQUANTES') && reel?.montantReelCentimes != null}
         montantReelActuel={reel?.montantReelCentimes ?? null}
         etapeSignature={d.statut === 'EN_SIGNATURE' ? d.etapeSignature ?? '' : null}
         signataires={{

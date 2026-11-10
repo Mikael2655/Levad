@@ -79,3 +79,11 @@ export async function envoyerDocument(c: ConfigGrenke, financingId: string, p: {
     delaiMs: 90_000,
   })
 }
+
+// Crée la demande de financement chez Grenke (vraie demande : pas d'environnement de test). Renvoie l'identifiant Grenke (FinancingId).
+export async function creerDemandeApi(c: ConfigGrenke, requete: Record<string, unknown>): Promise<string> {
+  const r = (await appelerOk(c, 'POST', '/basic/v1/requests', { corps: requete, delaiMs: 90_000 })) as Json
+  const id = r?.FinancingId ?? r?.Id ?? r?.financingId
+  if (typeof id !== 'string' || !UUID.test(id)) throw new ErreurMetier(`Grenke a répondu sans identifiant de demande exploitable : ${JSON.stringify(r).slice(0, 300)}. Vérifiez sur le portail Grenke si la demande a été créée avant de réessayer.`, 502)
+  return id
+}
