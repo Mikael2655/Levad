@@ -36,6 +36,17 @@ export interface Connecteur {
   lancerSignature(referenceFinanceur: string, signataires: { client: Signataire[]; fournisseur: Signataire[] }): Promise<void>
   recupererContratSigne(referenceFinanceur: string): Promise<Buffer | null>
   listerContrats(): Promise<ContratFinanceur[]>
+  // Retrouve une demande existante chez le financeur d'après son numéro lisible (financeurs avec API).
+  trouverDemande?(reference: string): Promise<DemandeFinanceur | null>
+}
+
+export interface DemandeFinanceur {
+  id: string // identifiant technique
+  reference: string
+  client: string
+  montantCentimes: number | null
+  dureeMois: number | null
+  etat: string
 }
 
 export interface Signataire {

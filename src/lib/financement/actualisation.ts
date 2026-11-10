@@ -44,3 +44,32 @@ export async function actualiserDepuisFinanceur(a: Acteur, demandeId: number) {
   if (donnees.statut) await notifierChangement({ demandeId, acteurId: a.id, statutAvant: d.statut, etapeAvant: d.etapeSignature, statutApres: String(donnees.statut), etapeApres })
   return { modifie: true, message }
 }
+
+// Rattache une demande de l'outil à un dossier DÉJÀ créé chez le financeur (par exemple saisi à la main sur son portail),
+// d'après son numéro. Vérifie que le dossier correspond (montant et durée), puis met le statut à jour.
+export async function rattacherAuFinanceur(a: Acteur, demandeId: number, reference: string) {
+  if (!estInterne(a)) throw new ErreurMetier('Réservé à l’administrateur et à l’assistante.', 403)
+  const ref = reference.trim()
+  if (!ref) throw new ErreurMetier('Indiquez le numéro de dossier du financeur (ex. 100-145711).')
+  const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { financeur: true } })
+  if (!d) throw new ErreurMetier('Demande introuvable.', 404)
+  const c = connecteurPour(d.financeur.connecteur)
+  if (!c?.trouverDemande) throw new ErreurMetier('Ce financeur n’a pas d’interface automatique (ou la configuration est incomplète).')
+  if (d.idFinanceur) throw new ErreurMetier('Cette demande est déjà reliée à un dossier du financeur.', 409)
+  const autre = await prisma.finDemande.findFirst({ where: { financeurId: d.financeurId, refFinanceur: ref, NOT: { id: demandeId } }, select: { reference: true } })
+  if (autre) throw new ErreurMetier(`Ce numéro de dossier est déjà utilisé par la demande ${autre.reference}.`, 409)
+
+  const x = await c.trouverDemande(ref)
+  if (!x) throw new ErreurMetier(`Aucun dossier « ${ref} » trouvé chez ${d.financeur.nom}. Vérifiez le numéro.`, 404)
+  const problemes: string[] = []
+  if (d.montantReelCentimes != null && x.montantCentimes != null && Math.abs(x.montantCentimes - d.montantReelCentimes) > 100) problemes.push(`montant ${(x.montantCentimes / 100).toLocaleString('fr-FR')} € chez le financeur, ${(d.montantReelCentimes / 100).toLocaleString('fr-FR')} € ici`)
+  if (x.dureeMois != null && x.dureeMois !== d.dureeMois) problemes.push(`durée ${x.dureeMois} mois chez le financeur, ${d.dureeMois} ici`)
+  if (problemes.length) throw new ErreurMetier(`Ce dossier (${x.client}) ne correspond pas à cette demande : ${problemes.join(' ; ')}. Rien n’a été modifié.`)
+
+  await prisma.$transaction([
+    prisma.finDemande.update({ where: { id: demandeId }, data: { idFinanceur: x.id, refFinanceur: x.reference } }),
+    prisma.finHistorique.create({ data: { demandeId, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: d.statut, commentaire: `Rattachée au dossier ${x.reference} de ${d.financeur.nom}` } }),
+  ])
+  const r = await actualiserDepuisFinanceur(a, demandeId)
+  return { modifie: true, message: `Rattachée au dossier ${x.reference} (${x.client}). ${r.message}` }
+}
