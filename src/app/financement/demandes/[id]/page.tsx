@@ -15,7 +15,7 @@ import PiecesJointes from './PiecesJointes'
 
 export const dynamic = 'force-dynamic'
 
-export default async function FicheDemande({ params }: { params: { id: string } }) {
+export default async function FicheDemande({ params, searchParams }: { params: { id: string }; searchParams: { envoi?: string; m?: string } }) {
   const u = await exigerUtilisateur()
   await purgeOpportuniste()
   const d = await lireDemande(u, Number(params.id))
@@ -35,6 +35,9 @@ export default async function FicheDemande({ params }: { params: { id: string } 
       {d.statut === 'INFOS_MANQUANTES' && d.infosManquantes && (
         <p className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900"><b>Informations demandées par le financeur :</b> {d.infosManquantes}</p>
       )}
+
+      {searchParams.envoi === 'ok' && <p className="bg-emerald-50 border border-emerald-300 rounded-xl px-4 py-3 text-sm text-emerald-900">Demande envoyée à Grenke.</p>}
+      {searchParams.envoi === 'erreur' && <p className="bg-red-50 border border-red-300 rounded-xl px-4 py-3 text-sm text-red-800"><b>La demande est enregistrée mais n’est pas partie chez Grenke :</b> {(searchParams.m ?? '').slice(0, 400)}</p>}
 
       <ActionsDemande
         id={d.id}

@@ -33,7 +33,7 @@ export default async function NouvelleDemande({ searchParams }: { searchParams: 
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{rachat ? 'Demande de renouvellement' : 'Nouvelle demande de financement'}</h1>
-      <FormulaireDemande mode="creation" rachat={rachat ? { id: rachat.id, totalCentimes: rachat.totalCentimes, type: rachat.type, contrat: rachat.contrat.raisonSociale } : null} initial={initial} financeurs={financeurs.map(f => ({ id: f.id, nom: f.nom }))} commerciaux={commerciaux} interne={interne} />
+      <FormulaireDemande mode="creation" rachat={rachat ? { id: rachat.id, totalCentimes: rachat.totalCentimes, type: rachat.type, contrat: rachat.contrat.raisonSociale } : null} initial={initial} financeurs={financeurs.map(f => ({ id: f.id, nom: f.nom, avecApi: f.connecteur === 'grenke_api' }))} commerciaux={commerciaux} interne={interne} />
     </main>
   )
 }
