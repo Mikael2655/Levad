@@ -1431,4 +1431,11 @@ const VOCAB = [
   { he: "סיירת", translit: "Sayeret", fr: "Commando / patrouille", cat: "Général" },
   { he: "סיור", translit: "Siyour", fr: "Visite / excursion", cat: "Général" },
   { he: "מדריך", translit: "Madrikh", fr: "Guide", cat: "Général" },
+  { he: "נגיש", translit: "Nagich", fr: "Accessible / abordable", cat: "Général" },
+  { he: "שם פעולה", translit: "Chem pe'oula", fr: "Action d'un verbe", cat: "Général" },
+  { he: "משמש", translit: "Michmich", fr: "Abricot", cat: "Général" },
+  { he: "משמש יבש", translit: "Michmich yavech", fr: "Abricot sec", cat: "Général" },
+  { he: "כואב המוח", translit: "Koev hamoakh", fr: "Mal à la tête", cat: "Général" },
+  { he: "אני בקטע של", translit: "Ani beketa chel", fr: "Je m'intéresse à / suis à fond", cat: "Général" },
+  { he: "נפוץ", translit: "Nafots", fr: "Courant / commun / fréquent", cat: "Général" },
 ];
