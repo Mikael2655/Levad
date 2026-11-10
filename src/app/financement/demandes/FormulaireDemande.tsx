@@ -121,8 +121,8 @@ export default function FormulaireDemande(p: {
       loyerCentimes: valeurCentimes, observation: v.observation,
       lignes: v.lignes.map(l => ({ designation: l.designation ?? '', quantite: Number(l.quantite || 1), montantHtCentimes: (l.montantHt ?? '').trim() ? eurosVersCentimes(l.montantHt) : null, typeBien: avecApi ? l.typeBien || '7' : l.typeBien ?? '', constructeur: l.constructeur ?? '' })),
     }
-      const r = await (p.mode === 'creation' ? appel<{ id: number; envoi?: string; message?: string }>('/api/financement/demandes', 'POST', corps) : appel<{ id: number; envoi?: string; message?: string }>(`/api/financement/demandes/${p.demandeId}`, 'PATCH', corps))
-      const notice = r.envoi === 'ok' ? '?envoi=ok' : r.envoi === 'erreur' ? `?envoi=erreur&m=${encodeURIComponent((r.message ?? '').slice(0, 400))}` : ''
+      const r = await (p.mode === 'creation' ? appel<{ id: number; envoi?: string; message?: string; financeur?: string }>('/api/financement/demandes', 'POST', corps) : appel<{ id: number; envoi?: string; message?: string; financeur?: string }>(`/api/financement/demandes/${p.demandeId}`, 'PATCH', corps))
+      const notice = r.envoi === 'ok' ? `?envoi=ok&f=${encodeURIComponent(r.financeur ?? '')}` : r.envoi === 'erreur' ? `?envoi=erreur&m=${encodeURIComponent((r.message ?? '').slice(0, 400))}` : ''
       router.push(`/financement/demandes/${r.id}${notice}`)
       router.refresh()
     } catch (err) {
@@ -259,7 +259,7 @@ export default function FormulaireDemande(p: {
           )}
           {doublons.autres > 0 && <p>{doublons.autres} autre(s) dossier(s) existent pour ce client chez un autre commercial. Rapprochez-vous de l’administration.</p>}
           <div className="flex flex-wrap gap-3">
-            <button type="button" disabled={envoi} onClick={() => { setDoublons(null); void valider() }} className="bg-accent-700 hover:bg-accent-800 text-white rounded-xl px-5 py-2 text-sm font-semibold disabled:opacity-60">{avecApi && p.interne ? 'Continuer : enregistrer et envoyer à Grenke' : 'Continuer l’enregistrement'}</button>
+            <button type="button" disabled={envoi} onClick={() => { setDoublons(null); void valider() }} className="bg-accent-700 hover:bg-accent-800 text-white rounded-xl px-5 py-2 text-sm font-semibold disabled:opacity-60">Continuer : enregistrer et envoyer</button>
             <button type="button" className="underline" onClick={() => setDoublons(null)}>Revenir à la saisie</button>
           </div>
         </section>
@@ -267,7 +267,7 @@ export default function FormulaireDemande(p: {
 
       {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{erreur}</p>}
       <div className="flex gap-3">
-        <button disabled={envoi} className="bg-accent-700 hover:bg-accent-800 text-white shadow-sm shadow-accent-800/20 transition rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-60">{p.mode === 'creation' ? 'Enregistrer en brouillon' : 'Enregistrer les modifications'}</button>
+        <button disabled={envoi} className="bg-accent-700 hover:bg-accent-800 text-white shadow-sm shadow-accent-800/20 transition rounded-xl px-6 py-2.5 text-sm font-semibold disabled:opacity-60">{p.mode === 'creation' ? 'Enregistrer et envoyer' : 'Enregistrer les modifications'}</button>
         <button type="button" className="text-sm underline text-gray-600" onClick={() => router.back()}>Annuler</button>
       </div>
     </form>
