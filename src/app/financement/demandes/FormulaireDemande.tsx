@@ -230,7 +230,7 @@ export default function FormulaireDemande(p: {
         <Etiquette t="Observation (facultative)">
           <textarea className={champ} rows={2} maxLength={500} value={v.observation} onChange={e => set('observation', e.target.value)} placeholder="Ex. Rachat du contrat n°… dans le cadre de cette nouvelle demande" />
         </Etiquette>
-        {avecApi && <p className="text-xs text-gray-500">Pour Grenke, l’observation est ajoutée au détail du premier matériel de la demande.</p>}
+        {avecApi && <p className="text-xs text-gray-500">Pour Grenke, l’observation est transmise dans la remarque de la demande (champ « Quote note »).</p>}
       </section>
 
       {doublons && (

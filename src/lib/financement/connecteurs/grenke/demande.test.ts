@@ -77,15 +77,15 @@ describe('demande au format Grenke', () => {
 })
 
 describe('observation dans la demande Grenke', () => {
-  it('ajoutée au détail du premier matériel seulement', () => {
+  it('transmise dans le champ QuoteNote de la demande, sans toucher au détail des matériels', () => {
     const d = {
       raisonSociale: 'ACME', siret: '35600000000048', adresse: '1 rue A', codePostal: '75001', ville: 'PARIS', pays: 'France', contactEmail: '', contactTel: null,
       dureeMois: 48, periodicite: 'TRIMESTRIELLE' as const, montantReelCentimes: 100000, observation: 'Rachat du contrat n°100-123 dans le cadre de cette nouvelle demande.',
-      lignes: [{ designation: 'iRA c3720i', quantite: 1, constructeur: null, typeBien: '7', montantHtCentimes: null }, { designation: 'Fax', quantite: 1, constructeur: null, typeBien: '7', montantHtCentimes: null }],
+      lignes: [{ designation: 'iRA c3720i', quantite: 1, constructeur: null, typeBien: '7', montantHtCentimes: null }],
     }
-    const objets = (construireDemandeGrenke(d, options).requete as any).FinancingObjects as { Details: string }[]
-    expect(objets[0].Details).toBe('iRA c3720i — Rachat du contrat n°100-123 dans le cadre de cette nouvelle demande.')
-    expect(objets[1].Details).toBe('Fax')
-    expect(((construireDemandeGrenke({ ...d, observation: null }, options).requete as any).FinancingObjects as { Details: string }[])[0].Details).toBe('iRA c3720i')
+    const avec = construireDemandeGrenke(d, options).requete as any
+    expect(avec.QuoteNote).toBe('Rachat du contrat n°100-123 dans le cadre de cette nouvelle demande.')
+    expect(avec.FinancingObjects[0].Details).toBe('iRA c3720i')
+    expect('QuoteNote' in (construireDemandeGrenke({ ...d, observation: null }, options).requete as any)).toBe(false)
   })
 })

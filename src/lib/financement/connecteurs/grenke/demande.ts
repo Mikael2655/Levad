@@ -25,7 +25,7 @@ export interface DemandePourGrenke {
   dureeMois: number
   periodicite: 'MENSUELLE' | 'TRIMESTRIELLE'
   montantReelCentimes: number
-  observation?: string | null // remarque libre : ajoutée au détail du 1er matériel (l'API n'a pas de champ « commentaire » connu)
+  observation?: string | null // remarque libre : transmise à Grenke dans le champ « QuoteNote » de la demande (swagger Grenke)
   lignes: LigneDemande[]
 }
 
@@ -97,7 +97,7 @@ export function construireDemandeGrenke(d: DemandePourGrenke, o: OptionsGrenke):
   const somme = objets.reduce((s, x) => s + x.quantite * x.prixUnitaireCentimes, 0)
   if (somme !== d.montantReelCentimes) throw new Error(`Répartition incohérente (${somme} ≠ ${d.montantReelCentimes})`) // ne doit jamais arriver
 
-  const financingObjects = objets.map((x, index) => {
+  const financingObjects = objets.map(x => {
     const id = x.typeBien && /^\d+$/.test(x.typeBien.trim()) ? Number(x.typeBien.trim()) : null
     if (id === null) avertissements.push(`Type de bien non précisé pour « ${x.designation} » : type n° ${o.typeObjetParDefaut} utilisé par défaut.`)
     return {
@@ -105,7 +105,7 @@ export function construireDemandeGrenke(d: DemandePourGrenke, o: OptionsGrenke):
       ObjectTypeId: id ?? o.typeObjetParDefaut,
       Manufacturer: x.constructeur?.trim() || 'Other',
       NetPricePerObject: euros(x.prixUnitaireCentimes),
-      Details: index === 0 && d.observation?.trim() ? `${x.designation} — ${d.observation.trim()}`.slice(0, 500) : x.designation,
+      Details: x.designation,
     }
   })
 
@@ -128,6 +128,7 @@ export function construireDemandeGrenke(d: DemandePourGrenke, o: OptionsGrenke):
       ...(o.commissionPourcent !== null ? { Commission: o.commissionPourcent } : {}),
       ProductType: 'ClassicLease',
       HasRepurchase: false,
+      ...(d.observation?.trim() ? { QuoteNote: d.observation.trim().slice(0, 500) } : {}),
       Lessee: lessee,
       FinancingObjects: financingObjects,
     },
