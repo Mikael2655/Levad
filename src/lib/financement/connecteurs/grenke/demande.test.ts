@@ -44,12 +44,12 @@ const demande = (o: Partial<DemandePourGrenke> = {}): DemandePourGrenke => ({
   contactEmail: 'jeanne@acme.fr', contactTel: '0388000000', dureeMois: 63, periodicite: 'TRIMESTRIELLE', montantReelCentimes: 1255208,
   lignes: [ligne({ typeBien: '7' })], ...o,
 })
-const options = { modePaiement: 'Direct Debit' as const, commissionPourcent: 2, typeObjetParDefaut: 7, formatIdentifiant: 'SIREN' as const }
+const options = { modePaiement: 'DirectDebit' as const, commissionPourcent: 2, typeObjetParDefaut: 7, formatIdentifiant: 'SIREN' as const }
 
 describe('demande au format Grenke', () => {
   it('le MONTANT RÉEL part chez Grenke (jamais le montant commercial)', () => {
     const { requete } = construireDemandeGrenke(demande(), options) as { requete: any }
-    expect(requete).toMatchObject({ FinancingAmount: 12552.08, Period: 63, PaymentFrequency: 'Quarterly', PaymentMethod: 'Direct Debit', Currency: 'EUR', ProductType: 'ClassicLease', Commission: 2 })
+    expect(requete).toMatchObject({ FinancingAmount: 12552.08, Period: 63, PaymentFrequency: 'Quarterly', PaymentMethod: 'DirectDebit', Currency: 'EUR', ProductType: 'ClassicLease', Commission: 2 })
     expect(requete.FinancingObjects).toEqual([{ Quantity: 1, ObjectTypeId: 7, Manufacturer: 'Canon', NetPricePerObject: 12552.08, Details: 'Copieur' }])
     const somme = requete.FinancingObjects.reduce((s: number, o: any) => s + o.Quantity * Math.round(o.NetPricePerObject * 100), 0)
     expect(somme).toBe(requete.FinancingAmount * 100 > 0 ? 1255208 : 0)

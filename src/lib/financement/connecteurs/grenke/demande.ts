@@ -29,7 +29,7 @@ export interface DemandePourGrenke {
 }
 
 export interface OptionsGrenke {
-  modePaiement: 'Invoice' | 'Direct Debit'
+  modePaiement: 'Invoice' | 'DirectDebit'
   commissionPourcent: number | null // ex. 2 pour 2 % ; null = valeur par défaut du profil Grenke
   typeObjetParDefaut: number // 7 = Photocopier
   formatIdentifiant: 'SIREN' | 'SIRET'
