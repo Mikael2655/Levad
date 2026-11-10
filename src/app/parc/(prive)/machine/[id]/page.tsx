@@ -92,7 +92,7 @@ export default async function MachinePage({ params }: { params: { id: string } }
           </Bouton>
           <span className="text-sm text-gray-500">
             {commandeEnCours
-              ? `Demande envoyée ${depuis(commandeEnCours.creeLe)} : la lecture arrive en quelques minutes (rechargez la page).`
+              ? `Demande envoyée ${depuis(commandeEnCours.creeLe)} : la lecture arrive dans les 30 minutes au plus (rechargez la page).`
               : 'Demande une lecture immédiate au programme installé chez le client.'}
           </span>
         </Formulaire>

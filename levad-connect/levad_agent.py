@@ -29,11 +29,11 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.14"
+VERSION_AGENT = "1.15"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
-PAUSE_SECONDES = 60            # signal de vie toutes les minutes
+PAUSE_SECONDES = 60            # signal de vie toutes les minutes tant que le site n'a pas indiqué un autre rythme (voir pauseSecondes)
 DECOUVERTE_TOUS_LES_JOURS = 24 * 3600
 
 
@@ -507,12 +507,13 @@ def boucle(max_tours=None):
         lecteur["fil"] = fil
         fil.start()
 
+    pause_site = PAUSE_SECONDES      # rythme demandé par le site dans sa réponse (entre 1 et 15 minutes)
     while True:
         if os.path.exists(_chemin("arret")):
             journal("arrêt demandé (désinstallation)")
             _nettoyer_apres_arret()
             return 0
-        pause = float(os.environ.get("LEVAD_PAUSE", PAUSE_SECONDES))
+        pause = float(os.environ.get("LEVAD_PAUSE", pause_site))
         if maj["redemarrer"]:
             journal("redémarrage sur la nouvelle version")
             verrou.close()                         # libère le verrou pour que la nouvelle version puisse démarrer
@@ -534,6 +535,9 @@ def boucle(max_tours=None):
             maj["fil"].start()
         try:
             reponse = signal_de_vie(config)
+            demande = reponse.get("pauseSecondes")
+            if isinstance(demande, (int, float)) and not isinstance(demande, bool):
+                pause_site = min(900.0, max(60.0, float(demande)))
             ips = [x for x in reponse.get("ips", []) if isinstance(x, str)]
             if ips != config.get("ips_manuelles", []):
                 config["ips_manuelles"] = ips

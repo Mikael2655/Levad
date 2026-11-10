@@ -1062,17 +1062,19 @@
     if (key === 'p3') return 'Petite finale';
     return L.roundLabel(key);
   }
-  function ruleRow(key, locked) {
+  function ruleRow(key, started) {
     var r = L.ruleFor(rules(), key);
     var fmtOpts = Object.keys(L.FORMATS).map(function (fk) {
       return '<option value="' + fk + '"' + (r.format === fk ? ' selected' : '') + '>' + esc(L.FORMATS[fk].label) + '</option>';
     }).join('');
-    var dis = locked ? ' disabled' : '';
+    // Une phase commencée reste modifiable (les matchs déjà joués gardent leur
+    // règle) ; on signale « commencé » et on demande confirmation au changement.
+    var ds = started ? ' data-started="1"' : '';
     return '<div class="rule-row">' +
-      '<div class="rule-name">' + phaseLabel(key) + (locked ? ' <span class="sub">· démarré</span>' : '') + '</div>' +
+      '<div class="rule-name">' + phaseLabel(key) + (started ? ' <span class="sub">· commencé</span>' : '') + '</div>' +
       '<div class="rule-fields">' +
-      '<input class="rule-pts" type="number" min="100" step="10" id="rz-pts-' + key + '" value="' + r.target + '"' + dis + ' aria-label="Points ' + esc(phaseLabel(key)) + '">' +
-      '<select class="rule-fmt" id="rz-fmt-' + key + '"' + dis + ' aria-label="Format ' + esc(phaseLabel(key)) + '">' + fmtOpts + '</select>' +
+      '<input class="rule-pts" type="number" min="100" step="10" id="rz-pts-' + key + '" value="' + r.target + '"' + ds + ' aria-label="Points ' + esc(phaseLabel(key)) + '">' +
+      '<select class="rule-fmt" id="rz-fmt-' + key + '"' + ds + ' aria-label="Format ' + esc(phaseLabel(key)) + '">' + fmtOpts + '</select>' +
       '</div></div>';
   }
   // Éditeur « points & format » par phase (poule + chaque tour du tableau).
@@ -1091,11 +1093,29 @@
     var rowsHtml = keys.map(function (k) {
       return ruleRow(k, (k === 'pool') ? poolStarted() : roundStarted(k));
     }).join('');
+    // Conversion « tout en 1 manche ». On la propose dès qu'il y a de quoi
+    // fusionner : soit des matchs de poule stockés en manches (_mN), soit des
+    // poules réglées en 2 manches et déjà commencées. Indépendant du format
+    // courant (utile même après être déjà passé en « match sec »).
+    var hasPool = keys.indexOf('pool') >= 0;
+    var hasPoolManches = store.matches.some(function (m) { return m && m.phase === 'pool' && /_m\d+$/.test(m.id) && m.proposal; });
+    var poolMulti = hasPool && (hasPoolManches || (poolStarted() && L.fmtFor(rules(), 'pool').base > 1));
+    var convert = poolMulti
+      ? '<div class="notice" style="margin-top:14px">Des matchs de poule sont en <b>2 manches</b>. Pour tout repasser en <b>match sec</b> en ne gardant qu\'<b>une seule manche par match</b> (la 2ᵉ manche est supprimée partout) :</div>' +
+        '<button class="btn small block" data-act="merge-single" data-key="pool">↩️ Poules : ne garder qu\'une manche</button>'
+      : '';
+    // Même conversion pour le tableau (tours en 2 manches / belle).
+    var hasKoManches = store.matches.some(function (m) { return m && m.phase === 'ko' && /_m\d+$/.test(m.id) && m.proposal; });
+    if (hasKoManches) {
+      convert += '<div class="notice" style="margin-top:14px">Des matchs du <b>tableau</b> sont en <b>2 manches</b> (ou belle). Pour les repasser en <b>match sec</b> en ne gardant qu\'<b>une seule manche par match</b> :</div>' +
+        '<button class="btn small block" data-act="merge-single-ko">↩️ Tableau : ne garder qu\'une manche</button>';
+    }
     return '<div style="height:20px"></div><h3>Points &amp; format des rencontres</h3>' +
       '<p class="sub">Réglez les <b>points par match</b> et le <b>nombre de manches</b>, phase par phase. ' +
-      'Modifiable tant que la phase n\'a pas démarré (dès qu\'un score y est saisi, elle se verrouille).</p>' +
+      'Une phase <b>déjà commencée</b> reste modifiable : les matchs <b>déjà joués gardent leur règle</b>, ' +
+      'les matchs <b>suivants</b> suivent le nouveau réglage.</p>' +
       '<div class="rule-row rule-head"><div class="rule-name">Phase</div><div class="rule-fields"><span>Points</span><span>Format</span></div></div>' +
-      rowsHtml;
+      rowsHtml + convert;
   }
 
   function adminReglages(c) {
@@ -1181,18 +1201,78 @@
     }
     if (/^rz-(pts|fmt)-/.test(ev.target.id)) onRuleChange(ev.target);
   });
+  // Convertit une phase (poules ou tableau) en « match sec » : pour chaque
+  // rencontre on ne garde qu'UNE manche (la 1re saisie), la 2e/3e est supprimée,
+  // et le format des tours concernés passe à « single ». Rien d'autre n'est touché.
+  // phase : 'pool' (toutes les poules) ou 'ko' (tous les tours du tableau).
+  function convertToSingle(tid, phase) {
+    var c = store.config;
+    var byId = {};
+    store.matches.forEach(function (m) { if (m && m.phase === phase) byId[m.id] = m; });
+    var bases = {};
+    Object.keys(byId).forEach(function (id) {
+      var mm = id.match(/^(.+)_m\d+$/);
+      if (mm) bases[mm[1]] = true;
+    });
+    var ops = [], roundsToSingle = {};
+    if (phase === 'pool') roundsToSingle.pool = true; // toutes les poules en single
+    if (phase === 'ko') { // tout le tableau en single (y compris les tours pas encore joués, ex. la finale)
+      var size = (c.bracket && c.bracket.size) || c.numTeams || chosenBracketSize(teamCount()) || 0;
+      L.roundKeysForSize(size).forEach(function (rk) { roundsToSingle[rk] = true; });
+    }
+    Object.keys(bases).forEach(function (bid) {
+      var keep = null, kd = null;
+      ['_m1', '_m2', '_m3'].forEach(function (suf) {
+        var d = byId[bid + suf];
+        if (!keep && d && d.proposal) { keep = d.proposal; kd = d; }
+      });
+      if (keep && kd) {
+        var base = { phase: phase, target: kd.target, teamA: kd.teamA, teamB: kd.teamB };
+        if (phase === 'pool') { base.pool = kd.pool; base.slotA = kd.slotA; base.slotB = kd.slotB; }
+        else { base.roundKey = kd.roundKey || roundKeyOfId(bid); }
+        ops.push(DB.adminSet(tid, bid, base, keep.scoreA, keep.scoreB));
+        roundsToSingle[phase === 'pool' ? 'pool' : roundKeyOfId(bid)] = true;
+      }
+      ['_m1', '_m2', '_m3'].forEach(function (suf) {
+        if (byId[bid + suf]) ops.push(DB.adminClear(tid, bid + suf));
+      });
+    });
+    // Format des tours concernés → single (sans ancien format mémorisé).
+    var cur = (c && c.rules) || {}, next = {};
+    Object.keys(cur).forEach(function (k) { next[k] = Object.assign({}, cur[k]); });
+    Object.keys(roundsToSingle).forEach(function (rk) {
+      next[rk] = Object.assign({}, next[rk], { format: 'single' });
+      delete next[rk].prevFormat;
+    });
+    ops.push(DB.updateConfig(tid, { rules: next }));
+    runBusy('Conversion en match sec…', Promise.all(ops), 'Repassé en match sec')
+      .then(function () { ui.adminTab = (phase === 'pool' ? 'poules' : 'tableau'); render(); },
+        function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
+  }
   // Enregistre un réglage points/format d'une phase, en préservant les autres.
   function onRuleChange(el) {
     var m = el.id.match(/^rz-(pts|fmt)-(.+)$/);
     if (!m) return;
     var field = m[1] === 'pts' ? 'target' : 'format', key = m[2];
+    var started = (key === 'pool') ? poolStarted() : roundStarted(key);
     var val = field === 'target' ? Math.max(100, parseInt(el.value, 10) || L.POOL_TARGET) : el.value;
     var cur = (store.config && store.config.rules) || {};
-    var next = {};
-    Object.keys(cur).forEach(function (k) { next[k] = Object.assign({}, cur[k]); });
-    next[key] = Object.assign({}, next[key]); next[key][field] = val;
-    runBusy('Enregistrement…', DB.updateConfig(state.tid, { rules: next }), 'Réglage enregistré')
-      .then(function () { render(); }, function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
+    var oldFormat = L.ruleFor(rules(), key).format;
+    function apply() {
+      var next = {};
+      Object.keys(cur).forEach(function (k) { next[k] = Object.assign({}, cur[k]); });
+      next[key] = Object.assign({}, next[key]); next[key][field] = val;
+      // Phase commencée + changement de format : on mémorise l'ancien format pour
+      // que les matchs déjà joués restent décodés avec leur règle d'origine.
+      if (field === 'format' && started && val !== oldFormat) next[key].prevFormat = oldFormat;
+      runBusy('Enregistrement…', DB.updateConfig(state.tid, { rules: next }), 'Réglage enregistré')
+        .then(function () { render(); }, function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
+    }
+    if (started) {
+      modalConfirm('Cette phase a déjà des scores. Les matchs déjà joués garderont leur règle actuelle ; ' +
+        'seuls les matchs pas encore joués suivront le nouveau réglage. Continuer ?', 'Modifier')
+        .then(function (ok) { if (ok) apply(); else render(); });
+    } else apply();
   }
   screen.addEventListener('focusout', function () {
     setTimeout(function () {
@@ -1347,6 +1427,16 @@
       sha256(code).then(function (hash) {
         return runBusy('Enregistrement…', DB.updateConfig(tid, { coadminHash: hash }), 'Accès saisie activé');
       }).then(function () { render(); }).catch(function (e) { toast('Erreur : ' + ((e && e.message) || '')); });
+      return;
+    }
+    if (act === 'merge-single') {
+      modalConfirm('Repasser toutes les poules en MATCH SEC ? Pour chaque match, on ne garde que la 1re manche saisie — la 2ᵉ manche est supprimée partout. Les matchs non commencés se joueront en une seule manche. (Action définitive sur les scores déjà saisis.)', 'Convertir')
+        .then(function (ok) { if (ok) convertToSingle(tid, 'pool'); });
+      return;
+    }
+    if (act === 'merge-single-ko') {
+      modalConfirm('Repasser les matchs du TABLEAU en MATCH SEC ? Pour chaque match, on ne garde que la 1re manche saisie — la 2ᵉ manche (ou la belle) est supprimée. Les matchs non commencés se joueront en une seule manche. (Action définitive sur les scores déjà saisis.)', 'Convertir')
+        .then(function (ok) { if (ok) convertToSingle(tid, 'ko'); });
       return;
     }
     if (act === 'lock-admin') { sessionStorage.removeItem('bt:admin:' + tid); go('#/classement'); return; }

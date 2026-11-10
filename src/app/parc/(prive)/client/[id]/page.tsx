@@ -101,7 +101,7 @@ export default async function ClientPage({ params }: { params: { id: string } })
         </Formulaire>
         <Formulaire action={demanderLectureClient} message="Lecture demandée" className="mt-4 border-t pt-4">
           <input type="hidden" name="id" value={client.id} />
-          <p className="mb-2 text-sm text-gray-600">Pas envie d&apos;attendre le prochain relevé ? Demandez une lecture tout de suite (le PC du client doit être allumé).</p>
+          <p className="mb-2 text-sm text-gray-600">Pas envie d&apos;attendre le prochain relevé ? Demandez une lecture : elle part au prochain signal du programme, dans les 30 minutes au plus (le PC du client doit être allumé).</p>
           <Bouton className="rounded-lg border border-gray-300 px-4 py-2 font-semibold">Lire maintenant</Bouton>
         </Formulaire>
       </section>

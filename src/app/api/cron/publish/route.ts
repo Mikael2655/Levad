@@ -4,11 +4,12 @@ export const maxDuration = 60
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { publishEverywhere } from '@/lib/publish'
-import { generateQueuedPost, getHold, latestSlotAtOrBefore, rebuildSlots, sortQueue, workFillJobIfIdle } from '@/lib/queue'
+import { generateQueuedPost, getHold, getSlots, rebuildSlots, sortQueue, workFillJobIfIdle } from '@/lib/queue'
+import { latestSlotAtOrBefore } from '@/lib/slots'
 
 const SLOT_WINDOW_MS = 6 * 3600000
 
-// Appelé toutes les 15 minutes. Au créneau (mardi/jeudi 18h Paris, fenêtre de 6 h),
+// Appelé toutes les 15 minutes. Au créneau réglé dans Configuration (fenêtre de 6 h),
 // publie le premier post VALIDÉ de la file, puis en génère un nouveau pour garder la file pleine.
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
@@ -34,7 +35,7 @@ async function publishPass(): Promise<NextResponse> {
     if (!config) return NextResponse.json({ skipped: 'no config' })
 
     const now = new Date()
-    const slot = latestSlotAtOrBefore(now)
+    const slot = latestSlotAtOrBefore(now, await getSlots())
     if (!slot || now.getTime() - slot.getTime() > SLOT_WINDOW_MS) {
       await rebuildSlots()
       return NextResponse.json({ published: 0, reason: 'hors créneau' })
