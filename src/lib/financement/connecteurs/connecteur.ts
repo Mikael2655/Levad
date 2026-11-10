@@ -14,6 +14,7 @@ export interface EtatDemande {
   etapeSignature: EtapeSignature | null
   detail: string // libellé précis donné par le financeur
   codeFinanceur: string // code brut du financeur (ex. ReadyToSign)
+  reference?: string // numéro de dossier lisible chez le financeur, s'il le donne (Grenke : 100-145711)
 }
 
 export interface ContratFinanceur {

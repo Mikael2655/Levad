@@ -36,7 +36,7 @@ export function creerConnecteurGrenke(config: ConfigGrenke): Connecteur {
     async recupererStatut(referenceFinanceur): Promise<EtatDemande | null> {
       const d = await lireDemande(config, referenceFinanceur)
       const c = versStatutCommun(String(d.State ?? ''))
-      return c ? { statut: c.statut, etapeSignature: c.etape, detail: c.detail, codeFinanceur: String(d.State) } : null
+      return c ? { statut: c.statut, etapeSignature: c.etape, detail: c.detail, codeFinanceur: String(d.State), reference: typeof d.RequestId === 'string' ? d.RequestId : undefined } : null
     },
 
     async listerContrats(): Promise<ContratFinanceur[]> {

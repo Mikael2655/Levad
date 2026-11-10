@@ -171,7 +171,7 @@ d('pièces jointes (base réelle)', () => {
     it('sans référence chez le financeur ou sans connecteur : rien ne part', async () => {
       const id = await deposer(CA(), pdf(500), 'avant.pdf')
       expect(await pj.transmettrePieces(demandeId, faux())).toEqual({ envoyees: 0, echecs: [] }) // demande pas encore créée chez le financeur
-      await prisma.finDemande.update({ where: { id: demandeId }, data: { refFinanceur: '11111111-1111-1111-1111-111111111111' } })
+      await prisma.finDemande.update({ where: { id: demandeId }, data: { refFinanceur: '100-1', idFinanceur: '11111111-1111-1111-1111-111111111111' } })
       expect(await pj.transmettrePieces(demandeId, null)).toEqual({ envoyees: 0, echecs: [] }) // financeur sans API
       expect((await prisma.finPieceJointe.findUniqueOrThrow({ where: { id } })).envoyeFinanceurLe).toBeNull()
     })

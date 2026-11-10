@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/db'
 import { estAdmin } from '../../droits'
 import { ErreurMetier } from '../../erreurs'
-import { creerDemandeApi } from './api'
+import { creerDemandeApi, lireDemande } from './api'
 import { lireConfigGrenke } from './config'
 import { modeEcriture } from './connecteur'
 import { construireDemandeGrenke, type OptionsGrenke } from './demande'
@@ -23,7 +23,7 @@ export async function envoyerDemandeAGrenke(a: { id: number; role: 'ADMIN' | 'AS
   if (!d) throw new ErreurMetier('Demande introuvable.', 404)
   if (d.financeur.connecteur !== 'grenke_api') throw new ErreurMetier('Cette demande n’est pas destinée à Grenke (API).')
   if (!['BROUILLON', 'INFOS_MANQUANTES'].includes(d.statut)) throw new ErreurMetier('Seule une demande en brouillon ou à compléter peut être envoyée.')
-  if (d.refFinanceur) throw new ErreurMetier(d.refFinanceur === EN_COURS ? 'Un envoi est déjà en cours ou a été interrompu : vérifiez sur le portail Grenke avant toute nouvelle tentative.' : 'Cette demande a déjà un numéro de dossier Grenke : elle n’est pas renvoyée.', 409)
+  if (d.idFinanceur || d.refFinanceur) throw new ErreurMetier(d.idFinanceur === EN_COURS ? 'Un envoi est déjà en cours ou a été interrompu : vérifiez sur le portail Grenke avant toute nouvelle tentative.' : 'Cette demande a déjà un numéro de dossier Grenke : elle n’est pas renvoyée.', 409)
   if (d.rachatId) throw new ErreurMetier('Cette demande intègre un rachat : sa déclaration à Grenke n’est pas encore confirmée, envoi automatique refusé.')
   if (d.montantReelCentimes == null) throw new ErreurMetier('Pas de montant financé réel : rien à envoyer.')
   if (mode === 'test' && d.siret.replace(/\D/g, '').slice(0, 9) !== sirenTest) throw new ErreurMetier('Mode essai : seule une demande dont le client porte le SIREN de test annoncé à Grenke peut être envoyée.', 403)
@@ -34,18 +34,21 @@ export async function envoyerDemandeAGrenke(a: { id: number; role: 'ADMIN' | 'AS
     options,
   )
 
-  const verrou = await prisma.finDemande.updateMany({ where: { id: demandeId, refFinanceur: null }, data: { refFinanceur: EN_COURS } })
+  const verrou = await prisma.finDemande.updateMany({ where: { id: demandeId, idFinanceur: null }, data: { idFinanceur: EN_COURS } })
   if (verrou.count !== 1) throw new ErreurMetier('Un envoi est déjà en cours pour cette demande.', 409)
   let financingId: string
   try {
     financingId = await creerDemandeApi(cfg.config, requete)
   } catch (e) {
     // Refus clair de Grenke (4xx) : rien n'a été créé, on libère. Sinon (délai, réponse illisible) on laisse le verrou : la demande a peut-être été créée.
-    if (e instanceof ErreurMetier && /^(Grenke a refusé les données \(400\)|Accès refusé par Grenke \(403\)|Introuvable chez Grenke \(404\))/.test(e.message)) await prisma.finDemande.update({ where: { id: demandeId }, data: { refFinanceur: null } })
+    if (e instanceof ErreurMetier && /^(Grenke a refusé les données \(400\)|Accès refusé par Grenke \(403\)|Introuvable chez Grenke \(404\))/.test(e.message)) await prisma.finDemande.update({ where: { id: demandeId }, data: { idFinanceur: null } })
     throw e
   }
+  // numéro lisible (ex. 100-145711) : s'il n'est pas lisible tout de suite, le bouton « Actualiser depuis Grenke » le renseignera
+  let numero: string | null = null
+  try { const r = await lireDemande(cfg.config, financingId); numero = typeof r.RequestId === 'string' ? r.RequestId : null } catch { /* sans gravité */ }
   await prisma.$transaction([
-    prisma.finDemande.update({ where: { id: demandeId }, data: { refFinanceur: financingId, statut: 'ENVOYEE', infosManquantes: null, etapeSignature: null } }),
+    prisma.finDemande.update({ where: { id: demandeId }, data: { idFinanceur: financingId, refFinanceur: numero ?? financingId, statut: 'ENVOYEE', infosManquantes: null, etapeSignature: null } }),
     prisma.finHistorique.create({ data: { demandeId, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: 'ENVOYEE', commentaire: 'Envoyée à Grenke par l’API' } }),
   ])
   return { financingId, avertissements }
