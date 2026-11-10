@@ -387,3 +387,8 @@ DO $$ BEGIN
   ALTER TABLE "fin_financeur" ADD CONSTRAINT "fin_financeur_baremeCommercialDeId_fkey" FOREIGN KEY ("baremeCommercialDeId") REFERENCES "fin_financeur"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Mise à jour n° 9
+ALTER TABLE "fin_demande" ADD COLUMN IF NOT EXISTS "idFinanceur" TEXT;
+UPDATE "fin_demande" SET "idFinanceur" = "refFinanceur"
+WHERE "idFinanceur" IS NULL AND "refFinanceur" ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';

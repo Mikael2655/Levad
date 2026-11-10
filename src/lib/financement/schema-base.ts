@@ -17,7 +17,9 @@ const V5 = 'prisma/migrations/manual_financement_5.sql'
 const V6 = 'prisma/migrations/manual_financement_6.sql'
 const V7 = 'prisma/migrations/manual_financement_7.sql'
 const V8 = 'prisma/migrations/manual_financement_8.sql'
+const V9 = 'prisma/migrations/manual_financement_9.sql'
 const COLONNES_AJOUTEES: Record<string, string> = {
+  'fin_demande.idFinanceur': V9,
   'fin_financeur.baremeCommercialDeId': V8,
   'fin_demande.rachatId': V7,
   'fin_piece_jointe.envoyeFinanceurLe': V6,

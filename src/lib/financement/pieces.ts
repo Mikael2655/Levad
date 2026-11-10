@@ -119,12 +119,12 @@ export async function transmettrePieces(demandeId: number, connecteur?: Connecte
   try {
     const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { financeur: true } })
     const c = connecteur === undefined ? connecteurPour(d?.financeur.connecteur ?? '') : connecteur
-    if (!d || !c || !d.refFinanceur) return resultat
+    if (!d || !c || !d.idFinanceur || d.idFinanceur === 'ENVOI-EN-COURS') return resultat
     const pieces = await prisma.finPieceJointe.findMany({ where: { demandeId, complete: true, envoyeFinanceurLe: null }, orderBy: { id: 'asc' } })
     for (const piece of pieces) {
       try {
         const morceaux = await prisma.finPieceMorceau.findMany({ where: { pieceId: piece.id }, orderBy: { ordre: 'asc' } })
-        await c.envoyerPiece(d.refFinanceur, piece.nomFichier, Buffer.concat(morceaux.map(m => Buffer.from(m.donnees))))
+        await c.envoyerPiece(d.idFinanceur, piece.nomFichier, Buffer.concat(morceaux.map(m => Buffer.from(m.donnees))))
         await prisma.finPieceJointe.update({ where: { id: piece.id }, data: { envoyeFinanceurLe: new Date() } })
         resultat.envoyees++
       } catch (e) {
