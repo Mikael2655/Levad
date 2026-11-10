@@ -22,7 +22,8 @@ export async function envoyerDemandeAGrenke(a: { id: number; role: 'ADMIN' | 'AS
   const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { lignes: true, financeur: true } })
   if (!d) throw new ErreurMetier('Demande introuvable.', 404)
   if (d.financeur.connecteur !== 'grenke_api') throw new ErreurMetier('Cette demande n’est pas destinée à Grenke (API).')
-  if (!['BROUILLON', 'INFOS_MANQUANTES'].includes(d.statut)) throw new ErreurMetier('Seule une demande en brouillon ou à compléter peut être envoyée.')
+  // « Envoyée » sans numéro de dossier = demandée par le commercial, pas encore transmise réellement à Grenke (les contrôles ci-dessous empêchent tout double envoi).
+  if (!['BROUILLON', 'INFOS_MANQUANTES', 'ENVOYEE'].includes(d.statut)) throw new ErreurMetier('Cette demande ne peut plus être envoyée à Grenke dans son état actuel.')
   if (d.idFinanceur || d.refFinanceur) throw new ErreurMetier(d.idFinanceur === EN_COURS ? 'Un envoi est déjà en cours ou a été interrompu : vérifiez sur le portail Grenke avant toute nouvelle tentative.' : 'Cette demande a déjà un numéro de dossier Grenke : elle n’est pas renvoyée.', 409)
   if (d.rachatId) throw new ErreurMetier('Cette demande intègre un rachat : sa déclaration à Grenke n’est pas encore confirmée, envoi automatique refusé.')
   if (d.montantReelCentimes == null) throw new ErreurMetier('Pas de montant financé réel : rien à envoyer.')
