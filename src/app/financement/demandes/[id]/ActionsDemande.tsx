@@ -22,6 +22,7 @@ export default function ActionsDemande(p: {
   saisieMontantReel: boolean // financeur sans barème réel : on saisit le montant communiqué par le financeur
   miseEnPlace: boolean // financeur sans signature électronique : on enregistre la mise en place du contrat
   peutRenvoyerMail: boolean
+  peutEnvoyerGrenke: boolean // administrateur, demande Grenke (API) pas encore envoyée
   montantReelActuel: number | null
   etapeSignature: string | null // non nul seulement quand la demande est « En signature »
   signataires: { client: Sig; fournisseur: Sig }
@@ -129,6 +130,7 @@ export default function ActionsDemande(p: {
       )}
 
       <div className="flex flex-wrap gap-2 text-sm border-t border-gray-100 pt-3">
+        {p.peutEnvoyerGrenke && <button className={`${champ} font-medium`} onClick={() => confirm('Envoyer cette demande à Grenke ? C’est une VRAIE demande de financement (Grenke n’a pas d’environnement de test) : elle ne pourra pas être envoyée une seconde fois.') && agir(async () => { await appel(`${url}/envoyer-grenke`, 'POST', {}); setInfoOk('Demande envoyée à Grenke.') })}>Envoyer à Grenke</button>}
         {p.peutRenvoyerMail && <button className={champ} onClick={() => agir(async () => { await appel(`${url}/renvoyer-mail`, 'POST', {}); setInfoOk('E-mail renvoyé.') })}>Renvoyer le mail au financeur</button>}
         {p.peutModifier && <Link href={`/financement/demandes/${p.id}/modifier`} className={`${champ} font-medium`}>Modifier</Link>}
         {p.peutAnnuler && <button className={`${champ} text-red-700`} onClick={() => confirm('Annuler cette demande ?') && agir(() => appel(`${url}/statut`, 'POST', { statut: 'ANNULEE', commentaire }))}>Annuler la demande</button>}

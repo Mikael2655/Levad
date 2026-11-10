@@ -8,6 +8,16 @@ import { versStatutCommun } from './statuts'
 
 // L'écriture vers Grenke (demandes, pièces, signatures) reste fermée tant que la variable GRENKE_ECRITURE n'est pas « oui » :
 // elle ne s'ouvre qu'après accord et quand Grenke a été prévenu (pas d'environnement de test chez Grenke).
+// Modes : fermé (variable absente) ; « test » = seule la demande dont le client a le SIREN GRENKE_SIREN_TEST peut être créée chez Grenke
+// (c'est le SIREN annoncé à Grenke pour les essais) ; « oui » = ouvert pour tous les clients.
+export function modeEcriture(env: Record<string, string | undefined> = process.env): { mode: 'ferme' | 'test' | 'ouvert'; sirenTest: string | null } {
+  const v = env.GRENKE_ECRITURE?.trim().toLowerCase()
+  const sirenTest = (env.GRENKE_SIREN_TEST ?? '').replace(/\D/g, '').slice(0, 9)
+  if (v === 'oui') return { mode: 'ouvert', sirenTest: null }
+  if (v === 'test' && sirenTest.length === 9) return { mode: 'test', sirenTest }
+  return { mode: 'ferme', sirenTest: null }
+}
+
 export const ecritureAutorisee = (env: Record<string, string | undefined> = process.env) => env.GRENKE_ECRITURE?.trim().toLowerCase() === 'oui'
 
 const pasEncore = (action: string) => new ErreurMetier(`${action} : l’envoi réel vers Grenke n’est pas encore activé.`, 501)

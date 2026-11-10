@@ -4,6 +4,7 @@ import { exigerUtilisateur } from '@/lib/financement/garde'
 import { dateFr } from '../../format'
 import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import EssaisGrenke from './EssaisGrenke'
+import { modeEcriture } from '@/lib/financement/connecteurs/grenke/connecteur'
 import MajBareme from './MajBareme'
 import SynchroGrenke from './SynchroGrenke'
 import RetourAdmin from '../RetourAdmin'
@@ -17,10 +18,14 @@ export default async function PageGrenke() {
   const [financeurs, utilisateurs] = await Promise.all([listerFinanceurs(), listerUtilisateurs()])
   const commerciaux = utilisateurs.filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN')).map(x => ({ id: x.id, nom: `${x.prenom} ${x.nom}` }))
   const mode = process.env.GRENKE_PAYMENT_METHOD
+  const ecriture = modeEcriture()
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <RetourAdmin />
       <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Connexion à l’API Grenke</h1>
+      <p className={`text-sm rounded-xl px-4 py-3 border ${ecriture.mode === 'ferme' ? 'bg-gray-50 border-gray-200 text-gray-700' : ecriture.mode === 'test' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-red-50 border-red-200 text-red-800'}`}>
+        Envoi vers Grenke : <b>{ecriture.mode === 'ferme' ? 'fermé (lecture seule)' : ecriture.mode === 'test' ? `mode essai : seules les demandes du SIREN ${ecriture.sirenTest} peuvent partir` : 'OUVERT pour tous les clients'}</b>.
+      </p>
       <section className="carte p-5 sm:p-6 space-y-3 text-sm">
         <h2 className="font-semibold text-gray-900">Configuration (variables d’environnement Vercel)</h2>
         <ul className="space-y-1">
