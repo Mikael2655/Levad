@@ -79,6 +79,7 @@ export default async function FicheDemande({ params, searchParams }: { params: {
         <Ligne t="Loyer HT"><b>{euros(d.loyerCentimes)}</b> par {d.periodicite === 'MENSUELLE' ? 'mois' : 'trimestre'}</Ligne>
         <Ligne t="Montant (barème commercial)">{euros(d.montantCommercialCentimes)} <span className="text-gray-400">— coefficient {pourcentCoef(d.coefficientCommercialPpm)}</span></Ligne>
         {d.refFinanceur && <Ligne t="N° de dossier financeur">{d.refFinanceur}</Ligne>}
+        {d.observation && <Ligne t="Observation"><span className="whitespace-pre-line">{d.observation}</span></Ligne>}
         {d.rachat && <Ligne t="Rachat de contrat intégré"><b>{euros(d.rachat.totalCentimes)}</b> — contrat de <Link className="underline text-accent-700" href={`/financement/contrats/${d.rachat.contratId}`}>{d.rachat.contratClient}</Link> ({d.rachat.type === 'RENOUVELANT' ? 'solde renouvelant' : 'solde non renouvelant'}), compris dans le montant ci-dessus</Ligne>}
         {reel && (
           <>

@@ -21,6 +21,7 @@ export default async function ModifierDemande({ params }: { params: { id: string
     raisonSociale: d.raisonSociale, siret: d.siret, formeJuridique: d.formeJuridique ?? '', adresse: d.adresse, codePostal: d.codePostal ?? '', ville: d.ville ?? '', pays: d.pays,
     contactPrenom: d.contactPrenom, contactNom: d.contactNom, contactEmail: d.contactEmail, contactTel: d.contactTel ?? '',
     rachatId: d.rachat ? String(d.rachat.id) : '',
+    observation: d.observation ?? '',
     dureeMois: String(d.dureeMois), periodicite: d.periodicite as ValeursFormulaire['periodicite'], saisie: 'loyer', valeur: eur(d.loyerCentimes),
     lignes: d.lignes.map(l => ({ designation: l.designation, quantite: String(l.quantite), montantHt: eur(l.montantHtCentimes), typeBien: l.typeBien ?? '', constructeur: l.constructeur ?? '' })),
   }

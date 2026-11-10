@@ -392,3 +392,6 @@ END $$;
 ALTER TABLE "fin_demande" ADD COLUMN IF NOT EXISTS "idFinanceur" TEXT;
 UPDATE "fin_demande" SET "idFinanceur" = "refFinanceur"
 WHERE "idFinanceur" IS NULL AND "refFinanceur" ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
+
+-- Mise à jour n° 10
+ALTER TABLE "fin_demande" ADD COLUMN IF NOT EXISTS "observation" TEXT;

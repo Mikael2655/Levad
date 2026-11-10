@@ -16,8 +16,17 @@ export interface ValeursFormulaire {
   contactPrenom: string; contactNom: string; contactEmail: string; contactTel: string
   dureeMois: string; periodicite: 'TRIMESTRIELLE' | 'MENSUELLE'; saisie: 'loyer' | 'montant'; valeur: string
   rachatId: string // renouvellement : identifiant du solde de contrat intégré (vide : aucun)
+  observation: string
   lignes: LigneForm[]
 }
+
+interface Doublons {
+  demandes: { id: number; reference: string; statut: string; financeur: string; creeLe: string; commercial: string }[]
+  contrats: { id: number; reference: string | null; financeur: string; loyerCentimes: number; periodicite: string; dateFin: string | null; etat: 'EN_COURS' | 'TACITE'; commercial: string }[]
+  autres: number
+}
+const LIBELLE_STATUT: Record<string, string> = { BROUILLON: 'Brouillon', ENVOYEE: 'Envoyée au financeur', INFOS_MANQUANTES: 'Informations manquantes', PRETE_A_SIGNER: 'Prête à signer', EN_SIGNATURE: 'En signature' }
+const ligneRachat = (ref: string) => `Rachat du contrat n°${ref} dans le cadre de cette nouvelle demande.`
 
 interface Calcul {
   dureesDisponibles: number[]
@@ -47,6 +56,7 @@ export default function FormulaireDemande(p: {
   const [erreurCalcul, setErreurCalcul] = useState<string | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
+  const [doublons, setDoublons] = useState<Doublons | null>(null)
   const set = <K extends keyof ValeursFormulaire>(k: K, val: ValeursFormulaire[K]) => setV(x => ({ ...x, [k]: val }))
 
   const avecApi = p.financeurs.find(f => String(f.id) === v.financeurId)?.avecApi === true
@@ -77,8 +87,29 @@ export default function FormulaireDemande(p: {
     setV(x => ({ ...x, raisonSociale: e.nom, siret: e.siret || e.siren, formeJuridique: e.formeJuridique || x.formeJuridique, adresse: e.adresse, codePostal: e.codePostal, ville: e.ville, pays: 'France' }))
   }
 
+  // Création : avant d'enregistrer (et, pour Grenke, d'envoyer), on signale les demandes et contrats déjà en cours pour ce client.
   async function enregistrer(e: React.FormEvent) {
     e.preventDefault()
+    setErreur(null)
+    if (p.mode === 'creation') {
+      setEnvoi(true)
+      try {
+        const d = await appel<Doublons>('/api/financement/demandes/verifier', 'POST', { siret: v.siret, raisonSociale: v.raisonSociale })
+        if (d.demandes.length > 0 || d.contrats.length > 0 || d.autres > 0) { setDoublons(d); setEnvoi(false); return }
+      } catch { /* la vérification est une aide : si elle échoue, on n'empêche pas l'enregistrement */ }
+    }
+    await valider()
+  }
+
+  function basculerRachat(ref: string, coche: boolean) {
+    setV(x => {
+      const ligne = ligneRachat(ref)
+      const sans = x.observation.split('\n').filter(l => l.trim() !== ligne).join('\n').trim()
+      return { ...x, observation: coche ? [sans, ligne].filter(Boolean).join('\n') : sans }
+    })
+  }
+
+  async function valider() {
     setErreur(null)
     setEnvoi(true)
     try {
@@ -87,7 +118,7 @@ export default function FormulaireDemande(p: {
       raisonSociale: v.raisonSociale, siret: v.siret, formeJuridique: v.formeJuridique, adresse: v.adresse, codePostal: v.codePostal, ville: v.ville, pays: v.pays,
       contactPrenom: v.contactPrenom, contactNom: v.contactNom, contactEmail: v.contactEmail, contactTel: v.contactTel,
       dureeMois: Number(v.dureeMois), periodicite: v.periodicite, rachatId: v.rachatId ? Number(v.rachatId) : null,
-      loyerCentimes: valeurCentimes,
+      loyerCentimes: valeurCentimes, observation: v.observation,
       lignes: v.lignes.map(l => ({ designation: l.designation ?? '', quantite: Number(l.quantite || 1), montantHtCentimes: (l.montantHt ?? '').trim() ? eurosVersCentimes(l.montantHt) : null, typeBien: avecApi ? l.typeBien || '7' : l.typeBien ?? '', constructeur: l.constructeur ?? '' })),
     }
       const r = await (p.mode === 'creation' ? appel<{ id: number; envoi?: string; message?: string }>('/api/financement/demandes', 'POST', corps) : appel<{ id: number; envoi?: string; message?: string }>(`/api/financement/demandes/${p.demandeId}`, 'PATCH', corps))
@@ -194,6 +225,45 @@ export default function FormulaireDemande(p: {
           </div>
         )}
       </section>
+
+      <section className={section}>
+        <Etiquette t="Observation (facultative)">
+          <textarea className={champ} rows={2} maxLength={500} value={v.observation} onChange={e => set('observation', e.target.value)} placeholder="Ex. Rachat du contrat n°… dans le cadre de cette nouvelle demande" />
+        </Etiquette>
+        {avecApi && <p className="text-xs text-gray-500">Pour Grenke, l’observation est ajoutée au détail du premier matériel de la demande.</p>}
+      </section>
+
+      {doublons && (
+        <section className="rounded-2xl border border-amber-300 bg-amber-50 p-5 space-y-4 text-sm text-amber-950">
+          <h3 className="font-semibold">Attention : ce client a déjà des dossiers en cours</h3>
+          {doublons.demandes.length > 0 && (
+            <div>
+              <p className="font-medium mb-1">Demandes en cours ({doublons.demandes.length})</p>
+              <ul className="space-y-1">{doublons.demandes.map(d => <li key={d.id}><a className="underline" target="_blank" rel="noreferrer" href={`/financement/demandes/${d.id}`}>{d.reference}</a> · {d.financeur} · {LIBELLE_STATUT[d.statut] ?? d.statut} · {d.commercial} · {new Date(d.creeLe).toLocaleDateString('fr-FR')}</li>)}</ul>
+            </div>
+          )}
+          {doublons.contrats.length > 0 && (
+            <div className="space-y-2">
+              <p className="font-medium">Contrats en cours ({doublons.contrats.length})</p>
+              {doublons.contrats.map(c => {
+                const ref = c.reference ?? `#${c.id}`
+                const coche = v.observation.split('\n').some(l => l.trim() === ligneRachat(ref))
+                return (
+                  <div key={c.id} className="bg-white/70 border border-amber-200 rounded-xl p-3">
+                    <p><a className="underline" target="_blank" rel="noreferrer" href={`/financement/contrats/${c.id}`}>{c.reference ?? `Contrat #${c.id}`}</a> · {c.financeur} · {euros(c.loyerCentimes)} / {c.periodicite === 'MENSUELLE' ? 'mois' : 'trimestre'}{c.dateFin ? ` · fin ${new Date(c.dateFin).toLocaleDateString('fr-FR')}` : ''}{c.etat === 'TACITE' ? ' · tacite reconduction' : ''} · {c.commercial}</p>
+                    <label className="flex items-center gap-2 mt-2"><input type="checkbox" checked={coche} onChange={e => basculerRachat(ref, e.target.checked)} /> Cette demande remplace ce contrat : le racheter dans le cadre de cette demande (ajoute une observation)</label>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {doublons.autres > 0 && <p>{doublons.autres} autre(s) dossier(s) existent pour ce client chez un autre commercial. Rapprochez-vous de l’administration.</p>}
+          <div className="flex flex-wrap gap-3">
+            <button type="button" disabled={envoi} onClick={() => { setDoublons(null); void valider() }} className="bg-accent-700 hover:bg-accent-800 text-white rounded-xl px-5 py-2 text-sm font-semibold disabled:opacity-60">{avecApi && p.interne ? 'Continuer : enregistrer et envoyer à Grenke' : 'Continuer l’enregistrement'}</button>
+            <button type="button" className="underline" onClick={() => setDoublons(null)}>Revenir à la saisie</button>
+          </div>
+        </section>
+      )}
 
       {erreur && <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{erreur}</p>}
       <div className="flex gap-3">

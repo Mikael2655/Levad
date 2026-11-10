@@ -75,6 +75,7 @@ export interface DemandeBase {
   infosManquantes: string | null
   etapeSignature: string | null
   refFinanceur: string | null
+  observation: string | null
   financeurId: number
   commercialId: number
   saisiParId: number
@@ -112,6 +113,7 @@ export function vueCommerciale(d: DemandeBase) {
     infosManquantes: d.infosManquantes,
     etapeSignature: d.etapeSignature,
     refFinanceur: d.refFinanceur, // numéro de dossier chez le financeur : visible des commerciaux (pas confidentiel)
+    observation: d.observation, // remarque libre : pas confidentielle
     financeurId: d.financeurId,
     commercialId: d.commercialId,
     saisiParId: d.saisiParId,
