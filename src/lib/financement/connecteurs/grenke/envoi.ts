@@ -54,3 +54,17 @@ export async function envoyerDemandeAGrenke(a: { id: number; role: 'ADMIN' | 'AS
   ])
   return { financingId, avertissements }
 }
+
+// À la création d'une demande par l'administrateur : si le financeur est Grenke (API) et que l'envoi est ouvert (essai ou ouvert),
+// la demande part tout de suite. En cas de refus ou d'erreur, elle reste enregistrée (brouillon) et on le dit : aucune saisie n'est perdue.
+export async function tenterEnvoiAutomatique(a: { id: number; role: 'ADMIN' | 'ASSISTANTE' | 'COMMERCIAL' }, demandeId: number): Promise<{ envoi: 'ok' | 'non' | 'erreur'; message?: string }> {
+  if (!estAdmin(a) || modeEcriture().mode === 'ferme') return { envoi: 'non' }
+  const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, select: { financeur: { select: { connecteur: true } } } })
+  if (d?.financeur.connecteur !== 'grenke_api') return { envoi: 'non' }
+  try {
+    await envoyerDemandeAGrenke(a, demandeId)
+    return { envoi: 'ok' }
+  } catch (e) {
+    return { envoi: 'erreur', message: (e as Error).message }
+  }
+}

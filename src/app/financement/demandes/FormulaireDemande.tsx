@@ -6,6 +6,7 @@ import type { Entreprise } from '@/lib/financement/entreprises'
 import { appel, eurosVersCentimes } from '../appel'
 import { TitreSection } from '../Fiche'
 import { dureeLibelle, euros, pourcentCoef } from '../format'
+import { TYPES_BIENS_GRENKE } from '@/lib/financement/connecteurs/grenke/types-biens'
 import { nouvelleLigne, type LigneForm } from './lignes'
 import RechercheEntreprise from './RechercheEntreprise'
 
@@ -36,7 +37,7 @@ export default function FormulaireDemande(p: {
   rachat?: { id: number; totalCentimes: number; type: string; contrat: string } | null
   demandeId?: number
   initial: ValeursFormulaire
-  financeurs: { id: number; nom: string }[]
+  financeurs: { id: number; nom: string; avecApi?: boolean }[]
   commerciaux: { id: number; nom: string }[] | null // null : le commercial saisit pour lui seul
   interne: boolean
 }) {
@@ -48,6 +49,7 @@ export default function FormulaireDemande(p: {
   const [envoi, setEnvoi] = useState(false)
   const set = <K extends keyof ValeursFormulaire>(k: K, val: ValeursFormulaire[K]) => setV(x => ({ ...x, [k]: val }))
 
+  const avecApi = p.financeurs.find(f => String(f.id) === v.financeurId)?.avecApi === true
   const valeurCentimes = v.valeur.trim() ? eurosVersCentimes(v.valeur) : null
 
   // Aperçu du loyer : calculé par le serveur (la réponse dépend du rôle).
@@ -86,10 +88,11 @@ export default function FormulaireDemande(p: {
       contactPrenom: v.contactPrenom, contactNom: v.contactNom, contactEmail: v.contactEmail, contactTel: v.contactTel,
       dureeMois: Number(v.dureeMois), periodicite: v.periodicite, rachatId: v.rachatId ? Number(v.rachatId) : null,
       loyerCentimes: valeurCentimes,
-      lignes: v.lignes.map(l => ({ designation: l.designation ?? '', quantite: Number(l.quantite || 1), montantHtCentimes: (l.montantHt ?? '').trim() ? eurosVersCentimes(l.montantHt) : null, typeBien: l.typeBien ?? '', constructeur: l.constructeur ?? '' })),
+      lignes: v.lignes.map(l => ({ designation: l.designation ?? '', quantite: Number(l.quantite || 1), montantHtCentimes: (l.montantHt ?? '').trim() ? eurosVersCentimes(l.montantHt) : null, typeBien: avecApi ? l.typeBien || '7' : l.typeBien ?? '', constructeur: l.constructeur ?? '' })),
     }
-      const r = await (p.mode === 'creation' ? appel<{ id: number }>('/api/financement/demandes', 'POST', corps) : appel<{ id: number }>(`/api/financement/demandes/${p.demandeId}`, 'PATCH', corps))
-      router.push(`/financement/demandes/${r.id}`)
+      const r = await (p.mode === 'creation' ? appel<{ id: number; envoi?: string; message?: string }>('/api/financement/demandes', 'POST', corps) : appel<{ id: number; envoi?: string; message?: string }>(`/api/financement/demandes/${p.demandeId}`, 'PATCH', corps))
+      const notice = r.envoi === 'ok' ? '?envoi=ok' : r.envoi === 'erreur' ? `?envoi=erreur&m=${encodeURIComponent((r.message ?? '').slice(0, 400))}` : ''
+      router.push(`/financement/demandes/${r.id}${notice}`)
       router.refresh()
     } catch (err) {
       setErreur((err as Error).message)
@@ -120,8 +123,15 @@ export default function FormulaireDemande(p: {
         <TitreSection icone="materiel">Matériel et prestations</TitreSection>
         <div className="space-y-2">
           {v.lignes.map((l, i) => (
-            <div key={i} className="grid gap-4 sm:grid-cols-[1fr_6rem_auto] items-end border-b border-gray-100 pb-4">
+            <div key={i} className={`grid gap-4 ${avecApi ? 'sm:grid-cols-[1fr_14rem_6rem_auto]' : 'sm:grid-cols-[1fr_6rem_auto]'} items-end border-b border-gray-100 pb-4`}>
               <Etiquette t="Désignation *"><input className={champ} value={l.designation} onChange={e => setV(x => ({ ...x, lignes: x.lignes.map((y, k) => (k === i ? { ...y, designation: e.target.value } : y)) }))} /></Etiquette>
+              {avecApi ? (
+                <Etiquette t="Type de bien">
+                  <select className={champ} value={l.typeBien || '7'} onChange={e => setV(x => ({ ...x, lignes: x.lignes.map((y, k) => (k === i ? { ...y, typeBien: e.target.value } : y)) }))}>
+                    {TYPES_BIENS_GRENKE.map(t => <option key={t.id} value={String(t.id)} disabled={!t.actif}>{t.libelle}{t.actif ? '' : ' — pas encore activé'}</option>)}
+                  </select>
+                </Etiquette>
+              ) : null}
               <Etiquette t="Qté"><input className={champ} inputMode="numeric" value={l.quantite} onChange={e => setV(x => ({ ...x, lignes: x.lignes.map((y, k) => (k === i ? { ...y, quantite: e.target.value } : y)) }))} /></Etiquette>
               {v.lignes.length > 1 && <button type="button" className="text-gray-400 hover:text-red-600 pb-2" title="Supprimer la ligne" onClick={() => setV(x => ({ ...x, lignes: x.lignes.filter((_, k) => k !== i) }))}>×</button>}
             </div>
