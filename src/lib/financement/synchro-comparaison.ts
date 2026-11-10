@@ -11,6 +11,7 @@ export interface ExistantContrat {
   refFinanceur: string | null
   raisonSociale: string
   loyerCentimes: number
+  periodicite?: string // MENSUELLE | TRIMESTRIELLE : période du loyer enregistré chez nous
   dureeMois: number
   dateDebut: Date | null
   dateFin: Date | null
@@ -35,7 +36,8 @@ export interface Rapport {
 const jour = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : '')
 const eur = (c: number | null) => (c == null ? '' : (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }))
 
-export function comparer(existants: ExistantContrat[], distants: ContratFinanceur[]): Rapport {
+// periodiciteDistante : période du loyer renvoyé par le financeur (Grenke : mensuel). Il est converti dans la période de NOTRE contrat avant comparaison.
+export function comparer(existants: ExistantContrat[], distants: ContratFinanceur[], periodiciteDistante: 'MENSUELLE' | 'TRIMESTRIELLE' = 'MENSUELLE'): Rapport {
   const r: Rapport = { nouveaux: [], nouveauxIgnores: [], connus: 0, aRemplir: [], ecarts: [], aCloturer: [], absents: [], avertissements: [], etats: {} }
   const parRef = new Map<string, ExistantContrat[]>()
   for (const e of existants) { const k = normaliserRef(e.refFinanceur); if (k) parRef.set(k, [...(parRef.get(k) ?? []), e]) }
@@ -80,9 +82,12 @@ export function comparer(existants: ExistantContrat[], distants: ContratFinanceu
     if (g.dureeMois && g.dureeMois !== e.dureeMois) r.ecarts.push({ id: e.id, ref, client: e.raisonSociale, champ: 'durée (mois)', nous: String(e.dureeMois), financeur: String(g.dureeMois) })
     if (g.loyerMensuelCentimes) {
       loyersComparables++
-      if (Math.abs(g.loyerMensuelCentimes - e.loyerCentimes) > 1) {
-        r.ecarts.push({ id: e.id, ref, client: e.raisonSociale, champ: 'loyer', nous: eur(e.loyerCentimes), financeur: eur(g.loyerMensuelCentimes) })
-        if (Math.abs(g.loyerMensuelCentimes * 3 - e.loyerCentimes) <= 3 || Math.abs(g.loyerMensuelCentimes - e.loyerCentimes * 3) <= 3) loyersEnProportion++
+      let distant = g.loyerMensuelCentimes
+      if (e.periodicite === 'TRIMESTRIELLE' && periodiciteDistante === 'MENSUELLE') distant = g.loyerMensuelCentimes * 3
+      else if (e.periodicite === 'MENSUELLE' && periodiciteDistante === 'TRIMESTRIELLE') distant = Math.round(g.loyerMensuelCentimes / 3)
+      if (Math.abs(distant - e.loyerCentimes) > 3) {
+        r.ecarts.push({ id: e.id, ref, client: e.raisonSociale, champ: 'loyer', nous: eur(e.loyerCentimes), financeur: eur(distant) })
+        if (Math.abs(distant * 3 - e.loyerCentimes) <= 9 || Math.abs(distant - e.loyerCentimes * 3) <= 9) loyersEnProportion++
       }
     }
     if (Object.keys(donnees).length) r.aRemplir.push({ id: e.id, ref, client: e.raisonSociale, champs, donnees })
