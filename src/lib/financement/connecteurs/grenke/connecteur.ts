@@ -2,7 +2,7 @@
 // après les essais, quand Grenke aura été prévenu (il n'existe pas d'environnement de test : tout se passe en production).
 import { ErreurMetier } from '../../erreurs'
 import type { Connecteur, ContratFinanceur, EtatDemande } from '../connecteur'
-import { envoyerDocument, listerContrats, lireDemande } from './api'
+import { envoyerDocument, listerContrats, listerDemandes, lireDemande } from './api'
 import type { ConfigGrenke } from './config'
 import { versStatutCommun } from './statuts'
 
@@ -37,6 +37,17 @@ export function creerConnecteurGrenke(config: ConfigGrenke): Connecteur {
       const d = await lireDemande(config, referenceFinanceur)
       const c = versStatutCommun(String(d.State ?? ''))
       return c ? { statut: c.statut, etapeSignature: c.etape, detail: c.detail, codeFinanceur: String(d.State), reference: typeof d.RequestId === 'string' ? d.RequestId : undefined } : null
+    },
+
+    async trouverDemande(reference) {
+      const cle = reference.toUpperCase().replace(/[^A-Z0-9]/g, '')
+      for (let page = 1; page <= 50; page++) {
+        const r = await listerDemandes(config, { page, pageSize: 100 })
+        const x = r.items.find(i => String(i.RequestId ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '') === cle)
+        if (x) return { id: String(x.FinancingId), reference: String(x.RequestId), client: String(x.Lessee?.CompanyName ?? ''), montantCentimes: typeof x.FinancingAmount === 'number' ? Math.round(x.FinancingAmount * 100) : null, dureeMois: typeof x.Period === 'number' ? x.Period : null, etat: String(x.State ?? '') }
+        if (page >= r.pageCount) break
+      }
+      return null
     },
 
     async listerContrats(): Promise<ContratFinanceur[]> {

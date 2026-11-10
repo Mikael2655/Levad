@@ -6,8 +6,9 @@ const URL_TEST = process.env.FIN_TEST_DATABASE_URL
 const d = URL_TEST ? describe : describe.skip
 
 let etat: EtatDemande | null = null
+let trouve: { id: string; reference: string; client: string; montantCentimes: number | null; dureeMois: number | null; etat: string } | null = null
 vi.mock('./connecteurs', () => ({
-  connecteurPour: (code: string) => (code === 'grenke_api' ? { recupererStatut: async () => etat } : null),
+  connecteurPour: (code: string) => (code === 'grenke_api' ? { recupererStatut: async () => etat, trouverDemande: async () => trouve } : null),
 }))
 vi.mock('./notifications', async orig => ({ ...(await orig<typeof import('./notifications')>()), notifierChangement: async () => {} }))
 
@@ -65,6 +66,28 @@ d('actualisation depuis le financeur (base réelle)', () => {
     const r = await act.actualiserDepuisFinanceur(ADMIN(), dem.id)
     expect(r.modifie).toBe(false)
     expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).statut).toBe('EN_SIGNATURE')
+  })
+
+  it('rattache une demande saisie à la main chez Grenke à son dossier, après contrôle montant et durée', async () => {
+    const dem = await creer({ statut: 'ENVOYEE', montantReelCentimes: 478088, dureeMois: 48 })
+    trouve = { id: 'uuid-9', reference: '100-145999', client: 'CKE', montantCentimes: 478088, dureeMois: 48, etat: 'Declined' }
+    etat = { statut: 'REFUSEE', etapeSignature: null, detail: 'Refusée par Grenke', codeFinanceur: 'Declined', reference: '100-145999' }
+    const r = await act.rattacherAuFinanceur(ADMIN(), dem.id, ' 100-145999 ')
+    expect(r.modifie).toBe(true)
+    const apres = await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })
+    expect(apres).toMatchObject({ idFinanceur: 'uuid-9', refFinanceur: '100-145999', statut: 'REFUSEE' })
+    await expect(act.rattacherAuFinanceur(ADMIN(), dem.id, '100-145999')).rejects.toMatchObject({ status: 409 }) // déjà reliée
+  })
+
+  it('rattachement refusé si le dossier ne correspond pas, est introuvable, ou déjà pris par une autre demande', async () => {
+    const dem = await creer({ statut: 'ENVOYEE', montantReelCentimes: 478088, dureeMois: 48 })
+    trouve = { id: 'uuid-8', reference: '100-146000', client: 'AUTRE', montantCentimes: 999900, dureeMois: 48, etat: 'Approved' }
+    await expect(act.rattacherAuFinanceur(ADMIN(), dem.id, '100-146000')).rejects.toThrow(/ne correspond pas/)
+    trouve = null
+    await expect(act.rattacherAuFinanceur(ADMIN(), dem.id, '100-0')).rejects.toMatchObject({ status: 404 })
+    await expect(act.rattacherAuFinanceur(ADMIN(), dem.id, '100-145999')).rejects.toMatchObject({ status: 409 }) // numéro déjà utilisé plus haut
+    await expect(act.rattacherAuFinanceur({ id: ids.com, role: 'COMMERCIAL' }, dem.id, '100-5')).rejects.toMatchObject({ status: 403 })
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).idFinanceur).toBeNull()
   })
 
   it('commercial refusé ; demande non envoyée par l’API refusée ; état inconnu sans changement', async () => {

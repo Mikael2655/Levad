@@ -23,6 +23,7 @@ export default function ActionsDemande(p: {
   miseEnPlace: boolean // financeur sans signature électronique : on enregistre la mise en place du contrat
   peutRenvoyerMail: boolean
   peutActualiser: boolean // financeur avec API, demande déjà envoyée, interne
+  peutRattacher: boolean // dossier déjà créé chez le financeur (saisi à la main) : on le relie par son numéro
   peutEnvoyerGrenke: boolean // administrateur, demande Grenke (API) pas encore envoyée
   montantReelActuel: number | null
   etapeSignature: string | null // non nul seulement quand la demande est « En signature »
@@ -40,6 +41,7 @@ export default function ActionsDemande(p: {
   const [client, setClient] = useState(p.signataires.client)
   const [fournisseur, setFournisseur] = useState(p.signataires.fournisseur)
   const [ouvertSignature, setOuvertSignature] = useState(false)
+  const [refDossier, setRefDossier] = useState('')
   const [etape, setEtape] = useState(p.etapeSignature ?? 'DEMARRAGE')
 
   async function agir(fn: () => Promise<unknown>) {
@@ -130,9 +132,17 @@ export default function ActionsDemande(p: {
         </div>
       )}
 
+      {p.peutRattacher && (
+        <div className="flex flex-wrap gap-2 items-center text-sm border-t border-gray-100 pt-3">
+          <span className="text-gray-600">Dossier déjà créé chez Grenke ?</span>
+          <input className={champ} placeholder="N° de dossier (ex. 100-145711)" value={refDossier} onChange={e => setRefDossier(e.target.value)} />
+          <button className={champ} disabled={!refDossier.trim()} onClick={() => agir(async () => { const r = await appel<{ message: string }>(`${url}/rattacher`, 'POST', { reference: refDossier }); setInfoOk(r.message); setRefDossier('') })}>Rattacher à ce dossier</button>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2 text-sm border-t border-gray-100 pt-3">
         {p.peutActualiser && <button className={champ} onClick={() => agir(async () => { const r = await appel<{ message: string }>(`${url}/actualiser`, 'POST', {}); setInfoOk(r.message) })}>Actualiser depuis Grenke</button>}
-        {p.peutEnvoyerGrenke && <button className={`${champ} font-medium`} onClick={() => confirm('Envoyer cette demande à Grenke ? C’est une VRAIE demande de financement (Grenke n’a pas d’environnement de test) : elle ne pourra pas être envoyée une seconde fois.') && agir(async () => { await appel(`${url}/envoyer-grenke`, 'POST', {}); setInfoOk('Demande envoyée à Grenke.') })}>Envoyer à Grenke</button>}
+        {p.peutEnvoyerGrenke && <button className={`${champ} font-medium`} onClick={() => confirm('Envoyer cette demande à Grenke ? C’est une VRAIE demande de financement (Grenke n’a pas d’environnement de test) : elle ne pourra pas être envoyée une seconde fois. Si ce dossier existe déjà sur le portail Grenke, ANNULEZ et utilisez « Rattacher à ce dossier ».') && agir(async () => { await appel(`${url}/envoyer-grenke`, 'POST', {}); setInfoOk('Demande envoyée à Grenke.') })}>Envoyer à Grenke</button>}
         {p.peutRenvoyerMail && <button className={champ} onClick={() => agir(async () => { await appel(`${url}/renvoyer-mail`, 'POST', {}); setInfoOk('E-mail renvoyé.') })}>Renvoyer le mail au financeur</button>}
         {p.peutModifier && <Link href={`/financement/demandes/${p.id}/modifier`} className={`${champ} font-medium`}>Modifier</Link>}
         {p.peutAnnuler && <button className={`${champ} text-red-700`} onClick={() => confirm('Annuler cette demande ?') && agir(() => appel(`${url}/statut`, 'POST', { statut: 'ANNULEE', commentaire }))}>Annuler la demande</button>}

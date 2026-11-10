@@ -49,7 +49,8 @@ export default async function FicheDemande({ params }: { params: { id: string } 
         saisieMontantReel={reel !== null && "sansBaremeReel" in d && d.sansBaremeReel === true}
         miseEnPlace={reel !== null && !d.signatureElectronique && d.statut === 'PRETE_A_SIGNER'}
         peutRenvoyerMail={reel !== null && d.envoiParMail && d.statut !== 'BROUILLON' && d.statut !== 'ANNULEE'}
-        peutActualiser={reel !== null && d.financeurAvecApi && !!d.refFinanceur && d.refFinanceur !== 'ENVOI-EN-COURS'}
+        peutActualiser={reel !== null && d.financeurAvecApi && 'lieeApi' in d && d.lieeApi === true}
+        peutRattacher={reel !== null && d.financeurAvecApi && 'lieeApi' in d && d.lieeApi === false && d.statut !== 'ANNULEE'}
         peutEnvoyerGrenke={estAdmin(u) && d.financeurAvecApi && !d.refFinanceur && (d.statut === 'BROUILLON' || d.statut === 'INFOS_MANQUANTES' || d.statut === 'ENVOYEE') && reel?.montantReelCentimes != null}
         montantReelActuel={reel?.montantReelCentimes ?? null}
         etapeSignature={d.statut === 'EN_SIGNATURE' ? d.etapeSignature ?? '' : null}

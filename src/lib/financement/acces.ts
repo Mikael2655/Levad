@@ -68,7 +68,7 @@ export async function lireDemande(acteur: Acteur, id: number) {
     signatureElectronique: financeur.signatureElectronique,
     financeurAvecApi: financeur.connecteur === 'grenke_api',
     envoiParMail: financeur.envoiParMail,
-    ...(estInterne(acteur) ? { sansBaremeReel } : {}),
+    ...(estInterne(acteur) ? { sansBaremeReel, lieeApi: !!base.idFinanceur && base.idFinanceur !== 'ENVOI-EN-COURS' } : {}),
     saisiParNom: `${saisiPar.prenom} ${saisiPar.nom}`,
     lignes: lignes.map(l => ({ id: l.id, designation: l.designation, quantite: l.quantite, montantHtCentimes: l.montantHtCentimes, typeBien: l.typeBien, constructeur: l.constructeur })),
     pieces: pieces.map(p => ({ id: p.id, type: p.type, nomFichier: p.nomFichier, taille: p.taille, ajouteLe: p.ajouteLe, ajouteParId: p.ajouteParId, envoyeFinanceurLe: p.envoyeFinanceurLe, ajouteParNom: `${p.ajoutePar.prenom} ${p.ajoutePar.nom}` })),
