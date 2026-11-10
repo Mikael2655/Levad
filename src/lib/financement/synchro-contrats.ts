@@ -22,12 +22,12 @@ export async function synchroniserContrats(a: { id: number; role: 'ADMIN' | 'ASS
   if (!estAdmin(a)) throw new ErreurMetier('Réservé à l’administrateur.', 403)
   const financeur = await prisma.finFinanceur.findUnique({ where: { id: p.financeurId } })
   if (!financeur) throw new ErreurMetier('Financeur introuvable.', 404)
-  const existants = await prisma.finContrat.findMany({ where: { financeurId: financeur.id }, select: { id: true, refFinanceur: true, raisonSociale: true, loyerCentimes: true, dureeMois: true, dateDebut: true, dateFin: true, montantReelCentimes: true, statutFinanceur: true, clotureLe: true } })
+  const existants = await prisma.finContrat.findMany({ where: { financeurId: financeur.id }, select: { id: true, refFinanceur: true, raisonSociale: true, loyerCentimes: true, periodicite: true, dureeMois: true, dateDebut: true, dateFin: true, montantReelCentimes: true, statutFinanceur: true, clotureLe: true } })
 
   const distants = await recuperer() // une erreur ici arrête tout : rien n'est modifié
   if (distants.length === 0 && existants.length > 0) throw new ErreurMetier('Le financeur a renvoyé une liste vide : rien n’a été modifié (vérifiez la connexion).')
 
-  const rapport = comparer(existants, distants)
+  const rapport = comparer(existants, distants, p.periodicite)
   if (!p.appliquer) return { simule: true as const, rapport, crees: 0, mis_a_jour: 0 }
 
   let commercial: { id: number } | null = null

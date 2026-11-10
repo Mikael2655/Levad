@@ -7,6 +7,11 @@ const existant = (o: Partial<ExistantContrat> = {}): ExistantContrat => ({ id: 1
 const distant = (o: Partial<ContratFinanceur> = {}): ContratFinanceur => ({ reference: '100-61104', etatBrut: 'RunningContract', client: 'ACME', loyerMensuelCentimes: 72300, dureeMois: 63, montantFinanceCentimes: 1255208, dateDebut: d('2026-01-01'), dateFin: d('2031-04-01'), ...o })
 
 describe('comparaison des contrats avec le financeur', () => {
+  it('loyer mensuel de Grenke converti dans la période de notre contrat (pas de faux écart)', () => {
+    const e = existant({ periodicite: 'TRIMESTRIELLE', loyerCentimes: 216900 })
+    expect(comparer([e], [distant({ loyerMensuelCentimes: 72300 })], 'MENSUELLE').ecarts).toEqual([])
+    expect(comparer([e], [distant({ loyerMensuelCentimes: 70000 })], 'MENSUELLE').ecarts.map(x => x.champ)).toEqual(['loyer'])
+  })
   it('numéros reconnus malgré les espaces, tirets et majuscules : pas de doublon', () => {
     expect(normaliserRef(' a1l-652 43 ')).toBe('A1L65243')
     const r = comparer([existant({ refFinanceur: '100 61104' })], [distant({ reference: '100-61104' })])
