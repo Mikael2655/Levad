@@ -1,7 +1,7 @@
 // Envoi RÉEL d'une demande à Grenke (POST /basic/v1/requests). Réservé à l'administrateur, jamais automatique.
 // Garde-fous : mode d'écriture (fermé / test sur un SIREN / ouvert), financeur Grenke, pas de double envoi, montant réel présent.
 import { prisma } from '@/lib/db'
-import { estAdmin } from '../../droits'
+import { estAdmin, estInterne } from '../../droits'
 import { ErreurMetier } from '../../erreurs'
 import { creerDemandeApi, lireDemande } from './api'
 import { lireConfigGrenke } from './config'
@@ -11,8 +11,10 @@ import { TYPE_BIEN_PAR_DEFAUT } from './types-biens'
 
 const EN_COURS = 'ENVOI-EN-COURS' // verrou : empêche un second envoi pendant l'appel à Grenke
 
-export async function envoyerDemandeAGrenke(a: { id: number; role: 'ADMIN' | 'ASSISTANTE' | 'COMMERCIAL' }, demandeId: number) {
-  if (!estAdmin(a)) throw new ErreurMetier('Réservé à l’administrateur.', 403)
+// automatique : envoi déclenché par la création de la demande, ouvert à son auteur (commercial, assistante ou administrateur) ;
+// le bouton manuel de la fiche reste réservé à l'administrateur.
+export async function envoyerDemandeAGrenke(a: { id: number; role: 'ADMIN' | 'ASSISTANTE' | 'COMMERCIAL' }, demandeId: number, opts: { automatique?: boolean } = {}) {
+  if (!opts.automatique && !estAdmin(a)) throw new ErreurMetier('Réservé à l’administrateur.', 403)
   const { mode, sirenTest } = modeEcriture()
   if (mode === 'ferme') throw new ErreurMetier('L’envoi vers Grenke est fermé (variable GRENKE_ECRITURE absente).', 403)
   const cfg = lireConfigGrenke()
@@ -21,6 +23,7 @@ export async function envoyerDemandeAGrenke(a: { id: number; role: 'ADMIN' | 'AS
 
   const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { lignes: true, financeur: true } })
   if (!d) throw new ErreurMetier('Demande introuvable.', 404)
+  if (!estInterne(a) && d.commercialId !== a.id) throw new ErreurMetier('Demande introuvable.', 404)
   if (d.financeur.connecteur !== 'grenke_api') throw new ErreurMetier('Cette demande n’est pas destinée à Grenke (API).')
   // « Envoyée » sans numéro de dossier = demandée par le commercial, pas encore transmise réellement à Grenke (les contrôles ci-dessous empêchent tout double envoi).
   if (!['BROUILLON', 'INFOS_MANQUANTES', 'ENVOYEE'].includes(d.statut)) throw new ErreurMetier('Cette demande ne peut plus être envoyée à Grenke dans son état actuel.')
@@ -31,7 +34,7 @@ export async function envoyerDemandeAGrenke(a: { id: number; role: 'ADMIN' | 'AS
 
   const options: OptionsGrenke = { modePaiement: cfg.config.modePaiement, commissionPourcent: d.financeur.commissionBp != null ? d.financeur.commissionBp / 100 : null, typeObjetParDefaut: TYPE_BIEN_PAR_DEFAUT, formatIdentifiant: 'SIREN' }
   const { requete, avertissements } = construireDemandeGrenke(
-    { raisonSociale: d.raisonSociale, siret: d.siret, adresse: d.adresse, codePostal: d.codePostal, ville: d.ville, pays: d.pays, contactEmail: d.contactEmail, contactTel: d.contactTel, dureeMois: d.dureeMois, periodicite: d.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE', montantReelCentimes: d.montantReelCentimes, lignes: d.lignes.map(l => ({ designation: l.designation, quantite: l.quantite, constructeur: l.constructeur, typeBien: l.typeBien, montantHtCentimes: l.montantHtCentimes })) },
+    { raisonSociale: d.raisonSociale, siret: d.siret, adresse: d.adresse, codePostal: d.codePostal, ville: d.ville, pays: d.pays, contactEmail: d.contactEmail, contactTel: d.contactTel, dureeMois: d.dureeMois, periodicite: d.periodicite as 'MENSUELLE' | 'TRIMESTRIELLE', montantReelCentimes: d.montantReelCentimes, observation: d.observation, lignes: d.lignes.map(l => ({ designation: l.designation, quantite: l.quantite, constructeur: l.constructeur, typeBien: l.typeBien, montantHtCentimes: l.montantHtCentimes })) },
     options,
   )
 
@@ -53,18 +56,4 @@ export async function envoyerDemandeAGrenke(a: { id: number; role: 'ADMIN' | 'AS
     prisma.finHistorique.create({ data: { demandeId, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: 'ENVOYEE', commentaire: 'Envoyée à Grenke par l’API' } }),
   ])
   return { financingId, avertissements }
-}
-
-// À la création d'une demande par l'administrateur : si le financeur est Grenke (API) et que l'envoi est ouvert (essai ou ouvert),
-// la demande part tout de suite. En cas de refus ou d'erreur, elle reste enregistrée (brouillon) et on le dit : aucune saisie n'est perdue.
-export async function tenterEnvoiAutomatique(a: { id: number; role: 'ADMIN' | 'ASSISTANTE' | 'COMMERCIAL' }, demandeId: number): Promise<{ envoi: 'ok' | 'non' | 'erreur'; message?: string }> {
-  if (!estAdmin(a) || modeEcriture().mode === 'ferme') return { envoi: 'non' }
-  const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, select: { financeur: { select: { connecteur: true } } } })
-  if (d?.financeur.connecteur !== 'grenke_api') return { envoi: 'non' }
-  try {
-    await envoyerDemandeAGrenke(a, demandeId)
-    return { envoi: 'ok' }
-  } catch (e) {
-    return { envoi: 'erreur', message: (e as Error).message }
-  }
 }

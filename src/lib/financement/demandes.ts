@@ -44,6 +44,7 @@ export interface EntreeDemande {
   loyerCentimes: number | null // le loyer OU le montant : l'autre se déduit
   montantCentimes: number | null
   rachatId?: number | null // renouvellement : solde d'un contrat existant intégré au montant financé
+  observation?: string | null // remarque libre (ex. rachat d'un contrat dans le cadre de la demande)
   lignes: EntreeLigne[]
 }
 
@@ -72,6 +73,7 @@ export function normaliserEntree(c: Record<string, any>): EntreeDemande {
     loyerCentimes: entierOuNull(c.loyerCentimes),
     montantCentimes: entierOuNull(c.montantCentimes),
     rachatId: entierOuNull(c.rachatId),
+    observation: optionnel(c.observation)?.slice(0, 500) ?? null,
     lignes: (Array.isArray(c.lignes) ? c.lignes : []).map((l: Record<string, any>) => ({
       designation: texte(l?.designation),
       quantite: Number(l?.quantite ?? 1),
@@ -168,6 +170,7 @@ async function preparer(a: Acteur, e: EntreeDemande, commercialDemande: number |
   }
   const donnees = {
     rachatId: rachat?.id ?? null,
+    observation: e.observation ?? null,
     financeurId: e.financeurId,
     commercialId,
     raisonSociale: e.raisonSociale,

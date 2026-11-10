@@ -27,6 +27,7 @@ export default async function NouvelleDemande({ searchParams }: { searchParams: 
     raisonSociale: rachat?.contrat.raisonSociale ?? '', siret: rachat?.contrat.siret ?? '', formeJuridique: origine?.formeJuridique ?? '', adresse: origine?.adresse ?? '', codePostal: origine?.codePostal ?? '', ville: origine?.ville ?? '', pays: origine?.pays ?? 'France',
     contactPrenom: origine?.contactPrenom ?? '', contactNom: origine?.contactNom ?? '', contactEmail: origine?.contactEmail ?? '', contactTel: origine?.contactTel ?? '',
     rachatId: rachat ? String(rachat.id) : '',
+    observation: '',
     dureeMois: '', periodicite: 'TRIMESTRIELLE', saisie: 'loyer', valeur: '',
     lignes: [nouvelleLigne()],
   }

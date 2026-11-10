@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { tenterEnvoiAutomatique } from '@/lib/financement/connecteurs/grenke/envoi'
+import { envoyerALaCreation } from '@/lib/financement/envoi-creation'
 import { creerDemande, normaliserEntree } from '@/lib/financement/demandes'
 import { acteurApi, corps, repondre } from '@/lib/financement/garde'
 
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const c = await corps(req)
   return repondre(async () => {
     const d = await creerDemande(u, normaliserEntree(c))
-    // Grenke (API) : l'administrateur n'a pas à passer par le brouillon, la demande part dès la saisie terminée.
-    return { ...d, ...(await tenterEnvoiAutomatique(u, d.id)) }
+    // Plus de brouillon : la demande part chez le financeur dès la saisie terminée (voir envoi-creation.ts).
+    return { ...d, ...(await envoyerALaCreation(u, d.id)) }
   })
 }

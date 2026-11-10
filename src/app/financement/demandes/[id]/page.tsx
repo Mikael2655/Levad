@@ -15,7 +15,7 @@ import PiecesJointes from './PiecesJointes'
 
 export const dynamic = 'force-dynamic'
 
-export default async function FicheDemande({ params, searchParams }: { params: { id: string }; searchParams: { envoi?: string; m?: string } }) {
+export default async function FicheDemande({ params, searchParams }: { params: { id: string }; searchParams: { envoi?: string; m?: string; f?: string } }) {
   const u = await exigerUtilisateur()
   await purgeOpportuniste()
   const d = await lireDemande(u, Number(params.id))
@@ -36,8 +36,8 @@ export default async function FicheDemande({ params, searchParams }: { params: {
         <p className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900"><b>Informations demandées par le financeur :</b> {d.infosManquantes}</p>
       )}
 
-      {searchParams.envoi === 'ok' && <p className="bg-emerald-50 border border-emerald-300 rounded-xl px-4 py-3 text-sm text-emerald-900">Demande envoyée à Grenke.</p>}
-      {searchParams.envoi === 'erreur' && <p className="bg-red-50 border border-red-300 rounded-xl px-4 py-3 text-sm text-red-800"><b>La demande est enregistrée mais n’est pas partie chez Grenke :</b> {(searchParams.m ?? '').slice(0, 400)}</p>}
+      {searchParams.envoi === 'ok' && <p className="bg-emerald-50 border border-emerald-300 rounded-xl px-4 py-3 text-sm text-emerald-900">Demande envoyée à {searchParams.f || 'le financeur'}.</p>}
+      {searchParams.envoi === 'erreur' && <p className="bg-red-50 border border-red-300 rounded-xl px-4 py-3 text-sm text-red-800"><b>La demande est enregistrée en brouillon mais n’est pas partie chez {searchParams.f || 'le financeur'} :</b> {(searchParams.m ?? '').slice(0, 400)}</p>}
 
       <ActionsDemande
         id={d.id}
@@ -79,6 +79,7 @@ export default async function FicheDemande({ params, searchParams }: { params: {
         <Ligne t="Loyer HT"><b>{euros(d.loyerCentimes)}</b> par {d.periodicite === 'MENSUELLE' ? 'mois' : 'trimestre'}</Ligne>
         <Ligne t="Montant (barème commercial)">{euros(d.montantCommercialCentimes)} <span className="text-gray-400">— coefficient {pourcentCoef(d.coefficientCommercialPpm)}</span></Ligne>
         {d.refFinanceur && <Ligne t="N° de dossier financeur">{d.refFinanceur}</Ligne>}
+        {d.observation && <Ligne t="Observation"><span className="whitespace-pre-line">{d.observation}</span></Ligne>}
         {d.rachat && <Ligne t="Rachat de contrat intégré"><b>{euros(d.rachat.totalCentimes)}</b> — contrat de <Link className="underline text-accent-700" href={`/financement/contrats/${d.rachat.contratId}`}>{d.rachat.contratClient}</Link> ({d.rachat.type === 'RENOUVELANT' ? 'solde renouvelant' : 'solde non renouvelant'}), compris dans le montant ci-dessus</Ligne>}
         {reel && (
           <>
