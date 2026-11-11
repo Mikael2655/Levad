@@ -4,12 +4,14 @@ export const maxDuration = 60
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { publishEverywhere } from '@/lib/publish'
+import { isAcceptableImageUrl } from '@/lib/image-url'
 import { generateQueuedPost, rebuildSlots } from '@/lib/queue'
 
 export async function POST(req: NextRequest) {
   try {
     const { postId, imageUrl } = await req.json()
     if (!postId) return NextResponse.json({ error: 'postId requis' }, { status: 400 })
+    if (!isAcceptableImageUrl(imageUrl)) return NextResponse.json({ error: 'Image non valide ou trop volumineuse.' }, { status: 400 })
 
     const [post, config] = await Promise.all([
       prisma.socialPost.findUnique({ where: { id: postId } }),
