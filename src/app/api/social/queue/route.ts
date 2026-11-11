@@ -3,6 +3,7 @@ export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { explainAiError } from '@/lib/claude-ai'
 import { generateQueuedPost, holdUntilDay, movePost, cancelFill, getFillRemaining, noteFillProgress, pickTopic, rebuildSlots, rewritePost, shiftOneSlot, startFill, writeQueuedPost } from '@/lib/queue'
 
 export async function POST(req: NextRequest) {
@@ -86,6 +87,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'action inconnue' }, { status: 400 })
   } catch (err) {
     console.error('[queue]', err)
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    return NextResponse.json({ error: explainAiError(err) ?? (err instanceof Error ? err.message : String(err)) }, { status: 500 })
   }
 }

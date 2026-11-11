@@ -247,3 +247,18 @@ export async function rewritePunchy(params: RewriteInput): Promise<{ linkedin: s
   const text = message.content[0].type === 'text' ? message.content[0].text : ''
   return parseRewrite(text)
 }
+
+// Traduit une erreur de l'API Anthropic en message clair (crédit épuisé, clé refusée…). null = erreur inconnue.
+export function explainAiError(e: unknown): string | null {
+  const err = e as { status?: number; message?: string; error?: { error?: { message?: string } } }
+  const text = `${err?.message ?? ''} ${err?.error?.error?.message ?? ''}`.toLowerCase()
+  if (/credit balance|usage credits|out of credits|insufficient.*credit|billing/.test(text)) {
+    return "Crédit Anthropic épuisé : ajoutez des crédits sur console.anthropic.com (menu Billing), puis réessayez."
+  }
+  if (err?.status === 401 || err?.status === 403 || /invalid x-api-key|authentication|permission|disabled/.test(text)) {
+    return "Accès à l'API Anthropic refusé : la clé est invalide, expirée ou désactivée (vérifiez ANTHROPIC_API_KEY dans Vercel et la console Anthropic)."
+  }
+  if (err?.status === 429) return "Anthropic : trop de demandes en même temps, réessayez dans une minute."
+  if (err?.status === 529 || /overloaded/.test(text)) return "Anthropic est momentanément surchargé, réessayez dans quelques minutes."
+  return null
+}

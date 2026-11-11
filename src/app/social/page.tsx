@@ -574,12 +574,12 @@ function SocialPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: customImagePrompt ?? selected.imagePrompt }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({} as { imageUrl?: string; error?: string }))
       if (data.imageUrl) {
         setGeneratedImageUrl(data.imageUrl)
         setSelectedPhotoUrl(data.imageUrl)
       } else {
-        showToast(data.error ?? 'Erreur génération image', false)
+        showToast(data.error ?? `Erreur génération image (${res.status})`, false)
       }
     } finally {
       setGeneratingImage(false)
@@ -596,9 +596,9 @@ function SocialPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic: customUnsplashKeywords ?? selected.topic, page }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({} as { photos?: typeof unsplashPhotos; error?: string }))
       if (data.photos) { setUnsplashPhotos(data.photos); setUnsplashPage(page) }
-      else showToast(data.error ?? 'Erreur recherche Unsplash', false)
+      else showToast(data.error ?? `Erreur recherche Unsplash (${res.status})`, false)
     } finally {
       setSearchingUnsplash(false)
     }
