@@ -6,6 +6,8 @@ import { exigerUtilisateur } from '@/lib/financement/garde'
 import { Ligne, TitreSection } from '../../Fiche'
 import { LienRetour } from '../../MemoireListe'
 import { actualiserSiPerime } from '@/lib/financement/actualisation'
+import { typeDeLigne } from '@/lib/financement/pieces-demandees'
+import PiecesDemandees from './PiecesDemandees'
 import { purgeOpportuniste } from '@/lib/financement/pieces'
 import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT, peutEnvoyerEnSignature, statutsAccessibles } from '@/lib/financement/statuts'
@@ -35,7 +37,17 @@ export default async function FicheDemande({ params, searchParams }: { params: {
         {d.archivee && <span className="text-xs bg-gray-200 text-gray-600 rounded px-2 py-0.5">Archivée</span>}
       </div>
       {d.statut === 'INFOS_MANQUANTES' && d.infosManquantes && (
-        <p className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900"><b>Informations demandées par le financeur :</b> {d.infosManquantes}</p>
+        <div className="bg-orange-50 border border-orange-300 rounded-xl px-4 py-3 text-sm text-orange-900 space-y-1.5">
+          <p><b>Pièces / informations demandées par le financeur :</b></p>
+          <ul className="space-y-1">
+            {d.infosManquantes.split('\n').map(l => l.replace(/^[\s•\-]+/, '').trim()).filter(Boolean).map(l => {
+              const type = typeDeLigne(l)
+              const deposee = type !== 'AUTRE' && d.pieces.some(x => x.type === type)
+              return <li key={l}>{deposee ? '✅' : '☐'} {l}{deposee ? <span className="text-emerald-700"> — déposée, transmise automatiquement</span> : null}</li>
+            })}
+          </ul>
+          <p className="text-xs text-orange-800">Ajoutez les pièces dans « Pièces jointes » plus bas : elles partent toutes seules chez le financeur.</p>
+        </div>
       )}
 
       {searchParams.envoi === 'ok' && <p className="bg-emerald-50 border border-emerald-300 rounded-xl px-4 py-3 text-sm text-emerald-900">Demande envoyée à {searchParams.f || 'le financeur'}.</p>}
@@ -64,6 +76,7 @@ export default async function FicheDemande({ params, searchParams }: { params: {
           fournisseur: { prenom: u.prenom, nom: u.nom, email: u.email },
         }}
       />
+      {reel !== null && d.financeurAvecApi && (d.statut === 'ENVOYEE' || d.statut === 'INFOS_MANQUANTES') && <PiecesDemandees demandeId={d.id} />}
 
       <section className={section}>
         <TitreSection icone="client">Client</TitreSection>
