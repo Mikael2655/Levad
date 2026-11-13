@@ -1437,5 +1437,7 @@ const VOCAB = [
   { he: "משמש יבש", translit: "Michmich yavech", fr: "Abricot sec", cat: "Général" },
   { he: "כואב המוח", translit: "Koev hamoakh", fr: "Mal à la tête", cat: "Général" },
   { he: "אני בקטע של", translit: "Ani beketa chel", fr: "Je m'intéresse à / suis à fond", cat: "Général" },
-  { he: "נפוץ", translit: "Nafots", fr: "Courant / commun / fréquent", cat: "Général" },
+  { he: "לוח", translit: "Louakh", fr: "Tableau", cat: "Général" },
+  { he: "תאונה", translit: "Te'ouna", fr: "Accident", cat: "Général" },
+  { he: "תוך", translit: "Tokh", fr: "Pendant", cat: "Général" },
 ];

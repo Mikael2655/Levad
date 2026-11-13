@@ -5902,4 +5902,124 @@ const VERBES = [
       ],
     },
   },
+  {
+    inf: "להאשים", translit: "Leha'achim", fr: "Accuser / blamer / reprocher",
+    racine: "אשם", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מאשים", t: "Ma'achim" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "האשים", t: "He'echim" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאשים", t: "Ya'achim" },
+      ],
+    },
+  },
+  {
+    inf: "להחזיק", translit: "Lehakhzik", fr: "Tenir / garder",
+    racine: "חזק", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מחזיק", t: "Makhzik" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "החזיק", t: "Hekhzik" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחזיק", t: "Yakhzik" },
+      ],
+    },
+  },
+  {
+    inf: "להעביר", translit: "Leha'avir", fr: "Passer / transmettre",
+    racine: "עבר", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מעביר", t: "Ma'avir" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "העביר", t: "He'evir" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעביר", t: "Ya'avir" },
+      ],
+    },
+  },
+  {
+    inf: "להעמיד", translit: "Leha'amid", fr: "Mettre",
+    racine: "עמד", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מעמיד", t: "Ma'amid" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "העמיד", t: "He'emid" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעמיד", t: "Ya'amid" },
+      ],
+    },
+  },
+  {
+    inf: "להעתיק", translit: "Leha'atik", fr: "Copier",
+    racine: "עתק", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מעתיק", t: "Ma'atik" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "העתיק", t: "He'etik" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעתיק", t: "Ya'atik" },
+      ],
+    },
+  },
+  {
+    inf: "להפגין", translit: "Lehafgin", fr: "Montrer / démontrer",
+    racine: "פגן", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מפגין", t: "Mafgin" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הפגין", t: "Hifgin" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יפגין", t: "Yafgin" },
+      ],
+    },
+  },
+  {
+    inf: "להשקיע", translit: "Lehachki'a", fr: "Investir / s'investir",
+    racine: "שקע", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "משקיע", t: "Mashkia" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "השקיע", t: "Hishkia" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ישקיע", t: "Yashkia" },
+      ],
+    },
+  },
+  {
+    inf: "להתקיף", translit: "Lehatkif", fr: "Attaquer / frapper",
+    racine: "תקף", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתקיף", t: "Matkif" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התקיף", t: "Hitkif" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתקיף", t: "Yatkif" },
+      ],
+    },
+  },
 ];
