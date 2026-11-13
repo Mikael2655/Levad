@@ -355,4 +355,18 @@ const COMBINE_PHRASES_RAW = [
   { v: "לקנות", vT: "Présent", vFr: "achète", nHe: "משמש יבש", nFr: "abricot sec", frT: "Au marché, il {V} un {N}.", heT: "בשוק הוא {V} משמש יבש." },
   { v: "לראות", vT: "Présent", vFr: "voit", nHe: "נגיש", nFr: "abordable", frT: "Il {V} que le prix est {N}.", heT: "הוא {V} שהמחיר {N}." },
   { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "נפוץ", nFr: "courant", frT: "Le professeur {V} un usage {N} du mot.", heT: "המורה {V} שימוש {N} של המילה." },
+  // ============================================================
+  //  Ajout : 8 nouveaux verbes et de nouveaux mots
+  // ============================================================
+  { v: "להאשים", vT: "Présent", vFr: "accuse", nHe: "שכן", nFr: "voisin", frT: "À tort, il {V} son {N}.", heT: "שלא בצדק הוא {V} את ה{N} שלו." },
+  { v: "להחזיק", vT: "Présent", vFr: "tient", nHe: "מפתח", nFr: "clé", frT: "Il {V} la {N} dans sa main.", heT: "הוא {V} את ה{N} ביד שלו." },
+  { v: "להעביר", vT: "Présent", vFr: "transmet", nHe: "הודעה", nFr: "message", frT: "Il {V} le {N} à son ami.", heT: "הוא {V} את ה{N} לחבר שלו." },
+  { v: "להעמיד", vT: "Présent", vFr: "met", nHe: "מנהל", nFr: "patron", frT: "Le {N} {V} l'équipe à l'épreuve.", heT: "ה{N} {V} את הצוות במבחן." },
+  { v: "להעתיק", vT: "Présent", vFr: "copie", nHe: "מכתב", nFr: "courrier / lettre", frT: "L'élève {V} le {N} mot à mot.", heT: "התלמיד {V} את ה{N} מילה במילה." },
+  { v: "להפגין", vT: "Présent", vFr: "manifeste", nHe: "אמת", nFr: "vérité", frT: "Il {V} pour la {N}.", heT: "הוא {V} למען ה{N}." },
+  { v: "להשקיע", vT: "Présent", vFr: "investit", nHe: "תוכנית", nFr: "programme / projet", frT: "Il {V} beaucoup dans ce {N}.", heT: "הוא {V} הרבה ב{N} הזאת." },
+  { v: "להתקיף", vT: "Présent", vFr: "attaque", nHe: "רעיון", nFr: "idée", frT: "Il {V} vivement cette {N}.", heT: "הוא {V} בחריפות את ה{N} הזה." },
+  { v: "לכתוב", vT: "Présent", vFr: "écrit", nHe: "לוח", nFr: "tableau", frT: "Le professeur {V} sur le {N}.", heT: "המורה {V} על ה{N}." },
+  { v: "לראות", vT: "Présent", vFr: "voit", nHe: "תאונה", nFr: "accident", frT: "Sur la route, il {V} une {N}.", heT: "בכביש הוא {V} {N}." },
+  { v: "לגמור", vT: "Présent", vFr: "finit", nHe: "תוך", nFr: "en l'espace de", frT: "Il {V} tout {N} une heure.", heT: "הוא {V} הכול {N} שעה." },
 ];
