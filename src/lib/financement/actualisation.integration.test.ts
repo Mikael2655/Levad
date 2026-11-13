@@ -90,6 +90,35 @@ d('actualisation depuis le financeur (base réelle)', () => {
     expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).idFinanceur).toBeNull()
   })
 
+  it('pièces déjà transmises : « informations manquantes » de Grenke ne repasse pas la demande en orange', async () => {
+    const dem = await creer({ statut: 'ENVOYEE', idFinanceur: 'u-5', refFinanceur: '100-5' })
+    const avant = new Date(Date.now() - 3600_000)
+    await prisma.finHistorique.create({ data: { demandeId: dem.id, auteurId: ids.admin, ancienStatut: 'ENVOYEE', nouveauStatut: 'INFOS_MANQUANTES', date: avant } })
+    await prisma.finPieceJointe.create({ data: { demandeId: dem.id, type: 'AUTRE', nomFichier: 'k.pdf', typeMime: 'application/pdf', taille: 1, complete: true, ajouteParId: ids.admin, envoyeFinanceurLe: new Date() } })
+    etat = { statut: 'INFOS_MANQUANTES', etapeSignature: null, detail: 'Informations manquantes', codeFinanceur: 'MissingInfo', reference: '100-5' }
+    const r = await act.actualiserDepuisFinanceur(ADMIN(), dem.id)
+    expect(r.modifie).toBe(false)
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).statut).toBe('ENVOYEE')
+  })
+
+  it('mise à jour automatique : demandes en cours seulement, auteur = celui qui a saisi, délai entre deux passages', async () => {
+    await prisma.finParametre.deleteMany()
+    const ouverte = await creer({ statut: 'ENVOYEE', idFinanceur: 'u-6', refFinanceur: '100-6' })
+    const refusee = await creer({ statut: 'REFUSEE', idFinanceur: 'u-7', refFinanceur: '100-7' })
+    const jamaisEnvoyee = await creer({ statut: 'BROUILLON' })
+    etat = { statut: 'PRETE_A_SIGNER', etapeSignature: null, detail: 'Accord : prête à signer', codeFinanceur: 'ReadyToSign', reference: '100-6' }
+    const r = await act.actualiserToutesLesDemandesOuvertes({ minutes: 10 })
+    expect(r.modifiees).toBeGreaterThanOrEqual(1)
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: ouverte.id } })).statut).toBe('PRETE_A_SIGNER')
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: refusee.id } })).statut).toBe('REFUSEE')
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: jamaisEnvoyee.id } })).statut).toBe('BROUILLON')
+    const h = await prisma.finHistorique.findFirstOrThrow({ where: { demandeId: ouverte.id, nouveauStatut: 'PRETE_A_SIGNER' } })
+    expect(h.auteurId).toBe(ids.admin)
+    expect(h.commentaire).toContain('automatique')
+    expect(await act.actualiserToutesLesDemandesOuvertes({ minutes: 10 })).toEqual({ verifiees: 0, modifiees: 0 }) // trop tôt
+    expect((await act.actualiserToutesLesDemandesOuvertes({ force: true })).verifiees).toBeGreaterThanOrEqual(1)
+  })
+
   it('commercial refusé ; demande non envoyée par l’API refusée ; état inconnu sans changement', async () => {
     const dem = await creer({ statut: 'ENVOYEE', idFinanceur: 'u-4', refFinanceur: '100-3' })
     await expect(act.actualiserDepuisFinanceur({ id: ids.com, role: 'COMMERCIAL' }, dem.id)).rejects.toMatchObject({ status: 403 })

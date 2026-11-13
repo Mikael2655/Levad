@@ -4,6 +4,7 @@
 import { prisma } from '@/lib/db'
 import type { Connecteur } from './connecteurs/connecteur'
 import { connecteurPour } from './connecteurs'
+import { envoiAutorisePourSiret } from './connecteurs/grenke/connecteur'
 import { estInterne, type Acteur } from './droits'
 import { ErreurMetier } from './erreurs'
 
@@ -120,6 +121,7 @@ export async function transmettrePieces(demandeId: number, connecteur?: Connecte
     const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, include: { financeur: true } })
     const c = connecteur === undefined ? connecteurPour(d?.financeur.connecteur ?? '') : connecteur
     if (!d || !c || !d.idFinanceur || d.idFinanceur === 'ENVOI-EN-COURS') return resultat
+    if (d.financeur.connecteur === 'grenke_api' && !envoiAutorisePourSiret(d.siret)) return resultat // mode essai : seul le SIREN de test est autorisé
     const pieces = await prisma.finPieceJointe.findMany({ where: { demandeId, complete: true, envoyeFinanceurLe: null }, orderBy: { id: 'asc' } })
     for (const piece of pieces) {
       try {
@@ -130,6 +132,13 @@ export async function transmettrePieces(demandeId: number, connecteur?: Connecte
       } catch (e) {
         resultat.echecs.push(`${piece.nomFichier} : ${(e as Error).message}`)
       }
+    }
+    // Les pièces demandées sont parties : la demande repasse « en attente » (gris) en attendant la réponse du financeur.
+    if (resultat.envoyees > 0 && resultat.echecs.length === 0 && d.statut === 'INFOS_MANQUANTES') {
+      await prisma.$transaction([
+        prisma.finDemande.update({ where: { id: demandeId }, data: { statut: 'ENVOYEE', infosManquantes: null } }),
+        prisma.finHistorique.create({ data: { demandeId, auteurId: d.saisiParId, ancienStatut: 'INFOS_MANQUANTES', nouveauStatut: 'ENVOYEE', commentaire: `Pièces transmises à ${d.financeur.nom} (${resultat.envoyees})` } }),
+      ])
     }
   } catch (e) {
     resultat.echecs.push((e as Error).message)

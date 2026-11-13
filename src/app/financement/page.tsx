@@ -6,6 +6,7 @@ import { STATUTS, estInterne, peutVoirBaremeReel } from '@/lib/financement/droit
 import { exigerUtilisateur } from '@/lib/financement/garde'
 import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT } from '@/lib/financement/statuts'
+import { actualiserToutesLesDemandesOuvertes } from '@/lib/financement/actualisation'
 import BadgeStatut from './BadgeStatut'
 import SelecteurMontant from './SelecteurMontant'
 import EnteteTri from './EnteteTri'
@@ -35,6 +36,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
     au: au && new Date(au.getTime() + 86_400_000 - 1),
     archivees: searchParams.arch === '1',
   }
+  await actualiserToutesLesDemandesOuvertes({ minutes: 10, delaiMs: 5000 }) // statuts chez Grenke mis à jour tout seuls (au plus toutes les 10 min)
   const [demandes, compteurs, financeurs, utilisateurs, echeancesProches] = await Promise.all([
     listerDemandes(u, filtres),
     compterParStatut(u, filtres),
@@ -137,7 +139,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
                 <td className="px-3 py-3 text-right whitespace-nowrap tabular-nums">{loyerPeriode(d.loyerCentimes, d.periodicite)}</td>
                 <td className="px-3 py-3 text-right whitespace-nowrap">{dureeTrimestres(d.dureeMois)}</td>
                 <td className="px-3 py-3 text-right whitespace-nowrap tabular-nums">{peutChoisir && 'montantReelCentimes' in d ? <><span className="m-commercial">{euros(d.montantCommercialCentimes)}</span><span className="m-reel">{euros(d.montantReelCentimes)}</span></> : euros(d.montantCommercialCentimes)}</td>
-                <td className="px-3 py-3"><BadgeStatut statut={d.statut} />{d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="block text-xs text-violet-800 mt-0.5">{libelleEtape(d.etapeSignature)}</span>}</td>
+                <td className="px-3 py-3"><BadgeStatut statut={d.statut} etape={d.etapeSignature} />{d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="block text-xs text-emerald-800 mt-0.5">{libelleEtape(d.etapeSignature)}</span>}</td>
                 <td className="px-3 py-3 whitespace-nowrap text-gray-500">{dateFr(d.creeLe)}</td>
               </tr>
             ))}
