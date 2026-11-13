@@ -18,6 +18,13 @@ export function modeEcriture(env: Record<string, string | undefined> = process.e
   return { mode: 'ferme', sirenTest: null }
 }
 
+// Une demande (identifiée par le SIREN de son client) peut-elle être envoyée / recevoir des pièces chez Grenke dans le mode actuel ?
+export function envoiAutorisePourSiret(siret: string, env: Record<string, string | undefined> = process.env): boolean {
+  const { mode, sirenTest } = modeEcriture(env)
+  if (mode === 'ouvert') return true
+  return mode === 'test' && siret.replace(/\D/g, '').slice(0, 9) === sirenTest
+}
+
 export const ecritureAutorisee = (env: Record<string, string | undefined> = process.env) => env.GRENKE_ECRITURE?.trim().toLowerCase() === 'oui'
 
 const pasEncore = (action: string) => new ErreurMetier(`${action} : l’envoi réel vers Grenke n’est pas encore activé.`, 501)
@@ -27,7 +34,7 @@ export function creerConnecteurGrenke(config: ConfigGrenke): Connecteur {
     code: 'grenke_api',
     creerDemande: async () => { throw pasEncore('Création de la demande') },
     async envoyerPiece(referenceFinanceur, nomFichier, contenu) {
-      if (!ecritureAutorisee()) throw pasEncore('Envoi de la pièce')
+      if (modeEcriture().mode === 'ferme') throw pasEncore('Envoi de la pièce') // le contrôle par SIREN se fait avant, à l'appel (pieces.ts)
       await envoyerDocument(config, referenceFinanceur, { nom: nomFichier, contenu })
     },
     lancerSignature: async () => { throw pasEncore('Lancement de la signature') },

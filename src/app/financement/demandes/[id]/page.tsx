@@ -5,6 +5,7 @@ import { estAdmin, peutAnnuler, peutArchiver, peutModifier, peutSupprimer, peutV
 import { exigerUtilisateur } from '@/lib/financement/garde'
 import { Ligne, TitreSection } from '../../Fiche'
 import { LienRetour } from '../../MemoireListe'
+import { actualiserSiPerime } from '@/lib/financement/actualisation'
 import { purgeOpportuniste } from '@/lib/financement/pieces'
 import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT, peutEnvoyerEnSignature, statutsAccessibles } from '@/lib/financement/statuts'
@@ -18,6 +19,7 @@ export const dynamic = 'force-dynamic'
 export default async function FicheDemande({ params, searchParams }: { params: { id: string }; searchParams: { envoi?: string; m?: string; f?: string } }) {
   const u = await exigerUtilisateur()
   await purgeOpportuniste()
+  await actualiserSiPerime(Number(params.id)) // statut chez le financeur, mis à jour tout seul (au plus toutes les 5 min)
   const d = await lireDemande(u, Number(params.id))
   if (!d) notFound()
   const reel = peutVoirBaremeReel(u) && 'montantReelCentimes' in d ? d : null
@@ -28,7 +30,7 @@ export default async function FicheDemande({ params, searchParams }: { params: {
       <div className="flex flex-wrap items-center gap-3">
         <LienRetour nom="demandes" defaut="/financement" className="text-sm text-gray-500 hover:text-accent-700 bg-white border border-gray-300 rounded-xl px-3 py-1 transition-colors">← Demandes</LienRetour>
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{d.reference} <span className="text-gray-400 font-normal">·</span> {d.raisonSociale}</h1>
-        <BadgeStatut statut={d.statut} />
+        <BadgeStatut statut={d.statut} etape={d.etapeSignature} />
         {d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="text-sm text-violet-800">{libelleEtape(d.etapeSignature)}</span>}
         {d.archivee && <span className="text-xs bg-gray-200 text-gray-600 rounded px-2 py-0.5">Archivée</span>}
       </div>
