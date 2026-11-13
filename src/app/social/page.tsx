@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { applyBoldMarkup, toggleBold } from '@/lib/unicode-bold'
 import { DEFAULT_SLOTS, normalizeSlots, upcomingSlots, type SlotConfig } from '@/lib/slots'
+import { fileToJpegDataUrl } from '@/lib/image-compress'
 
 interface SocialPost {
   id: number
@@ -67,6 +68,9 @@ function SocialPageInner() {
   const [customImagePrompt, setCustomImagePrompt] = useState<string | null>(null)
   const [customUnsplashKeywords, setCustomUnsplashKeywords] = useState<string | null>(null)
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null)
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [listFilter, setListFilter] = useState<'queue' | 'published' | 'failed'>('queue')
@@ -135,6 +139,7 @@ function SocialPageInner() {
     setSelected(post)
     setSelectedPhotoUrl(null)
     setGeneratedImageUrl(null)
+    setUploadedImageUrl(null)
     if (post.status === 'scheduled' || post.status === 'draft') {
       fetch(`/api/social/posts?id=${post.id}`).then(r => r.json()).then(d => {
         if (d.post?.imageUrl) setSelectedPhotoUrl(d.post.imageUrl)
@@ -574,16 +579,38 @@ function SocialPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: customImagePrompt ?? selected.imagePrompt }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({} as { imageUrl?: string; error?: string }))
       if (data.imageUrl) {
         setGeneratedImageUrl(data.imageUrl)
         setSelectedPhotoUrl(data.imageUrl)
       } else {
-        showToast(data.error ?? 'Erreur génération image', false)
+        showToast(data.error ?? `Erreur génération image (${res.status})`, false)
       }
     } finally {
       setGeneratingImage(false)
     }
+  }
+
+  async function handleUploadPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''   // permet de choisir deux fois la même photo
+    if (!file) return
+    setUploadingPhoto(true)
+    try {
+      const dataUrl = await fileToJpegDataUrl(file)
+      setUploadedImageUrl(dataUrl)
+      setSelectedPhotoUrl(dataUrl)
+      showToast('Photo importée et sélectionnée')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Impossible de lire cette photo', false)
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+  function removeUploadedPhoto() {
+    if (selectedPhotoUrl === uploadedImageUrl) setSelectedPhotoUrl(null)
+    setUploadedImageUrl(null)
   }
 
   async function handleSearchUnsplash(page = 1) {
@@ -596,9 +623,9 @@ function SocialPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic: customUnsplashKeywords ?? selected.topic, page }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({} as { photos?: typeof unsplashPhotos; error?: string }))
       if (data.photos) { setUnsplashPhotos(data.photos); setUnsplashPage(page) }
-      else showToast(data.error ?? 'Erreur recherche Unsplash', false)
+      else showToast(data.error ?? `Erreur recherche Unsplash (${res.status})`, false)
     } finally {
       setSearchingUnsplash(false)
     }
@@ -1092,15 +1119,15 @@ function SocialPageInner() {
                       </div>
                     )}
 
-                    {selected.imagePrompt && (
+                    {selected.status !== 'published' && (
                       <div className="mt-4 p-4 bg-sable-50 rounded-xl border border-sable-200">
                         <p className="text-xs font-semibold text-stone-600 mb-2 uppercase tracking-wide">Image</p>
-                        <textarea
+                        {selected.imagePrompt && <textarea
                           value={customImagePrompt ?? selected.imagePrompt}
                           onChange={e => setCustomImagePrompt(e.target.value)}
                           rows={3}
                           className="w-full text-sm text-stone-900 bg-white border border-stone-300 rounded-lg px-3 py-2 mb-2 focus:outline-none focus:border-leasing-600 focus:ring-2 focus:ring-leasing-500/30 resize-none"
-                        />
+                        />}
                         <input
                           type="text"
                           placeholder="Mots-clés Unsplash (ex: office meeting professional)"
@@ -1109,18 +1136,23 @@ function SocialPageInner() {
                           className="w-full text-sm text-stone-900 border border-stone-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-leasing-600 focus:ring-2 focus:ring-leasing-500/30 mb-3"
                         />
                         <div className="flex gap-2 flex-wrap">
-                          <button onClick={handleGenerateImage} disabled={generatingImage || searchingUnsplash}
+                          {selected.imagePrompt && <button onClick={handleGenerateImage} disabled={generatingImage || searchingUnsplash}
                             className="px-4 py-2 bg-leasing-700 text-white text-sm rounded-lg hover:bg-leasing-800 transition disabled:opacity-50 font-medium flex items-center gap-2">
                             {generatingImage ? (
                               <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Génération...</>
                             ) : 'Générer avec IA'}
-                          </button>
+                          </button>}
                           <button onClick={() => handleSearchUnsplash(1)} disabled={generatingImage || searchingUnsplash}
                             className="px-4 py-2 bg-white border border-stone-300 text-stone-700 text-sm rounded-lg hover:bg-sable-50 transition disabled:opacity-50 font-medium flex items-center gap-2">
                             {searchingUnsplash ? (
                               <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Recherche...</>
                             ) : 'Photos Unsplash'}
                           </button>
+                          <button type="button" onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto || generatingImage || searchingUnsplash}
+                            className="px-4 py-2 bg-white border border-stone-300 text-stone-700 text-sm rounded-lg hover:bg-sable-50 transition disabled:opacity-50 font-medium">
+                            {uploadingPhoto ? 'Import...' : 'Importer ma photo'}
+                          </button>
+                          <input ref={photoInputRef} type="file" accept="image/*" onChange={handleUploadPhoto} className="hidden" data-testid="photo-input" />
                         </div>
 
                         {/* AI generated image */}
@@ -1143,6 +1175,28 @@ function SocialPageInner() {
                               className="text-xs text-stone-600 hover:underline">
                               Télécharger
                             </a>
+                          </div>
+                        )}
+
+                        {/* Photo importée */}
+                        {uploadedImageUrl && (
+                          <div className="mt-3">
+                            <p className="text-xs text-stone-600 mb-1">Ma photo : cliquez dessus pour la sélectionner ou la désélectionner</p>
+                            <div
+                              className={`relative cursor-pointer rounded-xl overflow-hidden border-4 transition ${selectedPhotoUrl === uploadedImageUrl ? 'border-leasing-600' : 'border-transparent'}`}
+                              onClick={() => setSelectedPhotoUrl(prev => prev === uploadedImageUrl ? null : uploadedImageUrl)}>
+                              <img src={uploadedImageUrl} alt="Ma photo" className="w-full max-h-96 object-contain rounded-xl bg-white" />
+                              {selectedPhotoUrl === uploadedImageUrl && (
+                                <div className="absolute top-2 right-2 bg-leasing-700 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">✓</div>
+                              )}
+                            </div>
+                            <button onClick={() => setLightboxUrl(uploadedImageUrl)} className="mt-1 text-xs text-stone-600 hover:underline">
+                              Voir en grand
+                            </button>
+                            {' · '}
+                            <button onClick={removeUploadedPhoto} className="text-xs text-red-600 hover:underline">
+                              Retirer ma photo
+                            </button>
                           </div>
                         )}
 

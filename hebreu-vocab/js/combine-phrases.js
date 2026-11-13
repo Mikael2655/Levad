@@ -344,4 +344,15 @@ const COMBINE_PHRASES_RAW = [
   { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "תובנה", nFr: "évidence", frT: "Après l'expérience, il {V} une nouvelle {N}.", heT: "אחרי הניסוי הוא {V} {N} חדשה." },
   { v: "לראות", vT: "Présent", vFr: "voit", nHe: "גוש", nFr: "bloc", frT: "Sur la carte, il {V} un grand {N} de maisons.", heT: "במפה הוא {V} {N} גדול של בתים." },
   { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "סוגיה", nFr: "enjeu", frT: "Le politicien {V} un {N} important.", heT: "הפוליטיקאי {V} {N} חשובה." },
+  // ============================================================
+  //  Ajout : 4 nouveaux verbes et de nouveaux mots
+  // ============================================================
+  { v: "להכריח", vT: "Présent", vFr: "force", nHe: "מנהל", nFr: "patron", frT: "Le {N} {V} l'équipe à rester tard.", heT: "ה{N} {V} את הצוות להישאר עד מאוחר." },
+  { v: "להוביל", vT: "Présent", vFr: "mène", nHe: "מדריך", nFr: "guide", frT: "Le {N} {V} le groupe jusqu'au sommet.", heT: "ה{N} {V} את הקבוצה עד הפסגה." },
+  { v: "להעריך", vT: "Présent", vFr: "apprécie", nHe: "מנהיג", nFr: "chef", frT: "Le peuple {V} son {N} juste.", heT: "העם {V} את ה{N} הצודק." },
+  { v: "להתחרט", vT: "Présent", vFr: "regrette", nHe: "תעלול", nFr: "bêtise", frT: "Plus tard, il {V} sa {N}.", heT: "מאוחר יותר הוא {V} על ה{N} שלו." },
+  { v: "לאכול", vT: "Présent", vFr: "mange", nHe: "משמש", nFr: "abricot", frT: "En été, il {V} un {N} bien mûr.", heT: "בקיץ הוא {V} משמש בשל." },
+  { v: "לקנות", vT: "Présent", vFr: "achète", nHe: "משמש יבש", nFr: "abricot sec", frT: "Au marché, il {V} un {N}.", heT: "בשוק הוא {V} משמש יבש." },
+  { v: "לראות", vT: "Présent", vFr: "voit", nHe: "נגיש", nFr: "abordable", frT: "Il {V} que le prix est {N}.", heT: "הוא {V} שהמחיר {N}." },
+  { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "נפוץ", nFr: "courant", frT: "Le professeur {V} un usage {N} du mot.", heT: "המורה {V} שימוש {N} של המילה." },
 ];

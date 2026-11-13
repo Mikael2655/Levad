@@ -5093,7 +5093,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להודיע", translit: "Le'odia", fr: "Prévenir / informer",
+    inf: "להודיע", translit: "Lehodia", fr: "Prévenir / informer",
     racine: "ידע", binyan: "הפעיל",
     temps: {
       "Présent": [
@@ -5839,6 +5839,66 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "ירשום", t: "Yirchom" },
+      ],
+    },
+  },
+  {
+    inf: "להכריח", translit: "Leakhriakh", fr: "Forcer / obliger",
+    racine: "כרח", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מכריח", t: "Makhriakh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הכריח", t: "Hikhriakh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יכריח", t: "Yakhriakh" },
+      ],
+    },
+  },
+  {
+    inf: "להוביל", translit: "Lehovil", fr: "Mener à / entrainer",
+    racine: "יבל", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מוביל", t: "Movil" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "הוביל", t: "Hovil" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יוביל", t: "Yovil" },
+      ],
+    },
+  },
+  {
+    inf: "להעריך", translit: "Leha'arikh", fr: "Apprécier / évaluer",
+    racine: "ערך", binyan: "הפעיל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מעריך", t: "Ma'arikh" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "העריך", t: "He'erikh" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יעריך", t: "Ya'arikh" },
+      ],
+    },
+  },
+  {
+    inf: "להתחרט", translit: "Lehitkharet", fr: "Regretter",
+    racine: "חרט", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתחרט", t: "Mitkharet" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התחרט", t: "Hitkharet" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתחרט", t: "Yitkharet" },
       ],
     },
   },

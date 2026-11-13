@@ -3,7 +3,7 @@ export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { generateSocialPosts } from '@/lib/claude-ai'
+import { explainAiError, generateSocialPosts } from '@/lib/claude-ai'
 import { rebuildSlots } from '@/lib/queue'
 
 export async function POST(req: NextRequest) {
@@ -37,6 +37,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ post: fresh })
   } catch (err) {
     console.error(err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return NextResponse.json({ error: explainAiError(err) ?? String(err) }, { status: 500 })
   }
 }

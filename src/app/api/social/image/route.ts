@@ -19,7 +19,13 @@ export async function POST(req: NextRequest) {
     const { prompt } = await req.json()
     if (!prompt) return NextResponse.json({ error: 'Prompt manquant' }, { status: 400 })
 
-    const englishPrompt = await translateToEnglish(prompt)
+    // La traduction est un plus : sans elle (crédit Anthropic épuisé…), on envoie le texte d'origine à OpenAI.
+    let englishPrompt = prompt
+    try {
+      englishPrompt = await translateToEnglish(prompt)
+    } catch (e) {
+      console.error('[image] traduction indisponible, texte d\'origine utilisé', e)
+    }
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
     const response = await openai.images.generate({

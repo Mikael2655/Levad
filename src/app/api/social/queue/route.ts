@@ -3,6 +3,8 @@ export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { explainAiError } from '@/lib/claude-ai'
+import { isAcceptableImageUrl } from '@/lib/image-url'
 import { generateQueuedPost, holdUntilDay, movePost, cancelFill, getFillRemaining, noteFillProgress, pickTopic, rebuildSlots, rewritePost, shiftOneSlot, startFill, writeQueuedPost } from '@/lib/queue'
 
 export async function POST(req: NextRequest) {
@@ -68,6 +70,9 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'validate') {
       const { id, validated, topic, contentLI, contentIG, imageUrl } = body
+      if (!isAcceptableImageUrl(imageUrl)) {
+        return NextResponse.json({ error: 'Image non valide ou trop volumineuse (essayez une photo plus petite).' }, { status: 400 })
+      }
       const post = await prisma.socialPost.update({
         where: { id: Number(id) },
         data: {
@@ -86,6 +91,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'action inconnue' }, { status: 400 })
   } catch (err) {
     console.error('[queue]', err)
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    return NextResponse.json({ error: explainAiError(err) ?? (err instanceof Error ? err.message : String(err)) }, { status: 500 })
   }
 }
