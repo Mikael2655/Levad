@@ -21,9 +21,17 @@ export default async function PriveLayout({ children }: { children: React.ReactN
   let nbDeconnectes = 0
   let nbNouvelles = 0
   try {
-    nbAlertes = (await clientsEnAlerte()).length
-    nbDeconnectes = (await postesDeconnectes()).length + (await machinesNonReleves()).filter((m) => m.niveau === 'rouge').length
-    nbNouvelles = (await prisma.connectMachine.count({ where: { vueLe: null } })) + (await prisma.connectPoste.count({ where: { vueLe: null } }))
+    // les comptages se calculent en même temps (et non l'un après l'autre) : la page s'affiche plus vite
+    const [alertes, postes, machines, nouvellesMachines, nouveauxPostes] = await Promise.all([
+      clientsEnAlerte(),
+      postesDeconnectes(),
+      machinesNonReleves(),
+      prisma.connectMachine.count({ where: { vueLe: null } }),
+      prisma.connectPoste.count({ where: { vueLe: null } }),
+    ])
+    nbAlertes = alertes.length
+    nbDeconnectes = postes.length + machines.filter((m) => m.niveau === 'rouge').length
+    nbNouvelles = nouvellesMachines + nouveauxPostes
   } catch {
     // base pas encore prête : la page concernée l'expliquera
   }
