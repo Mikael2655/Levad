@@ -6,7 +6,7 @@ import { exigerUtilisateur } from '@/lib/financement/garde'
 import { Ligne, TitreSection } from '../../Fiche'
 import { LienRetour } from '../../MemoireListe'
 import { actualiserSiPerime } from '@/lib/financement/actualisation'
-import { typeDeLigne } from '@/lib/financement/pieces-demandees'
+import { lignesPiecesDemandees, typeDeLigne } from '@/lib/financement/pieces-demandees'
 import PiecesDemandees from './PiecesDemandees'
 import { purgeOpportuniste } from '@/lib/financement/pieces'
 import { libelleEtape } from '@/lib/financement/etapes'
@@ -40,7 +40,7 @@ export default async function FicheDemande({ params, searchParams }: { params: {
         <div className="bg-orange-50 border border-orange-300 rounded-xl px-4 py-3 text-sm text-orange-900 space-y-1.5">
           <p><b>Pièces / informations demandées par le financeur :</b></p>
           <ul className="space-y-1">
-            {d.infosManquantes.split('\n').map(l => l.replace(/^[\s•\-]+/, '').trim()).filter(Boolean).map(l => {
+            {lignesPiecesDemandees(d.infosManquantes).map(l => {
               const type = typeDeLigne(l)
               const deposee = type !== 'AUTRE' && d.pieces.some(x => x.type === type)
               return <li key={l}>{deposee ? '✅' : '☐'} {l}{deposee ? <span className="text-emerald-700"> — déposée, transmise automatiquement</span> : null}</li>

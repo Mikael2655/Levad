@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { extrairePiecesDemandees, typeDeLigne } from './pieces-demandees'
+import { extrairePiecesDemandees, lignesPiecesDemandees, typeDeLigne } from './pieces-demandees'
 
 vi.mock('@/lib/db', () => ({ prisma: {} }))
 
@@ -31,6 +31,12 @@ describe('extraction des pièces demandées', () => {
     expect(r.lignes).toEqual([
       'KBIS de moins de 3 mois', '3 derniers BILANS', 'IBAN / relevé d’identité bancaire', 'Dernier avis d’imposition du dirigeant', 'Relevés bancaires des 3 derniers mois',
     ])
+  })
+
+  it('retire l’introduction « P.S. : » des lignes, à l’extraction comme à l’affichage', () => {
+    expect(extrairePiecesDemandees('P.S. : merci de nous faire parvenir le bilan et compte de résultat 2025').lignes).toEqual(['Merci de nous faire parvenir le bilan et compte de résultat 2025'])
+    expect(lignesPiecesDemandees('• P.S. : le bilan 2025\n• PS - un RIB\n• Post-scriptum : les statuts\n• Le P.S. du dossier')).toEqual(['le bilan 2025', 'un RIB', 'les statuts', 'Le P.S. du dossier'])
+    expect(lignesPiecesDemandees(null)).toEqual([])
   })
 
   it('texte sans pièce connue : liste vide (l’utilisateur saisit à la main)', () => {

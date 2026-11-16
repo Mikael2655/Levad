@@ -27,7 +27,11 @@ const REGLES: Regle[] = [
 ]
 
 const sansAccents = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-const nettoyer = (s: string) => s.replace(/\s+/g, ' ').replace(/^[\s•\-–—*·▪■□☐✓✔]+/, '').replace(/^\d{1,2}\s?[.)]\s+/, '').trim() // retire puces et numérotation « 1. », garde « 3 derniers bilans »
+// retire aussi l'introduction « P.S. : » des e-mails
+const nettoyer = (s: string) => s.replace(/\s+/g, ' ').replace(/^[\s•\-–—*·▪■□☐✓✔]+/, '').replace(/^\d{1,2}\s?[.)]\s+/, '').replace(/^(p\.?\s?-?\s?s\.?|post[- ]?scriptum)\s*[:\-–—]\s*/i, '').trim() // retire puces et numérotation « 1. », garde « 3 derniers bilans »
+
+// Liste affichable des pièces demandées (texte enregistré sur la demande, une pièce par ligne).
+export const lignesPiecesDemandees = (texte: string | null | undefined): string[] => (texte ?? '').split('\n').map(nettoyer).filter(Boolean)
 
 export interface PiecesExtraites { lignes: string[]; types: TypePieceDemandee[] }
 
