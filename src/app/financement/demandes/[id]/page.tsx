@@ -7,6 +7,7 @@ import { Ligne, TitreSection } from '../../Fiche'
 import { LienRetour } from '../../MemoireListe'
 import { actualiserSiPerime } from '@/lib/financement/actualisation'
 import { lignesPiecesDemandees, typeDeLigne } from '@/lib/financement/pieces-demandees'
+import BoutonPiecesEnvoyees from './BoutonPiecesEnvoyees'
 import PiecesDemandees from './PiecesDemandees'
 import { purgeOpportuniste } from '@/lib/financement/pieces'
 import { libelleEtape } from '@/lib/financement/etapes'
@@ -32,7 +33,7 @@ export default async function FicheDemande({ params, searchParams }: { params: {
       <div className="flex flex-wrap items-center gap-3">
         <LienRetour nom="demandes" defaut="/financement" className="text-sm text-gray-500 hover:text-accent-700 bg-white border border-gray-300 rounded-xl px-3 py-1 transition-colors">← Demandes</LienRetour>
         <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{d.reference} <span className="text-gray-400 font-normal">·</span> {d.raisonSociale}</h1>
-        <BadgeStatut statut={d.statut} etape={d.etapeSignature} />
+        <BadgeStatut statut={d.statut} etape={d.etapeSignature} piecesEnvoyees={d.statut === 'ENVOYEE' && !!d.infosManquantes} />
         {d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="text-sm text-violet-800">{libelleEtape(d.etapeSignature)}</span>}
         {d.archivee && <span className="text-xs bg-gray-200 text-gray-600 rounded px-2 py-0.5">Archivée</span>}
       </div>
@@ -46,7 +47,8 @@ export default async function FicheDemande({ params, searchParams }: { params: {
               return <li key={l}>{deposee ? '✅' : '☐'} {l}{deposee ? <span className="text-emerald-700"> — déposée, transmise automatiquement</span> : null}</li>
             })}
           </ul>
-          <p className="text-xs text-orange-800">Ajoutez les pièces dans « Pièces jointes » plus bas : elles partent toutes seules chez le financeur.</p>
+          <p className="text-xs text-orange-800">Ajoutez les pièces dans « Pièces jointes » plus bas : elles partent toutes seules chez le financeur. Quand tout est ajouté, cliquez sur « Envoyer ».</p>
+          <BoutonPiecesEnvoyees demandeId={d.id} nbPieces={d.pieces.length} />
         </div>
       )}
 
@@ -56,8 +58,8 @@ export default async function FicheDemande({ params, searchParams }: { params: {
       <ActionsDemande
         id={d.id}
         interne={reel !== null}
-        statutsAccessibles={statutsAccessibles(u, d).map(s => ({ valeur: s, libelle: LIBELLES_STATUT[s] }))}
-        peutModifier={peutModifier(u, d)}
+        statutsAccessibles={statutsAccessibles(u, d).filter(s => !(d.financeurAvecApi && ['PRETE_A_SIGNER', 'REFUSEE', 'ENVOYEE'].includes(s))).map(s => ({ valeur: s, libelle: LIBELLES_STATUT[s] }))} // Grenke : accord, refus et attente viennent de Grenke / du bouton « Envoyer »
+        peutModifier={peutModifier(u, d) && !(d.financeurAvecApi && d.lieeApi)}
         peutArchiver={peutArchiver(u, d)}
         archivee={d.archivee}
         peutSupprimer={peutSupprimer(u)}
@@ -66,8 +68,8 @@ export default async function FicheDemande({ params, searchParams }: { params: {
         saisieMontantReel={reel !== null && "sansBaremeReel" in d && d.sansBaremeReel === true}
         miseEnPlace={reel !== null && !d.signatureElectronique && d.statut === 'PRETE_A_SIGNER'}
         peutRenvoyerMail={reel !== null && d.envoiParMail && d.statut !== 'BROUILLON' && d.statut !== 'ANNULEE'}
-        peutActualiser={reel !== null && d.financeurAvecApi && 'lieeApi' in d && d.lieeApi === true}
-        peutRattacher={reel !== null && d.financeurAvecApi && 'lieeApi' in d && d.lieeApi === false && d.statut !== 'ANNULEE'}
+        lieeApi={d.financeurAvecApi && d.lieeApi}
+        peutRattacher={reel !== null && d.financeurAvecApi && d.lieeApi === false && d.statut !== 'ANNULEE'}
         peutEnvoyerGrenke={estAdmin(u) && d.financeurAvecApi && !d.refFinanceur && (d.statut === 'BROUILLON' || d.statut === 'INFOS_MANQUANTES' || d.statut === 'ENVOYEE') && reel?.montantReelCentimes != null}
         montantReelActuel={reel?.montantReelCentimes ?? null}
         etapeSignature={d.statut === 'EN_SIGNATURE' ? d.etapeSignature ?? '' : null}

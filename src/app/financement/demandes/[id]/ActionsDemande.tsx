@@ -22,7 +22,7 @@ export default function ActionsDemande(p: {
   saisieMontantReel: boolean // financeur sans barème réel : on saisit le montant communiqué par le financeur
   miseEnPlace: boolean // financeur sans signature électronique : on enregistre la mise en place du contrat
   peutRenvoyerMail: boolean
-  peutActualiser: boolean // financeur avec API, demande déjà envoyée, interne
+  lieeApi: boolean // la demande existe chez le financeur (API) : modification / annulation / suppression non transmises
   peutRattacher: boolean // dossier déjà créé chez le financeur (saisi à la main) : on le relie par son numéro
   peutEnvoyerGrenke: boolean // administrateur, demande Grenke (API) pas encore envoyée
   montantReelActuel: number | null
@@ -141,13 +141,12 @@ export default function ActionsDemande(p: {
       )}
 
       <div className="flex flex-wrap gap-2 text-sm border-t border-gray-100 pt-3">
-        {p.peutActualiser && <button className={champ} onClick={() => agir(async () => { const r = await appel<{ message: string }>(`${url}/actualiser`, 'POST', {}); setInfoOk(r.message) })}>Actualiser depuis Grenke</button>}
         {p.peutEnvoyerGrenke && <button className={`${champ} font-medium`} onClick={() => confirm('Envoyer cette demande à Grenke ? C’est une VRAIE demande de financement (Grenke n’a pas d’environnement de test) : elle ne pourra pas être envoyée une seconde fois. Si ce dossier existe déjà sur le portail Grenke, ANNULEZ et utilisez « Rattacher à ce dossier ».') && agir(async () => { await appel(`${url}/envoyer-grenke`, 'POST', {}); setInfoOk('Demande envoyée à Grenke.') })}>Envoyer à Grenke</button>}
         {p.peutRenvoyerMail && <button className={champ} onClick={() => agir(async () => { await appel(`${url}/renvoyer-mail`, 'POST', {}); setInfoOk('E-mail renvoyé.') })}>Renvoyer le mail au financeur</button>}
         {p.peutModifier && <Link href={`/financement/demandes/${p.id}/modifier`} className={`${champ} font-medium`}>Modifier</Link>}
-        {p.peutAnnuler && <button className={`${champ} text-red-700`} onClick={() => confirm('Annuler cette demande ?') && agir(() => appel(`${url}/statut`, 'POST', { statut: 'ANNULEE', commentaire }))}>Annuler la demande</button>}
+        {p.peutAnnuler && <button className={`${champ} text-red-700`} onClick={() => confirm(p.lieeApi ? 'Annuler cette demande dans l’outil ? Grenke n’est PAS prévenu : pensez à l’annuler aussi sur le portail Grenke.' : 'Annuler cette demande ?') && agir(() => appel(`${url}/statut`, 'POST', { statut: 'ANNULEE', commentaire }))}>Annuler la demande</button>}
         {p.peutArchiver && <button className={champ} onClick={() => agir(() => appel(`${url}/archiver`, 'POST', { archivee: !p.archivee }))}>{p.archivee ? 'Désarchiver' : 'Archiver'}</button>}
-        {p.peutSupprimer && <button className={`${champ} text-red-700`} onClick={() => confirm('Supprimer définitivement cette demande et son historique ?') && agir(async () => { await appel(url, 'DELETE'); router.push('/financement') })}>Supprimer</button>}
+        {p.peutSupprimer && <button className={`${champ} text-red-700`} onClick={() => confirm(p.lieeApi ? 'Supprimer définitivement cette demande de l’outil ? Grenke n’est PAS prévenu : la demande reste chez eux tant que vous ne l’annulez pas sur leur portail.' : 'Supprimer définitivement cette demande et son historique ?') && agir(async () => { await appel(url, 'DELETE'); router.push('/financement') })}>Supprimer</button>}
       </div>
     </div>
   )
