@@ -76,7 +76,7 @@ export default async function FicheDemande({ params, searchParams }: { params: {
           fournisseur: { prenom: u.prenom, nom: u.nom, email: u.email },
         }}
       />
-      {reel !== null && d.financeurAvecApi && (d.statut === 'ENVOYEE' || d.statut === 'INFOS_MANQUANTES') && <PiecesDemandees demandeId={d.id} />}
+      {reel !== null && d.financeurAvecApi && (d.statut === 'ENVOYEE' || d.statut === 'INFOS_MANQUANTES') && <PiecesDemandees demandeId={d.id} actuelle={d.statut === 'INFOS_MANQUANTES' ? d.infosManquantes ?? '' : ''} />}
 
       <section className={section}>
         <TitreSection icone="client">Client</TitreSection>
