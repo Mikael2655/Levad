@@ -110,3 +110,84 @@ export async function confirmerPiecesEnvoyees(a: Acteur, demandeId: number) {
   await notifierChangement({ demandeId, acteurId: a.id, statutAvant: 'INFOS_MANQUANTES', etapeAvant: d.etapeSignature, statutApres: 'ENVOYEE', etapeApres: null })
   return { ok: true, transmises: r.envoyees }
 }
+
+// --- Document reçu d'un financeur sans API : accord, refus ou demande de pièces ? ------------------------------------------------------
+
+export interface MontantTrouve { valeurCentimes: number; contexte: string; etiquette: 'FINANCE' | 'LOYER' | null }
+export type TypeDocument = 'PIECES' | 'ACCORD' | 'REFUS' | 'INCONNU'
+
+const EURO = /(\d{1,3}(?:[ \u00a0.]\d{3})+|\d+)(?:,(\d{1,2}))?\s*(?:€|eur(?:os?)?\b)/gi
+
+// Montants en euros trouvés dans le texte, avec la phrase autour : l'utilisateur choisit le bon (le format des PDF varie d'un financeur à l'autre).
+export function extraireMontants(texte: string): MontantTrouve[] {
+  const trouves: MontantTrouve[] = []
+  const vus = new Set<string>()
+  for (const ligne of texte.split(/\r?\n/)) {
+    for (const m of Array.from(ligne.matchAll(EURO))) {
+      const entier = Number(m[1].replace(/[ \u00a0.]/g, ''))
+      const valeurCentimes = entier * 100 + (m[2] ? Number(m[2].padEnd(2, '0')) : 0)
+      if (!Number.isFinite(valeurCentimes) || valeurCentimes <= 0) continue
+      const avant = ligne.slice(Math.max(0, (m.index ?? 0) - 70), m.index ?? 0)
+      const t = sansAccents(avant)
+      const etiquette = /loyer|redevance|mensualite|trimestrialite/.test(t) ? 'LOYER' : /montant (finance|a financer|du financement|total)|financement|capital|prix d.?achat|investissement|valeur d.?achat/.test(t) ? 'FINANCE' : null
+      const cle = `${valeurCentimes}|${etiquette}`
+      if (vus.has(cle)) continue
+      vus.add(cle)
+      trouves.push({ valeurCentimes, contexte: nettoyer(ligne).slice(0, 120), etiquette })
+    }
+  }
+  return trouves.sort((x, y) => Number(y.etiquette === 'FINANCE') - Number(x.etiquette === 'FINANCE')).slice(0, 8)
+}
+
+export function typeDeDocument(texte: string, nbPieces: number): TypeDocument {
+  const t = sansAccents(texte)
+  const accord = /\baccord (de financement|donne|favorable|obtenu|ferme)|\bnous (vous )?(confirmons|donnons) (notre|l.?)accord|financement (est )?(accorde|accepte)|dossier (est )?(accepte|accorde|valide)|agrement|avis favorable|\baccept[ee]\b/.test(t) || /\baccord\b/.test(t.replace(/d.?accord|en accord|pas d.?accord|sans accord/g, ''))
+  const refus = /\brefus|\brefuse|\bdeclin|\brejet|defavorable|non accord|ne peut pas (etre )?(accepte|financ)/.test(t)
+  if (refus && !accord) return 'REFUS'
+  if (accord && !refus) return 'ACCORD'
+  if (nbPieces > 0 && !accord && !refus) return 'PIECES'
+  return 'INCONNU'
+}
+
+// Informations d'un accord, quand le PDF les donne (format observé : « ACCORD N° 75815IB », « Siren : 752975433 », « Durée du financement : 63 mois »,
+// « Coefficient : 6,3800 »). Servent à vérifier que le PDF correspond bien à la demande, et à pré-remplir la note.
+export interface InfosAccord { numero: string | null; siren: string | null; dureeMois: number | null; loyerCentimes: number | null; coefficient: number | null }
+export function extraireInfosAccord(texte: string, montants: MontantTrouve[] = extraireMontants(texte)): InfosAccord {
+  const num = texte.match(/ACCORD\s*N[°o]?\s*([A-Z0-9-]+)/i)
+  const siren = texte.match(/siren\s*:?\s*(\d{3}\s?\d{3}\s?\d{3})\b/i)
+  const duree = texte.match(/dur[ée]e(?: du financement)?\s*:?\s*(\d{1,3})\s*mois/i)
+  const coef = texte.match(/coefficient\s*:?\s*(\d{1,2}[,.]\d{1,4})/i)
+  return {
+    numero: num?.[1] ?? null,
+    siren: siren ? siren[1].replace(/\s/g, '') : null,
+    dureeMois: duree ? Number(duree[1]) : null,
+    loyerCentimes: montants.find(m => m.etiquette === 'LOYER')?.valeurCentimes ?? null,
+    coefficient: coef ? Number(coef[1].replace(',', '.')) : null,
+  }
+}
+
+export type Controle = 'ok' | 'different' | 'absent'
+// Compare le PDF à la demande : un PDF déposé sur la mauvaise demande se voit tout de suite.
+export function controlerAccord(infos: InfosAccord, d: { siret: string; loyerCentimes: number; dureeMois: number }) {
+  const siren = d.siret.replace(/\D/g, '').slice(0, 9)
+  return {
+    siren: (infos.siren === null || siren.length < 9 ? 'absent' : infos.siren === siren ? 'ok' : 'different') as Controle,
+    loyer: (infos.loyerCentimes === null ? 'absent' : Math.abs(infos.loyerCentimes - d.loyerCentimes) <= 1 ? 'ok' : 'different') as Controle,
+    duree: (infos.dureeMois === null ? 'absent' : infos.dureeMois === d.dureeMois ? 'ok' : 'different') as Controle,
+  }
+}
+
+export async function analyserDocumentFinanceur(a: Acteur, contenu: Buffer, demandeId?: number) {
+  const base = await analyserPdfPiecesDemandees(a, contenu)
+  if (!base.texteLu) return { ...base, type: 'INCONNU' as TypeDocument, montants: [] as MontantTrouve[], infos: null as InfosAccord | null, controles: null as ReturnType<typeof controlerAccord> | null }
+  const texte = await extraireTextePdf(contenu)
+  const montants = extraireMontants(texte)
+  const type = typeDeDocument(texte, base.lignes.length)
+  const infos = type === 'ACCORD' || type === 'INCONNU' ? extraireInfosAccord(texte, montants) : null
+  let controles: ReturnType<typeof controlerAccord> | null = null
+  if (infos && demandeId) {
+    const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, select: { siret: true, loyerCentimes: true, dureeMois: true } })
+    if (d) controles = controlerAccord(infos, d)
+  }
+  return { ...base, type, montants, infos, controles }
+}

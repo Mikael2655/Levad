@@ -239,6 +239,7 @@ model FinUtilisateur {
   piecesJointes      FinPieceJointe[]
   financeursDestinataire FinFinanceur[] @relation("FinanceurDestinataire")
   rachatsCrees       FinRachat[] @relation("RachatCreePar")
+  accordsSaisis      FinAccord[]
   rachatsEnvoyes     FinRachat[] @relation("RachatEnvoyePar")
 
   @@map("fin_utilisateur")
@@ -362,6 +363,7 @@ model FinDemande {
   historique    FinHistorique[]
   signature     FinSignature?
   contrat       FinContrat?
+  accords       FinAccord[]
 
   @@index([commercialId])
   @@index([statut])
@@ -526,4 +528,21 @@ model FinRachat {
 
   @@index([contratId])
   @@map("fin_rachat")
+}
+
+// Accords reçus du financeur (financeur sans API : par e-mail / PDF). Chaque accord est gardé, y compris quand un nouvel accord
+// plus favorable remplace le précédent. INTERNE : jamais montré aux commerciaux (il contient le vrai montant financé).
+model FinAccord {
+  id                  Int            @id @default(autoincrement())
+  demandeId           Int
+  demande             FinDemande     @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  creeLe              DateTime       @default(now())
+  auteurId            Int
+  auteur              FinUtilisateur @relation(fields: [auteurId], references: [id])
+  montantReelCentimes Int
+  coefficientReelPpm  Int? // coefficient par période déduit du loyer, pour information
+  note                String?
+
+  @@index([demandeId])
+  @@map("fin_accord")
 }

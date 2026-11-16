@@ -7,13 +7,15 @@ import { Ligne, TitreSection } from '../../Fiche'
 import { LienRetour } from '../../MemoireListe'
 import { actualiserSiPerime } from '@/lib/financement/actualisation'
 import { lignesPiecesDemandees, typeDeLigne } from '@/lib/financement/pieces-demandees'
+import { listerAccords } from '@/lib/financement/accords'
 import BoutonPiecesEnvoyees from './BoutonPiecesEnvoyees'
+import DepotDocumentFinanceur from './DepotDocumentFinanceur'
 import PiecesDemandees from './PiecesDemandees'
 import { purgeOpportuniste } from '@/lib/financement/pieces'
 import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT, peutEnvoyerEnSignature, statutsAccessibles } from '@/lib/financement/statuts'
 import BadgeStatut from '../../BadgeStatut'
-import { dateHeureFr, dureeLibelle, euros, libellePeriodicite, pourcentCoef } from '../../format'
+import { dateFr, dateHeureFr, dureeLibelle, euros, libellePeriodicite, pourcentCoef } from '../../format'
 import ActionsDemande from './ActionsDemande'
 import PiecesJointes from './PiecesJointes'
 
@@ -26,6 +28,7 @@ export default async function FicheDemande({ params, searchParams }: { params: {
   const d = await lireDemande(u, Number(params.id))
   if (!d) notFound()
   const reel = peutVoirBaremeReel(u) && 'montantReelCentimes' in d ? d : null
+  const accords = await listerAccords(u, d.id) // interne seulement : vide pour un commercial
   const section = 'carte p-5 sm:p-6'
 
   return (
@@ -79,6 +82,7 @@ export default async function FicheDemande({ params, searchParams }: { params: {
         }}
       />
       {reel !== null && d.financeurAvecApi && (d.statut === 'ENVOYEE' || d.statut === 'INFOS_MANQUANTES') && <PiecesDemandees demandeId={d.id} actuelle={d.statut === 'INFOS_MANQUANTES' ? d.infosManquantes ?? '' : ''} />}
+      {reel !== null && !d.financeurAvecApi && (d.statut === 'ENVOYEE' || d.statut === 'INFOS_MANQUANTES' || d.statut === 'PRETE_A_SIGNER') && <DepotDocumentFinanceur demandeId={d.id} peutAccord={'sansBaremeReel' in d && d.sansBaremeReel === true} actuelle={d.statut === 'INFOS_MANQUANTES' ? d.infosManquantes ?? '' : ''} accordDejaRecu={accords.length > 0} />}
 
       <section className={section}>
         <TitreSection icone="client">Client</TitreSection>
@@ -102,6 +106,13 @@ export default async function FicheDemande({ params, searchParams }: { params: {
           <>
             {reel.montantReelCentimes != null && <Ligne t="Montant financé réel">{euros(reel.montantReelCentimes)}{reel.coefficientReelPpm != null && <span className="text-gray-400"> — coefficient {pourcentCoef(reel.coefficientReelPpm)}</span>}</Ligne>}
             {reel.margeCentimes != null && <Ligne t="Marge"><b className="text-emerald-700">{euros(reel.margeCentimes)}</b></Ligne>}
+            {accords.length > 0 && (
+              <Ligne t="Accords reçus (interne)">
+                <ul className="space-y-1">
+                  {accords.map((x, i) => <li key={x.id}>{dateFr(x.creeLe)} · <b>{euros(x.montantReelCentimes)}</b>{x.coefficientReelPpm ? ` · coefficient ${(x.coefficientReelPpm / 10000).toFixed(2).replace('.', ',')} %` : ''}{x.note ? ` · ${x.note}` : ''} <span className="text-gray-400">({x.auteurNom}{i === 0 ? ', accord actuel' : ''})</span></li>)}
+                </ul>
+              </Ligne>
+            )}
             {reel.horsTranche && <p className="text-sm text-amber-800 mt-1">⚠ Montant hors des tranches du barème : calcul approximatif.</p>}
           </>
         )}

@@ -72,3 +72,57 @@ describe('lecture d’un PDF', () => {
     await expect(analyserPdfPiecesDemandees({ id: 2, role: 'COMMERCIAL' }, pdf(['x']))).rejects.toMatchObject({ status: 403 })
   })
 })
+
+describe('document reçu d’un financeur : accord, refus ou pièces', () => {
+  it('reconnaît un accord et en sort les montants (financé en tête, loyer repéré)', async () => {
+    const { typeDeDocument, extraireMontants } = await import('./pieces-demandees')
+    const texte = 'SOLUBAIL\nNous avons le plaisir de vous confirmer notre accord de financement pour ACME.\nMontant financé : 10 234,50 €\nLoyer trimestriel : 1 012,00 €\nDurée : 48 mois'
+    expect(typeDeDocument(texte, 0)).toBe('ACCORD')
+    const m = extraireMontants(texte)
+    expect(m[0]).toMatchObject({ valeurCentimes: 1023450, etiquette: 'FINANCE' })
+    expect(m.find(x => x.etiquette === 'LOYER')?.valeurCentimes).toBe(101200)
+  })
+  it('refus, pièces, et cas ambigus (accord sous réserve de pièces) laissés au choix de l’utilisateur', async () => {
+    const { typeDeDocument } = await import('./pieces-demandees')
+    expect(typeDeDocument('Nous ne pouvons donner suite : dossier refusé.', 0)).toBe('REFUS')
+    expect(typeDeDocument('Merci de nous transmettre le Kbis et le dernier bilan.', 2)).toBe('PIECES')
+    expect(typeDeDocument('Bonjour, voici un message sans objet clair.', 0)).toBe('INCONNU')
+    expect(typeDeDocument('Accord de financement sous réserve, mais le dossier est refusé par ailleurs', 0)).toBe('INCONNU')
+  })
+  it('montants : séparateurs de milliers, centimes absents, doublons ignorés', async () => {
+    const { extraireMontants } = await import('./pieces-demandees')
+    const m = extraireMontants('Capital 4.780,88 euros\nPrix d’achat 12 000 €\nCapital 4.780,88 euros')
+    expect(m.map(x => x.valeurCentimes).sort((a, b) => a - b)).toEqual([478088, 1200000])
+  })
+})
+
+describe('exemple réel d’accord de financement (PDF reçu)', () => {
+  const ACCORD = `le 27/07/2026
+ACCORD N° 75815IB
+COMMERCIAL : CONFRERES APPORTEUR :DFM
+Client : CEFIC REAL ESTATE MANAGEMENT Siren : 752975433
+Matériel : Bureautique
+PLAN DE FINANCEMENT
+Montant du financement : 9 639,50 €
+Durée du financement : 63 mois
+Nombre de loyers : 21
+Terme : Terme à échoir
+Coefficient : 6,3800
+Loyers : 615,00 €
+Location financière en trimestre(s) - Règlement par prélèvement automatique
+Autres conditions :
+CONDITIONS SOUS RESERVE DE LA QUALITE DU CLIENT, DE LA DATE D'INSTALLATION ET DU CALAGE
+LEVAD
+* Les conditions de cet accord sont valables 3 mois à compter de la date de l'accord`
+  it('type, montants, informations et contrôle de cohérence avec la demande', async () => {
+    const { typeDeDocument, extraireMontants, extraireInfosAccord, controlerAccord, extrairePiecesDemandees: ex } = await import('./pieces-demandees')
+    expect(typeDeDocument(ACCORD, ex(ACCORD).lignes.length)).toBe('ACCORD')
+    const m = extraireMontants(ACCORD)
+    expect(m[0]).toMatchObject({ valeurCentimes: 963950, etiquette: 'FINANCE' })
+    const infos = extraireInfosAccord(ACCORD, m)
+    expect(infos).toEqual({ numero: '75815IB', siren: '752975433', dureeMois: 63, loyerCentimes: 61500, coefficient: 6.38 })
+    expect(controlerAccord(infos, { siret: '75297543300012', loyerCentimes: 61500, dureeMois: 63 })).toEqual({ siren: 'ok', loyer: 'ok', duree: 'ok' })
+    expect(controlerAccord(infos, { siret: '35600000000048', loyerCentimes: 60000, dureeMois: 48 })).toEqual({ siren: 'different', loyer: 'different', duree: 'different' })
+    expect(controlerAccord(infos, { siret: '', loyerCentimes: 61500, dureeMois: 63 }).siren).toBe('absent')
+  })
+})
