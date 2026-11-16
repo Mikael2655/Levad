@@ -7,6 +7,7 @@ import { exigerUtilisateur } from '@/lib/financement/garde'
 import { libelleEtape } from '@/lib/financement/etapes'
 import { LIBELLES_STATUT } from '@/lib/financement/statuts'
 import { actualiserToutesLesDemandesOuvertes } from '@/lib/financement/actualisation'
+import { lignesPiecesDemandees } from '@/lib/financement/pieces-demandees'
 import BadgeStatut from './BadgeStatut'
 import SelecteurMontant from './SelecteurMontant'
 import EnteteTri from './EnteteTri'
@@ -139,7 +140,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
                 <td className="px-3 py-3 text-right whitespace-nowrap tabular-nums">{loyerPeriode(d.loyerCentimes, d.periodicite)}</td>
                 <td className="px-3 py-3 text-right whitespace-nowrap">{dureeTrimestres(d.dureeMois)}</td>
                 <td className="px-3 py-3 text-right whitespace-nowrap tabular-nums">{peutChoisir && 'montantReelCentimes' in d ? <><span className="m-commercial">{euros(d.montantCommercialCentimes)}</span><span className="m-reel">{euros(d.montantReelCentimes)}</span></> : euros(d.montantCommercialCentimes)}</td>
-                <td className="px-3 py-3"><BadgeStatut statut={d.statut} etape={d.etapeSignature} />{d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="block text-xs text-emerald-800 mt-0.5">{libelleEtape(d.etapeSignature)}</span>}</td>
+                <td className="px-3 py-3">{d.statut === 'INFOS_MANQUANTES' && lignesPiecesDemandees(d.infosManquantes).length > 0 ? <Link href={`/financement/demandes/${d.id}`} title={`Pièces demandées :\n${lignesPiecesDemandees(d.infosManquantes).map(l => `• ${l}`).join('\n')}`} className="inline-block"><BadgeStatut statut={d.statut} etape={d.etapeSignature} /></Link> : <BadgeStatut statut={d.statut} etape={d.etapeSignature} />}{d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="block text-xs text-emerald-800 mt-0.5">{libelleEtape(d.etapeSignature)}</span>}</td>
                 <td className="px-3 py-3 whitespace-nowrap text-gray-500">{dateFr(d.creeLe)}</td>
               </tr>
             ))}
