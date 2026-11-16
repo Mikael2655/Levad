@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { estInterne, type Acteur } from './droits'
 import { ErreurMetier } from './erreurs'
 import { notifierChangement } from './notifications'
+import { transmettrePieces } from './pieces'
 
 export type TypePieceDemandee = 'KBIS' | 'BILAN' | 'RIB' | 'AUTRE'
 
@@ -91,4 +92,21 @@ export async function enregistrerPiecesDemandees(a: Acteur, demandeId: number, l
   ])
   if (passeEnOrange) await notifierChangement({ demandeId, acteurId: a.id, statutAvant: d.statut, etapeAvant: d.etapeSignature, statutApres: 'INFOS_MANQUANTES', etapeApres: null })
   return { ok: true }
+}
+
+// Bouton « Envoyer » à côté de la liste des pièces demandées : transmet au financeur (API) les pièces encore en attente, puis la demande
+// repasse « en attente — pièces envoyées ». La liste demandée est conservée pour mémoire. Ouvert à celui qui voit la demande (commercial compris).
+export async function confirmerPiecesEnvoyees(a: Acteur, demandeId: number) {
+  const d = await prisma.finDemande.findFirst({ where: { id: demandeId, ...(estInterne(a) ? {} : { commercialId: a.id }) } })
+  if (!d) throw new ErreurMetier('Demande introuvable.', 404)
+  if (d.statut !== 'INFOS_MANQUANTES') throw new ErreurMetier('Cette demande n’attend pas de pièces.', 409)
+  const r = await transmettrePieces(demandeId)
+  if (r.echecs.length > 0) throw new ErreurMetier(`Certaines pièces n’ont pas pu être transmises au financeur : ${r.echecs.join(' ; ')}. Réessayez dans un instant.`, 502)
+  const u = await prisma.finUtilisateur.findUnique({ where: { id: a.id }, select: { prenom: true, nom: true } })
+  await prisma.$transaction([
+    prisma.finDemande.update({ where: { id: demandeId }, data: { statut: 'ENVOYEE', etapeSignature: null } }),
+    prisma.finHistorique.create({ data: { demandeId, auteurId: a.id, ancienStatut: 'INFOS_MANQUANTES', nouveauStatut: 'ENVOYEE', commentaire: `Pièces envoyées${u ? ` par ${u.prenom} ${u.nom}` : ''}${r.envoyees ? ` (${r.envoyees} transmise(s) au financeur)` : ''}` } }),
+  ])
+  await notifierChangement({ demandeId, acteurId: a.id, statutAvant: 'INFOS_MANQUANTES', etapeAvant: d.etapeSignature, statutApres: 'ENVOYEE', etapeApres: null })
+  return { ok: true, transmises: r.envoyees }
 }

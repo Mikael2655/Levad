@@ -31,12 +31,12 @@ export function styleStatut(statut: string, etape?: string | null): Style {
   }
 }
 
-export default function BadgeStatut({ statut, etape }: { statut: string; etape?: string | null }) {
+export default function BadgeStatut({ statut, etape, piecesEnvoyees = false }: { statut: string; etape?: string | null; piecesEnvoyees?: boolean }) {
   const s = styleStatut(statut, etape)
   return (
     <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${s.badge} ${statut === 'ANNULEE' ? 'line-through' : ''}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${s.point}`} />
-      {LIBELLES_STATUT[statut as Statut] ?? statut}
+      {statut === 'ENVOYEE' && piecesEnvoyees ? 'En attente · pièces envoyées' : LIBELLES_STATUT[statut as Statut] ?? statut}
     </span>
   )
 }

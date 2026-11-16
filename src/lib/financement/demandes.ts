@@ -254,6 +254,7 @@ async function trouverAccessible(a: Acteur, id: number) {
 export async function modifierDemande(a: Acteur, id: number, e: EntreeDemande): Promise<{ id: number }> {
   const d = await trouverAccessible(a, id)
   if (!peutModifier(a, d)) throw new ErreurMetier('Cette demande ne peut plus être modifiée.', 403)
+  if (d.idFinanceur && d.idFinanceur !== 'ENVOI-EN-COURS') throw new ErreurMetier('Cette demande est déjà chez le financeur : une modification n’y serait pas transmise et créerait un écart. Annulez-la (dans l’outil et chez le financeur) et saisissez-la de nouveau.', 409)
   const { donnees, lignes } = await preparer(a, e, e.commercialId ?? d.commercialId, id)
   await prisma.$transaction([
     prisma.finDemande.update({ where: { id }, data: donnees }),

@@ -133,13 +133,6 @@ export async function transmettrePieces(demandeId: number, connecteur?: Connecte
         resultat.echecs.push(`${piece.nomFichier} : ${(e as Error).message}`)
       }
     }
-    // Les pièces demandées sont parties : la demande repasse « en attente » (gris) en attendant la réponse du financeur.
-    if (resultat.envoyees > 0 && resultat.echecs.length === 0 && d.statut === 'INFOS_MANQUANTES') {
-      await prisma.$transaction([
-        prisma.finDemande.update({ where: { id: demandeId }, data: { statut: 'ENVOYEE', infosManquantes: null } }),
-        prisma.finHistorique.create({ data: { demandeId, auteurId: d.saisiParId, ancienStatut: 'INFOS_MANQUANTES', nouveauStatut: 'ENVOYEE', commentaire: `Pièces transmises à ${d.financeur.nom} (${resultat.envoyees})` } }),
-      ])
-    }
   } catch (e) {
     resultat.echecs.push((e as Error).message)
   }

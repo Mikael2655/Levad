@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 const URL_TEST = process.env.FIN_TEST_DATABASE_URL
 const d = URL_TEST ? describe : describe.skip
+vi.mock('./pieces', () => ({ transmettrePieces: async () => ({ envoyees: echoue ? 0 : 2, echecs: echoue ? ['k.pdf : Grenke indisponible'] : [] }) }))
+let echoue = false
 vi.mock('./notifications', async orig => ({ ...(await orig<typeof import('./notifications')>()), notifierChangement: async () => {} }))
 
 d('pièces demandées par le financeur (base réelle)', () => {
@@ -44,5 +46,21 @@ d('pièces demandées par le financeur (base réelle)', () => {
     await expect(pd.enregistrerPiecesDemandees({ id: ids.admin, role: 'ADMIN' }, dem.id, [' ', ''])).rejects.toThrow(/au moins une pièce/)
     const brouillon = await creer('BROUILLON')
     await expect(pd.enregistrerPiecesDemandees({ id: ids.admin, role: 'ADMIN' }, brouillon.id, ['RIB'])).rejects.toThrow(/envoyée au financeur/)
+  })
+
+  it('bouton « Envoyer » : transmet les pièces puis remet la demande en attente (liste conservée) ; un échec de transmission la laisse en orange', async () => {
+    const dem = await creer('INFOS_MANQUANTES')
+    await prisma.finDemande.update({ where: { id: dem.id }, data: { infosManquantes: '• Les 3 derniers bilans' } })
+    echoue = true
+    await expect(pd.confirmerPiecesEnvoyees({ id: ids.com, role: 'COMMERCIAL' }, dem.id)).rejects.toMatchObject({ status: 502 })
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).statut).toBe('INFOS_MANQUANTES')
+    echoue = false
+    expect(await pd.confirmerPiecesEnvoyees({ id: ids.com, role: 'COMMERCIAL' }, dem.id)).toMatchObject({ ok: true, transmises: 2 })
+    expect(await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).toMatchObject({ statut: 'ENVOYEE', infosManquantes: '• Les 3 derniers bilans' })
+    expect(await prisma.finHistorique.count({ where: { demandeId: dem.id, nouveauStatut: 'ENVOYEE', commentaire: { startsWith: 'Pièces envoyées' } } })).toBe(1)
+    await expect(pd.confirmerPiecesEnvoyees({ id: ids.com, role: 'COMMERCIAL' }, dem.id)).rejects.toMatchObject({ status: 409 }) // plus en attente de pièces
+    const autre = await prisma.finUtilisateur.create({ data: { email: 'c2@l.fr', prenom: 'X', nom: 'Z', role: 'COMMERCIAL', motDePasseHash: 'x' } })
+    const d2 = await creer('INFOS_MANQUANTES')
+    await expect(pd.confirmerPiecesEnvoyees({ id: autre.id, role: 'COMMERCIAL' }, d2.id)).rejects.toMatchObject({ status: 404 }) // pas la sienne
   })
 })

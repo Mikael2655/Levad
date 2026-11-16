@@ -119,6 +119,12 @@ d('actualisation depuis le financeur (base réelle)', () => {
     expect((await act.actualiserToutesLesDemandesOuvertes({ force: true })).verifiees).toBeGreaterThanOrEqual(1)
   })
 
+  it('une demande déjà chez le financeur (API) ne peut plus être modifiée dans l’outil', async () => {
+    const dem = await creer({ statut: 'INFOS_MANQUANTES', idFinanceur: 'u-9', refFinanceur: '100-9' })
+    const { modifierDemande } = await import('./demandes')
+    await expect(modifierDemande(ADMIN(), dem.id, {} as never)).rejects.toMatchObject({ status: 409 })
+  })
+
   it('commercial refusé ; demande non envoyée par l’API refusée ; état inconnu sans changement', async () => {
     const dem = await creer({ statut: 'ENVOYEE', idFinanceur: 'u-4', refFinanceur: '100-3' })
     await expect(act.actualiserDepuisFinanceur({ id: ids.com, role: 'COMMERCIAL' }, dem.id)).rejects.toMatchObject({ status: 403 })
