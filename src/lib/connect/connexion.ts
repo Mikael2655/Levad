@@ -27,12 +27,14 @@ export async function postesDeconnectes(): Promise<PosteDeconnecte[]> {
   )
 }
 
-export const SEUIL_ORANGE_JOURS = 3
+export const SEUIL_ORANGE_JOURS = 5
+/** Un ordinateur « répond » s'il a donné signe de vie depuis moins de 3 jours (pour signaler les machines non relevées d'un client dont le programme fonctionne). */
+const SEUIL_POSTE_REPOND_JOURS = 3
 
 export type PosteEnRetard = PosteDeconnecte & { niveau: 'orange' | 'rouge' }
 
 /**
- * Pour la page « Alerte déconnexion » : les ordinateurs sans signal depuis 3 jours ou plus.
+ * Pour la page « Alerte déconnexion » : les ordinateurs sans signal depuis 5 jours ou plus.
  * Rouge = délai du client atteint (10 jours par défaut) : c'est l'alerte qui envoie le mail. Orange = simple avertissement, sans mail.
  */
 export async function postesEnRetard(): Promise<PosteEnRetard[]> {
@@ -69,7 +71,7 @@ export type MachineNonReleve = {
  * Machines sous contrat qui ne sont plus relevées alors que le programme du client, lui, répond : au moins un de ses
  * ordinateurs a donné signe de vie récemment. Sans cette alerte, une machine oubliée (changement de réseau, copieur
  * éteint, adresse modifiée) ne remonte plus d'alerte d'encre sans que personne le voie.
- * Mêmes seuils que les ordinateurs : 3 jours (noir), délai du client (rouge).
+ * Mêmes seuils que les ordinateurs : 5 jours (noir), délai du client (rouge).
  */
 export async function machinesNonReleves(): Promise<MachineNonReleve[]> {
   const clients = await prisma.connectClient.findMany({
@@ -83,7 +85,7 @@ export async function machinesNonReleves(): Promise<MachineNonReleve[]> {
   const maintenant = Date.now()
   return trierParNom(clients).flatMap((c) => {
     // si tous les ordinateurs du client sont en retard, c'est déjà signalé dans la liste des ordinateurs
-    const unPosteRepond = c.postes.some((p) => (maintenant - p.derniereConnexion.getTime()) / 86400000 < Math.min(SEUIL_ORANGE_JOURS, c.seuilDeconnexionJours))
+    const unPosteRepond = c.postes.some((p) => (maintenant - p.derniereConnexion.getTime()) / 86400000 < Math.min(SEUIL_POSTE_REPOND_JOURS, c.seuilDeconnexionJours))
     if (!unPosteRepond) return []
     return c.machines.flatMap((m): MachineNonReleve[] => {
       const derniere = m.releves[0]?.date ?? m.creeLe

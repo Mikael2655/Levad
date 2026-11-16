@@ -29,12 +29,13 @@ import urllib.request
 
 import releve_snmp as R
 
-VERSION_AGENT = "1.15"
+VERSION_AGENT = "1.16"
 SERVEUR_PAR_DEFAUT = "https://connect.levad.fr"
 MOTIF_CODE = re.compile(r"Levad-Connect-([a-hj-km-np-z2-9]{16})", re.IGNORECASE)
 PORT_VERROU = 47653            # un seul programme résident à la fois (verrou local)
 PAUSE_SECONDES = 60            # signal de vie toutes les minutes tant que le site n'a pas indiqué un autre rythme (voir pauseSecondes)
 DECOUVERTE_TOUS_LES_JOURS = 24 * 3600
+GARDER_COPIEURS_SECONDES = 30 * 24 * 3600      # un copieur qui ne répond plus reste dans la liste à relire pendant 30 jours
 
 
 # ----------------------------------------------------------------------------
@@ -211,6 +212,20 @@ def _est_imprimante(r):
     return R._est_une_imprimante(r)
 
 
+def fusionner_copieurs(trouves, anciens, maintenant):
+    """
+    Liste des copieurs à relire : ceux que la recherche vient de trouver, plus les anciens (ils ne sont plus oubliés d'un coup
+    quand l'ordinateur change de réseau ou que la recherche ne trouve rien ce jour-là). Chaque entrée garde la date où elle a répondu pour la dernière fois.
+    """
+    liste = {}
+    for c in anciens:
+        if c.get("ip"):
+            liste[c["ip"]] = {"ip": c["ip"], "version": c.get("version"), "vu": c.get("vu", maintenant)}
+    for t in trouves:
+        liste[t["ip"]] = {"ip": t["ip"], "version": t["version"], "vu": maintenant}
+    return list(liste.values())
+
+
 def lire_les_copieurs(config):
     """
     Lit les copieurs du réseau. Les copieurs déjà connus sont relus directement (rapide) ; une recherche complète
@@ -234,7 +249,7 @@ def lire_les_copieurs(config):
                         communaute = essai
                         config["communaute"] = essai
                         break
-                connus = [{"ip": t["ip"], "version": t["version"]} for t in trouvees]
+                connus = fusionner_copieurs(trouvees, connus, maintenant)
                 config["derniere_decouverte"] = maintenant
                 journal("recherche du réseau %s : %d équipement(s) répondent (%s)"
                         % (plage, len(trouvees), ", ".join(t["ip"] for t in trouvees[:8]) or "aucun"))
@@ -256,6 +271,8 @@ def lire_les_copieurs(config):
             r = R.lire_machine(c["ip"], communaute, 2.0, port, v)
         except Exception as e:
             journal("lecture de %s impossible : %s" % (c["ip"], e))
+            if c.get("vu") and maintenant - c["vu"] < GARDER_COPIEURS_SECONDES:
+                imprimantes.append(c)
             continue
         if c["ip"] in config.get("ips_manuelles", []) and not r.get("repond"):
             sans_reponse.append(c["ip"])
@@ -263,7 +280,9 @@ def lire_les_copieurs(config):
             r.pop("brut", None)           # le détail brut n'est pas envoyé en lecture automatique
             r["est_imprimante"] = True
             machines.append(r)
-            imprimantes.append({"ip": c["ip"], "version": 1 if r.get("version_snmp") == "v2c" else 0})
+            imprimantes.append({"ip": c["ip"], "version": 1 if r.get("version_snmp") == "v2c" else 0, "vu": maintenant})
+        elif c.get("vu") and maintenant - c["vu"] < GARDER_COPIEURS_SECONDES:
+            imprimantes.append(c)         # ne répond pas cette fois : on le garde pour le relire au prochain passage
     if sans_reponse:
         DIAG["constat"] = "adresse(s) ajoutée(s) à la main sans réponse : %s" % ", ".join(sans_reponse[:6])
     elif connus and not machines:
