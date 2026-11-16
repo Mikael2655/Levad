@@ -72,3 +72,26 @@ describe('lecture d’un PDF', () => {
     await expect(analyserPdfPiecesDemandees({ id: 2, role: 'COMMERCIAL' }, pdf(['x']))).rejects.toMatchObject({ status: 403 })
   })
 })
+
+describe('document reçu d’un financeur : accord, refus ou pièces', () => {
+  it('reconnaît un accord et en sort les montants (financé en tête, loyer repéré)', async () => {
+    const { typeDeDocument, extraireMontants } = await import('./pieces-demandees')
+    const texte = 'SOLUBAIL\nNous avons le plaisir de vous confirmer notre accord de financement pour ACME.\nMontant financé : 10 234,50 €\nLoyer trimestriel : 1 012,00 €\nDurée : 48 mois'
+    expect(typeDeDocument(texte, 0)).toBe('ACCORD')
+    const m = extraireMontants(texte)
+    expect(m[0]).toMatchObject({ valeurCentimes: 1023450, etiquette: 'FINANCE' })
+    expect(m.find(x => x.etiquette === 'LOYER')?.valeurCentimes).toBe(101200)
+  })
+  it('refus, pièces, et cas ambigus (accord sous réserve de pièces) laissés au choix de l’utilisateur', async () => {
+    const { typeDeDocument } = await import('./pieces-demandees')
+    expect(typeDeDocument('Nous ne pouvons donner suite : dossier refusé.', 0)).toBe('REFUS')
+    expect(typeDeDocument('Merci de nous transmettre le Kbis et le dernier bilan.', 2)).toBe('PIECES')
+    expect(typeDeDocument('Bonjour, voici un message sans objet clair.', 0)).toBe('INCONNU')
+    expect(typeDeDocument('Accord de financement sous réserve, mais le dossier est refusé par ailleurs', 0)).toBe('INCONNU')
+  })
+  it('montants : séparateurs de milliers, centimes absents, doublons ignorés', async () => {
+    const { extraireMontants } = await import('./pieces-demandees')
+    const m = extraireMontants('Capital 4.780,88 euros\nPrix d’achat 12 000 €\nCapital 4.780,88 euros')
+    expect(m.map(x => x.valeurCentimes).sort((a, b) => a - b)).toEqual([478088, 1200000])
+  })
+})
