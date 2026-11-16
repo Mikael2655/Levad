@@ -6,14 +6,14 @@ import { ErreurMetier } from '@/lib/financement/erreurs'
 export const runtime = 'nodejs'
 
 // PDF (envoyé en multipart) -> liste des pièces détectées, sans rien enregistrer.
-export async function POST(req: Request) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   const u = await acteurApi()
   if (u instanceof NextResponse) return u
   return repondre(async () => {
     const form = await req.formData().catch(() => null)
     const f = form?.get('fichier')
     if (!(f instanceof File)) throw new ErreurMetier('Choisissez un fichier PDF.')
-    return analyserDocumentFinanceur(u, Buffer.from(await f.arrayBuffer()))
+    return analyserDocumentFinanceur(u, Buffer.from(await f.arrayBuffer()), Number(params.id))
   })
 }
 

@@ -149,9 +149,45 @@ export function typeDeDocument(texte: string, nbPieces: number): TypeDocument {
   return 'INCONNU'
 }
 
-export async function analyserDocumentFinanceur(a: Acteur, contenu: Buffer) {
+// Informations d'un accord, quand le PDF les donne (format observé : « ACCORD N° 75815IB », « Siren : 752975433 », « Durée du financement : 63 mois »,
+// « Coefficient : 6,3800 »). Servent à vérifier que le PDF correspond bien à la demande, et à pré-remplir la note.
+export interface InfosAccord { numero: string | null; siren: string | null; dureeMois: number | null; loyerCentimes: number | null; coefficient: number | null }
+export function extraireInfosAccord(texte: string, montants: MontantTrouve[] = extraireMontants(texte)): InfosAccord {
+  const num = texte.match(/ACCORD\s*N[°o]?\s*([A-Z0-9-]+)/i)
+  const siren = texte.match(/siren\s*:?\s*(\d{3}\s?\d{3}\s?\d{3})\b/i)
+  const duree = texte.match(/dur[ée]e(?: du financement)?\s*:?\s*(\d{1,3})\s*mois/i)
+  const coef = texte.match(/coefficient\s*:?\s*(\d{1,2}[,.]\d{1,4})/i)
+  return {
+    numero: num?.[1] ?? null,
+    siren: siren ? siren[1].replace(/\s/g, '') : null,
+    dureeMois: duree ? Number(duree[1]) : null,
+    loyerCentimes: montants.find(m => m.etiquette === 'LOYER')?.valeurCentimes ?? null,
+    coefficient: coef ? Number(coef[1].replace(',', '.')) : null,
+  }
+}
+
+export type Controle = 'ok' | 'different' | 'absent'
+// Compare le PDF à la demande : un PDF déposé sur la mauvaise demande se voit tout de suite.
+export function controlerAccord(infos: InfosAccord, d: { siret: string; loyerCentimes: number; dureeMois: number }) {
+  const siren = d.siret.replace(/\D/g, '').slice(0, 9)
+  return {
+    siren: (infos.siren === null || siren.length < 9 ? 'absent' : infos.siren === siren ? 'ok' : 'different') as Controle,
+    loyer: (infos.loyerCentimes === null ? 'absent' : Math.abs(infos.loyerCentimes - d.loyerCentimes) <= 1 ? 'ok' : 'different') as Controle,
+    duree: (infos.dureeMois === null ? 'absent' : infos.dureeMois === d.dureeMois ? 'ok' : 'different') as Controle,
+  }
+}
+
+export async function analyserDocumentFinanceur(a: Acteur, contenu: Buffer, demandeId?: number) {
   const base = await analyserPdfPiecesDemandees(a, contenu)
-  if (!base.texteLu) return { ...base, type: 'INCONNU' as TypeDocument, montants: [] as MontantTrouve[] }
+  if (!base.texteLu) return { ...base, type: 'INCONNU' as TypeDocument, montants: [] as MontantTrouve[], infos: null as InfosAccord | null, controles: null as ReturnType<typeof controlerAccord> | null }
   const texte = await extraireTextePdf(contenu)
-  return { ...base, type: typeDeDocument(texte, base.lignes.length), montants: extraireMontants(texte) }
+  const montants = extraireMontants(texte)
+  const type = typeDeDocument(texte, base.lignes.length)
+  const infos = type === 'ACCORD' || type === 'INCONNU' ? extraireInfosAccord(texte, montants) : null
+  let controles: ReturnType<typeof controlerAccord> | null = null
+  if (infos && demandeId) {
+    const d = await prisma.finDemande.findUnique({ where: { id: demandeId }, select: { siret: true, loyerCentimes: true, dureeMois: true } })
+    if (d) controles = controlerAccord(infos, d)
+  }
+  return { ...base, type, montants, infos, controles }
 }

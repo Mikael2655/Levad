@@ -95,3 +95,34 @@ describe('document reçu d’un financeur : accord, refus ou pièces', () => {
     expect(m.map(x => x.valeurCentimes).sort((a, b) => a - b)).toEqual([478088, 1200000])
   })
 })
+
+describe('exemple réel d’accord de financement (PDF reçu)', () => {
+  const ACCORD = `le 27/07/2026
+ACCORD N° 75815IB
+COMMERCIAL : CONFRERES APPORTEUR :DFM
+Client : CEFIC REAL ESTATE MANAGEMENT Siren : 752975433
+Matériel : Bureautique
+PLAN DE FINANCEMENT
+Montant du financement : 9 639,50 €
+Durée du financement : 63 mois
+Nombre de loyers : 21
+Terme : Terme à échoir
+Coefficient : 6,3800
+Loyers : 615,00 €
+Location financière en trimestre(s) - Règlement par prélèvement automatique
+Autres conditions :
+CONDITIONS SOUS RESERVE DE LA QUALITE DU CLIENT, DE LA DATE D'INSTALLATION ET DU CALAGE
+LEVAD
+* Les conditions de cet accord sont valables 3 mois à compter de la date de l'accord`
+  it('type, montants, informations et contrôle de cohérence avec la demande', async () => {
+    const { typeDeDocument, extraireMontants, extraireInfosAccord, controlerAccord, extrairePiecesDemandees: ex } = await import('./pieces-demandees')
+    expect(typeDeDocument(ACCORD, ex(ACCORD).lignes.length)).toBe('ACCORD')
+    const m = extraireMontants(ACCORD)
+    expect(m[0]).toMatchObject({ valeurCentimes: 963950, etiquette: 'FINANCE' })
+    const infos = extraireInfosAccord(ACCORD, m)
+    expect(infos).toEqual({ numero: '75815IB', siren: '752975433', dureeMois: 63, loyerCentimes: 61500, coefficient: 6.38 })
+    expect(controlerAccord(infos, { siret: '75297543300012', loyerCentimes: 61500, dureeMois: 63 })).toEqual({ siren: 'ok', loyer: 'ok', duree: 'ok' })
+    expect(controlerAccord(infos, { siret: '35600000000048', loyerCentimes: 60000, dureeMois: 48 })).toEqual({ siren: 'different', loyer: 'different', duree: 'different' })
+    expect(controlerAccord(infos, { siret: '', loyerCentimes: 61500, dureeMois: 63 }).siren).toBe('absent')
+  })
+})

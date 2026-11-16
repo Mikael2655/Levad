@@ -6,6 +6,8 @@ import { appel, eurosVersCentimes } from '../../appel'
 
 const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent-500/40 focus:border-accent-500 transition'
 type Choix = 'ACCORD' | 'PIECES' | 'REFUS'
+interface Infos { numero: string | null; siren: string | null; dureeMois: number | null; loyerCentimes: number | null; coefficient: number | null }
+interface Controles { siren: string; loyer: string; duree: string }
 interface Montant { valeurCentimes: number; contexte: string; etiquette: 'FINANCE' | 'LOYER' | null }
 const eur = (c: number) => (c / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
 
@@ -21,6 +23,8 @@ export default function DepotDocumentFinanceur({ demandeId, peutAccord, actuelle
   const [note, setNote] = useState('')
   const [commentaire, setCommentaire] = useState('')
   const [montants, setMontants] = useState<Montant[]>([])
+  const [infos, setInfos] = useState<Infos | null>(null)
+  const [controles, setControles] = useState<Controles | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [occupe, setOccupe] = useState(false)
@@ -45,6 +49,9 @@ export default function DepotDocumentFinanceur({ demandeId, peutAccord, actuelle
       }
       const trouves = data.montants as Montant[]
       setMontants(trouves)
+      const i = (data.infos ?? null) as Infos | null
+      setInfos(i); setControles((data.controles ?? null) as Controles | null)
+      setNote(i ? [i.numero ? `Accord n° ${i.numero}` : '', i.coefficient ? `coefficient ${String(i.coefficient).replace('.', ',')} %` : ''].filter(Boolean).join(' · ') : '')
       setListe(lignes.join('\n'))
       setMontant((trouves.find(m => m.etiquette === 'FINANCE') ?? null) ? String(trouves.find(m => m.etiquette === 'FINANCE')!.valeurCentimes / 100).replace('.', ',') : '')
       setChoix(data.type === 'ACCORD' && peutAccord ? 'ACCORD' : data.type === 'REFUS' ? 'REFUS' : data.type === 'PIECES' ? 'PIECES' : null)
@@ -72,7 +79,7 @@ export default function DepotDocumentFinanceur({ demandeId, peutAccord, actuelle
         await appel(`${url}/statut`, 'POST', { statut: 'REFUSEE', commentaire })
         setInfo('Demande marquée refusée.')
       }
-      setOuvert(false); setChoix(null); setMontants([]); setNote(''); setCommentaire('')
+      setOuvert(false); setChoix(null); setMontants([]); setInfos(null); setControles(null); setNote(''); setCommentaire('')
       router.refresh()
     } catch (e) {
       setErreur((e as Error).message)
@@ -108,6 +115,16 @@ export default function DepotDocumentFinanceur({ demandeId, peutAccord, actuelle
 
           {choix === 'ACCORD' && (
             <div className="space-y-2">
+              {controles && infos && (
+                <ul className="text-xs space-y-0.5">
+                  {controles.siren === 'different' && <li className="text-red-700 font-semibold">⚠ SIREN du PDF ({infos.siren}) différent de celui de la demande : vérifiez que c’est le bon PDF et la bonne demande.</li>}
+                  {controles.siren === 'ok' && <li className="text-emerald-700">✓ Même client (SIREN {infos.siren})</li>}
+                  {controles.loyer === 'different' && <li className="text-amber-700">⚠ Loyer du PDF : {infos.loyerCentimes != null ? eur(infos.loyerCentimes) : ''}, différent de celui de la demande.</li>}
+                  {controles.loyer === 'ok' && <li className="text-emerald-700">✓ Même loyer ({infos.loyerCentimes != null ? eur(infos.loyerCentimes) : ''})</li>}
+                  {controles.duree === 'different' && <li className="text-amber-700">⚠ Durée du PDF : {infos.dureeMois} mois, différente de celle de la demande.</li>}
+                  {controles.duree === 'ok' && <li className="text-emerald-700">✓ Même durée ({infos.dureeMois} mois)</li>}
+                </ul>
+              )}
               <label className="block"><span className="block font-medium text-gray-700 mb-1">Montant financé de l’accord (€)</span><input className={champ} inputMode="decimal" value={montant} onChange={e => setMontant(e.target.value)} placeholder="ex. 10234,50" /></label>
               {montants.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 items-center text-xs text-gray-600">Montants trouvés dans le PDF :
