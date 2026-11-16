@@ -20,13 +20,13 @@ export default async function DeconnexionsPage() {
         Ordinateurs (un par site chez le client) dont le programme ne donne plus signe de vie, et machines sous contrat qui ne sont plus relevées alors que l&apos;ordinateur du client répond.
       </p>
       <ul className="mt-2 space-y-1 text-sm text-gray-600">
-        <li><span className="font-semibold text-gray-900">Noir</span> : 3 jours ou plus sans signal. Simple avertissement, pas de mail.</li>
+        <li><span className="font-semibold text-gray-900">Noir</span> : 5 jours ou plus sans signal. Simple avertissement, pas de mail.</li>
         <li><span className="font-semibold text-red-600">Rouge</span> : 10 jours ou plus (délai réglable pour chaque client dans sa fiche). Un mail d&apos;alerte est envoyé.</li>
       </ul>
       {postes.length === 0 && machines.length === 0 ? (
         <div className="mt-8 rounded-xl border bg-white p-10 text-center">
           <p className="text-lg font-semibold text-green-700">Aucun ordinateur ni machine en retard</p>
-          <p className="mt-1 text-gray-600">Tous les programmes installés ont donné signe de vie et toutes les machines sous contrat ont été relevées depuis moins de 3 jours.</p>
+          <p className="mt-1 text-gray-600">Tous les programmes installés ont donné signe de vie et toutes les machines sous contrat ont été relevées depuis moins de 5 jours.</p>
         </div>
       ) : (
         <>
