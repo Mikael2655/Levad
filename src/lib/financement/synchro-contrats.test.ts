@@ -55,3 +55,24 @@ describe('comparaison des contrats avec le financeur', () => {
     expect(comparer([existant(), existant({ id: 2 })], [distant()]).avertissements.join(' ')).toContain('2 fois')
   })
 })
+
+describe('contrat créé à la signature d’une demande : relié à son vrai numéro Grenke', () => {
+  const issuDeDemande = (o: Partial<ExistantContrat> = {}) => existant({ id: 9, demandeId: 5, refFinanceur: '100-145711', raisonSociale: 'CKE AVOCATS', loyerCentimes: 36000, periodicite: 'TRIMESTRIELLE', dureeMois: 48, ...o })
+  const nouveauGrenke = (o: Partial<ContratFinanceur> = {}) => distant({ reference: '100-62500', client: 'SOCIETE CIVILE DE MOYENS D AVOCATS CKE AVOCATS', loyerMensuelCentimes: 12000, dureeMois: 48, ...o })
+  it('même client, même durée, même loyer : proposé à relier au lieu d’être créé en double', () => {
+    const r = comparer([issuDeDemande()], [nouveauGrenke()], 'MENSUELLE')
+    expect(r.nouveaux).toEqual([])
+    expect(r.aRelier).toEqual([{ id: 9, ancienneRef: '100-145711', nouvelleRef: '100-62500', client: 'CKE AVOCATS' }])
+  })
+  it('loyer ou durée différents, ou plusieurs candidats : le contrat reste « nouveau » (jamais de rapprochement douteux)', () => {
+    expect(comparer([issuDeDemande({ loyerCentimes: 40000 })], [nouveauGrenke()], 'MENSUELLE').aRelier).toEqual([])
+    expect(comparer([issuDeDemande({ dureeMois: 36 })], [nouveauGrenke()], 'MENSUELLE').nouveaux).toHaveLength(1)
+    expect(comparer([issuDeDemande(), issuDeDemande({ id: 10, demandeId: 6, refFinanceur: '100-145712' })], [nouveauGrenke()], 'MENSUELLE').aRelier).toEqual([])
+  })
+  it('contrat importé (sans demande) ou dont le numéro existe déjà chez Grenke : jamais relié', () => {
+    expect(comparer([issuDeDemande({ demandeId: null })], [nouveauGrenke()], 'MENSUELLE').aRelier).toEqual([])
+    const r = comparer([issuDeDemande({ refFinanceur: '100-62500' })], [nouveauGrenke()], 'MENSUELLE')
+    expect(r.aRelier).toEqual([])
+    expect(r.connus).toBe(1)
+  })
+})

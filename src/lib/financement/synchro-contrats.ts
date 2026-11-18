@@ -22,7 +22,7 @@ export async function synchroniserContrats(a: { id: number; role: 'ADMIN' | 'ASS
   if (!estAdmin(a)) throw new ErreurMetier('Réservé à l’administrateur.', 403)
   const financeur = await prisma.finFinanceur.findUnique({ where: { id: p.financeurId } })
   if (!financeur) throw new ErreurMetier('Financeur introuvable.', 404)
-  const existants = await prisma.finContrat.findMany({ where: { financeurId: financeur.id }, select: { id: true, refFinanceur: true, raisonSociale: true, loyerCentimes: true, periodicite: true, dureeMois: true, dateDebut: true, dateFin: true, montantReelCentimes: true, statutFinanceur: true, clotureLe: true } })
+  const existants = await prisma.finContrat.findMany({ where: { financeurId: financeur.id }, select: { id: true, demandeId: true, refFinanceur: true, raisonSociale: true, loyerCentimes: true, periodicite: true, dureeMois: true, dateDebut: true, dateFin: true, montantReelCentimes: true, statutFinanceur: true, clotureLe: true } })
 
   const distants = await recuperer() // une erreur ici arrête tout : rien n'est modifié
   if (distants.length === 0 && existants.length > 0) throw new ErreurMetier('Le financeur a renvoyé une liste vide : rien n’a été modifié (vérifiez la connexion).')
@@ -52,6 +52,8 @@ export async function synchroniserContrats(a: { id: number; role: 'ADMIN' | 'ASS
   })
   // seuls l'état, et les valeurs VIDES chez nous, sont écrits : jamais commercial, matériel, banque, dénonciation, clôture...
   const miseAJour = rapport.aRemplir.map(x => prisma.finContrat.update({ where: { id: x.id }, data: x.donnees }))
-  await prisma.$transaction([...creations, ...miseAJour])
-  return { simule: false as const, rapport, crees: creations.length, mis_a_jour: miseAJour.length }
+  // contrats issus d'une demande signée : leur numéro (celui de la demande) est remplacé par le vrai numéro de contrat du financeur
+  const reliees = rapport.aRelier.map(x => prisma.finContrat.update({ where: { id: x.id }, data: { refFinanceur: x.nouvelleRef } }))
+  await prisma.$transaction([...creations, ...miseAJour, ...reliees])
+  return { simule: false as const, rapport, crees: creations.length, mis_a_jour: miseAJour.length, reliees: reliees.length }
 }

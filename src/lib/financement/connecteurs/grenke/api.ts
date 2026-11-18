@@ -87,3 +87,54 @@ export async function creerDemandeApi(c: ConfigGrenke, requete: Record<string, u
   if (typeof id !== 'string' || !UUID.test(id)) throw new ErreurMetier(`Grenke a répondu sans identifiant de demande exploitable : ${JSON.stringify(r).slice(0, 300)}. Vérifiez sur le portail Grenke si la demande a été créée avant de réessayer.`, 502)
   return id
 }
+
+// --- Signature électronique (DocuSign) ------------------------------------------------------------------------------------------
+
+export interface SignataireApi { prenom: string; nom: string; email: string; mobile?: string; civilite?: 'Mr' | 'Ms' }
+
+const versSignataire = (s: SignataireApi, ordre: number) => ({
+  Title: s.civilite ?? 'Mr', FirstName: s.prenom, LastName: s.nom, Email: s.email, Culture: 'fr-FR', ...(s.mobile ? { MobileNumber: s.mobile } : {}), SigningOrder: ordre,
+})
+
+// Nombre de signataires acceptés par Grenke pour cette demande (DocuSign).
+export async function configurationSignature(c: ConfigGrenke, financingId: string) {
+  if (!UUID.test(financingId)) throw new ErreurMetier('Identifiant de demande Grenke invalide.')
+  const r = (await appelerOk(c, 'GET', `/basic/v1/requests/${financingId}/e-signature/configuration`)) as Json
+  return r?.DocuSign as { MinNumberOfCustomerSignees?: number; MaxNumberOfCustomerSignees?: number; MinNumberOfPartnerSignees?: number; MaxNumberOfPartnerSignees?: number } | undefined
+}
+
+export async function creerDocumentContrat(c: ConfigGrenke, financingId: string) {
+  if (!UUID.test(financingId)) throw new ErreurMetier('Identifiant de demande Grenke invalide.')
+  await appelerOk(c, 'POST', `/basic/v1/requests/${financingId}/contractdocument`, { corps: {}, delaiMs: 60_000 })
+}
+
+// Lance la signature : le client signe en premier, puis LEVAD. Si Grenke répond qu'il manque le document du contrat, on le crée une fois puis on réessaie.
+export async function demarrerSignature(c: ConfigGrenke, financingId: string, p: { client: SignataireApi[]; fournisseur: SignataireApi[] }) {
+  if (!UUID.test(financingId)) throw new ErreurMetier('Identifiant de demande Grenke invalide.')
+  try {
+    const conf = await configurationSignature(c, financingId)
+    if (conf) {
+      if (conf.MaxNumberOfCustomerSignees != null && p.client.length > conf.MaxNumberOfCustomerSignees) throw new ErreurMetier(`Grenke accepte au plus ${conf.MaxNumberOfCustomerSignees} signataire(s) côté client.`)
+      if (conf.MinNumberOfCustomerSignees != null && p.client.length < conf.MinNumberOfCustomerSignees) throw new ErreurMetier(`Grenke exige au moins ${conf.MinNumberOfCustomerSignees} signataire(s) côté client.`)
+      if (conf.MaxNumberOfPartnerSignees != null && p.fournisseur.length > conf.MaxNumberOfPartnerSignees) throw new ErreurMetier(`Grenke accepte au plus ${conf.MaxNumberOfPartnerSignees} signataire(s) côté LEVAD.`)
+      if (conf.MinNumberOfPartnerSignees != null && p.fournisseur.length < conf.MinNumberOfPartnerSignees) throw new ErreurMetier(`Grenke exige au moins ${conf.MinNumberOfPartnerSignees} signataire(s) côté LEVAD.`)
+    }
+  } catch (e) {
+    if (e instanceof ErreurMetier && /^Grenke (accepte|exige)/.test(e.message)) throw e // contrainte réelle : on s'arrête
+    /* configuration illisible : on tente quand même le lancement */
+  }
+  const corps = {
+    CustomerContractSignees: p.client.map((s, i) => versSignataire(s, i + 1)),
+    PartnerContractSignees: p.fournisseur.map((s, i) => versSignataire(s, i + 1)),
+    ESignatureType: 'DocuSign',
+    UseDeliveryConfirmation: false,
+  }
+  const lancer = () => appelerOk(c, 'POST', `/basic/v1/requests/${financingId}/e-signature`, { corps, delaiMs: 60_000 })
+  try {
+    await lancer()
+  } catch (e) {
+    if (!(e instanceof ErreurMetier) || !/(400|409)/.test(e.message) || !/document|contract|contrat/i.test(e.message)) throw e
+    await creerDocumentContrat(c, financingId) // 409 « déjà créé » : l'erreur remonte, on laisse l'utilisateur me la transmettre
+    await lancer()
+  }
+}

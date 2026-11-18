@@ -60,11 +60,32 @@ d('actualisation depuis le financeur (base réelle)', () => {
     expect(await prisma.finHistorique.count({ where: { demandeId: dem.id } })).toBe(0)
   })
 
-  it('un état « signé » n’est pas appliqué automatiquement', async () => {
-    const dem = await creer({ statut: 'EN_SIGNATURE', idFinanceur: 'u-3', refFinanceur: '100-2' })
+  it('signature terminée chez le financeur : la demande est signée et le contrat créé automatiquement, une seule fois', async () => {
+    const dem = await creer({ statut: 'EN_SIGNATURE', idFinanceur: 'u-3', refFinanceur: '100-2', montantReelCentimes: 470000, etapeSignature: 'ATTENTE_LEVAD' })
+    await prisma.finDemandeLigne.create({ data: { demandeId: dem.id, designation: 'iRA c3720i', quantite: 1 } })
     etat = { statut: 'SIGNEE', etapeSignature: null, detail: 'Contrat signé', codeFinanceur: 'Contracted' }
     const r = await act.actualiserDepuisFinanceur(ADMIN(), dem.id)
-    expect(r.modifie).toBe(false)
+    expect(r.modifie).toBe(true)
+    expect(await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).toMatchObject({ statut: 'SIGNEE', etapeSignature: null })
+    const contrats = await prisma.finContrat.findMany({ where: { demandeId: dem.id } })
+    expect(contrats).toHaveLength(1)
+    expect(contrats[0]).toMatchObject({ refFinanceur: '100-2', importe: false, raisonSociale: 'DFM', loyerCentimes: 45300, montantReelCentimes: 470000, materiel: '1 × iRA c3720i' })
+    await act.actualiserDepuisFinanceur(ADMIN(), dem.id) // déjà signée : rien de plus
+    expect(await prisma.finContrat.count({ where: { demandeId: dem.id } })).toBe(1)
+  })
+
+  it('« signé » avant même l’accord (demande seulement envoyée) : pas appliqué automatiquement', async () => {
+    const dem = await creer({ statut: 'ENVOYEE', idFinanceur: 'u-3b', refFinanceur: '100-2b' })
+    etat = { statut: 'SIGNEE', etapeSignature: null, detail: 'Contrat signé', codeFinanceur: 'Contracted' }
+    expect((await act.actualiserDepuisFinanceur(ADMIN(), dem.id)).modifie).toBe(false)
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).statut).toBe('ENVOYEE')
+    expect(await prisma.finContrat.count({ where: { demandeId: dem.id } })).toBe(0)
+  })
+
+  it('signature lancée à l’instant : « prête à signer » encore affiché par le financeur ne fait pas revenir en arrière', async () => {
+    const dem = await creer({ statut: 'EN_SIGNATURE', idFinanceur: 'u-3c', refFinanceur: '100-2c', etapeSignature: 'DEMARRAGE' })
+    etat = { statut: 'PRETE_A_SIGNER', etapeSignature: null, detail: 'Accord : prête à signer', codeFinanceur: 'ReadyToSign' }
+    expect((await act.actualiserDepuisFinanceur(ADMIN(), dem.id)).modifie).toBe(false)
     expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).statut).toBe('EN_SIGNATURE')
   })
 

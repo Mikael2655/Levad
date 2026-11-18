@@ -12,6 +12,8 @@ import { ErreurMetier } from './erreurs'
 import { ETAPES_SIGNATURE, libelleEtape } from './etapes'
 import { numeroEntrepriseValide, chiffres } from './siren'
 import { peutEnvoyerEnSignature, statutsAccessibles } from './statuts'
+import { connecteurPour } from './connecteurs'
+import { envoiAutorisePourSiret } from './connecteurs/grenke/connecteur'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -267,6 +269,21 @@ export async function modifierDemande(a: Acteur, id: number, e: EntreeDemande): 
 
 // --- Statuts ---------------------------------------------------------------------------------------------------------
 
+// Une demande signée devient un contrat en cours (la date du 1er loyer sera renseignée ensuite) et solde le contrat remplacé s'il y en a un.
+export async function operationsContratSigne(d: { id: number; rachatId: number | null; reference: string; financeurId: number; commercialId: number; raisonSociale: string; siret: string; periodicite: string; dureeMois: number; loyerCentimes: number; montantCommercialCentimes: number }, o: { ref: string | null; montantReelCentimes: number | null }) {
+  const lignes = await prisma.finDemandeLigne.findMany({ where: { demandeId: d.id }, orderBy: { id: 'asc' } })
+  return [
+    prisma.finContrat.create({
+      data: {
+        demandeId: d.id, importe: false, refFinanceur: o.ref, financeurId: d.financeurId, commercialId: d.commercialId,
+        raisonSociale: d.raisonSociale, siret: d.siret || null, materiel: resumeMateriel(lignes), periodicite: d.periodicite, dureeMois: d.dureeMois,
+        loyerCentimes: d.loyerCentimes, montantCommercialCentimes: d.montantCommercialCentimes, montantReelCentimes: o.montantReelCentimes,
+      },
+    }),
+    ...(await finaliserRachat(d)),
+  ]
+}
+
 export const resumeMateriel = (lignes: { designation: string; quantite: number; constructeur: string | null }[]) =>
   lignes.map(l => `${l.quantite} × ${l.designation}${l.constructeur ? ` (${l.constructeur})` : ''}`).join(' ; ')
 
@@ -291,19 +308,7 @@ export async function changerStatut(a: Acteur, id: number, p: { statut: string; 
     prisma.finHistorique.create({ data: { demandeId: id, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: p.statut, commentaire } }),
   ]
   // Une demande signée devient un contrat en cours (la date du 1er loyer sera renseignée ensuite).
-  if (p.statut === 'SIGNEE') {
-    const lignes = await prisma.finDemandeLigne.findMany({ where: { demandeId: id }, orderBy: { id: 'asc' } })
-    operations.push(
-      prisma.finContrat.create({
-        data: {
-          demandeId: id, importe: false, refFinanceur: ref || d.refFinanceur, financeurId: d.financeurId, commercialId: d.commercialId,
-          raisonSociale: d.raisonSociale, siret: d.siret || null, materiel: resumeMateriel(lignes), periodicite: d.periodicite, dureeMois: d.dureeMois,
-          loyerCentimes: d.loyerCentimes, montantCommercialCentimes: d.montantCommercialCentimes, montantReelCentimes: reel ?? d.montantReelCentimes,
-        },
-      }),
-      ...(await finaliserRachat(d)),
-    )
-  }
+  if (p.statut === 'SIGNEE') operations.push(...(await operationsContratSigne(d, { ref: ref || d.refFinanceur, montantReelCentimes: reel ?? d.montantReelCentimes })))
   await prisma.$transaction(operations)
   await notifierChangement({ demandeId: id, acteurId: a.id, statutAvant: d.statut, etapeAvant: d.etapeSignature, statutApres: p.statut, etapeApres: null })
   if (p.statut === 'ENVOYEE') await envoyerMailFinanceur(id) // financeur sans API : récapitulatif à transmettre
@@ -314,6 +319,8 @@ export interface Signataire {
   prenom: string
   nom: string
   email: string
+  mobile?: string
+  civilite?: 'Mr' | 'Ms'
 }
 
 export async function envoyerEnSignature(a: Acteur, id: number, client: Signataire, fournisseur: Signataire) {
@@ -323,6 +330,18 @@ export async function envoyerEnSignature(a: Acteur, id: number, client: Signatai
   if (!financeur.signatureElectronique) throw new ErreurMetier(`${financeur.nom} ne signe pas par signature électronique : enregistrez la mise en place du contrat.`, 403)
   for (const s of [client, fournisseur]) {
     if (!s.prenom.trim() || !s.nom.trim() || !EMAIL.test(s.email.trim())) throw new ErreurMetier('Prénom, nom et e-mail valides requis pour chaque signataire.')
+  }
+  // Financeur avec API (Grenke) : la signature électronique est lancée chez lui AVANT de changer le statut ici.
+  if (financeur.connecteur === 'grenke_api') {
+    if (!d.idFinanceur || d.idFinanceur === 'ENVOI-EN-COURS') throw new ErreurMetier('Cette demande n’est pas reliée à un dossier Grenke.')
+    if (!envoiAutorisePourSiret(d.siret)) throw new ErreurMetier('Mode essai : la signature ne peut être lancée que pour le SIREN de test annoncé à Grenke.', 403)
+    const c = connecteurPour(financeur.connecteur)
+    if (!c) throw new ErreurMetier('Configuration Grenke incomplète : voir Administration → Connexion Grenke.')
+    const mobile = (s: Signataire) => (s.mobile ?? '').replace(/[\s.\-]/g, '')
+    if (!/^(\+|00)?\d{9,14}$/.test(mobile(client))) throw new ErreurMetier('Le numéro de mobile du signataire client est obligatoire (Grenke lui envoie un code par SMS).')
+    if (mobile(fournisseur) && !/^(\+|00)?\d{9,14}$/.test(mobile(fournisseur))) throw new ErreurMetier('Numéro de mobile du signataire LEVAD invalide.')
+    const vers = (s: Signataire) => ({ prenom: s.prenom.trim(), nom: s.nom.trim(), email: s.email.trim().toLowerCase(), mobile: mobile(s) || undefined, civilite: s.civilite === 'Ms' ? ('Ms' as const) : ('Mr' as const) })
+    await c.lancerSignature(d.idFinanceur, { client: [vers(client)], fournisseur: [vers(fournisseur)] })
   }
   const sig = {
     clientPrenom: client.prenom.trim(), clientNom: client.nom.trim(), clientEmail: client.email.trim().toLowerCase(),

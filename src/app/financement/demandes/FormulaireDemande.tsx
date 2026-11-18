@@ -57,6 +57,7 @@ export default function FormulaireDemande(p: {
   const [erreur, setErreur] = useState<string | null>(null)
   const [envoi, setEnvoi] = useState(false)
   const [doublons, setDoublons] = useState<Doublons | null>(null)
+  const [existants, setExistants] = useState<Doublons | null>(null) // dossiers déjà là pour ce client, affichés pendant la saisie
   const set = <K extends keyof ValeursFormulaire>(k: K, val: ValeursFormulaire[K]) => setV(x => ({ ...x, [k]: val }))
 
   const avecApi = p.financeurs.find(f => String(f.id) === v.financeurId)?.avecApi === true
@@ -82,6 +83,21 @@ export default function FormulaireDemande(p: {
     }, 350)
     return () => { annule = true; clearTimeout(t) }
   }, [v.financeurId, v.commercialId, v.dureeMois, v.periodicite, v.valeur]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Dès que le SIREN (ou le nom) est saisi, on affiche à côté les contrats et demandes déjà en cours pour ce client : pas besoin de les chercher ailleurs.
+  useEffect(() => {
+    if (p.mode !== 'creation') return
+    const chiffres = v.siret.replace(/\D/g, '')
+    if (chiffres.length < 9 && v.raisonSociale.trim().length < 4) { setExistants(null); return }
+    let annule = false
+    const t = setTimeout(async () => {
+      try {
+        const d = await appel<Doublons>('/api/financement/demandes/verifier', 'POST', { siret: v.siret, raisonSociale: v.raisonSociale })
+        if (!annule) setExistants(d.demandes.length > 0 || d.contrats.length > 0 || d.autres > 0 ? d : null)
+      } catch { if (!annule) setExistants(null) }
+    }, 500)
+    return () => { annule = true; clearTimeout(t) }
+  }, [v.siret, v.raisonSociale]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function choisirEntreprise(e: Entreprise) {
     setV(x => ({ ...x, raisonSociale: e.nom, siret: e.siret || e.siren, formeJuridique: e.formeJuridique || x.formeJuridique, adresse: e.adresse, codePostal: e.codePostal, ville: e.ville, pays: 'France' }))
@@ -139,6 +155,19 @@ export default function FormulaireDemande(p: {
       <section className={section}>
         <TitreSection icone="client">Client</TitreSection>
         <RechercheEntreprise onChoisir={choisirEntreprise} siren={v.siret} />
+        {existants && (
+          <div className="rounded-xl border border-sky-300 bg-sky-50 p-3 text-sm text-sky-950 space-y-1.5">
+            <p className="font-semibold">Ce client existe déjà chez nous</p>
+            {existants.contrats.map(c => (
+              <p key={`c${c.id}`}>📄 Contrat <b className="select-all">{c.reference ?? `#${c.id}`}</b> · {c.financeur} · {euros(c.loyerCentimes)} / {c.periodicite === 'MENSUELLE' ? 'mois' : 'trimestre'}{c.dateFin ? ` · fin ${new Date(c.dateFin).toLocaleDateString('fr-FR')}` : ''}{c.etat === 'TACITE' ? ' · tacite reconduction' : ''}{' '}
+                <a className="underline" target="_blank" rel="noreferrer" href={`/financement/contrats/${c.id}`}>ouvrir</a>
+                <label className="ml-3 inline-flex items-center gap-1.5 whitespace-nowrap"><input type="checkbox" checked={v.observation.split('\n').some(l => l.trim() === ligneRachat(c.reference ?? `#${c.id}`))} onChange={e => basculerRachat(c.reference ?? `#${c.id}`, e.target.checked)} /> remplacé par cette demande (rachat)</label>
+              </p>
+            ))}
+            {existants.demandes.map(d => <p key={`d${d.id}`}>📝 Demande <a className="underline" target="_blank" rel="noreferrer" href={`/financement/demandes/${d.id}`}>{d.reference}</a> · {d.financeur} · {LIBELLE_STATUT[d.statut] ?? d.statut}</p>)}
+            {existants.autres > 0 && <p>{existants.autres} autre(s) dossier(s) chez un autre commercial.</p>}
+          </div>
+        )}
         <div className="grid gap-5 sm:grid-cols-2">
           <Etiquette t="Raison sociale *"><input className={champ} value={v.raisonSociale} onChange={e => set('raisonSociale', e.target.value)} required /></Etiquette>
           <Etiquette t="SIREN / SIRET (obligatoire avant envoi au financeur)"><input className={champ} value={v.siret} onChange={e => set('siret', e.target.value)} inputMode="numeric" /></Etiquette>
