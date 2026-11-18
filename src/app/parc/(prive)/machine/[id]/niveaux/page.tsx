@@ -8,14 +8,15 @@ import { avecEncres } from '@/lib/connect/releves'
 
 export const dynamic = 'force-dynamic'
 
-// Niveaux d'encre des 30 derniers jours : pour chaque jour, le premier et le dernier relevé (le dernier suit la journée en cours) ;
+// Niveaux d'encre des 30 derniers jours : pour chaque jour, deux lignes (le dernier puis le premier relevé) (le dernier suit la journée en cours) ;
 // un clic sur un jour montre tous ses relevés heure par heure.
 
 const TEINTE: Record<string, string> = { noir: '#374151', cyan: '#06b6d4', magenta: '#d946ef', jaune: '#eab308' }
 const JOURS = 30
 const jourDe = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d) // AAAA-MM-JJ
 const heureDe = (d: Date) => d.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
-const jourFr = (j: string) => new Date(`${j}T12:00:00Z`).toLocaleDateString('fr-FR', { timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit' })
+const jourFr = (j: string) => `${j.slice(8, 10)}/${j.slice(5, 7)}`
+const heureCourte = (d: Date) => heureDe(d).replace(':', 'h') // 15h36
 
 type Niveaux = Partial<Record<(typeof COULEURS)[number], number | null>>
 type Ligne = { date: Date; niveaux: Niveaux }
@@ -30,19 +31,35 @@ function niveauxDe(encres: unknown): Niveaux {
   return res
 }
 
-function Cellule({ niveaux }: { niveaux: Niveaux }) {
+function Entete({ premiere }: { premiere: string }) {
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <thead>
+      <tr className="border-b bg-gray-50 text-left text-gray-500">
+        <th className="px-4 py-2">{premiere}</th>
+        {COULEURS.map((c) => (
+          <th key={c} className="px-2 py-2 font-semibold">{NOM_COULEUR[c]}</th>
+        ))}
+      </tr>
+    </thead>
+  )
+}
+
+function Rangee({ etiquette, niveaux, surligne = false }: { etiquette: React.ReactNode; niveaux: Niveaux; surligne?: boolean }) {
+  return (
+    <tr className={`border-b last:border-0 ${surligne ? 'bg-gray-50' : ''}`}>
+      <td className="whitespace-nowrap px-4 py-2 font-medium">{etiquette}</td>
       {COULEURS.map((c) => {
         const v = niveaux[c]
         return (
-          <div key={c} className="min-w-[3.5rem]">
-            <div className="h-1.5 rounded-full bg-gray-200">{typeof v === 'number' && <div className="h-1.5 rounded-full" style={{ width: `${v}%`, backgroundColor: TEINTE[c] }} />}</div>
-            <p className={`mt-0.5 text-xs tabular-nums ${typeof v === 'number' && v <= 10 ? 'font-semibold text-red-600' : 'text-gray-700'}`}>{typeof v === 'number' ? `${v} %` : '—'}</p>
-          </div>
+          <td key={c} className="px-2 py-2">
+            <div className="min-w-[4.5rem]">
+              <div className="h-1.5 rounded-full bg-gray-200">{typeof v === 'number' && <div className="h-1.5 rounded-full" style={{ width: `${v}%`, backgroundColor: TEINTE[c] }} />}</div>
+              <p className={`mt-0.5 text-xs tabular-nums ${typeof v === 'number' && v <= 10 ? 'font-semibold text-red-600' : 'text-gray-700'}`}>{typeof v === 'number' ? `${v} %` : '—'}</p>
+            </div>
+          </td>
         )
       })}
-    </div>
+    </tr>
   )
 }
 
@@ -75,43 +92,24 @@ export default async function NiveauxPage({ params, searchParams }: { params: { 
       ) : (
         <div className="mt-5 overflow-x-auto rounded-xl border bg-white">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-gray-50 text-left text-gray-500">
-                <th className="px-4 py-2">Jour</th>
-                <th className="px-4 py-2">
-                  Premier relevé
-                  <span className="ml-3 hidden text-xs font-normal sm:inline">{COULEURS.map((c) => NOM_COULEUR[c]).join(' · ')}</span>
-                </th>
-                <th className="px-4 py-2">Dernier relevé</th>
-              </tr>
-            </thead>
+            <Entete premiere="Relevé" />
             <tbody>
-              {jours.map((j) => {
+              {jours.flatMap((j) => {
                 const l = parJour.get(j)!
-                const premier = l[0]
-                const dernier = l[l.length - 1]
-                return (
-                  <tr key={j} className={`border-b last:border-0 ${choisi === j ? 'bg-gray-50' : ''}`}>
-                    <td className="whitespace-nowrap px-4 py-2 font-medium">
-                      <Link href={`?jour=${j}#detail`} className="underline" title="Voir tous les relevés de ce jour">{jourFr(j)}</Link>
-                      <span className="ml-1 text-xs font-normal text-gray-400">({l.length})</span>
-                    </td>
-                    <td className="px-4 py-2">
-                      <p className="mb-1 text-xs text-gray-500">{heureDe(premier.date)}</p>
-                      <Cellule niveaux={premier.niveaux} />
-                    </td>
-                    <td className="px-4 py-2">
-                      {l.length > 1 ? (
-                        <>
-                          <p className="mb-1 text-xs text-gray-500">{heureDe(dernier.date)}</p>
-                          <Cellule niveaux={dernier.niveaux} />
-                        </>
-                      ) : (
-                        <p className="text-xs text-gray-400">Un seul relevé ce jour-là</p>
-                      )}
-                    </td>
-                  </tr>
-                )
+                // le dernier relevé du jour (il suit la journée en cours), puis le premier ; un seul relevé : une seule ligne
+                const lignesDuJour = l.length > 1 ? [l[l.length - 1], l[0]] : [l[0]]
+                return lignesDuJour.map((r, i) => (
+                  <Rangee
+                    key={`${j}-${i}`}
+                    surligne={choisi === j}
+                    niveaux={r.niveaux}
+                    etiquette={
+                      <Link href={`?jour=${j}#detail`} className="underline" title="Voir tous les relevés de ce jour">
+                        {jourFr(j)} {heureCourte(r.date)}
+                      </Link>
+                    }
+                  />
+                ))
               })}
             </tbody>
           </table>
@@ -122,20 +120,20 @@ export default async function NiveauxPage({ params, searchParams }: { params: { 
         {choisi ? (
           <div className="rounded-xl border bg-white p-5">
             <h2 className="font-bold">Relevés du {jourFr(choisi)}, heure par heure</h2>
-            <table className="mt-3 w-full text-sm">
-              <tbody>
-                {parJour.get(choisi)!.map((l) => (
-                  <tr key={l.date.getTime()} className="border-b last:border-0">
-                    <td className="whitespace-nowrap py-1.5 pr-4 text-gray-500">{heureDe(l.date)}</td>
-                    <td className="py-1.5"><Cellule niveaux={l.niveaux} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <Entete premiere="Heure" />
+                <tbody>
+                  {parJour.get(choisi)!.map((l) => (
+                    <Rangee key={l.date.getTime()} etiquette={heureCourte(l.date)} niveaux={l.niveaux} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <Link href="?" className="mt-3 inline-block text-sm text-gray-500 underline">Fermer</Link>
           </div>
         ) : (
-          jours.length > 0 && <p className="text-sm text-gray-500">Cliquez sur un jour pour voir tous ses relevés, heure par heure.</p>
+          jours.length > 0 && <p className="text-sm text-gray-500">Cliquez sur une date pour voir tous les relevés de ce jour, heure par heure.</p>
         )}
       </section>
     </>
