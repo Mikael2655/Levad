@@ -1,6 +1,5 @@
 import { libelleMachine } from '@/lib/connect/libelle'
 import Link from 'next/link'
-import { Prisma } from '@prisma/client'
 import { avecEncres } from '@/lib/connect/releves'
 import { Bouton, Formulaire } from '@/components/connect/Formulaire'
 import { notFound } from 'next/navigation'
@@ -38,16 +37,6 @@ export default async function MachinePage({ params }: { params: { id: string } }
   // 112 / 113 / 122 / 123 / 501 toujours ; les autres compteurs (108, 109, 106, 125…) seulement s'ils servent au calcul retenu
   const utilises = new Set((calc.retenue?.utilises ?? []).map(String))
   const DETAIL = ['108', '109', '106', '112', '113', '125', '122', '123', '501'].filter((n) => ['112', '113', '122', '123', '501'].includes(n) || (utilises.has(n) && compteurs[n]))
-  const historique = await Promise.all(
-    [7, 14, 21, 28].map(async (jours) => {
-      const releve = await prisma.connectReleve.findFirst({
-        where: { machineId: machine.id, date: { lte: new Date(Date.now() - jours * 86400000) }, NOT: { encres: { equals: Prisma.DbNull } } },
-        orderBy: { date: 'desc' },
-        select: { date: true, encres: true },
-      })
-      return { jours, date: releve?.date ?? null, encres: (releve?.encres ?? []) as unknown as Encre[] }
-    }),
-  )
   const dernierEncres = avecEncres(machine.releves)
   const encres = (dernierEncres?.encres ?? []) as unknown as Encre[]
   const bacs = (dernierEncres?.bacs ?? []) as unknown as Encre[]
@@ -157,22 +146,9 @@ export default async function MachinePage({ params }: { params: { id: string } }
               ) : (
                 <p className="mt-1 text-sm text-gray-600">Non disponible (la machine n&apos;en déclare pas).</p>
               )}
-              <details className="group mt-5">
-                <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-gray-700 [&::-webkit-details-marker]:hidden">
-                  <span className="inline-block text-gray-400 transition-transform group-open:rotate-90" aria-hidden="true">▸</span>
-                  Niveaux précédents
-                </summary>
-                <div className="mt-2 space-y-3">
-                {historique.map((h) => (
-                  <div key={h.jours}>
-                    <p className="text-xs text-gray-500">
-                      Il y a {h.jours} jours{h.date ? ` — ${h.date.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}` : ''}
-                    </p>
-                    {h.date ? <Encres encres={h.encres} /> : <p className="text-sm text-gray-400">Pas de relevé à cette date</p>}
-                  </div>
-                ))}
-              </div>
-              </details>
+              <Link href={`/parc/machine/${machine.id}/niveaux`} className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-gray-900">
+                Niveaux précédents <span aria-hidden="true">→</span>
+              </Link>
           </>
         </section>
 
