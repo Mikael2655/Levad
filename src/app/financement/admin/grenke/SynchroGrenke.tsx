@@ -11,11 +11,12 @@ interface Rapport {
   aRemplir: { id: number; ref: string; client: string; champs: string[] }[]
   ecarts: { id: number; ref: string; client: string; champ: string; nous: string; financeur: string }[]
   aCloturer: { id: number; ref: string; client: string; etat: string }[]
+  aRelier: { id: number; ancienneRef: string | null; nouvelleRef: string; client: string }[]
   absents: { id: number; ref: string; client: string }[]
   avertissements: string[]
   etats: Record<string, number>
 }
-interface Resultat { simule: boolean; rapport: Rapport; crees: number; mis_a_jour: number }
+interface Resultat { simule: boolean; rapport: Rapport; crees: number; mis_a_jour: number; reliees?: number }
 
 const champ = 'border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent-500/40'
 
@@ -66,11 +67,14 @@ export default function SynchroGrenke(p: { prete: boolean; financeurs: { id: num
 
       {r && (
         <div className="space-y-3">
-          {!res!.simule && <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">Synchronisation appliquée : {res!.crees} contrat(s) créé(s), {res!.mis_a_jour} mis à jour.</p>}
+          {!res!.simule && <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">Synchronisation appliquée : {res!.crees} contrat(s) créé(s), {res!.mis_a_jour} mis à jour{res!.reliees ? `, ${res!.reliees} relié(s) à leur numéro de contrat Grenke` : ''}.</p>}
           {res!.simule && <p className="text-sm text-sky-900 bg-sky-50 border border-sky-100 rounded-xl px-3 py-2">Simulation : rien n’a été modifié. {r.connus} contrat(s) déjà connus ({r.nouveaux.length} nouveau(x)). États vus chez Grenke : {Object.entries(r.etats).map(([e, n]) => `${e} (${n})`).join(', ') || '—'}.</p>}
           {r.avertissements.map(a => <p key={a} className="text-sm text-amber-900 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">{a}</p>)}
           <Bloc titre="Nouveaux contrats" n={r.nouveaux.length} aide="seront créés (matériel « Non précisé »)">
             <ul className="space-y-1">{r.nouveaux.map(n => <li key={n.reference}>{n.reference} · {n.client} <span className="text-gray-400">({n.etatBrut})</span></li>)}</ul>
+          </Bloc>
+          <Bloc titre="Contrats à relier" n={r.aRelier.length} aide="contrats créés à la signature d’une demande : retrouvés chez Grenke, leur numéro sera remplacé par le vrai numéro de contrat">
+            <ul className="space-y-1">{r.aRelier.map(x => <li key={x.id}>{x.client} <span className="text-gray-400">: {x.ancienneRef ?? '—'} → <b>{x.nouvelleRef}</b></span></li>)}</ul>
           </Bloc>
           <Bloc titre="Valeurs à compléter" n={r.aRemplir.length} aide="champs vides chez nous, remplis depuis Grenke">
             <ul className="space-y-1">{r.aRemplir.map(x => <li key={x.id}>{x.ref} · {x.client} <span className="text-gray-400">→ {x.champs.join(', ')}</span></li>)}</ul>

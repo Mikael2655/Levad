@@ -11,6 +11,7 @@ export interface ExistantContrat {
   refFinanceur: string | null
   raisonSociale: string
   loyerCentimes: number
+  demandeId?: number | null // contrat créé automatiquement à la signature d'une demande : son numéro est encore celui de la demande
   periodicite?: string // MENSUELLE | TRIMESTRIELLE : période du loyer enregistré chez nous
   dureeMois: number
   dateDebut: Date | null
@@ -28,6 +29,7 @@ export interface Rapport {
   aRemplir: { id: number; ref: string; client: string; champs: string[]; donnees: Partial<{ dateDebut: Date; dateFin: Date; montantReelCentimes: number; statutFinanceur: string }> }[]
   ecarts: Ecart[]
   aCloturer: { id: number; ref: string; client: string; etat: string }[]
+  aRelier: { id: number; ancienneRef: string | null; nouvelleRef: string; client: string }[] // contrat créé à la signature d'une demande, retrouvé chez le financeur sous son vrai numéro
   absents: { id: number; ref: string; client: string }[]
   avertissements: string[]
   etats: Record<string, number>
@@ -38,11 +40,22 @@ const eur = (c: number | null) => (c == null ? '' : (c / 100).toLocaleString('fr
 
 // periodiciteDistante : période du loyer renvoyé par le financeur (Grenke : mensuel). Il est converti dans la période de NOTRE contrat avant comparaison.
 export function comparer(existants: ExistantContrat[], distants: ContratFinanceur[], periodiciteDistante: 'MENSUELLE' | 'TRIMESTRIELLE' = 'MENSUELLE'): Rapport {
-  const r: Rapport = { nouveaux: [], nouveauxIgnores: [], connus: 0, aRemplir: [], ecarts: [], aCloturer: [], absents: [], avertissements: [], etats: {} }
+  const r: Rapport = { nouveaux: [], nouveauxIgnores: [], connus: 0, aRemplir: [], ecarts: [], aCloturer: [], aRelier: [], absents: [], avertissements: [], etats: {} }
   const parRef = new Map<string, ExistantContrat[]>()
   for (const e of existants) { const k = normaliserRef(e.refFinanceur); if (k) parRef.set(k, [...(parRef.get(k) ?? []), e]) }
   for (const [k, l] of Array.from(parRef.entries())) if (l.length > 1) r.avertissements.push(`Le numéro « ${l[0].refFinanceur} » existe ${l.length} fois dans l'outil : le premier est utilisé pour la comparaison.`)
   const vus = new Set<string>()
+  const dejaReliés = new Set<number>()
+  const clesDistantes = new Set(distants.map(g => normaliserRef(g.reference)).filter(Boolean))
+  const nomNormalise = (s: string) => s.toUpperCase().normalize('NFD').replace(/[^A-Z0-9]/g, '')
+  // Candidat à relier : contrat issu d'une demande dont le numéro (celui de la demande) n'existe pas chez le financeur, même durée, même loyer, même client.
+  const candidat = (g: ContratFinanceur) => {
+    const loyerG = g.loyerMensuelCentimes ?? 0
+    const l = existants.filter(e => e.demandeId != null && !dejaReliés.has(e.id) && !clesDistantes.has(normaliserRef(e.refFinanceur)) && e.dureeMois === g.dureeMois &&
+      Math.abs((periodiciteDistante === 'MENSUELLE' && e.periodicite === 'TRIMESTRIELLE' ? loyerG * 3 : periodiciteDistante === 'TRIMESTRIELLE' && e.periodicite === 'MENSUELLE' ? Math.round(loyerG / 3) : loyerG) - e.loyerCentimes) <= 3 &&
+      (nomNormalise(e.raisonSociale) === nomNormalise(g.client) || nomNormalise(e.raisonSociale).includes(nomNormalise(g.client)) || nomNormalise(g.client).includes(nomNormalise(e.raisonSociale))))
+    return l.length === 1 ? l[0] : null
+  }
   let loyersComparables = 0
   let loyersEnProportion = 0
 
@@ -58,7 +71,11 @@ export function comparer(existants: ExistantContrat[], distants: ContratFinanceu
     if (!e) {
       if (termine) r.nouveauxIgnores.push({ ref: g.reference, client: g.client, raison: `déjà terminé chez le financeur (${g.etatBrut})` })
       else if (!g.loyerMensuelCentimes || g.loyerMensuelCentimes <= 0 || !g.dureeMois) r.nouveauxIgnores.push({ ref: g.reference, client: g.client, raison: 'loyer ou durée absents' })
-      else r.nouveaux.push(g)
+      else {
+        const c = candidat(g)
+        if (c) { dejaReliés.add(c.id); r.aRelier.push({ id: c.id, ancienneRef: c.refFinanceur, nouvelleRef: g.reference, client: c.raisonSociale }) }
+        else r.nouveaux.push(g)
+      }
       continue
     }
 

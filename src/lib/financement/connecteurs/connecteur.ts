@@ -54,4 +54,5 @@ export interface Signataire {
   nom: string
   email: string
   mobile?: string
+  civilite?: 'Mr' | 'Ms' // exigée par l'API Grenke
 }

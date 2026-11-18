@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { connecteurPour } from './connecteurs'
 import { estInterne, type Acteur } from './droits'
 import { ErreurMetier } from './erreurs'
+import { operationsContratSigne } from './demandes'
 import { notifierChangement } from './notifications'
 
 const APPLICABLES = ['ENVOYEE', 'INFOS_MANQUANTES', 'PRETE_A_SIGNER', 'REFUSEE', 'EN_SIGNATURE']
@@ -28,6 +29,7 @@ async function appliquerEtatFinanceur(demandeId: number, auteurId: number | null
   let message = `État chez le financeur : ${etat.detail} (${etat.codeFinanceur}).`
   const etapeApres = etat.statut === 'EN_SIGNATURE' ? etat.etapeSignature : null
   let statutChange = etat.statut !== d.statut || etapeApres !== d.etapeSignature
+  let creerContrat = false
   // Pièces déjà transmises après la demande d'informations : le financeur peut afficher « informations manquantes » un moment encore,
   // on garde « en attente » (gris) au lieu de repasser en orange.
   if (statutChange && etat.statut === 'INFOS_MANQUANTES' && d.statut === 'ENVOYEE') {
@@ -40,7 +42,13 @@ async function appliquerEtatFinanceur(demandeId: number, auteurId: number | null
   }
   if (statutChange) {
     if (!MODIFIABLES.includes(d.statut)) message += ' Le statut de la demande n’est pas modifié (demande déjà signée, annulée ou en brouillon).'
-    else if (!APPLICABLES.includes(etat.statut)) message += ' Ce nouvel état (signature terminée, par exemple) n’est pas appliqué automatiquement : enregistrez-le vous-même.'
+    else if (etat.statut === 'SIGNEE') {
+      // Signature terminée chez le financeur : la demande est signée et le contrat est créé automatiquement.
+      if (['EN_SIGNATURE', 'PRETE_A_SIGNER'].includes(d.statut)) { donnees.statut = 'SIGNEE'; donnees.etapeSignature = null; donnees.infosManquantes = null; creerContrat = true }
+      else message += ' Cet état n’est pas appliqué automatiquement avant l’accord : enregistrez-le vous-même.'
+    } else if (d.statut === 'EN_SIGNATURE' && etat.statut === 'PRETE_A_SIGNER' && Date.now() - d.majLe.getTime() < 10 * 60_000) {
+      message += ' Signature lancée à l’instant : le financeur n’a pas encore mis son état à jour.' // évite un aller-retour d'affichage juste après le lancement
+    } else if (!APPLICABLES.includes(etat.statut)) message += ' Ce nouvel état n’est pas appliqué automatiquement : enregistrez-le vous-même.'
     else {
       donnees.statut = etat.statut
       donnees.etapeSignature = etapeApres
@@ -50,6 +58,7 @@ async function appliquerEtatFinanceur(demandeId: number, auteurId: number | null
   if (Object.keys(donnees).length === 0) return { modifie: false, message: `${message} Aucun changement.` }
 
   const operations: Prisma.PrismaPromise<unknown>[] = [prisma.finDemande.update({ where: { id: demandeId }, data: donnees })]
+  if (creerContrat && !(await prisma.finContrat.findFirst({ where: { demandeId }, select: { id: true } }))) operations.push(...(await operationsContratSigne(d, { ref: (donnees.refFinanceur as string | undefined) ?? d.refFinanceur, montantReelCentimes: d.montantReelCentimes })))
   if (donnees.statut) operations.push(prisma.finHistorique.create({ data: { demandeId, auteurId: auteurId ?? d.saisiParId, ancienStatut: d.statut, nouveauStatut: String(donnees.statut), commentaire: `${notifierActeurId === null ? 'Mise à jour automatique' : 'Mise à jour'} depuis ${d.financeur.nom} : ${etat.detail}` } }))
   await prisma.$transaction(operations)
   if (donnees.statut) await notifierChangement({ demandeId, acteurId: notifierActeurId, statutAvant: d.statut, etapeAvant: d.etapeSignature, statutApres: String(donnees.statut), etapeApres })

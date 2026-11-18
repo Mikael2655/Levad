@@ -2,7 +2,7 @@
 // après les essais, quand Grenke aura été prévenu (il n'existe pas d'environnement de test : tout se passe en production).
 import { ErreurMetier } from '../../erreurs'
 import type { Connecteur, ContratFinanceur, EtatDemande } from '../connecteur'
-import { envoyerDocument, listerContrats, listerDemandes, lireDemande } from './api'
+import { demarrerSignature, envoyerDocument, listerContrats, listerDemandes, lireDemande } from './api'
 import type { ConfigGrenke } from './config'
 import { versStatutCommun } from './statuts'
 
@@ -37,7 +37,10 @@ export function creerConnecteurGrenke(config: ConfigGrenke): Connecteur {
       if (modeEcriture().mode === 'ferme') throw pasEncore('Envoi de la pièce') // le contrôle par SIREN se fait avant, à l'appel (pieces.ts)
       await envoyerDocument(config, referenceFinanceur, { nom: nomFichier, contenu })
     },
-    lancerSignature: async () => { throw pasEncore('Lancement de la signature') },
+    async lancerSignature(referenceFinanceur, signataires) {
+      if (modeEcriture().mode === 'ferme') throw pasEncore('Lancement de la signature') // le contrôle par SIREN se fait avant, à l'appel (demandes.ts)
+      await demarrerSignature(config, referenceFinanceur, signataires)
+    },
     recupererContratSigne: async () => { throw pasEncore('Récupération du contrat signé') },
 
     async recupererStatut(referenceFinanceur): Promise<EtatDemande | null> {
