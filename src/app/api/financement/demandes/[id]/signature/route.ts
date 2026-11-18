@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { envoyerEnSignature, type Signataire } from '@/lib/financement/demandes'
 import { acteurApi, corps, repondre } from '@/lib/financement/garde'
 
-const signataire = (s: Record<string, any> | undefined): Signataire => ({ prenom: String(s?.prenom ?? ''), nom: String(s?.nom ?? ''), email: String(s?.email ?? ''), mobile: String(s?.mobile ?? ''), civilite: s?.civilite === 'Ms' ? 'Ms' : 'Mr' })
+const signataire = (s: Record<string, any> | undefined): Signataire => ({ prenom: String(s?.prenom ?? ''), nom: String(s?.nom ?? ''), email: String(s?.email ?? ''), mobile: String(s?.mobile ?? ''), civilite: s?.civilite === 'Ms' ? 'Ms' : s?.civilite === 'Mr' ? 'Mr' : undefined })
 export const runtime = 'nodejs'
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {

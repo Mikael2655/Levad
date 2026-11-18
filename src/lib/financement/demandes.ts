@@ -338,9 +338,9 @@ export async function envoyerEnSignature(a: Acteur, id: number, client: Signatai
     const c = connecteurPour(financeur.connecteur)
     if (!c) throw new ErreurMetier('Configuration Grenke incomplète : voir Administration → Connexion Grenke.')
     const mobile = (s: Signataire) => (s.mobile ?? '').replace(/[\s.\-]/g, '')
-    if (!/^(\+|00)?\d{9,14}$/.test(mobile(client))) throw new ErreurMetier('Le numéro de mobile du signataire client est obligatoire (Grenke lui envoie un code par SMS).')
-    if (mobile(fournisseur) && !/^(\+|00)?\d{9,14}$/.test(mobile(fournisseur))) throw new ErreurMetier('Numéro de mobile du signataire LEVAD invalide.')
-    const vers = (s: Signataire) => ({ prenom: s.prenom.trim(), nom: s.nom.trim(), email: s.email.trim().toLowerCase(), mobile: mobile(s) || undefined, civilite: s.civilite === 'Ms' ? ('Ms' as const) : ('Mr' as const) })
+    // Le mobile est facultatif (le portail Grenke ne le demande pas) : vérifié seulement s'il est saisi.
+    for (const [s, nom] of [[client, 'client'], [fournisseur, 'LEVAD']] as const) if (mobile(s) && !/^(\+|00)?\d{9,14}$/.test(mobile(s))) throw new ErreurMetier(`Numéro de mobile du signataire ${nom} invalide.`)
+    const vers = (s: Signataire) => ({ prenom: s.prenom.trim(), nom: s.nom.trim(), email: s.email.trim().toLowerCase(), mobile: mobile(s) || undefined, civilite: s.civilite })
     await c.lancerSignature(d.idFinanceur, { client: [vers(client)], fournisseur: [vers(fournisseur)] })
   }
   const sig = {

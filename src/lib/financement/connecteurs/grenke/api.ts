@@ -93,7 +93,7 @@ export async function creerDemandeApi(c: ConfigGrenke, requete: Record<string, u
 export interface SignataireApi { prenom: string; nom: string; email: string; mobile?: string; civilite?: 'Mr' | 'Ms' }
 
 const versSignataire = (s: SignataireApi, ordre: number) => ({
-  Title: s.civilite ?? 'Mr', FirstName: s.prenom, LastName: s.nom, Email: s.email, Culture: 'fr-FR', ...(s.mobile ? { MobileNumber: s.mobile } : {}), SigningOrder: ordre,
+  ...(s.civilite ? { Title: s.civilite } : {}), FirstName: s.prenom, LastName: s.nom, Email: s.email, Culture: 'fr-FR', ...(s.mobile ? { MobileNumber: s.mobile } : {}), SigningOrder: ordre,
 })
 
 // Nombre de signataires acceptés par Grenke pour cette demande (DocuSign).

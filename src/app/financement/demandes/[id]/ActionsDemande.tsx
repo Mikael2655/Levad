@@ -121,17 +121,12 @@ export default function ActionsDemande(p: {
                   <input className={`${champ} w-full`} placeholder="Prénom" value={s.prenom} onChange={e => set({ ...s, prenom: e.target.value })} />
                   <input className={`${champ} w-full`} placeholder="Nom" value={s.nom} onChange={e => set({ ...s, nom: e.target.value })} />
                   <input className={`${champ} w-full`} type="email" placeholder="E-mail" value={s.email} onChange={e => set({ ...s, email: e.target.value })} />
-                  {p.lieeApi && (
-                    <>
-                      <select className={`${champ} w-full`} value={s.civilite ?? 'Mr'} onChange={e => set({ ...s, civilite: e.target.value as 'Mr' | 'Ms' })}><option value="Mr">Monsieur</option><option value="Ms">Madame</option></select>
-                      <input className={`${champ} w-full`} inputMode="tel" placeholder={titre === 'Signataire client' ? 'Mobile (obligatoire : code SMS)' : 'Mobile (facultatif)'} value={s.mobile ?? ''} onChange={e => set({ ...s, mobile: e.target.value })} />
-                    </>
-                  )}
+                  {p.lieeApi && <input className={`${champ} w-full`} inputMode="tel" placeholder="Mobile (facultatif)" value={s.mobile ?? ''} onChange={e => set({ ...s, mobile: e.target.value })} />}
                 </fieldset>
               ))}
               <div className="sm:col-span-2 flex items-center gap-3">
                 <button className="bg-violet-700 text-white rounded-lg px-4 py-1.5 text-sm font-semibold" onClick={() => agir(async () => { await appel(`${url}/signature`, 'POST', { client, fournisseur }); setOuvertSignature(false) })}>Valider l’envoi en signature</button>
-                <span className="text-xs text-gray-500">{p.lieeApi ? 'La signature électronique est lancée chez Grenke : le client puis LEVAD reçoivent un e-mail (et un code par SMS).' : 'Avec le connecteur manuel, la signature se lance sur le portail du financeur ; ces informations sont enregistrées ici.'}</span>
+                <span className="text-xs text-gray-500">{p.lieeApi ? 'La signature électronique est lancée chez Grenke : le client puis LEVAD reçoivent un e-mail de signature.' : 'Avec le connecteur manuel, la signature se lance sur le portail du financeur ; ces informations sont enregistrées ici.'}</span>
               </div>
             </div>
           )}
