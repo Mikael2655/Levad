@@ -33,6 +33,14 @@ describe('lancement de la signature électronique chez Grenke', () => {
     })
   })
 
+  it('prénom, nom et e-mail suffisent : ni civilité ni mobile ne sont envoyés s’ils ne sont pas saisis', async () => {
+    const { demarrerSignature } = await import('./api')
+    reponses = [() => ({}), () => ({})]
+    await demarrerSignature(config, ID, { client: [{ prenom: 'Jeanne', nom: 'Martin', email: 'j@acme.fr' }], fournisseur: [{ prenom: 'Mikael', nom: 'Obadia', email: 'm@levad.fr' }] })
+    expect(appels[1].corps.CustomerContractSignees[0]).toEqual({ FirstName: 'Jeanne', LastName: 'Martin', Email: 'j@acme.fr', Culture: 'fr-FR', SigningOrder: 1 })
+    expect(appels[1].corps.PartnerContractSignees[0]).toEqual({ FirstName: 'Mikael', LastName: 'Obadia', Email: 'm@levad.fr', Culture: 'fr-FR', SigningOrder: 1 })
+  })
+
   it('s’arrête si Grenke limite le nombre de signataires, sans lancer la signature', async () => {
     const { demarrerSignature } = await import('./api')
     reponses = [() => ({ DocuSign: { MinNumberOfCustomerSignees: 2, MaxNumberOfCustomerSignees: 3 } })]
