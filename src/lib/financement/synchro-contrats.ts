@@ -15,7 +15,7 @@ import { estAdmin } from './droits'
 import { dateFinDepuisDebut } from './echeances'
 import { ErreurMetier } from './erreurs'
 
-export interface ParametresSynchro { financeurId: number; commercialDefautId: number | null; periodicite: Periodicite; appliquer: boolean }
+export interface ParametresSynchro { financeurId: number; commercialDefautId: number | null; periodicite: Periodicite; appliquer: boolean; creerNouveaux?: boolean } // creerNouveaux = false : les contrats inconnus sont seulement signalés (synchro de nuit)
 export type Recuperer = () => Promise<ContratFinanceur[] | { contrats: ContratFinanceur[]; avertissements: string[] }>
 
 export async function synchroniserContrats(a: { id: number; role: 'ADMIN' | 'ASSISTANTE' | 'COMMERCIAL' }, p: ParametresSynchro, recuperer: Recuperer) {
@@ -34,14 +34,15 @@ export async function synchroniserContrats(a: { id: number; role: 'ADMIN' | 'ASS
   if (!p.appliquer) return { simule: true as const, rapport, crees: 0, mis_a_jour: 0 }
 
   let commercial: { id: number } | null = null
-  if (rapport.nouveaux.length) {
+  const nouveauxACreer = p.creerNouveaux === false ? [] : rapport.nouveaux
+  if (nouveauxACreer.length) {
     const u = p.commercialDefautId ? await prisma.finUtilisateur.findUnique({ where: { id: p.commercialDefautId } }) : null
     if (!u || !u.actif || (u.role !== 'COMMERCIAL' && u.role !== 'ADMIN')) throw new ErreurMetier('Choisissez le commercial qui recevra les nouveaux contrats.')
     commercial = u
   }
   const grille = commercial ? await grilleCommercialePour(financeur.id, commercial.id) : null
 
-  const creations = rapport.nouveaux.map(g => {
+  const creations = nouveauxACreer.map(g => {
     const loyer = g.loyerMensuelCentimes!
     const recalcule = grille ? montantDepuisLoyer(grille, g.dureeMois, p.periodicite, financeur.majorationMensuelleBp, loyer) : null
     return prisma.finContrat.create({

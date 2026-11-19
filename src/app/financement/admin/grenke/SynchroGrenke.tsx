@@ -26,6 +26,9 @@ export default function SynchroGrenke(p: { prete: boolean; financeurs: { id: num
   const [commercial, setCommercial] = useState('')
   const [periodicite, setPeriodicite] = useState<'TRIMESTRIELLE' | 'MENSUELLE'>('TRIMESTRIELLE')
   const [source, setSource] = useState<'moi' | 'distributeur' | 'les-deux'>('moi')
+  const [selection, setSelection] = useState<number[]>([])
+  const [motif, setMotif] = useState('Terminé chez le financeur')
+  const [messageCloture, setMessageCloture] = useState<string | null>(null)
   const [res, setRes] = useState<Resultat | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [occupe, setOccupe] = useState(false)
@@ -41,6 +44,22 @@ export default function SynchroGrenke(p: { prete: boolean; financeurs: { id: num
     } finally {
       setOccupe(false)
     }
+  }
+  async function cloturer() {
+    if (selection.length === 0) return
+    if (!window.confirm(`Clôturer ${selection.length} contrat(s) dans l’outil (motif : « ${motif} ») ? Ils sortiront des contrats en cours. Rien n’est modifié chez Grenke.`)) return
+    setErreur(null); setOccupe(true); setMessageCloture(null)
+    try {
+      const r = await appel<{ clotures: number; ignores: number }>('/api/financement/contrats/cloturer', 'POST', { ids: selection, motif, confirmation: 'CLOTURER' })
+      setMessageCloture(`${r.clotures} contrat(s) clôturé(s)${r.ignores ? `, ${r.ignores} déjà clôturé(s)` : ''}.`)
+      setSelection([])
+      router.refresh()
+    } catch (e) {
+      setErreur((e as Error).message)
+    } finally {
+      setOccupe(false)
+    }
+    await lancer(false) // la liste des absents est recalculée
   }
   const r = res?.rapport
   const Bloc = ({ titre, n, aide, children }: { titre: string; n: number; aide: string; children?: React.ReactNode }) => (
@@ -89,7 +108,15 @@ export default function SynchroGrenke(p: { prete: boolean; financeurs: { id: num
             <ul className="space-y-1">{r.aCloturer.map(x => <li key={x.id}>{x.ref} · {x.client} <span className="text-gray-400">({x.etat})</span></li>)}</ul>
           </Bloc>
           <Bloc titre="Absents de la réponse de Grenke" n={r.absents.length} aide="dans l’outil mais pas chez Grenke : non modifiés">
-            <ul className="space-y-1">{r.absents.map(x => <li key={x.id}>{x.ref} · {x.client}</li>)}</ul>
+            <p className="text-xs text-gray-500 mb-2">Cochez ceux qui sont arrêtés ou terminés (impayés, fin de contrat) pour les clôturer dans l’outil. Les autres (nouveaux contrats pas encore démarrés) arriveront tout seuls.</p>
+            <ul className="space-y-1">{r.absents.map(x => <li key={x.id}><label className="flex items-center gap-2"><input type="checkbox" checked={selection.includes(x.id)} onChange={e => setSelection(s => (e.target.checked ? [...s, x.id] : s.filter(i => i !== x.id)))} /> <a className="hover:underline" target="_blank" rel="noreferrer" href={`/financement/contrats/${x.id}`}>{x.ref} · {x.client}</a></label></li>)}</ul>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <select className={champ} value={motif} onChange={e => setMotif(e.target.value)}>
+                <option>Terminé chez le financeur</option><option>Résilié (impayés du client)</option><option>Contrat clos</option><option>Racheté / remplacé</option>
+              </select>
+              <button type="button" disabled={occupe || selection.length === 0} onClick={cloturer} className="border border-gray-300 bg-white hover:bg-gray-50 rounded-xl px-4 py-2 font-medium disabled:opacity-50">Clôturer la sélection ({selection.length})</button>
+              {messageCloture && <span className="text-emerald-700">{messageCloture}</span>}
+            </div>
           </Bloc>
           <Bloc titre="Non repris" n={r.nouveauxIgnores.length} aide="contrats de Grenke volontairement laissés de côté">
             <ul className="space-y-1">{r.nouveauxIgnores.map((x, i) => <li key={i}>{x.ref} · {x.client} <span className="text-gray-400">— {x.raison}</span></li>)}</ul>

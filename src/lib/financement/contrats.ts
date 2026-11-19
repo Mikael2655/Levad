@@ -294,6 +294,24 @@ export async function definirDenonciation(a: Acteur, id: number, denonce: boolea
   return { ok: true }
 }
 
+// --- Clôture groupée ---------------------------------------------------------------------------------------------------------
+// Contrats arrêtés ou terminés chez le financeur (impayés, fin de contrat) : on les clôture dans l'outil pour qu'ils sortent des contrats en cours.
+// Date de clôture : la fin du contrat si elle est passée, sinon aujourd'hui. Réservé à l'administrateur, avec le mot de confirmation vérifié ici.
+export const MOT_CONFIRMATION_CLOTURE = 'CLOTURER'
+
+export async function cloturerContrats(a: Acteur, ids: number[], p: { motif: string; confirmation?: string }, maintenant: Date = new Date()) {
+  if (a.role !== 'ADMIN') throw new ErreurMetier('Seul un administrateur peut clôturer des contrats.', 403)
+  if (p.confirmation !== MOT_CONFIRMATION_CLOTURE) throw new ErreurMetier('Clôture non confirmée.')
+  const motif = p.motif.trim().slice(0, 200)
+  if (!motif) throw new ErreurMetier('Indiquez le motif de la clôture.')
+  const liste = Array.from(new Set(ids.filter(Number.isInteger))).slice(0, 100)
+  if (liste.length === 0) throw new ErreurMetier('Sélectionnez au moins un contrat.')
+  const contrats = await prisma.finContrat.findMany({ where: { id: { in: liste } } })
+  const aCloturer = contrats.filter(c => statutContrat(c) !== 'CLOTURE')
+  await prisma.$transaction(aCloturer.map(c => prisma.finContrat.update({ where: { id: c.id }, data: { clotureLe: c.dateFin && c.dateFin.getTime() < maintenant.getTime() ? c.dateFin : maintenant, clotureMotif: motif } })))
+  return { clotures: aCloturer.length, ignores: liste.length - aCloturer.length }
+}
+
 // --- Suppression -------------------------------------------------------------------------------------------------------
 
 // Réservé à l'administrateur (contrat de test, saisie par erreur). Supprime aussi les demandes de solde du contrat
