@@ -46,6 +46,18 @@ async function toutesLesPages(lire: (p: { page: number; pageSize: number }) => P
   return sortie
 }
 
+// Par défaut la liste de Grenke ne montre que les contrats en cours : on demande aussi les contrats terminés, un état à la fois
+// (un état refusé par Grenke est simplement ignoré, il ne doit jamais empêcher la synchronisation).
+export const ETATS_CONTRATS_CLOS = ['Expired', 'Rescinded', 'Cancelled', 'Paid']
+async function contratsClos(lire: (p: { page: number; pageSize: number; etats: string[] }) => Promise<PageContrats>): Promise<ContratFinanceur[]> {
+  const sortie: ContratFinanceur[] = []
+  for (const etat of ETATS_CONTRATS_CLOS) {
+    try { sortie.push(...(await toutesLesPages(p => lire({ ...p, etats: [etat] })))) } catch (e) { console.error(`Contrats Grenke à l'état ${etat} non lus`, (e as Error).message) }
+  }
+  return sortie
+}
+const fusionner = (a: ContratFinanceur[], b: ContratFinanceur[]) => { const m = new Map(a.map(x => [x.reference, x])); for (const x of b) if (!m.has(x.reference)) m.set(x.reference, x); return Array.from(m.values()) }
+
 export function creerConnecteurGrenke(config: ConfigGrenke): Connecteur {
   return {
     code: 'grenke_api',
@@ -78,12 +90,16 @@ export function creerConnecteurGrenke(config: ConfigGrenke): Connecteur {
     },
 
     async listerContrats(): Promise<ContratFinanceur[]> {
-      return toutesLesPages(p => listerContrats(config, p))
+      const en = await toutesLesPages(p => listerContrats(config, p))
+      return fusionner(en, await contratsClos(p => listerContrats(config, p)))
     },
     // Contrats des partenaires rattachés à notre accès en mode « Distributeur » (ex. RS Systems 058).
     async listerContratsDistributeur(): Promise<ContratFinanceur[]> {
       const sortie = new Map<string, ContratFinanceur>()
-      for (const partenaire of partenairesDistributeur()) for (const x of await toutesLesPages(p => listerContratsDistributeur(config, partenaire, p))) if (!sortie.has(x.reference)) sortie.set(x.reference, x)
+      for (const partenaire of partenairesDistributeur()) {
+        for (const x of await toutesLesPages(p => listerContratsDistributeur(config, partenaire, p))) if (!sortie.has(x.reference)) sortie.set(x.reference, x)
+        for (const x of await contratsClos(p => listerContratsDistributeur(config, partenaire, p))) if (!sortie.has(x.reference)) sortie.set(x.reference, x)
+      }
       return Array.from(sortie.values())
     },
   }

@@ -4,7 +4,8 @@ import type { ContratFinanceur } from './connecteurs/connecteur'
 export const normaliserRef = (s: string | null | undefined) => (s ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '')
 
 // États chez le financeur qui signifient « contrat terminé » (à confirmer avec les vraies réponses de l'API : ils sont affichés tels quels dans le rapport).
-export const ETAT_TERMINE = /(terminat|closed|finished|ended|expired|settled|bought|buyout|repurchase|cancel|ablaufen|beendet)/i
+// (« ApplicationSettled » = dossier réglé, pas terminé ; « ExpiringSoon » = arrive à échéance, pas terminé non plus)
+export const ETAT_TERMINE = /(terminat|closed|finished|ended|expired|rescind|paid|bought|buyout|repurchase|cancel|ablaufen|beendet)/i
 
 export interface ExistantContrat {
   id: number

@@ -76,3 +76,11 @@ describe('contrat créé à la signature d’une demande : relié à son vrai nu
     expect(r.connus).toBe(1)
   })
 })
+
+describe('états Grenke considérés comme « contrat terminé »', () => {
+  it('échu, résilié, soldé, annulé : terminés ; en cours, arrive à échéance, prolongé, dossier réglé : non', async () => {
+    const { ETAT_TERMINE } = await import('./synchro-comparaison')
+    for (const e of ['Expired', 'Rescinded', 'Paid', 'Cancelled']) expect(ETAT_TERMINE.test(e), e).toBe(true)
+    for (const e of ['RunningContract', 'ExpiringSoon', 'ProlongedContract', 'ApplicationSettled', 'Unknown']) expect(ETAT_TERMINE.test(e), e).toBe(false)
+  })
+})

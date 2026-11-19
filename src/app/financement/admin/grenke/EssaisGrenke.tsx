@@ -33,6 +33,7 @@ export default function EssaisGrenke({ prete, demandes }: { prete: boolean; dema
           <button disabled={!prete || occupe} className={bouton} onClick={() => lancer('Types de biens', { action: 'types' })}>Types de biens</button>
           <button disabled={!prete || occupe} className={bouton} onClick={() => lancer('Mes demandes chez Grenke', { action: 'demandes' })}>Mes demandes</button>
           <button disabled={!prete || occupe} className={bouton} onClick={() => lancer('Mes contrats chez Grenke', { action: 'contrats' })}>Mes contrats</button>
+          <button disabled={!prete || occupe} className={bouton} onClick={() => lancer('Contrats par état', { action: 'contrats-etats' })}>Contrats par état</button>
           <button disabled={!prete || occupe} className={bouton} onClick={() => lancer('Contrats en mode Distributeur', { action: 'contrats-distributeur' })}>Contrats (mode Distributeur)</button>
           <button disabled={!prete || occupe} className={bouton} onClick={() => lancer('Comparaison des calculs', { action: 'calculs' })}>Comparer les calculs et les durées</button>
         </div>
