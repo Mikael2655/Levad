@@ -57,6 +57,11 @@ d('synchronisation des contrats (base réelle)', () => {
     expect(r.rapport.ecarts.map(e => e.champ)).toEqual(['date de fin'])
     expect(await prisma.finContrat.count()).toBe(avant)
   })
+  it('source avec avertissements (mode Distributeur non lu) : repris dans le rapport', async () => {
+    const r = await sy.synchroniserContrats(A(), param({ appliquer: false }), async () => ({ contrats: [distant({ reference: 'A1L-65243' })], avertissements: ['Contrats du mode Distributeur non lus (403)'] }))
+    expect(r.rapport.avertissements).toContain('Contrats du mode Distributeur non lus (403)')
+    expect(r.rapport.connus).toBe(1)
+  })
   it('application : pas de doublon, valeurs vides complétées, écarts non écrasés, données saisies intactes', async () => {
     const r = await sy.synchroniserContrats(A(), param(), async () => [distant({ reference: 'A1L-65243' }), distant({ reference: 'NOUVEAU-1', client: 'NOUVEAU CLIENT' }), distant({ reference: 'VIEUX-1', etatBrut: 'Terminated' })])
     expect(r.crees).toBe(1)

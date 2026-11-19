@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { lireConfigGrenke } from '@/lib/financement/connecteurs/grenke/config'
-import { apercuDemande, essaiCalculs, essaiConnexion, essaiContrats, essaiDemandes, essaiTypes } from '@/lib/financement/connecteurs/grenke/essais'
+import { apercuDemande, essaiCalculs, essaiConnexion, essaiContrats, essaiContratsDistributeur, essaiDemandes, essaiTypes } from '@/lib/financement/connecteurs/grenke/essais'
 import { appliquerMajBareme, simulerMajBareme } from '@/lib/financement/connecteurs/grenke/maj-bareme-serveur'
 import { ErreurMetier } from '@/lib/financement/erreurs'
 import { acteurApi, corps, repondre } from '@/lib/financement/garde'
@@ -21,6 +21,7 @@ export async function POST(req: Request) {
       case 'connexion': return essaiConnexion(cfg.config)
       case 'demandes': return essaiDemandes(cfg.config)
       case 'contrats': return essaiContrats(cfg.config)
+      case 'contrats-distributeur': return essaiContratsDistributeur(cfg.config)
       case 'types': return essaiTypes(cfg.config)
       case 'bareme-simuler': return simulerMajBareme(cfg.config)
       case 'bareme-appliquer': return appliquerMajBareme(cfg.config)

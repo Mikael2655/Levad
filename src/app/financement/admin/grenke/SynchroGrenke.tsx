@@ -25,6 +25,7 @@ export default function SynchroGrenke(p: { prete: boolean; financeurs: { id: num
   const [financeurId, setFinanceurId] = useState(String(p.financeurs.find(f => /grenke/i.test(f.nom))?.id ?? p.financeurs[0]?.id ?? ''))
   const [commercial, setCommercial] = useState('')
   const [periodicite, setPeriodicite] = useState<'TRIMESTRIELLE' | 'MENSUELLE'>('TRIMESTRIELLE')
+  const [source, setSource] = useState<'moi' | 'distributeur' | 'les-deux'>('moi')
   const [res, setRes] = useState<Resultat | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
   const [occupe, setOccupe] = useState(false)
@@ -33,7 +34,7 @@ export default function SynchroGrenke(p: { prete: boolean; financeurs: { id: num
     if (appliquer && !confirm('Appliquer la synchronisation ? Les nouveaux contrats seront créés et les valeurs vides complétées. Rien de ce que vous avez saisi ne sera écrasé.')) return
     setErreur(null); setOccupe(true)
     try {
-      setRes(await appel<Resultat>('/api/financement/admin/grenke/synchro', 'POST', { financeurId: Number(financeurId), commercialDefautId: commercial ? Number(commercial) : null, periodicite, appliquer }))
+      setRes(await appel<Resultat>('/api/financement/admin/grenke/synchro', 'POST', { financeurId: Number(financeurId), commercialDefautId: commercial ? Number(commercial) : null, periodicite, source, appliquer }))
       if (appliquer) router.refresh()
     } catch (e) {
       setErreur((e as Error).message)
@@ -58,6 +59,7 @@ export default function SynchroGrenke(p: { prete: boolean; financeurs: { id: num
       <div className="flex flex-wrap items-end gap-4 text-sm">
         <label>Financeur de l’outil<br /><select className={champ} value={financeurId} onChange={e => setFinanceurId(e.target.value)}>{p.financeurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}</select></label>
         <label>Commercial des nouveaux contrats<br /><select className={champ} value={commercial} onChange={e => setCommercial(e.target.value)}><option value="">— choisir —</option>{p.commerciaux.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}</select></label>
+        <label>Contrats lus<br /><select className={champ} value={source} onChange={e => setSource(e.target.value as 'moi' | 'distributeur' | 'les-deux')}><option value="moi">de mon compte LEVAD</option><option value="distributeur">mode Distributeur (RS Systems 058)</option><option value="les-deux">les deux</option></select></label>
         <label>Loyer renvoyé par Grenke<br /><select className={champ} value={periodicite} onChange={e => setPeriodicite(e.target.value as 'TRIMESTRIELLE' | 'MENSUELLE')}><option value="TRIMESTRIELLE">trimestriel</option><option value="MENSUELLE">mensuel</option></select></label>
         <button disabled={!p.prete || occupe} className="border border-gray-300 bg-white hover:bg-gray-50 rounded-xl px-4 py-2 font-medium disabled:opacity-50" onClick={() => lancer(false)}>{occupe ? 'Lecture…' : 'Simuler'}</button>
         <button disabled={!p.prete || occupe || !res?.simule} className="bg-accent-700 hover:bg-accent-800 text-white rounded-xl px-4 py-2 font-semibold disabled:opacity-40" onClick={() => lancer(true)}>Appliquer</button>

@@ -16,7 +16,7 @@ import { dateFinDepuisDebut } from './echeances'
 import { ErreurMetier } from './erreurs'
 
 export interface ParametresSynchro { financeurId: number; commercialDefautId: number | null; periodicite: Periodicite; appliquer: boolean }
-export type Recuperer = () => Promise<ContratFinanceur[]>
+export type Recuperer = () => Promise<ContratFinanceur[] | { contrats: ContratFinanceur[]; avertissements: string[] }>
 
 export async function synchroniserContrats(a: { id: number; role: 'ADMIN' | 'ASSISTANTE' | 'COMMERCIAL' }, p: ParametresSynchro, recuperer: Recuperer) {
   if (!estAdmin(a)) throw new ErreurMetier('Réservé à l’administrateur.', 403)
@@ -24,10 +24,13 @@ export async function synchroniserContrats(a: { id: number; role: 'ADMIN' | 'ASS
   if (!financeur) throw new ErreurMetier('Financeur introuvable.', 404)
   const existants = await prisma.finContrat.findMany({ where: { financeurId: financeur.id }, select: { id: true, demandeId: true, refFinanceur: true, raisonSociale: true, loyerCentimes: true, periodicite: true, dureeMois: true, dateDebut: true, dateFin: true, montantReelCentimes: true, statutFinanceur: true, clotureLe: true } })
 
-  const distants = await recuperer() // une erreur ici arrête tout : rien n'est modifié
+  const recu = await recuperer() // une erreur ici arrête tout : rien n'est modifié
+  const distants = Array.isArray(recu) ? recu : recu.contrats
+  const avertissementsSource = Array.isArray(recu) ? [] : recu.avertissements
   if (distants.length === 0 && existants.length > 0) throw new ErreurMetier('Le financeur a renvoyé une liste vide : rien n’a été modifié (vérifiez la connexion).')
 
   const rapport = comparer(existants, distants, p.periodicite)
+  rapport.avertissements.push(...avertissementsSource)
   if (!p.appliquer) return { simule: true as const, rapport, crees: 0, mis_a_jour: 0 }
 
   let commercial: { id: number } | null = null
