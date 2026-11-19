@@ -2,7 +2,7 @@
 // après les essais, quand Grenke aura été prévenu (il n'existe pas d'environnement de test : tout se passe en production).
 import { ErreurMetier } from '../../erreurs'
 import type { Connecteur, ContratFinanceur, EtatDemande } from '../connecteur'
-import { demarrerSignature, envoyerDocument, listerContrats, listerDemandes, lireDemande } from './api'
+import { demarrerSignature, envoyerDocument, listerContrats, listerContratsDistributeur, listerDemandes, lireDemande } from './api'
 import type { ConfigGrenke } from './config'
 import { versStatutCommun } from './statuts'
 
@@ -28,6 +28,23 @@ export function envoiAutorisePourSiret(siret: string, env: Record<string, string
 export const ecritureAutorisee = (env: Record<string, string | undefined> = process.env) => env.GRENKE_ECRITURE?.trim().toLowerCase() === 'oui'
 
 const pasEncore = (action: string) => new ErreurMetier(`${action} : l’envoi réel vers Grenke n’est pas encore activé.`, 501)
+
+type PageContrats = { items: Record<string, any>[]; pageCount: number }
+const versContrat = (c: Record<string, any>): ContratFinanceur => ({
+  reference: String(c.ContractId ?? ''), etatBrut: String(c.State ?? ''), client: String(c.Lessee?.CompanyName ?? ''),
+  loyerMensuelCentimes: typeof c.TotalInstalment === 'number' ? Math.round(c.TotalInstalment * 100) : null,
+  dureeMois: Number(c.Period ?? 0), montantFinanceCentimes: typeof c.NetAcquisitionValue === 'number' ? Math.round(c.NetAcquisitionValue * 100) : null,
+  dateDebut: c.StartDate ? new Date(c.StartDate) : null, dateFin: c.EndDate ? new Date(c.EndDate) : null,
+})
+async function toutesLesPages(lire: (p: { page: number; pageSize: number }) => Promise<PageContrats>): Promise<ContratFinanceur[]> {
+  const sortie: ContratFinanceur[] = []
+  for (let page = 1; page <= 100; page++) {
+    const r = await lire({ page, pageSize: 100 })
+    sortie.push(...r.items.map(versContrat))
+    if (page >= r.pageCount) break
+  }
+  return sortie
+}
 
 export function creerConnecteurGrenke(config: ConfigGrenke): Connecteur {
   return {
@@ -61,19 +78,11 @@ export function creerConnecteurGrenke(config: ConfigGrenke): Connecteur {
     },
 
     async listerContrats(): Promise<ContratFinanceur[]> {
-      const sortie: ContratFinanceur[] = []
-      for (let page = 1; ; page++) {
-        const r = await listerContrats(config, { page, pageSize: 100 })
-        for (const c of r.items) {
-          sortie.push({
-            reference: String(c.ContractId ?? ''), etatBrut: String(c.State ?? ''), client: String(c.Lessee?.CompanyName ?? ''),
-            loyerMensuelCentimes: typeof c.TotalInstalment === 'number' ? Math.round(c.TotalInstalment * 100) : null,
-            dureeMois: Number(c.Period ?? 0), montantFinanceCentimes: typeof c.NetAcquisitionValue === 'number' ? Math.round(c.NetAcquisitionValue * 100) : null,
-            dateDebut: c.StartDate ? new Date(c.StartDate) : null, dateFin: c.EndDate ? new Date(c.EndDate) : null,
-          })
-        }
-        if (page >= r.pageCount) return sortie
-      }
+      return toutesLesPages(p => listerContrats(config, p))
+    },
+    // Contrats des partenaires rattachés à notre accès en mode « Distributeur » (ex. RS Systems 058).
+    async listerContratsDistributeur(): Promise<ContratFinanceur[]> {
+      return toutesLesPages(p => listerContratsDistributeur(config, p))
     },
   }
 }

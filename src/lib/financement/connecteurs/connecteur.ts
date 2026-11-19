@@ -38,6 +38,8 @@ export interface Connecteur {
   listerContrats(): Promise<ContratFinanceur[]>
   // Retrouve une demande existante chez le financeur d'après son numéro lisible (financeurs avec API).
   trouverDemande?(reference: string): Promise<DemandeFinanceur | null>
+  // Contrats des partenaires rattachés à notre accès (mode « Distributeur » de Grenke).
+  listerContratsDistributeur?(): Promise<ContratFinanceur[]>
 }
 
 export interface DemandeFinanceur {

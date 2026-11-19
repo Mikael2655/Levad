@@ -59,6 +59,11 @@ export async function listerContrats(c: ConfigGrenke, p: { page?: number; pageSi
   return page(await appelerOk(c, 'GET', '/basic/v1/contracts', { query: { 'contractListParameter.page': p.page ?? 1, 'contractListParameter.pageSize': p.pageSize ?? 50, 'contractListParameter.state': p.etats } }))
 }
 
+// Mode « Distributeur » : contrats des partenaires rattachés à notre accès (ex. 058-42706, RS Systems). Même format de liste que /basic/v1/contracts (à confirmer).
+export async function listerContratsDistributeur(c: ConfigGrenke, p: { page?: number; pageSize?: number; etats?: string[] } = {}) {
+  return page(await appelerOk(c, 'GET', '/distributor/v1/contracts', { query: { 'contractListParameter.page': p.page ?? 1, 'contractListParameter.pageSize': p.pageSize ?? 50, 'contractListParameter.state': p.etats } }))
+}
+
 export async function lireDemande(c: ConfigGrenke, financingId: string): Promise<Json> {
   if (!/^[0-9a-f-]{36}$/i.test(financingId)) throw new ErreurMetier('Identifiant de demande Grenke invalide.')
   return (await appelerOk(c, 'GET', `/basic/v1/requests/${financingId}`)) as Json

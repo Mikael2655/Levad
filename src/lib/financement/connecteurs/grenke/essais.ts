@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 import { grilleReelle } from '../../admin'
 import { loyerDepuisMontant } from '../../calcul'
 import { ErreurMetier } from '../../erreurs'
-import { calculer, echo, listerContrats, listerDemandes, typesObjets, version } from './api'
+import { calculer, echo, listerContrats, listerContratsDistributeur, listerDemandes, typesObjets, version } from './api'
 import type { ConfigGrenke } from './config'
 import { construireDemandeGrenke, type OptionsGrenke } from './demande'
 import { versStatutCommun } from './statuts'
@@ -24,6 +24,18 @@ export async function essaiDemandes(c: ConfigGrenke) {
 export async function essaiContrats(c: ConfigGrenke) {
   const r = await listerContrats(c, { pageSize: 20 })
   return { total: r.total, contrats: r.items.map(x => ({ reference: x.ContractId, etat: x.State, client: x.Lessee?.CompanyName, loyerMensuel: x.TotalInstalment, dureeMois: x.Period, montantFinance: x.NetAcquisitionValue, debut: x.StartDate, fin: x.EndDate })) }
+}
+
+// Contrats vus en mode « Distributeur » (partenaires rattachés, ex. RS Systems 058) : lecture seule. Montre aussi le premier élément brut pour vérifier le format.
+export async function essaiContratsDistributeur(c: ConfigGrenke) {
+  const r = await listerContratsDistributeur(c, { pageSize: 20 })
+  const prefixes: Record<string, number> = {}
+  r.items.forEach(x => { const p = String(x.ContractId ?? '').split(/[-\s]/)[0] || '?'; prefixes[p] = (prefixes[p] ?? 0) + 1 })
+  return {
+    total: r.total, pages: r.pageCount, prefixesVusSurLaPage: prefixes,
+    contrats: r.items.map(x => ({ reference: x.ContractId, etat: x.State, client: x.Lessee?.CompanyName, loyerMensuel: x.TotalInstalment, dureeMois: x.Period, montantFinance: x.NetAcquisitionValue, debut: x.StartDate, fin: x.EndDate })),
+    premierElementBrut: r.items[0] ?? null,
+  }
 }
 
 export const essaiTypes = (c: ConfigGrenke) => typesObjets(c)
