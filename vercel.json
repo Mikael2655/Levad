@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/financement-sync",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/financement-synchro-contrats",
+      "schedule": "10 2 * * *"
     }
   ]
 }

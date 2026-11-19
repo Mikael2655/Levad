@@ -5,6 +5,8 @@ import { dateFr } from '../../format'
 import { listerFinanceurs, listerUtilisateurs } from '@/lib/financement/admin'
 import EssaisGrenke from './EssaisGrenke'
 import { modeEcriture } from '@/lib/financement/connecteurs/grenke/connecteur'
+import { lireParametre } from '@/lib/financement/notifications'
+import { PARAM_SYNCHRO_DERNIERE, type ResumeSynchro } from '@/lib/financement/synchro-nocturne'
 import MajBareme from './MajBareme'
 import SynchroGrenke from './SynchroGrenke'
 import RetourAdmin from '../RetourAdmin'
@@ -19,6 +21,8 @@ export default async function PageGrenke() {
   const commerciaux = utilisateurs.filter(x => x.actif && (x.role === 'COMMERCIAL' || x.role === 'ADMIN')).map(x => ({ id: x.id, nom: `${x.prenom} ${x.nom}` }))
   const mode = process.env.GRENKE_PAYMENT_METHOD
   const ecriture = modeEcriture()
+  const derniereBrute = await lireParametre(PARAM_SYNCHRO_DERNIERE)
+  const derniere: ResumeSynchro | null = (() => { try { return derniereBrute ? JSON.parse(derniereBrute) : null } catch { return null } })()
   return (
     <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <RetourAdmin />
@@ -46,6 +50,9 @@ export default async function PageGrenke() {
       </p>
       <EssaisGrenke prete={cfg.prete} demandes={demandes} />
       <MajBareme prete={cfg.prete} />
+      <p className={`text-sm rounded-xl px-4 py-3 border ${!derniere ? 'bg-gray-50 border-gray-200 text-gray-600' : derniere.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-red-50 border-red-200 text-red-800'}`}>
+        <b>Synchronisation de nuit des contrats</b> (chaque nuit, sans rien clôturer ni supprimer) : {!derniere ? 'pas encore passée.' : derniere.ok ? `dernier passage le ${new Date(derniere.date).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })} : ${derniere.connus} contrat(s) reconnus, ${derniere.completes ?? 0} complété(s), ${derniere.nouveaux?.length ?? 0} nouveau(x) à créer, ${derniere.ecarts?.length ?? 0} écart(s), ${derniere.aCloturer?.length ?? 0} terminé(s) chez Grenke.` : `échec le ${new Date(derniere.date).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })} : ${derniere.erreur}`}
+      </p>
       <SynchroGrenke prete={cfg.prete} financeurs={financeurs.map(f => ({ id: f.id, nom: f.nom }))} commerciaux={commerciaux} />
     </main>
   )
