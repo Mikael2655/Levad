@@ -59,9 +59,29 @@ export async function listerContrats(c: ConfigGrenke, p: { page?: number; pageSi
   return page(await appelerOk(c, 'GET', '/basic/v1/contracts', { query: { 'contractListParameter.page': p.page ?? 1, 'contractListParameter.pageSize': p.pageSize ?? 50, 'contractListParameter.state': p.etats } }))
 }
 
-// Mode « Distributeur » : contrats des partenaires rattachés à notre accès (ex. 058-42706, RS Systems). Même format de liste que /basic/v1/contracts (à confirmer).
-export async function listerContratsDistributeur(c: ConfigGrenke, p: { page?: number; pageSize?: number; etats?: string[] } = {}) {
-  return page(await appelerOk(c, 'GET', '/distributor/v1/contracts', { query: { 'contractListParameter.page': p.page ?? 1, 'contractListParameter.pageSize': p.pageSize ?? 50, 'contractListParameter.state': p.etats } }))
+// Mode « Distributeur » : contrats d'un partenaire rattaché à notre accès (ex. 058-42706, RS Systems). Grenke exige le partenaire
+// (« InTheNameOfBusinessPartner ») ; le nom exact du paramètre n'est pas dans la documentation reçue : on essaie les écritures usuelles
+// tant que Grenke répond que ce paramètre est vide, et on garde celle qui passe.
+export const PARTENAIRES_DISTRIBUTEUR_DEFAUT = ['058-42706']
+export const partenairesDistributeur = (env: Record<string, string | undefined> = process.env): string[] => {
+  const l = (env.GRENKE_DISTRIBUTEUR_PARTENAIRES ?? '').split(/[,;\s]+/).map(x => x.trim()).filter(Boolean)
+  return l.length ? l : PARTENAIRES_DISTRIBUTEUR_DEFAUT
+}
+const NOMS_PARAMETRE_PARTENAIRE = ['InTheNameOfBusinessPartner', 'inTheNameOfBusinessPartner', 'inTheNameOfBusinessPartnerInput.InTheNameOfBusinessPartner', 'contractListParameter.InTheNameOfBusinessPartner', 'contractListParameter.inTheNameOfBusinessPartner']
+
+export async function listerContratsDistributeur(c: ConfigGrenke, partenaire: string, p: { page?: number; pageSize?: number; etats?: string[] } = {}) {
+  const base = { 'contractListParameter.page': p.page ?? 1, 'contractListParameter.pageSize': p.pageSize ?? 50, 'contractListParameter.state': p.etats }
+  let derniere: unknown = null
+  for (const nom of NOMS_PARAMETRE_PARTENAIRE) {
+    try {
+      return { ...page(await appelerOk(c, 'GET', '/distributor/v1/contracts', { query: { ...base, [nom]: partenaire } })), parametreUtilise: nom }
+    } catch (e) {
+      derniere = e
+      // seule l'erreur « partenaire vide » justifie d'essayer une autre écriture ; toute autre réponse de Grenke est définitive
+      if (!(e instanceof ErreurMetier) || !/InTheNameOfBusinessPartner[^}]*must not be empty/i.test(e.message)) throw e
+    }
+  }
+  throw derniere
 }
 
 export async function lireDemande(c: ConfigGrenke, financingId: string): Promise<Json> {

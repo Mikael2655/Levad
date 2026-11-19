@@ -2,7 +2,7 @@
 // après les essais, quand Grenke aura été prévenu (il n'existe pas d'environnement de test : tout se passe en production).
 import { ErreurMetier } from '../../erreurs'
 import type { Connecteur, ContratFinanceur, EtatDemande } from '../connecteur'
-import { demarrerSignature, envoyerDocument, listerContrats, listerContratsDistributeur, listerDemandes, lireDemande } from './api'
+import { demarrerSignature, envoyerDocument, listerContrats, listerContratsDistributeur, listerDemandes, lireDemande, partenairesDistributeur } from './api'
 import type { ConfigGrenke } from './config'
 import { versStatutCommun } from './statuts'
 
@@ -82,7 +82,9 @@ export function creerConnecteurGrenke(config: ConfigGrenke): Connecteur {
     },
     // Contrats des partenaires rattachés à notre accès en mode « Distributeur » (ex. RS Systems 058).
     async listerContratsDistributeur(): Promise<ContratFinanceur[]> {
-      return toutesLesPages(p => listerContratsDistributeur(config, p))
+      const sortie = new Map<string, ContratFinanceur>()
+      for (const partenaire of partenairesDistributeur()) for (const x of await toutesLesPages(p => listerContratsDistributeur(config, partenaire, p))) if (!sortie.has(x.reference)) sortie.set(x.reference, x)
+      return Array.from(sortie.values())
     },
   }
 }
