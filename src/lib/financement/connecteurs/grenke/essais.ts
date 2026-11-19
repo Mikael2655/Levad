@@ -42,6 +42,19 @@ export async function essaiContratsDistributeur(c: ConfigGrenke) {
   return sortie.length === 1 ? sortie[0] : sortie
 }
 
+// Combien de contrats Grenke renvoie-t-il pour chaque état (en cours, échu, résilié...) ? Compte LEVAD et mode Distributeur. Lecture seule.
+export async function essaiContratsParEtat(c: ConfigGrenke) {
+  const etats = ['RunningContract', 'ExpiringSoon', 'ProlongedContract', 'ApplicationSettled', 'Expired', 'Rescinded', 'Cancelled', 'Paid']
+  const sortie: Record<string, Record<string, string | number>> = { compteLevad: {}, modeDistributeur: {} }
+  for (const etat of etats) {
+    try { sortie.compteLevad[etat] = (await listerContrats(c, { pageSize: 100, etats: [etat] })).items.length } catch (e) { sortie.compteLevad[etat] = `refusé : ${(e as Error).message.slice(0, 120)}` }
+    for (const partenaire of partenairesDistributeur()) {
+      try { sortie.modeDistributeur[`${partenaire} · ${etat}`] = (await listerContratsDistributeur(c, partenaire, { pageSize: 100, etats: [etat] })).items.length } catch (e) { sortie.modeDistributeur[`${partenaire} · ${etat}`] = `refusé : ${(e as Error).message.slice(0, 120)}` }
+    }
+  }
+  return sortie
+}
+
 export const essaiTypes = (c: ConfigGrenke) => typesObjets(c)
 
 // Compare, pour quelques montants, les loyers de Grenke (calcul sans durée : toutes les durées de la liste de conditions) avec ceux de

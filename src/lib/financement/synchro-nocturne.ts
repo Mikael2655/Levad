@@ -23,6 +23,7 @@ export interface ResumeSynchro {
   nouveaux?: string[]
   ecarts?: string[]
   aCloturer?: string[]
+  aCloturerDetail?: { id: number; ref: string; client: string; etat: string }[] // terminés chez Grenke, à valider (un clic) dans Administration → Connexion Grenke
   absents?: number
   avertissements?: string[]
 }
@@ -42,7 +43,7 @@ export async function synchroNocturne(maintenant: Date = new Date()): Promise<Re
       ok: true, connus: r.rapport.connus, completes: r.mis_a_jour, reliees: r.reliees,
       nouveaux: r.rapport.nouveaux.map(n => `${n.reference} · ${n.client}`),
       ecarts: r.rapport.ecarts.map(e => `${e.ref} · ${e.client} : ${e.champ} (outil ${e.nous}, Grenke ${e.financeur})`),
-      aCloturer: r.rapport.aCloturer.map(c => `${c.ref} · ${c.client} (${c.etat})`),
+      aCloturer: r.rapport.aCloturer.map(c => `${c.ref} · ${c.client} (${c.etat})`), aCloturerDetail: r.rapport.aCloturer,
       absents: r.rapport.absents.length, avertissements: r.rapport.avertissements,
     })
   } catch (e) {
@@ -54,7 +55,7 @@ export async function synchroNocturne(maintenant: Date = new Date()): Promise<Re
 }
 
 async function prevenirSiNouveau(r: ResumeSynchro) {
-  const notable = !r.ok ? [`ERREUR : ${r.erreur}`] : [...(r.nouveaux ?? []).map(x => `Nouveau : ${x}`), ...(r.ecarts ?? []).map(x => `Écart : ${x}`), ...(r.aCloturer ?? []).map(x => `Terminé chez Grenke : ${x}`), ...(r.avertissements ?? [])]
+  const notable = !r.ok ? [`ERREUR : ${r.erreur}`] : [...(r.nouveaux ?? []).map(x => `Nouveau : ${x}`), ...(r.ecarts ?? []).map(x => `Écart : ${x}`), ...(r.aCloturer ?? []).map(x => `Terminé chez Grenke (à valider dans l’outil) : ${x}`), ...(r.avertissements ?? [])]
   const signature = notable.join('|')
   if ((await lireParametre(PARAM_SYNCHRO_SIGNATURE)) === signature) return // déjà signalé hier
   await ecrireParametre(PARAM_SYNCHRO_SIGNATURE, signature)

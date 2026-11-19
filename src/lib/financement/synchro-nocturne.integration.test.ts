@@ -57,6 +57,16 @@ d('synchronisation de nuit (base réelle)', () => {
     expect(mails).toHaveLength(2)
   })
 
+  it('contrat terminé chez Grenke : proposé (détail conservé pour validation en un clic), jamais clôturé automatiquement', async () => {
+    compte = [distant({ reference: '100-62500', etatBrut: 'Expired' })]
+    const r = await sn.synchroNocturne()
+    expect(r.aCloturerDetail).toHaveLength(1)
+    expect(r.aCloturerDetail![0]).toMatchObject({ ref: '100-62500', etat: 'Expired' })
+    expect((await prisma.finContrat.findFirstOrThrow({ where: { refFinanceur: '100-62500' } })).clotureLe).toBeNull()
+    expect(mails.at(-1)?.sujet).toBe('Contrats Grenke : points à vérifier')
+    compte = [distant()]
+  })
+
   it('mode Distributeur en panne : la comparaison du compte continue, avec avertissement', async () => {
     distributeur = new Error('403')
     const r = await sn.synchroNocturne()

@@ -105,7 +105,8 @@ export default function SynchroGrenke(p: { prete: boolean; financeurs: { id: num
               <tbody>{r.ecarts.map((x, i) => <tr key={i} className="border-t border-gray-100"><td className="pr-4 py-1">{x.ref} · {x.client}</td><td className="pr-4">{x.champ}</td><td className="pr-4">{x.nous}</td><td>{x.financeur}</td></tr>)}</tbody></table>
           </Bloc>
           <Bloc titre="Terminés chez Grenke" n={r.aCloturer.length} aide="proposés seulement : rien n’est clôturé automatiquement">
-            <ul className="space-y-1">{r.aCloturer.map(x => <li key={x.id}>{x.ref} · {x.client} <span className="text-gray-400">({x.etat})</span></li>)}</ul>
+            <ul className="space-y-1">{r.aCloturer.map(x => <li key={x.id}><label className="flex items-center gap-2"><input type="checkbox" checked={selection.includes(x.id)} onChange={e => setSelection(s => (e.target.checked ? [...s, x.id] : s.filter(i => i !== x.id)))} /> <a className="hover:underline" target="_blank" rel="noreferrer" href={`/financement/contrats/${x.id}`}>{x.ref} · {x.client}</a> <span className="text-gray-400">({x.etat})</span></label></li>)}</ul>
+            <div className="mt-3"><button type="button" disabled={occupe || selection.length === 0} onClick={cloturer} className="border border-gray-300 bg-white hover:bg-gray-50 rounded-xl px-4 py-2 font-medium disabled:opacity-50">Valider la clôture de la sélection ({selection.length})</button></div>
           </Bloc>
           <Bloc titre="Absents de la réponse de Grenke" n={r.absents.length} aide="dans l’outil mais pas chez Grenke : non modifiés">
             <p className="text-xs text-gray-500 mb-2">Cochez ceux qui sont arrêtés ou terminés (impayés, fin de contrat) pour les clôturer dans l’outil. Les autres (nouveaux contrats pas encore démarrés) arriveront tout seuls.</p>
