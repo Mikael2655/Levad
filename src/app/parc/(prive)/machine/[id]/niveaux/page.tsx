@@ -63,6 +63,48 @@ function Rangee({ etiquette, niveaux, surligne = false }: { etiquette: React.Rea
   )
 }
 
+/** Courbes des 4 couleurs sur 30 jours (tous les relevés), niveau en % de 0 à 100. */
+function Courbes({ lignes }: { lignes: Ligne[] }) {
+  const L = 720, H = 240, g = 38, d = 12, h = 26, b = 22 // marges : gauche, droite, haut, bas
+  const fin = Date.now()
+  const debut = fin - JOURS * 86400000
+  const x = (t: number) => g + ((t - debut) / (fin - debut)) * (L - g - d)
+  const y = (v: number) => h + (1 - v / 100) * (H - h - b)
+  const graduations = [0, 25, 50, 75, 100]
+  const jours = [0, 5, 10, 15, 20, 25, 30]
+  return (
+    <div className="mt-5 rounded-xl border bg-white p-4">
+      <svg viewBox={`0 0 ${L} ${H}`} className="w-full" role="img" aria-label="Niveaux d'encre sur 30 jours">
+        {graduations.map((v) => (
+          <g key={v}>
+            <line x1={g} x2={L - d} y1={y(v)} y2={y(v)} stroke="#e5e7eb" />
+            <text x={g - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="#6b7280">{v} %</text>
+          </g>
+        ))}
+        {jours.map((j) => {
+          const t = debut + j * 86400000
+          return (
+            <text key={j} x={x(t)} y={H - 6} textAnchor="middle" fontSize="11" fill="#6b7280">
+              {new Date(t).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit' })}
+            </text>
+          )
+        })}
+        {COULEURS.map((c) => {
+          const points = lignes.filter((l) => typeof l.niveaux[c] === 'number' && l.date.getTime() >= debut).map((l) => `${x(l.date.getTime()).toFixed(1)},${y(l.niveaux[c] as number).toFixed(1)}`)
+          return points.length > 0 ? <polyline key={c} points={points.join(' ')} fill="none" stroke={TEINTE[c]} strokeWidth="2" strokeLinejoin="round" /> : null
+        })}
+      </svg>
+      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+        {COULEURS.map((c) => (
+          <span key={c} className="flex items-center gap-1.5">
+            <span className="inline-block h-0.5 w-4" style={{ backgroundColor: TEINTE[c] }} /> {NOM_COULEUR[c]}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default async function NiveauxPage({ params, searchParams }: { params: { id: string }; searchParams: { jour?: string } }) {
   const machine = await prisma.connectMachine.findUnique({ where: { id: Number(params.id) }, include: { client: true } })
   if (!machine) notFound()
@@ -90,6 +132,8 @@ export default async function NiveauxPage({ params, searchParams }: { params: { 
       {jours.length === 0 ? (
         <p className="mt-6 rounded-xl border bg-white p-6 text-gray-600">Aucun niveau d&apos;encre relevé sur les {JOURS} derniers jours.</p>
       ) : (
+        <>
+        <Courbes lignes={lignes} />
         <div className="mt-5 overflow-x-auto rounded-xl border bg-white">
           <table className="w-full text-sm">
             <Entete premiere="Relevé" />
@@ -114,6 +158,7 @@ export default async function NiveauxPage({ params, searchParams }: { params: { 
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <section id="detail" className="mt-6 scroll-mt-4">
