@@ -68,7 +68,7 @@ export type MachineNonReleve = {
 }
 
 /**
- * Machines sous contrat qui ne sont plus relevées alors que le programme du client, lui, répond : au moins un de ses
+ * Machines sous contrat que le programme a déjà lues mais qui ne sont plus relevées alors que le programme du client, lui, répond : au moins un de ses
  * ordinateurs a donné signe de vie récemment. Sans cette alerte, une machine oubliée (changement de réseau, copieur
  * éteint, adresse modifiée) ne remonte plus d'alerte d'encre sans que personne le voie.
  * Mêmes seuils que les ordinateurs : 5 jours (noir), délai du client (rouge).
@@ -78,7 +78,7 @@ export async function machinesNonReleves(): Promise<MachineNonReleve[]> {
     where: { modeReleve: 'agent', postes: { some: {} } },
     include: {
       postes: true,
-      machines: { where: { categorie: 'mine', horsContrat: false }, include: { releves: { orderBy: { date: 'desc' }, take: 1, select: { date: true } } } },
+      machines: { where: { categorie: 'mine', horsContrat: false }, include: { releves: { where: { source: { not: 'import' } }, orderBy: { date: 'desc' }, take: 1, select: { date: true } } } },
     },
     orderBy: { nom: 'asc' },
   })
@@ -88,7 +88,9 @@ export async function machinesNonReleves(): Promise<MachineNonReleve[]> {
     const unPosteRepond = c.postes.some((p) => (maintenant - p.derniereConnexion.getTime()) / 86400000 < Math.min(SEUIL_POSTE_REPOND_JOURS, c.seuilDeconnexionJours))
     if (!unPosteRepond) return []
     return c.machines.flatMap((m): MachineNonReleve[] => {
-      const derniere = m.releves[0]?.date ?? m.creeLe
+      // une machine que le programme n'a jamais lue (relevés importés seulement, ou rien) n'est pas signalée : elle n'a jamais été « relevée » par lui
+      if (!m.releves[0]) return []
+      const derniere = m.releves[0].date
       const jours = (maintenant - derniere.getTime()) / 86400000
       if (jours < Math.min(SEUIL_ORANGE_JOURS, c.seuilDeconnexionJours)) return []
       return [{ id: m.id, clientId: c.id, clientNom: c.nom, nom: libelleMachine(m, 'Machine inconnue'), site: m.site, seuilJours: c.seuilDeconnexionJours, derniere, niveau: jours >= c.seuilDeconnexionJours ? 'rouge' : 'orange' }]
