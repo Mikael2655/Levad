@@ -197,6 +197,41 @@ export default async function Accueil() {
               </ul>
             )}
           </div>
+
+          <div className={`${carte} mt-5 overflow-hidden`}>
+            <div className="flex items-center gap-3 border-b border-gray-100 bg-sky-50/60 px-5 py-4">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700"><Icone d={I.sablier} /></span>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-gray-900">Contrats en tacite reconduction</h3>
+                <p className="text-xs text-gray-500">Contrats arrivés à leur terme et reconduits chaque année, classés par prochaine reconduction.</p>
+              </div>
+              <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold tabular-nums text-sky-800">{tacites.length}</span>
+            </div>
+            {tacites.length === 0 ? (
+              <div className="flex flex-col items-center px-6 py-10 text-center">
+                <p className="font-medium text-gray-900">Aucun contrat en tacite reconduction</p>
+              </div>
+            ) : (
+              <>
+                <ul className="divide-y divide-gray-100">
+                  {[...tacites].sort((a, b) => new Date(a.reconduction ?? 0).getTime() - new Date(b.reconduction ?? 0).getTime()).slice(0, 5).map(c => (
+                    <li key={c.id}>
+                      <Link href={`/financement/contrats/${c.id}`} className="group flex items-center gap-4 px-5 py-3.5 transition hover:bg-sable-50">
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium text-gray-900">{c.raisonSociale}</span>
+                          <span className="block truncate text-xs text-gray-500">{c.reference ?? `Contrat ${c.id}`}{interne ? ` · ${c.commercialAffiche}` : ''}</span>
+                        </span>
+                        <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-800 ring-1 ring-inset ring-sky-600/20">{c.reconduction ? `reconduction le ${dateFr(c.reconduction)}` : 'tacite reconduction'}</span>
+                        <span className="hidden text-right text-sm tabular-nums text-gray-700 sm:block">{euros(c.montantCommercialCentimes)}</span>
+                        <Icone d={I.fleche} className="h-4 w-4 text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-gray-500" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {tacites.length > 5 && <Link href="/financement/contrats" className="block border-t border-gray-100 px-5 py-3 text-sm font-medium text-accent-700 hover:bg-sable-50">Voir les {tacites.length} contrats (colonne « statut » : tacite)</Link>}
+              </>
+            )}
+          </div>
         </section>
       </div>
     </main>
