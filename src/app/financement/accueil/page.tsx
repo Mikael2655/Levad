@@ -118,7 +118,7 @@ export default async function Accueil() {
                             <span className="min-w-0 flex-1">
                               <span className="block truncate font-medium text-gray-900">{d.raisonSociale}</span>
                               <span className="block truncate text-xs text-gray-500">
-                                {d.reference} · {d.statut === 'INFOS_MANQUANTES' && d.infosManquantes ? d.infosManquantes : d.statut === 'EN_SIGNATURE' ? (libelleEtape(d.etapeSignature) ?? 'signature en cours') : d.statut === 'PRETE_A_SIGNER' ? 'accord reçu, signature à lancer' : `mis à jour ${il_y_a(d.majLe)}`}
+                                {d.numero} · {d.statut === 'INFOS_MANQUANTES' && d.infosManquantes ? d.infosManquantes : d.statut === 'EN_SIGNATURE' ? (libelleEtape(d.etapeSignature) ?? 'signature en cours') : d.statut === 'PRETE_A_SIGNER' ? 'accord reçu, signature à lancer' : `mis à jour ${il_y_a(d.majLe)}`}
                                 {interne ? ` · ${d.commercialAffiche}` : ''}
                               </span>
                             </span>

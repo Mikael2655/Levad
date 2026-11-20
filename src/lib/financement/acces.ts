@@ -2,6 +2,7 @@
 // Le filtre « un commercial ne voit que ses demandes » est dans la requête SQL, et la réponse passe par vueDemande.
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
+import { numeroAffiche } from './numero'
 import { estInterne, vueDemande, type Acteur } from './droits'
 
 export interface FiltresDemandes {
@@ -34,6 +35,7 @@ export async function listerDemandes(acteur: Acteur, f: FiltresDemandes = {}) {
     commercialAffiche: `${commercial.prenom} ${commercial.nom.slice(0, 1)}.`,
     materiel: materiel.map(l => (l.quantite > 1 ? `${l.quantite} × ` : '') + l.designation).join(' ; '),
     financeurNom: financeur.nom,
+    numero: numeroAffiche(d, financeur),
   }))
 }
 
@@ -65,6 +67,7 @@ export async function lireDemande(acteur: Acteur, id: number) {
     ...vueDemande(acteur, base),
     commercialNom: `${commercial.prenom} ${commercial.nom}`,
     financeurNom: financeur.nom,
+    numero: numeroAffiche(base, financeur),
     signatureElectronique: financeur.signatureElectronique,
     financeurAvecApi: financeur.connecteur === 'grenke_api',
     envoiParMail: financeur.envoiParMail,

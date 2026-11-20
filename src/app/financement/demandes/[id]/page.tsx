@@ -35,7 +35,8 @@ export default async function FicheDemande({ params, searchParams }: { params: {
     <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
       <div className="flex flex-wrap items-center gap-3">
         <LienRetour nom="demandes" defaut="/financement" className="text-sm text-gray-500 hover:text-accent-700 bg-white border border-gray-300 rounded-xl px-3 py-1 transition-colors">← Demandes</LienRetour>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{d.reference} <span className="text-gray-400 font-normal">·</span> {d.raisonSociale}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{d.numero} <span className="text-gray-400 font-normal">·</span> {d.raisonSociale}</h1>
+        {d.numero !== d.reference && <span className="text-xs text-gray-400" title="Référence interne de l’outil">réf. interne {d.reference}</span>}
         <BadgeStatut statut={d.statut} etape={d.etapeSignature} piecesEnvoyees={d.statut === 'ENVOYEE' && !!d.infosManquantes} />
         {d.statut === 'EN_SIGNATURE' && libelleEtape(d.etapeSignature) && <span className="text-sm text-violet-800">{libelleEtape(d.etapeSignature)}</span>}
         {d.archivee && <span className="text-xs bg-gray-200 text-gray-600 rounded px-2 py-0.5">Archivée</span>}

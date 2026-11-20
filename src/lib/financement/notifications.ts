@@ -2,6 +2,7 @@
 // Un envoi raté ne bloque JAMAIS l'action de l'utilisateur : il est noté dans le journal (Administration → Notifications).
 import { Resend } from 'resend'
 import { prisma } from '@/lib/db'
+import { numeroAffiche } from './numero'
 import { LIBELLES_ETAPE, type EtapeSignature } from './etapes'
 import { LIBELLES_STATUT } from './statuts'
 import type { Statut } from './droits'
@@ -128,16 +129,17 @@ const RETOURS: Partial<Record<Statut, { titre: string; sujet: string }>> = {
 
 export async function notifierChangement(c: ChangementDemande): Promise<void> {
   try {
-    const d = await prisma.finDemande.findUnique({ where: { id: c.demandeId }, include: { commercial: true } })
+    const d = await prisma.finDemande.findUnique({ where: { id: c.demandeId }, include: { commercial: true, financeur: true } })
     if (!d) return
+    const numero = numeroAffiche(d, d.financeur)
     const commercial = await destinataireActif(d.commercialId)
     const lien = { url: `${urlBase()}/financement/demandes/${d.id}`, texte: 'Ouvrir la demande' }
-    const base: [string, string][] = [['Demande', d.reference], ['Client', d.raisonSociale]]
+    const base: [string, string][] = [['Demande', numero], ['Client', d.raisonSociale]]
     // l'auteur du changement ne reçoit pas de mail pour ce qu'il vient de faire lui-même
     const pasMoi = (u: Destinataire | null) => (u && u.id !== c.acteurId ? u : null)
     const envois: { type: TypeNotification; to: Destinataire | null; sujet: string; page: ReturnType<typeof gabarit> }[] = []
     const ajouter = (type: TypeNotification, to: Destinataire | null, sujet: string, titre: string, intro: string, plus: [string, string][] = []) => {
-      if (to) envois.push({ type, to, sujet: `${sujet} – ${d.reference} ${d.raisonSociale}`, page: gabarit({ titre, intro, lignes: [...base, ...plus], lien, pied: 'Message automatique de l’outil de financement LEVAD.' }) })
+      if (to) envois.push({ type, to, sujet: `${sujet} – ${numero} ${d.raisonSociale}`, page: gabarit({ titre, intro, lignes: [...base, ...plus], lien, pied: 'Message automatique de l’outil de financement LEVAD.' }) })
     }
 
     if (c.statutApres !== c.statutAvant) {
