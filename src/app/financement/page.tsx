@@ -47,7 +47,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
   ])
   const ordre = lireOrdre(searchParams.ordre)
   const lignes = trier(demandes, searchParams.tri, ordre, {
-    reference: d => d.reference, client: d => d.raisonSociale, commercial: d => d.commercialNom, financeur: d => d.financeurNom, materiel: d => d.materiel,
+    reference: d => d.numero, client: d => d.raisonSociale, commercial: d => d.commercialNom, financeur: d => d.financeurNom, materiel: d => d.materiel,
     loyer: d => d.loyerCentimes / (d.periodicite === 'MENSUELLE' ? 1 : 3), duree: d => d.dureeMois,
     montant: d => (modeMontant === 'reel' && 'montantReelCentimes' in d ? d.montantReelCentimes : d.montantCommercialCentimes),
     statut: d => LIBELLES_STATUT[d.statut as keyof typeof LIBELLES_STATUT] ?? d.statut, creee: d => d.creeLe,
@@ -132,7 +132,7 @@ export default async function TableauDeBord({ searchParams }: { searchParams: Pa
           <tbody className="divide-y divide-gray-100">
             {lignes.map(d => (
               <tr key={d.id} className="hover:bg-sable-50 transition-colors">
-                <td className="px-3 py-3 whitespace-nowrap"><Link href={`/financement/demandes/${d.id}`} className="font-medium text-accent-700 underline">{d.reference}</Link></td>
+                <td className="px-3 py-3 whitespace-nowrap"><Link href={`/financement/demandes/${d.id}`} className="font-medium text-accent-700 underline" title={`Référence interne : ${d.reference}`}>{d.numero}</Link></td>
                 <td className="px-3 py-3" title={d.raisonSociale}><span className="line-clamp-2 break-words">{d.raisonSociale}</span></td>
                 {interne && <td className="px-3 py-3 whitespace-nowrap truncate" title={d.commercialNom}>{d.commercialAffiche}</td>}
                 <td className="px-3 py-3 truncate">{d.financeurNom}</td>

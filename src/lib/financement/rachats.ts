@@ -2,6 +2,7 @@
 // Le commercial peut simuler et enregistrer pour SES contrats ; seuls l'administrateur et l'assistante envoient la demande.
 // Un commercial ne reçoit jamais la valeur résiduelle ni la pénalité détaillées (elles révèlent le montant financé réel).
 import { prisma } from '@/lib/db'
+import { numeroAffiche } from './numero'
 import { peutModifierContrat, peutVoirBaremeReel, type Acteur } from './droits'
 import { statutContrat } from './echeances'
 import { ErreurMetier } from './erreurs'
@@ -31,7 +32,9 @@ type LigneRachat = Awaited<ReturnType<typeof prisma.finRachat.findFirstOrThrow>>
 
 // Ce que le navigateur reçoit : liste blanche selon le rôle.
 export function vueRachat(a: Acteur, r: LigneRachat) {
-  const commune = { demande: (r as LigneRachat & { demande?: { id: number; reference: string } | null }).demande ?? null, id: r.id, creeLe: r.creeLe, type: r.type, dateResiliation: r.dateResiliation, nbLoyersRestants: r.nbLoyersRestants, totalCentimes: r.totalCentimes, statut: r.statut, envoyeLe: r.envoyeLe, commentaire: r.commentaire }
+  const liee = (r as LigneRachat & { demande?: { id: number; reference: string; refFinanceur: string | null; financeur: { envoiParMail: boolean } } | null }).demande ?? null
+  const demande = liee ? { id: liee.id, reference: numeroAffiche(liee, liee.financeur) } : null // numéro du financeur quand il existe
+  const commune = { demande, id: r.id, creeLe: r.creeLe, type: r.type, dateResiliation: r.dateResiliation, nbLoyersRestants: r.nbLoyersRestants, totalCentimes: r.totalCentimes, statut: r.statut, envoyeLe: r.envoyeLe, commentaire: r.commentaire }
   return peutVoirBaremeReel(a)
     ? { ...commune, loyersRestantsCentimes: r.loyersRestantsCentimes, penaliteCentimes: r.penaliteCentimes, valeurResiduelleCentimes: r.valeurResiduelleCentimes }
     : commune
@@ -59,7 +62,7 @@ export async function enregistrerRachat(a: Acteur, contratId: number, p: { type:
 
 export async function listerRachats(a: Acteur, contratId: number) {
   await contratAccessible(a, contratId)
-  const lignes = await prisma.finRachat.findMany({ where: { contratId }, orderBy: { creeLe: 'desc' }, include: { demande: { select: { id: true, reference: true } } } })
+  const lignes = await prisma.finRachat.findMany({ where: { contratId }, orderBy: { creeLe: 'desc' }, include: { demande: { select: { id: true, reference: true, refFinanceur: true, financeur: { select: { envoiParMail: true } } } } } })
   return lignes.map(r => vueRachat(a, r))
 }
 

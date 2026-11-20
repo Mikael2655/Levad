@@ -3,6 +3,7 @@
 // Un commercial ne voit le détail que de SES dossiers : pour les autres, on signale seulement qu'il en existe (pas de fuite entre commerciaux).
 import { prisma } from '@/lib/db'
 import { statutContrat } from './echeances'
+import { numeroAffiche } from './numero'
 import { estInterne, type Acteur } from './droits'
 
 const normaliser = (s: string) => s.toUpperCase().normalize('NFD').replace(/[^A-Z0-9]/g, '')
@@ -20,7 +21,7 @@ export async function rechercherDoublons(a: Acteur, p: { siret: string; raisonSo
   const [demandes, contrats] = await Promise.all([
     prisma.finDemande.findMany({
       where: { statut: { in: STATUTS_EN_COURS }, archivee: false, ...(p.exclureDemandeId ? { id: { not: p.exclureDemandeId } } : {}), ...(aSiren ? { OR: [{ siret: { startsWith: siren } }, { raisonSociale: { equals: p.raisonSociale, mode: 'insensitive' as const } }] } : { raisonSociale: { equals: p.raisonSociale, mode: 'insensitive' as const } }) },
-      include: { financeur: { select: { nom: true } }, commercial: { select: { prenom: true, nom: true } } },
+      include: { financeur: { select: { nom: true, envoiParMail: true } }, commercial: { select: { prenom: true, nom: true } } },
       orderBy: { id: 'desc' }, take: 20,
     }),
     prisma.finContrat.findMany({
@@ -34,7 +35,7 @@ export async function rechercherDoublons(a: Acteur, p: { siret: string; raisonSo
   const contratsEnCours = contrats.filter(c => statutContrat(c) !== 'CLOTURE')
   const mesContrats = contratsEnCours.filter(c => visible(c.commercialId))
   return {
-    demandes: mesDemandes.map((d): DoublonDemande => ({ id: d.id, reference: d.reference, statut: d.statut, financeur: d.financeur.nom, creeLe: d.creeLe, commercial: `${d.commercial.prenom} ${d.commercial.nom}` })),
+    demandes: mesDemandes.map((d): DoublonDemande => ({ id: d.id, reference: numeroAffiche(d, d.financeur), statut: d.statut, financeur: d.financeur.nom, creeLe: d.creeLe, commercial: `${d.commercial.prenom} ${d.commercial.nom}` })),
     contrats: mesContrats.map((c): DoublonContrat => ({ id: c.id, reference: c.refFinanceur, financeur: c.financeur.nom, loyerCentimes: c.loyerCentimes, periodicite: c.periodicite, dateFin: c.dateFin, etat: statutContrat(c) as 'EN_COURS' | 'TACITE', commercial: `${c.commercial.prenom} ${c.commercial.nom}` })),
     autres: demandes.length - mesDemandes.length + contratsEnCours.length - mesContrats.length, // dossiers d'autres commerciaux : non détaillés
   }
