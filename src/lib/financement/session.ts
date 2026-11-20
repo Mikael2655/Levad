@@ -1,9 +1,12 @@
 // Session de l'outil de financement. Jeton signé « fin1.<id utilisateur>.<début>.<dernière activité>.<signature> ».
 // Web Crypto uniquement (fonctionne dans le middleware et dans les routes). Le rôle n'est PAS dans le jeton :
 // il est relu en base à chaque requête, donc un changement de rôle ou une désactivation agit immédiatement.
-import { IDLE_TIMEOUT_MS, MAX_SESSION_MS } from '@/lib/auth-constants'
+import { MAX_SESSION_MS } from '@/lib/auth-constants'
 
 export const SESSION_FIN_COOKIE = 'levad_fin'
+// Déconnexion après 4 h sans activité (chaque action renouvelle le délai) ; durée maximale d'une connexion : 12 h (commune au reste du site).
+// Réglage propre à l'outil de financement : l'outil « social » garde son délai d'1 h (auth-constants.ts).
+export const IDLE_TIMEOUT_MS = 4 * 60 * 60 * 1000
 const encoder = new TextEncoder()
 
 function secret(): string {

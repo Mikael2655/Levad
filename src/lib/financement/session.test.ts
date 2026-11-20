@@ -11,9 +11,15 @@ describe('jeton de session', () => {
     const [v, , debut, derniere, sig] = j.split('.')
     expect(await verifierJeton([v, '1', debut, derniere, sig].join('.'))).toBeNull()
   })
-  it('expire après 1 h d’inactivité', async () => {
-    const j = await creerJeton(7, Date.now() - 2 * 3600_000, Date.now() - 2 * 3600_000)
-    expect(await verifierJeton(j)).toBeNull()
+  it('expire après 4 h d’inactivité, pas avant', async () => {
+    const h = 3600_000
+    expect(await verifierJeton(await creerJeton(7, Date.now() - 5 * h, Date.now() - 3 * h))).not.toBeNull() // 3 h d'inactivité : encore connecté
+    expect(await verifierJeton(await creerJeton(7, Date.now() - 6 * h, Date.now() - 5 * h))).toBeNull() // 5 h : déconnecté
+  })
+  it('expire après 12 h au total, même en restant actif', async () => {
+    const h = 3600_000
+    expect(await verifierJeton(await creerJeton(7, Date.now() - 11 * h, Date.now() - 60_000))).not.toBeNull()
+    expect(await verifierJeton(await creerJeton(7, Date.now() - 13 * h, Date.now() - 60_000))).toBeNull()
   })
   it('refusé sans secret configuré', async () => {
     const j = await creerJeton(7)
