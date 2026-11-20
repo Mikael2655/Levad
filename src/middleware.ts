@@ -65,10 +65,8 @@ export async function middleware(req: NextRequest) {
     if (!sessionFin) {
       if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Non connecté' }, { status: 401 })
       const url = req.nextUrl.clone()
-      const suite = pathname + req.nextUrl.search
       url.pathname = '/financement/connexion'
-      url.search = ''
-      if (suite !== '/financement/accueil') url.searchParams.set('suite', suite)
+      url.search = '' // après la connexion on arrive toujours sur l'accueil
       const res = NextResponse.redirect(url)
       res.cookies.delete(SESSION_FIN_COOKIE)
       return res

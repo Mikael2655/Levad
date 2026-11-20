@@ -21,6 +21,7 @@ export default function DepotDocumentFinanceur({ demandeId, peutAccord, actuelle
   const [liste, setListe] = useState('')
   const [montant, setMontant] = useState('')
   const [note, setNote] = useState('')
+  const [numeroAccord, setNumeroAccord] = useState('')
   const [commentaire, setCommentaire] = useState('')
   const [montants, setMontants] = useState<Montant[]>([])
   const [infos, setInfos] = useState<Infos | null>(null)
@@ -50,6 +51,7 @@ export default function DepotDocumentFinanceur({ demandeId, peutAccord, actuelle
       const trouves = data.montants as Montant[]
       setMontants(trouves)
       const i = (data.infos ?? null) as Infos | null
+      setNumeroAccord(i?.numero ?? '')
       setInfos(i); setControles((data.controles ?? null) as Controles | null)
       setNote(i ? [i.numero ? `Accord n° ${i.numero}` : '', i.coefficient ? `coefficient ${String(i.coefficient).replace('.', ',')} %` : ''].filter(Boolean).join(' · ') : '')
       setListe(lignes.join('\n'))
@@ -70,7 +72,7 @@ export default function DepotDocumentFinanceur({ demandeId, peutAccord, actuelle
       if (choix === 'ACCORD') {
         const c = eurosVersCentimes(montant)
         if (!Number.isFinite(c) || c <= 0) throw new Error('Indiquez le montant financé de l’accord, en euros.')
-        const r = await appel<{ premier: boolean }>(`${url}/accord`, 'POST', { montantReelCentimes: c, note })
+        const r = await appel<{ premier: boolean }>(`${url}/accord`, 'POST', { montantReelCentimes: c, note, numeroAccord })
         setInfo(r.premier ? 'Accord enregistré : la demande est « Prête à signer ». Les commerciaux voient le statut, pas le montant.' : 'Accord mis à jour (le précédent est conservé dans l’historique des accords).')
       } else if (choix === 'PIECES') {
         await appel(`${url}/pieces-demandees`, 'PUT', { lignes: liste.split('\n') })
@@ -79,7 +81,7 @@ export default function DepotDocumentFinanceur({ demandeId, peutAccord, actuelle
         await appel(`${url}/statut`, 'POST', { statut: 'REFUSEE', commentaire })
         setInfo('Demande marquée refusée.')
       }
-      setOuvert(false); setChoix(null); setMontants([]); setInfos(null); setControles(null); setNote(''); setCommentaire('')
+      setOuvert(false); setChoix(null); setMontants([]); setNumeroAccord(''); setInfos(null); setControles(null); setNote(''); setCommentaire('')
       router.refresh()
     } catch (e) {
       setErreur((e as Error).message)
@@ -131,6 +133,7 @@ export default function DepotDocumentFinanceur({ demandeId, peutAccord, actuelle
                   {montants.map((m, i) => <button key={i} type="button" title={m.contexte} onClick={() => setMontant(String(m.valeurCentimes / 100).replace('.', ','))} className={`rounded-full border px-2 py-0.5 ${m.etiquette === 'FINANCE' ? 'border-emerald-400 bg-emerald-50' : 'border-gray-300 bg-white'}`}>{eur(m.valeurCentimes)}{m.etiquette === 'LOYER' ? ' (loyer ?)' : ''}</button>)}
                 </div>
               )}
+              <label className="block"><span className="block font-medium text-gray-700 mb-1">N° d’accord (il devient le numéro de la demande)</span><input className={champ} value={numeroAccord} onChange={e => setNumeroAccord(e.target.value)} placeholder="ex. 75815IB" /></label>
               <label className="block"><span className="block font-medium text-gray-700 mb-1">Note interne (facultatif)</span><input className={champ + ' w-full'} value={note} onChange={e => setNote(e.target.value)} placeholder="ex. coefficient négocié à 2,95 %" /></label>
             </div>
           )}

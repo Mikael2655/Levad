@@ -67,4 +67,17 @@ d('accords reçus par e-mail (base réelle)', () => {
     await expect(ac.enregistrerAccord(ADMIN(), dem.id, { montantReelCentimes: 48000000 })).rejects.toThrow(/éloigné/)
     await expect(ac.enregistrerAccord(ADMIN(), dem.id, { montantReelCentimes: 0 })).rejects.toThrow(/invalide/)
   })
+
+  it('numéro d’accord : il devient le numéro de la demande ; un nouvel accord le remplace ; un numéro déjà pris est refusé', async () => {
+    const dem = await creer()
+    await ac.enregistrerAccord(ADMIN(), dem.id, { montantReelCentimes: 480000, numeroAccord: ' 75815IB ' })
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).refFinanceur).toBe('75815IB')
+    await ac.enregistrerAccord(ADMIN(), dem.id, { montantReelCentimes: 490000, numeroAccord: '75815IC' })
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).refFinanceur).toBe('75815IC')
+    await ac.enregistrerAccord(ADMIN(), dem.id, { montantReelCentimes: 495000 }) // sans numéro : l'actuel est conservé
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: dem.id } })).refFinanceur).toBe('75815IC')
+    const autre = await creer()
+    await expect(ac.enregistrerAccord(ADMIN(), autre.id, { montantReelCentimes: 480000, numeroAccord: '75815IC' })).rejects.toMatchObject({ status: 409 })
+    expect((await prisma.finDemande.findUniqueOrThrow({ where: { id: autre.id } })).statut).toBe('ENVOYEE')
+  })
 })
