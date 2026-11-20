@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { listerDemandes } from '@/lib/financement/acces'
 import { listerContrats } from '@/lib/financement/contrats'
-import { estInterne, peutVoirBaremeReel } from '@/lib/financement/droits'
+import { estInterne } from '@/lib/financement/droits'
 import { libelleEtape } from '@/lib/financement/etapes'
 import { exigerUtilisateur } from '@/lib/financement/garde'
 import { dateFr, euros } from '../format'
@@ -52,7 +52,6 @@ const PAR_GROUPE = 4
 export default async function Accueil() {
   const u = await exigerUtilisateur()
   const interne = estInterne(u)
-  const reel = peutVoirBaremeReel(u)
   const [demandes, contrats, proches] = await Promise.all([
     listerDemandes(u),
     listerContrats(u, { statut: 'en_cours' }),
@@ -63,8 +62,10 @@ export default async function Accueil() {
   const aujourdhui = jour.charAt(0).toUpperCase() + jour.slice(1)
   const parGroupe = GROUPES.map(g => ({ ...g, lignes: demandes.filter(d => g.statuts.includes(d.statut)).sort((a, b) => new Date(a.majLe).getTime() - new Date(b.majLe).getTime()) }))
   const totalActions = parGroupe.reduce((n, g) => n + g.lignes.length, 0)
-  const montantTotal = contrats.reduce((n, c) => n + (c.montantCommercialCentimes ?? 0), 0)
-  const montantReel = reel ? contrats.reduce((n, c) => n + (('montantReelCentimes' in c ? c.montantReelCentimes : 0) ?? 0), 0) : 0
+  // Contrats en reconduction tacite (dont ceux dont la prochaine reconduction tombe dans les 6 mois) ; les contrats « fin de contrat dans les 6 mois » sont les autres (jamais les tacites).
+  const tacites = contrats.filter(c => c.statutContrat === 'TACITE')
+  const limite6Mois = new Date(); limite6Mois.setMonth(limite6Mois.getMonth() + 6)
+  const taciteProches = tacites.filter(c => c.reconduction && new Date(c.reconduction).getTime() <= limite6Mois.getTime())
   const carte = 'rounded-2xl bg-white border border-black/5 shadow-[0_1px_2px_rgba(60,50,20,0.04),0_8px_24px_-12px_rgba(60,50,20,0.10)]'
 
   return (
@@ -152,16 +153,16 @@ export default async function Accueil() {
               <p className="mt-1 text-sm text-gray-500">{contrats.length === 0 ? 'Les contrats signés apparaîtront ici.' : 'dans ton portefeuille'}</p>
             </div>
             <div className={`${carte} p-6`}>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700"><Icone d={I.euro} /></span>
-              <p className="mt-4 text-sm font-medium text-gray-500">Montant total financé</p>
-              <p className="mt-1 text-4xl font-semibold tracking-tight text-gray-900 tabular-nums">{euros(montantTotal)}</p>
-              <p className="mt-1 text-sm text-gray-500">{reel ? `dont ${euros(montantReel)} côté financeur` : 'sur l’ensemble des contrats en cours'}</p>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700"><Icone d={I.sablier} /></span>
+              <p className="mt-4 text-sm font-medium text-gray-500">Contrats en tacite reconduction</p>
+              <p className="mt-1 text-4xl font-semibold tracking-tight text-gray-900 tabular-nums">{tacites.length}</p>
+              <p className="mt-1 text-sm text-gray-500">{tacites.length === 0 ? 'Aucun contrat n’est en reconduction tacite.' : taciteProches.length === 0 ? 'aucune reconduction dans les 6 mois' : `dont ${taciteProches.length} à reconduire dans les 6 mois`}</p>
             </div>
             <div className={`${carte} p-6`}>
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-600"><Icone d={I.cloche} /></span>
-              <p className="mt-4 text-sm font-medium text-gray-500">À renouveler dans les 6 mois</p>
+              <p className="mt-4 text-sm font-medium text-gray-500">Fin de contrat dans les 6 mois</p>
               <p className="mt-1 text-4xl font-semibold tracking-tight text-gray-900 tabular-nums">{proches.length}</p>
-              <p className="mt-1 text-sm text-gray-500">{proches.length === 0 ? 'Pas d’échéance proche pour l’instant.' : 'autant d’occasions de proposer un renouvellement'}</p>
+              <p className="mt-1 text-sm text-gray-500">{proches.length === 0 ? 'Aucune fin de contrat proche pour l’instant.' : 'autant d’occasions de proposer un renouvellement'}</p>
             </div>
           </div>
 
@@ -169,14 +170,14 @@ export default async function Accueil() {
             <div className="flex items-center gap-3 border-b border-gray-100 bg-orange-50/60 px-5 py-4">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-700"><Icone d={I.cloche} /></span>
               <div>
-                <h3 className="font-semibold text-gray-900">Opportunités de renouvellement</h3>
-                <p className="text-xs text-gray-500">Contrats qui arrivent bientôt à échéance : le bon moment pour appeler le client.</p>
+                <h3 className="font-semibold text-gray-900">Fin de contrat dans les 6 mois</h3>
+                <p className="text-xs text-gray-500">Contrats qui arrivent à leur terme (hors tacite reconduction) : le bon moment pour appeler le client.</p>
               </div>
             </div>
             {proches.length === 0 ? (
               <div className="flex flex-col items-center px-6 py-10 text-center">
-                <p className="font-medium text-gray-900">Pas d’échéance dans les 6 prochains mois</p>
-                <p className="mt-1 max-w-md text-sm text-gray-500">Quand un contrat approchera de sa fin, il apparaîtra ici pour que tu puisses proposer un renouvellement à temps.</p>
+                <p className="font-medium text-gray-900">Aucune fin de contrat dans les 6 prochains mois</p>
+                <p className="mt-1 max-w-md text-sm text-gray-500">Quand un contrat approchera de son terme, il apparaîtra ici pour que tu puisses proposer un renouvellement à temps.</p>
               </div>
             ) : (
               <ul className="divide-y divide-gray-100">

@@ -8,6 +8,7 @@ import { montantDepuisLoyer } from './calcul'
 import { estInterne, peutImporterContrats, peutModifierContrat, peutVoirBaremeReel, vueContrat, type Acteur } from './droits'
 import { ajouterMois, dateFinDepuisDebut, dernierLoyer, etatEcheance, moisRestants, prochaineReconduction, statutContrat } from './echeances'
 import { ErreurMetier } from './erreurs'
+import { numeroAffiche } from './numero'
 import { colonnesManquantes, dureeDepuisDates, lireLignes, normaliser, type Mapping, type UniteLoyer } from './import-contrats'
 
 // « En cours » comprend les contrats en reconduction tacite (le statut Tacite reste affiché dans la liste, mais n'est plus un filtre).
@@ -48,13 +49,13 @@ function conditions(a: Acteur, f: FiltresContrats, maintenant: Date): Prisma.Fin
   }
 }
 
-const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: { select: { nom: true, envoiParMail: true } }, demande: { select: { reference: true } } } as const
+const NOMS = { commercial: { select: { prenom: true, nom: true } }, financeur: { select: { nom: true, envoiParMail: true } }, demande: { select: { reference: true, refFinanceur: true } } } as const
 
 function enrichir(a: Acteur, c: Prisma.FinContratGetPayload<{ include: typeof NOMS }>, maintenant: Date) {
   const { commercial, financeur, demande, ...base } = c
   // Référence affichée, la même pour tout le monde : numéro de contrat du financeur ; pour un financeur sans API (ex. Solubail),
   // le numéro de demande ; à défaut, le numéro de demande d'origine.
-  const reference = financeur.envoiParMail && demande ? demande.reference : base.refFinanceur ?? demande?.reference ?? null
+  const reference = financeur.envoiParMail && demande ? numeroAffiche(demande) : base.refFinanceur ?? demande?.reference ?? null
   const statut = statutContrat(base, maintenant)
   return {
     ...vueContrat(a, base),

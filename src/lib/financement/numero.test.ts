@@ -13,7 +13,8 @@ describe('numéro de demande affiché', () => {
     expect(numeroAffiche({ reference: 'LEV-2026-0003', refFinanceur: '1d2bdc17-2979-4c72-9cb3-9b0dca272d7a' }, grenke)).toBe('LEV-2026-0003')
     expect(numeroAffiche({ reference: 'LEV-2026-0003', refFinanceur: '  ' }, grenke)).toBe('LEV-2026-0003')
   })
-  it('financeur par e-mail (Solubail) : référence interne conservée, c’est celle des échanges', () => {
-    expect(numeroAffiche({ reference: 'LEV-2026-0007', refFinanceur: '75815IB' }, solubail)).toBe('LEV-2026-0007')
+  it('financeur par e-mail (Solubail) : numéro d’accord dès qu’il est connu, référence interne avant', () => {
+    expect(numeroAffiche({ reference: 'LEV-2026-0007', refFinanceur: '75815IB' }, solubail)).toBe('75815IB')
+    expect(numeroAffiche({ reference: 'LEV-2026-0007', refFinanceur: null }, solubail)).toBe('LEV-2026-0007')
   })
 })

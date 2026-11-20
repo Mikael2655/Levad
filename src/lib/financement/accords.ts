@@ -7,7 +7,7 @@ import { estInterne, type Acteur } from './droits'
 import { ErreurMetier } from './erreurs'
 import { notifierChangement } from './notifications'
 
-export async function enregistrerAccord(a: Acteur, demandeId: number, p: { montantReelCentimes: number; note?: string | null }) {
+export async function enregistrerAccord(a: Acteur, demandeId: number, p: { montantReelCentimes: number; note?: string | null; numeroAccord?: string | null }) {
   if (!estInterne(a)) throw new ErreurMetier('Réservé à l’administrateur et à l’assistante.', 403)
   const montant = p.montantReelCentimes
   if (!Number.isInteger(montant) || montant <= 0) throw new ErreurMetier('Montant financé invalide.')
@@ -18,11 +18,14 @@ export async function enregistrerAccord(a: Acteur, demandeId: number, p: { monta
   // garde-fou contre une faute de frappe : le vrai montant reste du même ordre que le montant commercial
   if (montant < d.montantCommercialCentimes * 0.5 || montant > d.montantCommercialCentimes * 2) throw new ErreurMetier('Ce montant est très éloigné du montant de la demande : vérifiez-le (en euros, avec les centimes).')
 
+  // Numéro d'accord (ex. 75815IB) : il devient le numéro de la demande (remplace la référence interne), un nouvel accord le remplace à son tour.
+  const numeroAccord = p.numeroAccord?.trim().slice(0, 40) || null
+  if (numeroAccord && (await prisma.finDemande.findFirst({ where: { financeurId: d.financeurId, refFinanceur: numeroAccord, NOT: { id: demandeId } }, select: { id: true } }))) throw new ErreurMetier(`Le numéro d’accord ${numeroAccord} est déjà utilisé par une autre demande.`, 409)
   const premier = d.statut !== 'PRETE_A_SIGNER'
   const coefficientReelPpm = Math.round((d.loyerCentimes * 1_000_000) / montant)
   const note = p.note?.trim().slice(0, 300) || null
   await prisma.$transaction([
-    prisma.finDemande.update({ where: { id: demandeId }, data: { montantReelCentimes: montant, coefficientReelPpm, ...(premier ? { statut: 'PRETE_A_SIGNER', infosManquantes: null, etapeSignature: null } : {}) } }),
+    prisma.finDemande.update({ where: { id: demandeId }, data: { montantReelCentimes: montant, coefficientReelPpm, ...(numeroAccord ? { refFinanceur: numeroAccord } : {}), ...(premier ? { statut: 'PRETE_A_SIGNER', infosManquantes: null, etapeSignature: null } : {}) } }),
     prisma.finAccord.create({ data: { demandeId, auteurId: a.id, montantReelCentimes: montant, coefficientReelPpm, note } }),
     // le commentaire d'historique est vu des commerciaux : aucun montant réel dedans
     prisma.finHistorique.create({ data: { demandeId, auteurId: a.id, ancienStatut: d.statut, nouveauStatut: 'PRETE_A_SIGNER', commentaire: premier ? `Accord reçu de ${d.financeur.nom}` : `Accord mis à jour (${d.financeur.nom})` } }),
