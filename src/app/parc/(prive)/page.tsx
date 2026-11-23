@@ -167,24 +167,25 @@ export default async function ParcPage() {
             // machines du site qui partagent le même stock (cartouches compatibles) : le stock s'affiche une seule fois, sous la liste
             const partages = grouper(lesMachines.filter((x) => x.categorie === 'mine' && !x.horsContrat)).filter((g) => g.machines.length > 1)
             const enPartage = new Set(partages.flatMap((g) => g.machines.map((x) => x.id)))
-            return (
-            <div key={site} data-site className={gi > 0 ? 'mt-4' : ''}>
-            <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>
-            <div className="divide-y rounded-xl border bg-white">
-              {lesMachines.map((m) => {
+            const ligne = (m: (typeof lesMachines)[number]) => {
                 const r = m.releves[0]
                 const compteurs = (r?.compteurs ?? {}) as unknown as Compteurs
                 const calc = calculer(compteurs, m.recette)
                 const std = totauxStandard(compteurs)
                 const suivie = m.categorie === 'mine'
                 const encreSuivie = suivie && !m.horsContrat
+                // machine noir et blanc (ou sans niveau lu) : ni encre couleur lue, ni compteur couleur > 0 -> on n'affiche que le noir (pas de barres vides)
+                const niveauxLus = (avecEncres(m.releves)?.encres ?? []) as unknown as Encre[]
+                const couleurLue = niveauxLus.some((e) => e.couleur !== 'noir' && e.pourcent !== null)
+                const compteurCouleur = calc.retenue ? calc.retenue.couleur : std?.couleur ?? null
+                const noirSeul = !couleurLue && !(typeof compteurCouleur === 'number' && compteurCouleur > 0)
                 return (
                   <Link
                     key={m.id}
                     href={`/parc/machine/${m.id}`}
                     data-machine
                     data-texte={[libelleMachine(m, ''), m.modele, m.nomReseau, m.marque, m.numeroSerie, m.ip, m.site].filter(Boolean).join(' ')}
-                    className="grid items-center gap-4 px-5 py-4 hover:bg-gray-50 md:grid-cols-[1.3fr_1.7fr_0.8fr_1fr]"
+                    className="grid items-center gap-4 px-5 py-3 hover:bg-gray-50 md:grid-cols-[1.3fr_1.7fr_0.8fr_1fr]"
                   >
                     <div>
                       <p className="font-semibold">
@@ -202,7 +203,8 @@ export default async function ParcPage() {
                     </div>
                     <div>
                       <Encres
-                        encres={(avecEncres(m.releves)?.encres ?? []) as unknown as Encre[]}
+                        noirSeul={noirSeul}
+                        encres={niveauxLus}
                         seuils={encreSuivie ? Object.fromEntries(COULEURS.map((c) => [c, seuilDe(m, c)])) : undefined}
                         stock={encreSuivie ? stockDuGroupe(stocks!, c.id, cleGroupe(m)) : undefined}
                         afficherStock={encreSuivie}
@@ -239,7 +241,23 @@ export default async function ParcPage() {
                     </p>
                   </Link>
                 )
-              })}
+            }
+            const actives = lesMachines.filter((x) => !x.horsContrat)
+            const hors = lesMachines.filter((x) => x.horsContrat)
+            return (
+            <div key={site} data-site className={gi > 0 ? 'mt-4' : ''}>
+            <h3 className="mb-1 text-sm font-semibold uppercase tracking-wide text-gray-500">{site}</h3>
+            <div className="divide-y rounded-xl border bg-white">
+              {actives.map(ligne)}
+              {hors.length > 0 && (
+                <details data-hors className="group">
+                  <summary className="flex cursor-pointer list-none items-center gap-1.5 px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 [&::-webkit-details-marker]:hidden">
+                    <span className="inline-block text-gray-400 transition-transform group-open:rotate-90" aria-hidden="true">▸</span>
+                    {hors.length} machine{hors.length > 1 ? 's' : ''} hors contrat
+                  </summary>
+                  <div className="divide-y border-t">{hors.map(ligne)}</div>
+                </details>
+              )}
             </div>
             </div>
             )})}

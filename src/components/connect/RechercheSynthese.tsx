@@ -25,6 +25,12 @@ export function RechercheSynthese() {
         m.style.display = ok ? '' : 'none'
         if (ok) machinesVisibles++
       }
+      // pendant une recherche, les machines hors contrat qui correspondent s'affichent dépliées
+      for (const d of Array.from(c.querySelectorAll<HTMLDetailsElement>('details[data-hors]'))) {
+        const trouve = Array.from(d.querySelectorAll<HTMLElement>('[data-machine]')).some((m) => m.style.display !== 'none')
+        d.style.display = mots.length === 0 || trouve ? '' : 'none'
+        d.open = mots.length > 0 && trouve
+      }
       for (const s of Array.from(c.querySelectorAll<HTMLElement>('[data-site]'))) {
         s.style.display = Array.from(s.querySelectorAll<HTMLElement>('[data-machine]')).some((m) => m.style.display !== 'none') ? '' : 'none'
       }
