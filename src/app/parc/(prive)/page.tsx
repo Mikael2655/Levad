@@ -117,6 +117,8 @@ export default async function ParcPage() {
         </section>
       )}
 
+      {machines.length > 0 && <RechercheSynthese />}
+
       <details className="mt-6 rounded-xl border bg-white p-4">
         <summary className="cursor-pointer font-semibold">+ Ajouter un client (pour lui envoyer le lien)</summary>
         <Formulaire action={creerClient} className="mt-3 flex flex-wrap items-end gap-3">
@@ -138,8 +140,6 @@ export default async function ParcPage() {
           Aucune machine pour l&apos;instant. Elles apparaîtront ici dès qu&apos;un client aura lancé Levad Connect.
         </p>
       )}
-
-      {machines.length > 0 && <RechercheSynthese />}
 
       <div className="mt-6 space-y-8">
         {clients.map((c) => (
@@ -224,12 +224,12 @@ export default async function ParcPage() {
                       {suivie && calc.retenue ? (
                         <p className="flex flex-wrap gap-x-4">
                           <span>N&amp;B <strong>{nombre(calc.retenue.nb)}</strong></span>
-                          <span>Couleur <strong>{nombre(calc.retenue.couleur)}</strong></span>
+                          {!noirSeul && <span>Couleur <strong>{nombre(calc.retenue.couleur)}</strong></span>}
                         </p>
                       ) : std ? (
                         <p className="flex flex-wrap gap-x-4">
                           {std.nb !== null && <span>N&amp;B <strong>{nombre(std.nb)}</strong></span>}
-                          {std.couleur !== null && <span>Couleur <strong>{nombre(std.couleur)}</strong></span>}
+                          {std.couleur !== null && !noirSeul && <span>Couleur <strong>{nombre(std.couleur)}</strong></span>}
                         </p>
                       ) : (
                         <p>Total <strong>{nombre(r?.totalStandard)}</strong></p>
