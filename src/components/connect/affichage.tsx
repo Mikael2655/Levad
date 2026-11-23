@@ -54,6 +54,7 @@ export function Encres({
   etats,
   grand,
   afficherStock,
+  noirSeul,
 }: {
   encres: Encre[] | null | undefined
   seuils?: Record<string, number>
@@ -63,11 +64,13 @@ export function Encres({
   grand?: boolean
   /** Affiche le stock de cartouches de chaque couleur, aligné sous le pourcentage restant. */
   afficherStock?: boolean
+  /** Machine noir et blanc : seule la colonne noire est affichée (pas de barres vides pour les couleurs). */
+  noirSeul?: boolean
 }) {
   const liste = encres ?? []
   return (
     <div className={`grid grid-cols-4 ${grand ? 'gap-4' : 'gap-2'}`}>
-      {COULEURS.map((c) => {
+      {COULEURS.filter((c) => !noirSeul || c.cle === 'noir').map((c) => {
         const e = liste.find((x) => x.couleur === c.cle && x.pourcent !== null)
         const p = e?.pourcent ?? null
         const et = etats?.[c.cle]
