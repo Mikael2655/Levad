@@ -22,7 +22,7 @@ export default async function NouvelleDemande({ searchParams }: { searchParams: 
     : null
   const origine = rachat?.contrat.demande ?? null
   const initial: ValeursFormulaire = {
-    financeurId: rachat && rachat.type === 'RENOUVELANT' && financeurs.some(f => f.id === rachat.contrat.financeurId) ? String(rachat.contrat.financeurId) : financeurs.length === 1 ? String(financeurs[0].id) : '',
+    financeurId: rachat && rachat.type === 'RENOUVELANT' && financeurs.some(f => f.id === rachat.contrat.financeurId) ? String(rachat.contrat.financeurId) : financeurs.length === 1 ? String(financeurs[0].id) : String(financeurs.find(f => f.connecteur === 'grenke_api')?.id ?? ''),
     commercialId: rachat && interne ? String(rachat.contrat.commercialId) : u.role === 'ADMIN' ? String(u.id) : '',
     raisonSociale: rachat?.contrat.raisonSociale ?? '', siret: rachat?.contrat.siret ?? '', formeJuridique: origine?.formeJuridique ?? '', adresse: origine?.adresse ?? '', codePostal: origine?.codePostal ?? '', ville: origine?.ville ?? '', pays: origine?.pays ?? 'France',
     contactPrenom: origine?.contactPrenom ?? '', contactNom: origine?.contactNom ?? '', contactEmail: origine?.contactEmail ?? '', contactTel: origine?.contactTel ?? '',

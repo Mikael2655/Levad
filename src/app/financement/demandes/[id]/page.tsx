@@ -8,7 +8,9 @@ import { LienRetour } from '../../MemoireListe'
 import { actualiserSiPerime } from '@/lib/financement/actualisation'
 import { lignesPiecesDemandees, typeDeLigne } from '@/lib/financement/pieces-demandees'
 import { listerAccords } from '@/lib/financement/accords'
+import { financeurDeRepli } from '@/lib/financement/repli'
 import BoutonPiecesEnvoyees from './BoutonPiecesEnvoyees'
+import BoutonRepli from './BoutonRepli'
 import DepotDocumentFinanceur from './DepotDocumentFinanceur'
 import PiecesDemandees from './PiecesDemandees'
 import { purgeOpportuniste } from '@/lib/financement/pieces'
@@ -28,6 +30,7 @@ export default async function FicheDemande({ params, searchParams }: { params: {
   const d = await lireDemande(u, Number(params.id))
   if (!d) notFound()
   const reel = peutVoirBaremeReel(u) && 'montantReelCentimes' in d ? d : null
+  const repli = reel !== null && d.financeurAvecApi && (d.statut === 'INFOS_MANQUANTES' || d.statut === 'REFUSEE') ? await financeurDeRepli() : null
   const accords = await listerAccords(u, d.id) // interne seulement : vide pour un commercial
   const section = 'carte p-5 sm:p-6'
 
@@ -58,6 +61,15 @@ export default async function FicheDemande({ params, searchParams }: { params: {
 
       {searchParams.envoi === 'ok' && <p className="bg-emerald-50 border border-emerald-300 rounded-xl px-4 py-3 text-sm text-emerald-900">Demande envoyée à {searchParams.f || 'le financeur'}.</p>}
       {searchParams.envoi === 'erreur' && <p className="bg-red-50 border border-red-300 rounded-xl px-4 py-3 text-sm text-red-800"><b>La demande est enregistrée en brouillon mais n’est pas partie chez {searchParams.f || 'le financeur'} :</b> {(searchParams.m ?? '').slice(0, 400)}</p>}
+
+      {d.repliDe && <p className="bg-sky-50 border border-sky-300 rounded-xl px-4 py-3 text-sm text-sky-900">Demande de repli de la demande {d.repliDe.financeurNom} <Link className="underline font-medium" href={`/financement/demandes/${d.repliDe.id}`}>{d.repliDe.numero}</Link> ({LIBELLES_STATUT[d.repliDe.statut as keyof typeof LIBELLES_STATUT] ?? d.repliDe.statut}). Quand l’une des deux obtient l’accord, annulez l’autre.</p>}
+      {d.repli && <p className="bg-sky-50 border border-sky-300 rounded-xl px-4 py-3 text-sm text-sky-900">Demande de repli créée chez {d.repli.financeurNom} : <Link className="underline font-medium" href={`/financement/demandes/${d.repli.id}`}>{d.repli.numero}</Link> ({LIBELLES_STATUT[d.repli.statut as keyof typeof LIBELLES_STATUT] ?? d.repli.statut}). Quand l’une des deux obtient l’accord, annulez l’autre.</p>}
+      {reel !== null && d.financeurAvecApi && !d.repli && !d.repliDe && repli && (d.statut === 'INFOS_MANQUANTES' || d.statut === 'REFUSEE') && (
+        <div className="bg-sky-50 border border-sky-300 rounded-xl px-4 py-3 text-sm text-sky-900 space-y-2">
+          <p>{d.statut === 'REFUSEE' ? `Refusée par ${d.financeurNom}. La demande ${repli.nom} n’a pas pu être créée automatiquement : vous pouvez la créer ici (le détail est dans l’historique).` : `Les pièces demandées par ${d.financeurNom} sont difficiles à fournir ? Vous pouvez anticiper en faisant la même demande chez ${repli.nom}.`}</p>
+          <BoutonRepli demandeId={d.id} financeur={repli.nom} libelle={`Créer aussi la demande chez ${repli.nom}`} />
+        </div>
+      )}
 
       <ActionsDemande
         id={d.id}

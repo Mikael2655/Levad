@@ -7,6 +7,7 @@ import { estInterne, type Acteur } from './droits'
 import { ErreurMetier } from './erreurs'
 import { operationsContratSigne } from './demandes'
 import { notifierChangement } from './notifications'
+import { repliAutomatiqueApresRefus } from './repli'
 
 const APPLICABLES = ['ENVOYEE', 'INFOS_MANQUANTES', 'PRETE_A_SIGNER', 'REFUSEE', 'EN_SIGNATURE']
 const MODIFIABLES = ['ENVOYEE', 'INFOS_MANQUANTES', 'PRETE_A_SIGNER', 'EN_SIGNATURE', 'REFUSEE']
@@ -61,6 +62,7 @@ async function appliquerEtatFinanceur(demandeId: number, auteurId: number | null
   if (creerContrat && !(await prisma.finContrat.findFirst({ where: { demandeId }, select: { id: true } }))) operations.push(...(await operationsContratSigne(d, { ref: (donnees.refFinanceur as string | undefined) ?? d.refFinanceur, montantReelCentimes: d.montantReelCentimes })))
   if (donnees.statut) operations.push(prisma.finHistorique.create({ data: { demandeId, auteurId: auteurId ?? d.saisiParId, ancienStatut: d.statut, nouveauStatut: String(donnees.statut), commentaire: `${notifierActeurId === null ? 'Mise à jour automatique' : 'Mise à jour'} depuis ${d.financeur.nom} : ${etat.detail}` } }))
   await prisma.$transaction(operations)
+  if (donnees.statut === 'REFUSEE' && d.financeur.connecteur === 'grenke_api') await repliAutomatiqueApresRefus(demandeId) // refus : la même demande est faite chez Solubail
   if (donnees.statut) await notifierChangement({ demandeId, acteurId: notifierActeurId, statutAvant: d.statut, etapeAvant: d.etapeSignature, statutApres: String(donnees.statut), etapeApres })
   return { modifie: true, message }
 }

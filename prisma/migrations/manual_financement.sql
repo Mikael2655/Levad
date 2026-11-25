@@ -420,3 +420,13 @@ DO $$ BEGIN
   ALTER TABLE "fin_accord" ADD CONSTRAINT "fin_accord_auteurId_fkey" FOREIGN KEY ("auteurId") REFERENCES "fin_utilisateur"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Mise à jour n° 12
+ALTER TABLE "fin_demande" ADD COLUMN IF NOT EXISTS "repliDeId" INTEGER;
+
+DO $$ BEGIN
+  ALTER TABLE "fin_demande" ADD CONSTRAINT "fin_demande_repliDeId_fkey" FOREIGN KEY ("repliDeId") REFERENCES "fin_demande"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE INDEX IF NOT EXISTS "fin_demande_repliDeId_idx" ON "fin_demande"("repliDeId");
