@@ -322,6 +322,9 @@ model FinDemande {
   etapeSignature String? // étape précise quand le statut est « En signature » (voir lib/financement/etapes.ts)
   refFinanceur  String? // numéro de dossier chez le financeur (lisible : Grenke « 100-145711 »)
   observation   String? // remarque libre sur la demande (ex. « Rachat du contrat n° … dans le cadre de cette demande »), transmise à Grenke dans QuoteNote
+  repliDeId     Int? // demande de repli : cette demande (ex. Solubail) a été créée parce que la demande d'origine (Grenke) a été refusée ou bloquée
+  repliDe       FinDemande? @relation("Repli", fields: [repliDeId], references: [id], onDelete: SetNull)
+  replis        FinDemande[] @relation("Repli")
   idFinanceur   String? // identifiant technique chez le financeur quand il a une API (Grenke : FinancingId) ; « ENVOI-EN-COURS » pendant un envoi
 
   financeurId   Int
@@ -367,6 +370,7 @@ model FinDemande {
 
   @@index([commercialId])
   @@index([statut])
+  @@index([repliDeId])
   @@map("fin_demande")
 }
 

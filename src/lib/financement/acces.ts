@@ -63,8 +63,17 @@ export async function lireDemande(acteur: Acteur, id: number) {
   const { commercial, financeur, saisiPar, lignes, pieces, historique, signature, rachat, ...base } = d
   // information réservée à l'interne : un commercial n'a pas à savoir s'il existe un barème réel
   const sansBaremeReel = !(await prisma.finGrille.findFirst({ where: { financeurId: base.financeurId, type: 'REELLE' }, select: { id: true } }))
+  // demande de repli (ex. Solubail après un refus de Grenke) et demande d'origine : liens affichés sur la fiche
+  const lien = { id: true, reference: true, refFinanceur: true, statut: true, financeur: { select: { nom: true, envoiParMail: true } } } as const
+  const [repli, repliDe] = await Promise.all([
+    prisma.finDemande.findFirst({ where: { repliDeId: base.id, statut: { not: 'ANNULEE' } }, select: lien }),
+    base.repliDeId ? prisma.finDemande.findUnique({ where: { id: base.repliDeId }, select: lien }) : Promise.resolve(null),
+  ])
+  const versLien = (x: typeof repli) => (x ? { id: x.id, numero: numeroAffiche(x, x.financeur), statut: x.statut, financeurNom: x.financeur.nom } : null)
   return {
     ...vueDemande(acteur, base),
+    repli: versLien(repli),
+    repliDe: versLien(repliDe),
     commercialNom: `${commercial.prenom} ${commercial.nom}`,
     financeurNom: financeur.nom,
     numero: numeroAffiche(base, financeur),
