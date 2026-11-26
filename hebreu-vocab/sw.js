@@ -6,7 +6,7 @@
    copie locale.
    ============================================================ */
 
-const CACHE = "hebreu-vocab-v28";
+const CACHE = "hebreu-vocab-v29";
 const CORE = [
   "./",
   "index.html",
@@ -16,6 +16,7 @@ const CORE = [
   "js/niqqud.js",
   "js/combine-phrases.js",
   "js/app.js",
+  "js/srs-verbes.js",
   "icon.png",
 ];
 

@@ -90,6 +90,7 @@ function selectProfile(name) {
   localStorage.setItem(ACTIVE_PROFILE_KEY, name);
   progress = loadProgress();
   stats = loadStats();
+  state.srs = { screen: "home", sess: null, triageIdx: 0 }; // repart à zéro pour la mémorisation des verbes
   updateProfileChip();
   switchView("home");
 }
@@ -262,6 +263,7 @@ const state = {
   search: { q: "", openVerb: null }, // onglet Recherche (openVerb = verbe déplié)
   tables: { q: "", openVerb: null, newOnly: false }, // page « Tableaux de conjugaison »
   review: { active: false, mode: "due", queue: [], idx: 0, ok: 0, ko: 0, missed: [], flipped: false }, // révision du jour
+  srs: { screen: "home", sess: null, triageIdx: 0 }, // répétition espacée des verbes (js/srs-verbes.js)
 };
 
 /* Nettoyage des données au chargement : on corrige les lettres
@@ -1325,6 +1327,7 @@ function renderJeux() {
 
   if (state.jeux.sub === "vocab") renderVocab();
   else if (state.jeux.sub === "combine") renderCombine();
+  else if (typeof renderSrs === "function") renderSrs(); // verbes : répétition espacée
   else renderVerbes();
 }
 
