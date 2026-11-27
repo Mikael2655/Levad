@@ -938,7 +938,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להיות", translit: "Lehiyot", fr: "Être",
+    inf: "להיות", translit: "Lehiyot", fr: "Etre",
     racine: "היה", binyan: "פעל",
     temps: {
       "Présent": [
@@ -953,7 +953,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להתקבל", translit: "Lehitkabel", fr: "Être accepté / admis",
+    inf: "להתקבל", translit: "Lehitkabel", fr: "Etre accepté / admis",
     racine: "קבל", binyan: "התפעל",
     temps: {
       "Présent": [
@@ -968,7 +968,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להסכים", translit: "Lehaskim", fr: "Être d'accord",
+    inf: "להסכים", translit: "Lehaskim", fr: "Etre d'accord",
     racine: "סכם", binyan: "הפעיל",
     temps: {
       "Présent": [
@@ -983,7 +983,7 @@ const VERBES = [
     },
   },
   {
-    inf: "לעמוד", translit: "Lahamod", fr: "Être debout",
+    inf: "לעמוד", translit: "Lahamod", fr: "Etre debout",
     racine: "עמד", binyan: "פעל",
     temps: {
       "Présent": [
@@ -998,7 +998,7 @@ const VERBES = [
     },
   },
   {
-    inf: "לאחר", translit: "Le'akher", fr: "Être en retard",
+    inf: "לאחר", translit: "Le'akher", fr: "Etre en retard",
     racine: "אחר", binyan: "פיעל",
     temps: {
       "Présent": [
@@ -2963,7 +2963,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להצטער", translit: "Lehitstaher", fr: "Être désolé / regretter",
+    inf: "להצטער", translit: "Lehitstaher", fr: "Etre désolé / regretter",
     racine: "צער", binyan: "התפעל",
     temps: {
       "Présent": [
@@ -3488,7 +3488,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להתבייש", translit: "Lehitbayech", fr: "être timide",
+    inf: "להתבייש", translit: "Lehitbayech", fr: "Etre timide",
     racine: "בוש", binyan: "התפעל",
     temps: {
       "Présent": [
@@ -3503,7 +3503,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להתאכזב", translit: "Lehit'akhzev", fr: "être déçu",
+    inf: "להתאכזב", translit: "Lehit'akhzev", fr: "Etre déçu",
     racine: "אכזב", binyan: "התפעל",
     temps: {
       "Présent": [
@@ -4883,7 +4883,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להשמע", translit: "Lehichamea", fr: "Être entendu / avoir l'air",
+    inf: "להשמע", translit: "Lehichamea", fr: "Etre entendu / avoir l'air",
     racine: "שמע", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5063,7 +5063,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להודריש", translit: "Leorich", fr: "Léguer",
+    inf: "להוריש", translit: "Leorich", fr: "Léguer",
     racine: "ירש", binyan: "הפעיל",
     temps: {
       "Présent": [
@@ -5153,7 +5153,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להתקה", translit: "Lehitaka", fr: "Être coincé / se bloquer",
+    inf: "להתקה", translit: "Lehitaka", fr: "Etre coincé / se bloquer",
     racine: "תקע", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -5183,7 +5183,7 @@ const VERBES = [
     },
   },
   {
-    inf: "להשלח", translit: "Lehichalakh", fr: "Être envoyé",
+    inf: "להשלח", translit: "Lehichalakh", fr: "Etre envoyé",
     racine: "שלח", binyan: "נפעל",
     temps: {
       "Présent": [
@@ -6019,6 +6019,156 @@ const VERBES = [
       ],
       "Futur": [
         { p: "il (הוא)", he: "יתקיף", t: "Yatkif" },
+      ],
+    },
+  },
+  {
+    inf: "לבחון", translit: "Livkhon", fr: "Inspecter/analyser/évaluer",
+    racine: "בחן", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "בוחן", t: "Bokhen" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "בחן", t: "Bakhan" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יבחן", t: "Yivkhan" },
+      ],
+    },
+  },
+  {
+    inf: "לחשוף", translit: "Lakhsof", fr: "Exposer / dévoiler",
+    racine: "חשף", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "חושף", t: "Khosef" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חשף", t: "Khasaf" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחשוף", t: "Yakhsof" },
+      ],
+    },
+  },
+  {
+    inf: "להחשף", translit: "Lehekhasef", fr: "Etre exposé / se dévoiler",
+    racine: "חשף", binyan: "נפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "נחשף", t: "Nekhsaf" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "נחשף", t: "Nekhsaf" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ייחשף", t: "Yikhasef" },
+      ],
+    },
+  },
+  {
+    inf: "לאסוף", translit: "Le'esof", fr: "Récupérer / collecter",
+    racine: "אסף", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "אוסף", t: "Osef" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "אסף", t: "Asaf" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יאסוף", t: "Ye'esof" },
+      ],
+    },
+  },
+  {
+    inf: "לחצות", translit: "Lakhtsot", fr: "Traverser / franchir",
+    racine: "חצה", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "חוצה", t: "Khotse" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חצה", t: "Khatsa" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחצה", t: "Yakhtse" },
+      ],
+    },
+  },
+  {
+    inf: "לחרוז", translit: "Lakharoz", fr: "Rimer",
+    racine: "חרז", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "חורז", t: "Khorez" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "חרז", t: "Kharaz" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יחרוז", t: "Yakharoz" },
+      ],
+    },
+  },
+  {
+    inf: "להתחרז", translit: "Lehitkharez", fr: "Rimer (ensemble)",
+    racine: "חרז", binyan: "התפעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "מתחרז", t: "Mitkharez" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "התחרז", t: "Hitkharez" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "יתחרז", t: "Yitkharez" },
+      ],
+    },
+  },
+  {
+    inf: "למרפק", translit: "Lemarpek", fr: "Jouer des coudes",
+    racine: "מרפק", binyan: "פיעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "ממרפק", t: "Memarpek" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "מירפק", t: "Mirpek" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ימרפק", t: "Yemarpek" },
+      ],
+    },
+  },
+  {
+    inf: "לדרוף", translit: "Lidrof", fr: "Pousser",
+    racine: "דרף", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "דורף", t: "Doref" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "דרף", t: "Daraf" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידרוף", t: "Yidrof" },
+      ],
+    },
+  },
+  {
+    inf: "לדקור", translit: "Lidkor", fr: "Piquer / poignarder",
+    racine: "דקר", binyan: "פעל",
+    temps: {
+      "Présent": [
+        { p: "masc. sing. (אני/אתה/הוא)", he: "דוקר", t: "Doker" },
+      ],
+      "Passé": [
+        { p: "il (הוא)", he: "דקר", t: "Dakar" },
+      ],
+      "Futur": [
+        { p: "il (הוא)", he: "ידקור", t: "Yidkor" },
       ],
     },
   },
