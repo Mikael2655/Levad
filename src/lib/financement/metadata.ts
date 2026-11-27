@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from 'next'
 // Titre, icônes et manifeste (ajout à l'écran d'accueil de l'iPhone) de l'outil de financement : « Leasing ».
 // Appliqué à toutes les pages /financement, page de connexion comprise (c'est souvent de là qu'on ajoute le raccourci).
 export const metadataFinancement: Metadata = {
-  title: 'Financements LEVAD',
+  title: 'Leasing Levad',
   description: 'Demandes de location financière et contrats LEVAD',
   manifest: '/leasing-manifest.webmanifest',
   icons: {
