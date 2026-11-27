@@ -369,4 +369,22 @@ const COMBINE_PHRASES_RAW = [
   { v: "לכתוב", vT: "Présent", vFr: "écrit", nHe: "לוח", nFr: "tableau", frT: "Le professeur {V} sur le {N}.", heT: "המורה {V} על ה{N}." },
   { v: "לראות", vT: "Présent", vFr: "voit", nHe: "תאונה", nFr: "accident", frT: "Sur la route, il {V} une {N}.", heT: "בכביש הוא {V} {N}." },
   { v: "לגמור", vT: "Présent", vFr: "finit", nHe: "תוך", nFr: "en l'espace de", frT: "Il {V} tout {N} une heure.", heT: "הוא {V} הכול {N} שעה." },
+  // ============================================================
+  //  Ajout : 10 nouveaux verbes et de nouveaux mots
+  // ============================================================
+  { v: "לבחון", vT: "Présent", vFr: "examine", nHe: "צורה", nFr: "forme", frT: "L'expert {V} la {N} du problème.", heT: "המומחה {V} את ה{N} של הבעיה." },
+  { v: "לחשוף", vT: "Présent", vFr: "dévoile", nHe: "שחיתות", nFr: "corruption", frT: "Le journaliste {V} la {N}.", heT: "העיתונאי {V} {N}." },
+  { v: "להחשף", vT: "Présent", vFr: "se dévoile", nHe: "סוד", nFr: "secret", frT: "Enfin, le {N} {V} au grand jour.", heT: "סוף סוף ה{N} {V}." },
+  { v: "לאסוף", vT: "Présent", vFr: "collecte", nHe: "מידע", nFr: "information", frT: "Le chercheur {V} beaucoup d'{N}.", heT: "החוקר {V} הרבה {N}." },
+  { v: "לחצות", vT: "Présent", vFr: "traverse", nHe: "כביש", nFr: "route", frT: "Il {V} le {N} prudemment.", heT: "הוא {V} את ה{N} בזהירות." },
+  { v: "לחרוז", vT: "Présent", vFr: "enfile", nHe: "חרוז", nFr: "perle", frT: "Le poète {V} de belles {N}.", heT: "המשורר {V} {N} יפים." },
+  { v: "למרפק", vT: "Présent", vFr: "joue des coudes", nHe: "המון", nFr: "foule", frT: "Il {V} dans la {N} pour avancer.", heT: "הוא {V} בתוך ה{N} כדי להתקדם." },
+  { v: "לדרוף", vT: "Présent", vFr: "pousse", nHe: "גולה", nFr: "bille", frT: "Il {V} la {N} avec le doigt.", heT: "הוא {V} את ה{N} עם האצבע." },
+  { v: "לדקור", vT: "Présent", vFr: "pique", nHe: "קוץ", nFr: "épine", frT: "L'{N} lui {V} le doigt.", heT: "ה{N} {V} לו את האצבע." },
+  { v: "להוריש", vT: "Présent", vFr: "lègue", nHe: "פנקס", nFr: "carnet", frT: "Le grand-père {V} son {N} à son petit-fils.", heT: "סבא {V} את ה{N} שלו לנכד שלו." },
+  { v: "לראות", vT: "Présent", vFr: "voit", nHe: "טקס", nFr: "cérémonie", frT: "À Jérusalem, il {V} un grand {N}.", heT: "בירושלים הוא {V} {N} גדול." },
+  { v: "לקנות", vT: "Présent", vFr: "achète", nHe: "בול", nFr: "timbre", frT: "À la poste, il {V} un {N}.", heT: "בדואר הוא {V} {N}." },
+  { v: "לחפש", vT: "Présent", vFr: "cherche", nHe: "מחק", nFr: "gomme", frT: "L'élève {V} son {N} dans la trousse.", heT: "התלמיד {V} את ה{N} בקלמר." },
+  { v: "להסביר", vT: "Présent", vFr: "explique", nHe: "מסימה", nFr: "mission", frT: "Le chef {V} la {N} à l'équipe.", heT: "המפקד {V} את ה{N} לצוות." },
+  { v: "לראות", vT: "Présent", vFr: "voit", nHe: "צרה", nFr: "problème / détresse", frT: "Il {V} une grande {N} arriver.", heT: "הוא {V} {N} גדולה מתקרבת." },
 ];
