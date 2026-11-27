@@ -49,7 +49,7 @@ function srsDefault() {
     v: 2,
     triageDone: false,
     settings: { packetMax: 8, dailyNew: 6 },
-    daily: { date: todayStr(), newIntroduced: 0 },
+    daily: { date: todayStr(), newIntroduced: 0, roots: [] },
     cards: {},
   };
 }
@@ -69,6 +69,7 @@ function srsLoad() {
   srsData.v = 2;
   srsData.settings = Object.assign(d.settings, srsData.settings || {});
   srsData.daily = srsData.daily || d.daily;
+  if (!Array.isArray(srsData.daily.roots)) srsData.daily.roots = [];
   srsData.cards = srsData.cards || {};
   if (typeof srsData.triageDone !== "boolean") srsData.triageDone = false;
   srsLoadedFor = activeProfile;
@@ -87,7 +88,7 @@ function srsReady() {
 function srsEnsureDaily() {
   const t = todayStr();
   if (!srsData.daily || srsData.daily.date !== t) {
-    srsData.daily = { date: t, newIntroduced: 0 };
+    srsData.daily = { date: t, newIntroduced: 0, roots: [] };
     srsSave();
   }
 }
@@ -96,6 +97,41 @@ function srsEnsureDaily() {
 const SRS_VERBS = typeof VERBES !== "undefined" ? VERBES.filter((v) => v.inf) : [];
 const SRS_INDEX = {}; // inf -> position (pour départager la file)
 SRS_VERBS.forEach((v, i) => (SRS_INDEX[v.inf] = i));
+
+/* ---------- Familles de racines (le « chandelier » des binyanim) ----------
+   Les 7 constructions et leurs paires actif/passif (le hitpa'el au centre).
+   Dans vos données, seuls פעל/נפעל/פיעל/התפעל/הפעיל sont présents (pu'al et
+   huf'al n'apparaissent pas) : leurs cases du chandelier restent vides. */
+const SRS_BINYAN_OPP = {
+  "פעל": "נפעל", "נפעל": "פעל",
+  "פיעל": "פועל", "פועל": "פיעל",
+  "הפעיל": "הופעל", "הופעל": "הפעיל",
+  "התפעל": null,
+};
+const SRS_BINYAN_INFO = {
+  "פעל": { r: "Pa'al", v: "actif" },
+  "נפעל": { r: "Nif'al", v: "passif / réfléchi" },
+  "פיעל": { r: "Pi'el", v: "intensif" },
+  "פועל": { r: "Pu'al", v: "passif" },
+  "הפעיל": { r: "Hif'il", v: "causatif" },
+  "הופעל": { r: "Huf'al", v: "passif causatif" },
+  "התפעל": { r: "Hitpa'el", v: "réfléchi" },
+};
+// Disposition du chandelier : 3 paires (actif | passif) + le centre
+const SRS_CHANDELIER_PAIRS = [["פעל", "נפעל"], ["פיעל", "פועל"], ["הפעיל", "הופעל"]];
+const SRS_CHANDELIER_CENTER = "התפעל";
+
+// Racine normalisée d'un verbe (lettres seules, formes finales ramenées)
+function srsRoot(v) { return v ? hebrewLetters(String(v.racine || "")) : ""; }
+// Index : racine -> [infinitifs]
+const SRS_FAMILIES = {};
+SRS_VERBS.forEach((v) => {
+  const r = srsRoot(v);
+  if (!r) return;
+  (SRS_FAMILIES[r] = SRS_FAMILIES[r] || []).push(v.inf);
+});
+// Racine joliment pointée pour l'affichage : "סגר" -> "ס.ג.ר"
+function srsRootDotted(r) { return [...String(r)].join("."); }
 
 function srsCard(inf) {
   let c = srsData.cards[inf];
@@ -157,19 +193,36 @@ function srsNewRemainingToday() {
 /* ---------- Remplissage du paquet ---------- */
 /* Fait entrer des verbes de la file dans le paquet, tant qu'il reste
    de la place (≤ packetMax) ET du quota du jour (sauf "force"). */
+/* Racines présentes actuellement dans le paquet. */
+function srsPacketRoots() {
+  const set = new Set();
+  srsCardsBy("packet").forEach((inf) => { const r = srsRoot(srsVerb(inf)); if (r) set.add(r); });
+  return set;
+}
 function srsRefillPacket(extra) {
   srsEnsureDaily();
   const max = srsData.settings.packetMax || 8;
   let room = max - srsCardsBy("packet").length;
   let quota = (srsData.settings.dailyNew || 6) - (srsData.daily.newIntroduced || 0) + (extra || 0);
+  srsData.daily.roots = srsData.daily.roots || [];
   let introduced = 0;
   while (room > 0 && quota > 0) {
     const q = srsQueueOrdered();
-    if (q.length === 0) break;
-    const inf = q[0];
+    const packetRoots = srsPacketRoots();
+    // 1er verbe éligible : on n'introduit jamais deux verbes de même
+    // racine le même jour, ni une racine déjà présente dans le paquet.
+    let inf = null;
+    for (const cand of q) {
+      const r = srsRoot(srsVerb(cand));
+      if (r && (srsData.daily.roots.includes(r) || packetRoots.has(r))) continue;
+      inf = cand; break;
+    }
+    if (!inf) break; // plus rien d'éligible (racines bloquées pour aujourd'hui)
     const c = srsCard(inf);
     c.status = "packet";
     c.streak = 0;
+    const r = srsRoot(srsVerb(inf));
+    if (r) srsData.daily.roots.push(r);
     srsData.daily.newIntroduced = (srsData.daily.newIntroduced || 0) + 1;
     room--; quota--; introduced++;
   }
@@ -186,6 +239,26 @@ function srsGraduateFromPacket(inf) {
   c.due = todayNum() + SRS_BOX_INTERVALS[1];
   srsSave();
 }
+/* Valeur « tête de file » : juste devant l'ajout le plus récent. */
+function srsQueueHeadValue() {
+  let m = todayNum();
+  srsCardsBy("queue").forEach((inf) => { const a = srsData.cards[inf].added || 0; if (a > m) m = a; });
+  return m + 1;
+}
+/* Quand un verbe atteint la boîte 2 : si son opposé (même racine, binyan
+   opposé du chandelier) attend dans la file, on le place en tête pour
+   apprendre les deux voix côte à côte. */
+function srsBoostOppositeInQueue(inf) {
+  const v = srsVerb(inf);
+  if (!v) return;
+  const root = srsRoot(v);
+  const opp = SRS_BINYAN_OPP[v.binyan];
+  if (!root || !opp) return;
+  const cand = SRS_VERBS.find((o) =>
+    o.inf !== inf && srsRoot(o) === root && o.binyan === opp &&
+    srsData.cards[o.inf] && srsData.cards[o.inf].status === "queue");
+  if (cand) { srsCard(cand.inf).added = srsQueueHeadValue(); }
+}
 /* Bonne réponse en révision : passe à la boîte suivante. */
 function srsPromote(inf) {
   const c = srsCard(inf);
@@ -201,6 +274,7 @@ function srsPromote(inf) {
     } else {
       c.box = b + 1;
       c.due = t + SRS_BOX_INTERVALS[c.box];
+      if (c.box === 2) srsBoostOppositeInQueue(inf); // chandelier : réveille l'opposé
     }
   }
   srsSave();
@@ -216,7 +290,7 @@ function srsDemote(inf) {
     c.status = "packet";
   } else {
     c.status = "queue";
-    c.added = todayNum() + 1; // en tête de file (plus "récent" que tout)
+    c.added = srsQueueHeadValue(); // en tête de file
     c.due = null;
   }
   srsSave();
@@ -463,9 +537,11 @@ function srsHome() {
   bAdd.addEventListener("click", () => { state.srs.screen = "add"; render(); });
   const bTri = el("button", "btn btn-ghost", "🔎 Tri initial");
   bTri.addEventListener("click", srsStartTriage);
+  const bFam = el("button", "btn btn-ghost", "🕎 Familles de racines");
+  bFam.addEventListener("click", () => { state.srs.screen = "familles"; render(); });
   const bSet = el("button", "btn btn-ghost", "⚙️ Réglages");
   bSet.addEventListener("click", () => { state.srs.screen = "settings"; render(); });
-  [bAdd, bTri, bSet].forEach((b) => actions.appendChild(b));
+  [bAdd, bFam, bTri, bSet].forEach((b) => actions.appendChild(b));
   screen.appendChild(actions);
 }
 
@@ -785,6 +861,13 @@ function srsRecap() {
   b3.addEventListener("click", () => srsStartConj(conjPool));
   bonus.appendChild(b3);
 
+  // Mode Famille : débloqué dès que 2 verbes d'une même racine sont en boîte 3+
+  const famReady = srsFamilyRootsReady();
+  const b4 = el("button", "btn btn-ghost", "🕎 Mode Famille (racines)");
+  b4.disabled = famReady.length === 0;
+  b4.addEventListener("click", () => srsStartFamily(famReady));
+  bonus.appendChild(b4);
+
   screen.appendChild(bonus);
   screen.appendChild(srsBackBtn("Retour au tableau de bord"));
 }
@@ -833,11 +916,13 @@ function srsPickConj() {
   s.answered = false;
 }
 
-/* On réutilise le routeur : "session-conj" rendu ici */
+/* On réutilise le routeur : écrans additionnels rendus ici */
 const _srsRenderSrs = renderSrs;
 renderSrs = function () {
   srsReady();
   if (state.srs.screen === "session-conj") return srsSessionConj();
+  if (state.srs.screen === "session-family") return srsSessionFamily();
+  if (state.srs.screen === "familles") return srsFamillesScreen();
   return _srsRenderSrs();
 };
 
@@ -1019,4 +1104,221 @@ function srsSettingsScreen() {
 /* ---------- petit util ---------- */
 function frMain(fr) {
   return String(fr).replace(/\([^)]*\)/g, "").split("/")[0].trim().toLowerCase();
+}
+
+/* ============================================================
+   FAMILLES DE RACINES (le chandelier des binyanim)
+   ============================================================ */
+
+/* Racines ayant au moins deux verbes en boîte 3+ (ou acquis) : condition
+   de déblocage du mode Famille. */
+function srsFamilyRootsReady() {
+  const res = [];
+  Object.entries(SRS_FAMILIES).forEach(([r, infs]) => {
+    const adv = infs.filter((inf) => {
+      const c = srsData.cards[inf];
+      return c && (c.status === "acquired" || (c.status === "box" && (c.box || 1) >= 3));
+    });
+    if (adv.length >= 2) res.push({ root: r, adv, all: infs });
+  });
+  return res;
+}
+
+function srsStartFamily(ready) {
+  state.srs.sess = { mode: "family", phase: "family", roots: ready, ok: 0, ko: 0, answered: false, current: null };
+  srsPickFamily();
+  state.srs.screen = "session-family";
+  render();
+}
+function srsPickFamily() {
+  const s = state.srs.sess;
+  const fam = s.roots[Math.floor(Math.random() * s.roots.length)];
+  // cible : un verbe avancé (boîte 3+) de la racine
+  const target = fam.adv[Math.floor(Math.random() * fam.adv.length)];
+  // options : les verbes de la famille (même racine), cible incluse,
+  // en privilégiant les membres avancés, complétés par les autres.
+  const uniq = [];
+  const seen = new Set();
+  const order = [target, ...fam.adv.filter((i) => i !== target), ...fam.all.filter((i) => !fam.adv.includes(i))];
+  order.forEach((inf) => { if (!seen.has(inf) && uniq.length < 4) { seen.add(inf); uniq.push(inf); } });
+  s.current = { root: fam.root, target, options: shuffle(uniq) };
+  s.answered = false;
+}
+
+function srsSessionFamily() {
+  const s = state.srs.sess;
+  if (!s || !s.current) { state.srs.screen = "home"; return; }
+  const cur = s.current;
+  const tv = srsVerb(cur.target);
+
+  const head = el("div", "srs-sess-head");
+  head.innerHTML =
+    `<span class="srs-phase">🕎 Famille</span>` +
+    `<span class="session-score"><span class="ok">✔ ${s.ok}</span><span class="ko">✘ ${s.ko}</span></span>`;
+  screen.appendChild(head);
+  screen.appendChild(el("p", "hint srs-remain", "Les erreurs ici ne font pas reculer les verbes."));
+
+  // Phrase à trous : contexte français + hébreu, forme à retrouver
+  const q = el("div", "quiz-question srs-fam-q");
+  q.innerHTML =
+    `<div class="conj-badges"><span class="badge srs-lvl">Racine ${srsRootDotted(cur.root)}</span></div>` +
+    `<div class="srs-fam-fr">Il faut <strong>${frMain(tv.fr)}</strong>.</div>` +
+    `<div class="srs-fam-he he" dir="rtl">צריך <span class="srs-blank">______</span>.</div>` +
+    `<div class="hint srs-ask">Quelle forme de la racine ${srsRootDotted(cur.root)} convient ?</div>`;
+  screen.appendChild(q);
+
+  const box = el("div", "quiz-options");
+  screen.appendChild(box);
+  const buttons = [];
+  cur.options.forEach((inf) => {
+    const v = srsVerb(inf);
+    const btn = el("button", "quiz-option option-he", `<span class="he">${v.inf}</span> ${speakBtn(v.inf)}`);
+    buttons.push({ btn, inf });
+    btn.addEventListener("click", () => {
+      if (s.answered) return;
+      s.answered = true;
+      const correct = inf === cur.target;
+      s[correct ? "ok" : "ko"]++;
+      buttons.forEach(({ btn: b, inf: i }) => { b.classList.add("locked"); if (i === cur.target) b.classList.add("correct"); });
+      if (!correct) btn.classList.add("wrong");
+
+      // Retour : la phrase complétée + toute la famille (he = sens, binyan)
+      const fb = el("div", "feedback " + (correct ? "good" : "bad"));
+      fb.innerHTML =
+        `${correct ? "✔" : "✘"} <span class="he">צריך ${tv.inf}</span> — <em>Il faut ${frMain(tv.fr)}</em>`;
+      screen.appendChild(fb);
+      const famList = el("div", "srs-fam-list");
+      famList.innerHTML = cur.options.map((i) => {
+        const vv = srsVerb(i);
+        const bi = SRS_BINYAN_INFO[vv.binyan];
+        return `<div class="srs-fam-item${i === cur.target ? " is-target" : ""}"><span class="he">${vv.inf}</span> <span class="srs-fam-sens">${vv.fr}</span>${bi ? ` <span class="srs-fam-bin">${bi.r}</span>` : ""}</div>`;
+      }).join("");
+      screen.appendChild(famList);
+
+      const next = el("button", "btn btn-primary srs-next", "Suivant →");
+      next.addEventListener("click", () => { srsPickFamily(); render(); });
+      screen.appendChild(next);
+    });
+    box.appendChild(btn);
+  });
+
+  const quit = el("button", "btn btn-ghost srs-quit", "⏹ Terminer");
+  quit.addEventListener("click", () => { state.srs.screen = "home"; state.srs.sess = null; render(); });
+  screen.appendChild(quit);
+}
+
+/* ---------- Écran « Familles » : le chandelier par racine ---------- */
+function srsVerbStatusChip(inf) {
+  const c = srsData.cards[inf];
+  if (!c || c.status === "new") return `<span class="srs-chip srs-chip-new">—</span>`;
+  if (c.status === "acquired") return `<span class="srs-chip srs-chip-acq">🏆 acquis</span>`;
+  if (c.status === "box") return `<span class="srs-chip srs-chip-box">boîte ${c.box || 1}</span>`;
+  if (c.status === "packet") return `<span class="srs-chip srs-chip-pac">🎒 paquet</span>`;
+  if (c.status === "queue") return `<span class="srs-chip srs-chip-file">⏳ file</span>`;
+  return "";
+}
+function srsFamIsKnown(inf) {
+  const c = srsData.cards[inf];
+  return !!(c && c.status !== "new");
+}
+/* Familles réelles : racines ayant au moins 2 verbes dans les données. */
+function srsRealFamilies() {
+  return Object.entries(SRS_FAMILIES)
+    .filter(([, infs]) => infs.length >= 2)
+    .map(([root, infs]) => ({ root, infs, known: infs.filter(srsFamIsKnown).length }));
+}
+function srsChandelierCell(root, binyan) {
+  const infs = (SRS_FAMILIES[root] || []).filter((inf) => srsVerb(inf).binyan === binyan);
+  const info = SRS_BINYAN_INFO[binyan] || { r: binyan, v: "" };
+  const cell = el("div", "srs-ch-cell" + (infs.length ? " filled" : " empty"));
+  let inner = `<div class="srs-ch-bin">${info.r}<span class="srs-ch-he he">${binyan}</span></div>` +
+    `<div class="srs-ch-voice">${info.v}</div>`;
+  if (infs.length) {
+    inner += infs.map((inf) => {
+      const v = srsVerb(inf);
+      return `<div class="srs-ch-verb${srsFamIsKnown(inf) ? " known" : ""}"><span class="he">${v.inf}</span> <span class="srs-ch-fr">${v.fr}</span>${srsVerbStatusChip(inf)}</div>`;
+    }).join("");
+  } else {
+    inner += `<div class="srs-ch-none">—</div>`;
+  }
+  cell.innerHTML = inner;
+  return cell;
+}
+function srsFamillesScreen() {
+  screen.appendChild(el("h2", "view-title", "🕎 Familles de racines"));
+  screen.appendChild(
+    el("p", "hint", "Chaque racine se décline sur le « chandelier » des binyanim : à gauche les formes actives, à droite les passives/réfléchies, le hitpa'el au centre. Les verbes que tu travailles sont surlignés.")
+  );
+
+  // Lancer le mode Famille si débloqué
+  const famReady = srsFamilyRootsReady();
+  if (famReady.length) {
+    const play = el("button", "btn btn-primary srs-fam-play", `🎮 Jouer au mode Famille (${famReady.length} racine${famReady.length > 1 ? "s" : ""} prête${famReady.length > 1 ? "s" : ""})`);
+    play.addEventListener("click", () => srsStartFamily(famReady));
+    screen.appendChild(play);
+  } else {
+    screen.appendChild(el("p", "hint srs-fam-locked", "🔒 Le jeu « Famille » se débloque dès que deux verbes d'une même racine atteignent la boîte 3."));
+  }
+
+  // filtre
+  const onlyMine = state.srs.famMine !== false; // par défaut : mes familles
+  screen.appendChild(
+    checkToggle("Seulement mes familles (au moins un verbe commencé)", onlyMine, (v) => { state.srs.famMine = v; render(); })
+  );
+  const search = el("input", "write-input srs-add-search");
+  search.type = "text";
+  search.placeholder = "Filtrer (racine, hébreu ou français)…";
+  search.value = state.srs.famQ || "";
+  search.addEventListener("input", () => { state.srs.famQ = search.value; renderFamList(); });
+  screen.appendChild(search);
+
+  const listWrap = el("div", "srs-fam-families");
+  screen.appendChild(listWrap);
+
+  function renderFamList() {
+    listWrap.innerHTML = "";
+    let fams = srsRealFamilies();
+    if (onlyMine) fams = fams.filter((f) => f.known > 0);
+    const q = (state.srs.famQ || "").trim();
+    if (q) {
+      const qn = normalize(q);
+      fams = fams.filter((f) =>
+        f.root.includes(q) ||
+        f.infs.some((inf) => inf.includes(q) || normalize(srsVerb(inf).fr).includes(qn)));
+    }
+    // tri : le plus de verbes connus d'abord, puis les plus grandes familles
+    fams.sort((a, b) => (b.known - a.known) || (b.infs.length - a.infs.length) || (a.root < b.root ? -1 : 1));
+    if (fams.length === 0) { listWrap.appendChild(el("p", "hint", "Aucune famille à afficher.")); return; }
+
+    fams.slice(0, 80).forEach((f) => {
+      const open = state.srs.openFam === f.root;
+      const famEl = el("div", "srs-fam" + (open ? " open" : ""));
+      const header = el("button", "srs-fam-head");
+      header.innerHTML =
+        `<span class="srs-fam-root he">${srsRootDotted(f.root)}</span>` +
+        `<span class="srs-fam-count">${f.known}/${f.infs.length} verbe${f.infs.length > 1 ? "s" : ""}</span>` +
+        `<span class="srs-fam-arrow">${open ? "▾" : "▸"}</span>`;
+      header.addEventListener("click", () => { state.srs.openFam = open ? null : f.root; render(); });
+      famEl.appendChild(header);
+
+      if (open) {
+        const grid = el("div", "srs-chandelier");
+        SRS_CHANDELIER_PAIRS.forEach(([act, pas]) => {
+          const row = el("div", "srs-ch-row");
+          row.appendChild(srsChandelierCell(f.root, act));
+          row.appendChild(srsChandelierCell(f.root, pas));
+          grid.appendChild(row);
+        });
+        // centre : hitpa'el
+        const center = el("div", "srs-ch-row srs-ch-center");
+        center.appendChild(srsChandelierCell(f.root, SRS_CHANDELIER_CENTER));
+        grid.appendChild(center);
+        famEl.appendChild(grid);
+      }
+      listWrap.appendChild(famEl);
+    });
+    if (fams.length > 80) listWrap.appendChild(el("p", "hint", `… et ${fams.length - 80} autres (affine avec le filtre).`));
+  }
+  renderFamList();
+  screen.appendChild(srsBackBtn());
 }

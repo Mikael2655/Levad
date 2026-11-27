@@ -1354,3 +1354,55 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
 .srs-set-choice { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .srs-set-choice .seg-btn { flex: 0 0 auto; min-width: 3rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); }
 .srs-set-choice .seg-btn.active { background: var(--grad-brand); color: #fff; border-color: transparent; }
+
+/* ---------- Familles de racines (chandelier) ---------- */
+.srs-fam-q { text-align: center; }
+.srs-fam-fr { font-size: 1.25rem; font-weight: 700; margin: 0.3rem 0; }
+.srs-fam-he { font-size: 1.5rem; color: var(--blue-he); }
+.srs-blank { color: var(--accent2); letter-spacing: 2px; }
+.srs-fam-list { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.6rem 0; }
+.srs-fam-item {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  padding: 0.4rem 0.6rem; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card);
+}
+.srs-fam-item.is-target { border-color: var(--good); background: var(--good-bg); }
+.srs-fam-item .he { font-size: 1.25rem; color: var(--blue-he); }
+.srs-fam-sens { flex: 1; }
+.srs-fam-bin { font-size: 0.72rem; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--card)); padding: 0.1rem 0.45rem; border-radius: 999px; }
+.srs-fam-play { width: 100%; margin: 0.4rem 0 0.7rem; }
+.srs-fam-locked { text-align: center; background: var(--card); border: 1px dashed var(--line); border-radius: var(--radius-sm); padding: 0.6rem; margin: 0.4rem 0 0.7rem; }
+
+.srs-fam-families { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; }
+.srs-fam { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card); overflow: hidden; }
+.srs-fam.open { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.srs-fam-head {
+  width: 100%; display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.6rem 0.8rem; background: transparent; border: none; cursor: pointer; font: inherit; color: var(--ink);
+}
+.srs-fam-root { font-size: 1.4rem; font-weight: 700; color: var(--blue-he); letter-spacing: 0.04em; }
+.srs-fam-count { flex: 1; text-align: left; color: var(--muted); font-size: 0.85rem; }
+.srs-fam-arrow { color: var(--accent); font-size: 1.1rem; }
+
+.srs-chandelier { padding: 0.3rem 0.5rem 0.7rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.srs-ch-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+.srs-ch-center { grid-template-columns: 1fr; max-width: 60%; margin: 0 auto; }
+.srs-ch-cell {
+  border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0.45rem 0.5rem; background: var(--bg);
+}
+.srs-ch-cell.empty { opacity: 0.5; }
+.srs-ch-cell.filled { background: var(--card); }
+.srs-ch-bin { font-weight: 800; color: var(--accent); font-size: 0.9rem; display: flex; align-items: baseline; gap: 0.35rem; }
+.srs-ch-he { font-size: 0.85rem; color: var(--blue-he); font-weight: 600; }
+.srs-ch-voice { font-size: 0.68rem; color: var(--muted); margin-bottom: 0.25rem; }
+.srs-ch-verb { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; padding: 0.2rem 0; border-top: 1px dashed var(--line); font-size: 0.82rem; }
+.srs-ch-verb .he { font-size: 1.1rem; color: var(--muted); }
+.srs-ch-verb.known .he { color: var(--blue-he); font-weight: 700; }
+.srs-ch-fr { flex: 1; min-width: 40px; }
+.srs-ch-none { color: var(--muted); text-align: center; }
+
+.srs-chip { font-size: 0.65rem; font-weight: 700; padding: 0.05rem 0.4rem; border-radius: 999px; white-space: nowrap; }
+.srs-chip-new { color: var(--muted); background: var(--line); }
+.srs-chip-acq { color: #fff; background: var(--good); }
+.srs-chip-box { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--card)); }
+.srs-chip-pac { color: var(--accent2); background: color-mix(in srgb, var(--accent2) 18%, var(--card)); }
+.srs-chip-file { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, var(--card)); }
