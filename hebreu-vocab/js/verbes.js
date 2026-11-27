@@ -6143,17 +6143,17 @@ const VERBES = [
     },
   },
   {
-    inf: "לדרוף", translit: "Lidrof", fr: "Pousser",
-    racine: "דרף", binyan: "פעל",
+    inf: "לדחוף", translit: "Lidkhof", fr: "Pousser",
+    racine: "דחף", binyan: "פעל",
     temps: {
       "Présent": [
-        { p: "masc. sing. (אני/אתה/הוא)", he: "דורף", t: "Doref" },
+        { p: "masc. sing. (אני/אתה/הוא)", he: "דוחף", t: "Dokhef" },
       ],
       "Passé": [
-        { p: "il (הוא)", he: "דרף", t: "Daraf" },
+        { p: "il (הוא)", he: "דחף", t: "Dakhaf" },
       ],
       "Futur": [
-        { p: "il (הוא)", he: "ידרוף", t: "Yidrof" },
+        { p: "il (הוא)", he: "ידחוף", t: "Yidkhof" },
       ],
     },
   },

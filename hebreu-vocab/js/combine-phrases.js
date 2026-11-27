@@ -379,7 +379,7 @@ const COMBINE_PHRASES_RAW = [
   { v: "לחצות", vT: "Présent", vFr: "traverse", nHe: "כביש", nFr: "route", frT: "Il {V} le {N} prudemment.", heT: "הוא {V} את ה{N} בזהירות." },
   { v: "לחרוז", vT: "Présent", vFr: "enfile", nHe: "חרוז", nFr: "perle", frT: "Le poète {V} de belles {N}.", heT: "המשורר {V} {N} יפים." },
   { v: "למרפק", vT: "Présent", vFr: "joue des coudes", nHe: "המון", nFr: "foule", frT: "Il {V} dans la {N} pour avancer.", heT: "הוא {V} בתוך ה{N} כדי להתקדם." },
-  { v: "לדרוף", vT: "Présent", vFr: "pousse", nHe: "גולה", nFr: "bille", frT: "Il {V} la {N} avec le doigt.", heT: "הוא {V} את ה{N} עם האצבע." },
+  { v: "לדחוף", vT: "Présent", vFr: "pousse", nHe: "גולה", nFr: "bille", frT: "Il {V} la {N} avec le doigt.", heT: "הוא {V} את ה{N} עם האצבע." },
   { v: "לדקור", vT: "Présent", vFr: "pique", nHe: "קוץ", nFr: "épine", frT: "L'{N} lui {V} le doigt.", heT: "ה{N} {V} לו את האצבע." },
   { v: "להוריש", vT: "Présent", vFr: "lègue", nHe: "פנקס", nFr: "carnet", frT: "Le grand-père {V} son {N} à son petit-fils.", heT: "סבא {V} את ה{N} שלו לנכד שלו." },
   { v: "לראות", vT: "Présent", vFr: "voit", nHe: "טקס", nFr: "cérémonie", frT: "À Jérusalem, il {V} un grand {N}.", heT: "בירושלים הוא {V} {N} גדול." },
