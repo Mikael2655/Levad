@@ -1423,3 +1423,7 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
 .srs-reconcile strong { color: var(--accent); }
 .srs-reconcile-bad { color: var(--bad); border-color: var(--bad); background: var(--bad-bg); }
 .srs-reconcile-bad strong { color: var(--bad); }
+
+/* Rappel du Total dans le bloc Verbes de l'accueil */
+.hb-total { margin: 0.5rem 0 0; font-size: 0.82rem; color: var(--muted); text-align: center; }
+.hb-total strong { color: var(--accent); }
