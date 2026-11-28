@@ -1406,3 +1406,20 @@ code { background: var(--card); padding: 0.1rem 0.35rem; border-radius: 5px; }
 .srs-chip-box { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--card)); }
 .srs-chip-pac { color: var(--accent2); background: color-mix(in srgb, var(--accent2) 18%, var(--card)); }
 .srs-chip-file { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, var(--card)); }
+
+/* ---------- Total + réconciliation (tableau de bord verbes) ---------- */
+.srs-stat.total { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); background: color-mix(in srgb, var(--accent) 7%, var(--card)); }
+.srs-stat.total .srs-stat-n { color: var(--accent-dark); }
+.srs-reconcile {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  margin: 0 0 0.9rem;
+}
+.srs-reconcile strong { color: var(--accent); }
+.srs-reconcile-bad { color: var(--bad); border-color: var(--bad); background: var(--bad-bg); }
+.srs-reconcile-bad strong { color: var(--bad); }

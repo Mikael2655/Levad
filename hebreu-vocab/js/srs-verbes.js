@@ -93,10 +93,28 @@ function srsEnsureDaily() {
   }
 }
 
-/* ---------- Accès aux verbes (un verbe = une unité) ---------- */
+/* ---------- Accès aux verbes (un verbe = une unité) ----------
+   Un verbe = un INFINITIF. Le tableau source peut contenir le même
+   infinitif deux fois (deux sens, ex. להראות « montrer / sembler ») :
+   on les fusionne en UNE seule unité (une carte, clé = infinitif), pour
+   qu'aucun verbe ne soit compté deux fois ni ne disparaisse. SRS_INFS
+   est donc la liste DISTINCTE des infinitifs — la vraie « liste source »
+   du jeu. */
 const SRS_VERBS = typeof VERBES !== "undefined" ? VERBES.filter((v) => v.inf) : [];
+const SRS_INFS = [...new Set(SRS_VERBS.map((v) => v.inf))]; // infinitifs distincts (ordre d'apparition)
 const SRS_INDEX = {}; // inf -> position (pour départager la file)
-SRS_VERBS.forEach((v, i) => (SRS_INDEX[v.inf] = i));
+SRS_INFS.forEach((inf, i) => (SRS_INDEX[inf] = i));
+// Tous les sens d'un même infinitif, fusionnés pour l'affichage
+const SRS_FR_BY_INF = {};
+SRS_VERBS.forEach((v) => {
+  (SRS_FR_BY_INF[v.inf] = SRS_FR_BY_INF[v.inf] || []).push(v.fr);
+});
+function srsFr(inf) {
+  const list = SRS_FR_BY_INF[inf] || [(srsVerb(inf) || {}).fr || ""];
+  return [...new Set(list.filter(Boolean))].join(" / ");
+}
+// Infinitifs en double dans la source (même infinitif, plusieurs sens)
+const SRS_DUP_INFS = SRS_INFS.filter((inf) => (SRS_FR_BY_INF[inf] || []).length > 1);
 
 /* ---------- Familles de racines (le « chandelier » des binyanim) ----------
    Les 7 constructions et leurs paires actif/passif (le hitpa'el au centre).
@@ -125,10 +143,10 @@ const SRS_CHANDELIER_CENTER = "התפעל";
 function srsRoot(v) { return v ? hebrewLetters(String(v.racine || "")) : ""; }
 // Index : racine -> [infinitifs]
 const SRS_FAMILIES = {};
-SRS_VERBS.forEach((v) => {
-  const r = srsRoot(v);
+SRS_INFS.forEach((inf) => {
+  const r = srsRoot(srsVerb(inf));
   if (!r) return;
-  (SRS_FAMILIES[r] = SRS_FAMILIES[r] || []).push(v.inf);
+  (SRS_FAMILIES[r] = SRS_FAMILIES[r] || []).push(inf); // infinitifs distincts
 });
 // Racine joliment pointée pour l'affichage : "סגר" -> "ס.ג.ר"
 function srsRootDotted(r) { return [...String(r)].join("."); }
@@ -145,13 +163,34 @@ function srsVerb(inf) {
   return VERB_BY_INF[inf];
 }
 
-/* ---------- Comptages (tableau de bord) ---------- */
+/* ---------- Comptages (tableau de bord) ----------
+   Tous les comptages portent sur les infinitifs DISTINCTS (SRS_INFS) :
+   un verbe en double dans la source n'est jamais compté deux fois. */
 function srsCardsBy(status) {
-  return SRS_VERBS.map((v) => v.inf).filter((inf) => {
+  return SRS_INFS.filter((inf) => {
     const c = srsData.cards[inf];
     if (!c) return status === "new";
     return c.status === status;
   });
+}
+/* « Total » du tableau de bord : tout ce qui est sorti du tri =
+   file + paquet + boîtes 1-4 + acquis. */
+function srsTotalCount() {
+  return srsCardsBy("queue").length + srsCardsBy("packet").length +
+    srsCardsBy("box").length + srsCardsBy("acquired").length;
+}
+/* Réconciliation : garantit qu'aucun verbe ne disparaît. La source
+   (infinitifs distincts) doit toujours valoir : à trier + Total.
+   `other` liste d'éventuels statuts inconnus (ne devrait jamais arriver). */
+function srsReconcile() {
+  const KNOWN = ["new", "queue", "packet", "box", "acquired"];
+  const other = SRS_INFS.filter((inf) => {
+    const c = srsData.cards[inf];
+    return c && !KNOWN.includes(c.status);
+  });
+  const newN = srsCardsBy("new").length;
+  const total = srsTotalCount();
+  return { source: SRS_INFS.length, newN, total, other, ok: (newN + total + other.length) === SRS_INFS.length };
 }
 function srsQueueOrdered() {
   // File : priorité aux plus récemment ajoutés, puis aux anciens
@@ -175,11 +214,11 @@ function srsDueList() {
   // plus en retard d'abord.
   const t = todayNum();
   const due = [];
-  SRS_VERBS.forEach((v) => {
-    const c = srsData.cards[v.inf];
+  SRS_INFS.forEach((inf) => {
+    const c = srsData.cards[inf];
     if (!c) return;
     if ((c.status === "box" || c.status === "acquired") && (c.due == null || c.due <= t)) {
-      due.push(v.inf);
+      due.push(inf);
     }
   });
   due.sort((a, b) => (srsData.cards[a].due || 0) - (srsData.cards[b].due || 0));
@@ -316,11 +355,11 @@ function srsStartTriage() {
   render();
 }
 function srsTriageList() {
-  // Verbes pas encore classés (status "new")
-  return SRS_VERBS.filter((v) => {
-    const c = srsData.cards[v.inf];
+  // Verbes pas encore classés (status "new"), infinitifs distincts
+  return SRS_INFS.filter((inf) => {
+    const c = srsData.cards[inf];
     return !c || c.status === "new";
-  });
+  }).map((inf) => srsVerb(inf));
 }
 function srsTriageMark(inf, known) {
   const c = srsCard(inf);
@@ -483,6 +522,7 @@ function srsHome() {
   const queue = srsCardsBy("queue").length;
   const boxes = srsBoxCounts();
   const acq = srsCardsBy("acquired").length;
+  const rec = srsReconcile(); // source, à trier, Total, cohérence
 
   // Proposition de tri initial tant qu'il reste des verbes non classés
   if (!srsData.triageDone && nNew > 0) {
@@ -502,6 +542,7 @@ function srsHome() {
     ["🎒", packet, "dans le paquet", ""],
     ["⏳", queue, "en file d'attente", ""],
     ["🏆", acq, "acquis", ""],
+    ["📊", rec.total, "Total (file + paquet + boîtes + acquis)", "total"],
   ];
   tiles.forEach(([ic, n, lab, cls]) => {
     const t = el("div", "srs-stat " + cls);
@@ -516,6 +557,15 @@ function srsHome() {
     `<span class="srs-box-lab">Boîtes&nbsp;:</span>` +
     [1, 2, 3, 4].map((b) => `<span class="srs-box"><b>${boxes[b] || 0}</b> <span>B${b}</span></span>`).join("");
   screen.appendChild(bx);
+
+  // Réconciliation : la source = à trier + Total. Garantit qu'aucun
+  // verbe ne disparaît (tout verbe est dans exactement un compteur).
+  const recEl = el("div", "srs-reconcile" + (rec.ok ? "" : " srs-reconcile-bad"));
+  recEl.innerHTML = rec.ok
+    ? `✓ <strong>${rec.source}</strong> verbes au total : <strong>${rec.newN}</strong> à trier + <strong>${rec.total}</strong> en mémorisation.`
+    : `⚠️ Incohérence : ${rec.source} verbes source ≠ ${rec.newN} à trier + ${rec.total} en mémorisation` +
+      (rec.other.length ? ` (${rec.other.length} au statut inconnu : ${rec.other.join(", ")})` : "");
+  screen.appendChild(recEl);
 
   // Bouton principal : démarrer la session
   const canStart = due > 0 || packet > 0 || newLeft > 0;
@@ -548,7 +598,7 @@ function srsHome() {
 /* ---------- Tri initial ---------- */
 function srsTriageScreen() {
   const list = srsTriageList();
-  const total = SRS_VERBS.length;
+  const total = SRS_INFS.length;
   const done = total - list.length;
 
   screen.appendChild(el("h2", "view-title", "🔎 Tri initial"));
@@ -575,7 +625,7 @@ function srsTriageScreen() {
   card.innerHTML =
     `<div class="he srs-triage-he">${v.inf} ${speakBtn(v.inf)}</div>` +
     `<div class="translit srs-triage-tr">${v.translit}</div>` +
-    `<div class="srs-triage-fr">${v.fr}</div>` +
+    `<div class="srs-triage-fr">${srsFr(v.inf)}</div>` +
     (v.binyan ? `<div class="srs-triage-meta"><span class="badge">${v.binyan}</span>${v.racine ? ` <span class="he">${v.racine}</span>` : ""}</div>` : "");
   screen.appendChild(card);
 
@@ -647,9 +697,9 @@ function srsRenderQcm(cur) {
     `<div class="hint srs-ask">Que veut dire ce verbe ?</div>`;
   screen.appendChild(q);
 
-  // 3 distracteurs : on préfère des verbes proches (même binyan, 1re
-  // lettre, longueur voisine) pour que le choix soit un vrai test.
-  const others = SRS_VERBS.filter((o) => o.inf !== v.inf && o.fr);
+  // 3 distracteurs : infinitifs DISTINCTS (jamais le même verbe sous un
+  // autre sens), proches de la cible (même binyan, 1re lettre, longueur).
+  const others = SRS_INFS.filter((o) => o !== v.inf).map((o) => srsVerb(o)).filter(Boolean);
   function sim(o) {
     let sc = Math.random();
     if (o.binyan && o.binyan === v.binyan) sc += 2;
@@ -657,10 +707,10 @@ function srsRenderQcm(cur) {
     if (Math.abs(o.inf.length - v.inf.length) <= 1) sc += 1;
     return sc;
   }
-  const seen = new Set([frMain(v.fr)]);
+  const seen = new Set([frMain(srsFr(v.inf))]);
   const distract = [];
   others.map((o) => [sim(o), o]).sort((a, b) => b[0] - a[0]).forEach(([, o]) => {
-    if (distract.length < 3 && !seen.has(frMain(o.fr))) { seen.add(frMain(o.fr)); distract.push(o); }
+    if (distract.length < 3 && !seen.has(frMain(srsFr(o.inf)))) { seen.add(frMain(srsFr(o.inf))); distract.push(o); }
   });
   const options = shuffle([v, ...distract]);
 
@@ -668,7 +718,7 @@ function srsRenderQcm(cur) {
   screen.appendChild(box);
   const buttons = [];
   options.forEach((opt) => {
-    const btn = el("button", "quiz-option", opt.fr);
+    const btn = el("button", "quiz-option", srsFr(opt.inf));
     buttons.push({ btn, opt });
     btn.addEventListener("click", () => {
       if (s.answered) return;
@@ -694,7 +744,7 @@ function srsRenderFlash(cur) {
   const q = el("div", "quiz-question");
   q.innerHTML =
     `<div class="conj-badges">${srsLevelBadge(cur.card)}</div>` +
-    `<div class="fr-word">${v.fr}</div>` +
+    `<div class="fr-word">${srsFr(v.inf)}</div>` +
     `<div class="hint srs-ask">Dis-le en hébreu, puis retourne la carte.</div>`;
   screen.appendChild(q);
 
@@ -730,7 +780,7 @@ function srsRenderLetters(cur) {
   const q = el("div", "quiz-question");
   q.innerHTML =
     `<div class="conj-badges">${srsLevelBadge(cur.card)}</div>` +
-    `<div class="fr-word">${v.fr}</div>` +
+    `<div class="fr-word">${srsFr(v.inf)}</div>` +
     // indice de prononciation en boîte 3, caché en boîte 4
     (cur.card.box >= 4 ? "" : `<div class="translit srs-letters-hint">${v.translit}</div>`) +
     `<div class="hint srs-ask">Reconstitue le verbe en hébreu (de droite à gauche).</div>`;
@@ -803,7 +853,7 @@ function srsFeedback(v, correct, noReveal) {
   const s = state.srs.sess;
   const fb = el("div", "feedback " + (correct ? "good" : "bad"));
   fb.innerHTML =
-    `${correct ? "✔" : "✘"} <strong>${v.fr}</strong> — <span class="he">${v.inf}</span> ${speakBtn(v.inf)} <span class="feedback-tr">(${v.translit})</span>` +
+    `${correct ? "✔" : "✘"} <strong>${srsFr(v.inf)}</strong> — <span class="he">${v.inf}</span> ${speakBtn(v.inf)} <span class="feedback-tr">(${v.translit})</span>` +
     ` <button type="button" class="verb-info-btn" title="Voir le verbe" aria-label="Détails du verbe">i</button>`;
   screen.appendChild(fb);
 
@@ -888,8 +938,9 @@ function srsStartFree(pool) {
 
 /* ---------- Conjugaison bonus (présent / passé) ---------- */
 function srsConjPool() {
-  // verbes en boîte 3+ ou acquis, qui ont présent ET/OU passé
-  return SRS_VERBS.filter((v) => {
+  // verbes en boîte 3+ ou acquis, qui ont présent ET/OU passé (distincts)
+  return SRS_INFS.map((inf) => srsVerb(inf)).filter((v) => {
+    if (!v) return false;
     const c = srsData.cards[v.inf];
     if (!c) return false;
     const ok = c.status === "acquired" || (c.status === "box" && (c.box || 1) >= 3);
@@ -948,9 +999,9 @@ function srsSessionConj() {
   // distracteurs : même temps, autres verbes du pool (ou tous)
   const seen = new Set([target]);
   const distract = [];
-  shuffle(SRS_VERBS).forEach((o) => {
-    if (o.inf === v.inf) return;
-    const he = verbFormHe(o.inf, tense);
+  shuffle(SRS_INFS).forEach((oInf) => {
+    if (oInf === v.inf) return;
+    const he = verbFormHe(oInf, tense);
     if (he && !seen.has(he) && distract.length < 3) { seen.add(he); distract.push(he); }
   });
   const options = shuffle([target, ...distract]);
@@ -1035,9 +1086,9 @@ function srsAddScreen() {
   function renderList() {
     listWrap.innerHTML = "";
     const q = normalize(search.value);
-    let items = SRS_VERBS;
+    let items = SRS_INFS.map((inf) => srsVerb(inf)).filter(Boolean); // distincts
     if (onlyNew.v) items = items.filter((v) => { const c = srsData.cards[v.inf]; return !c || c.status === "new"; });
-    if (q) items = items.filter((v) => normalize(v.fr).includes(q) || v.inf.includes(search.value.trim()));
+    if (q) items = items.filter((v) => normalize(srsFr(v.inf)).includes(q) || v.inf.includes(search.value.trim()));
     items = items.slice(0, 120);
     if (items.length === 0) { listWrap.appendChild(el("p", "hint", "Aucun verbe.")); return; }
     items.forEach((v) => {
@@ -1045,7 +1096,7 @@ function srsAddScreen() {
       const st = srsData.cards[v.inf] ? srsStatusLabel(srsData.cards[v.inf]) : "nouveau";
       row.innerHTML =
         `<input type="checkbox"${selected.has(v.inf) ? " checked" : ""}>` +
-        `<span class="he">${v.inf}</span> <span class="srs-add-fr">${v.fr}</span> <span class="srs-add-st">${st}</span>`;
+        `<span class="he">${v.inf}</span> <span class="srs-add-fr">${srsFr(v.inf)}</span> <span class="srs-add-st">${st}</span>`;
       row.querySelector("input").addEventListener("change", (e) => {
         if (e.target.checked) selected.add(v.inf); else selected.delete(v.inf);
         row.classList.toggle("on", e.target.checked);
@@ -1191,7 +1242,7 @@ function srsSessionFamily() {
       famList.innerHTML = cur.options.map((i) => {
         const vv = srsVerb(i);
         const bi = SRS_BINYAN_INFO[vv.binyan];
-        return `<div class="srs-fam-item${i === cur.target ? " is-target" : ""}"><span class="he">${vv.inf}</span> <span class="srs-fam-sens">${vv.fr}</span>${bi ? ` <span class="srs-fam-bin">${bi.r}</span>` : ""}</div>`;
+        return `<div class="srs-fam-item${i === cur.target ? " is-target" : ""}"><span class="he">${vv.inf}</span> <span class="srs-fam-sens">${srsFr(vv.inf)}</span>${bi ? ` <span class="srs-fam-bin">${bi.r}</span>` : ""}</div>`;
       }).join("");
       screen.appendChild(famList);
 
@@ -1236,7 +1287,7 @@ function srsChandelierCell(root, binyan) {
   if (infs.length) {
     inner += infs.map((inf) => {
       const v = srsVerb(inf);
-      return `<div class="srs-ch-verb${srsFamIsKnown(inf) ? " known" : ""}"><span class="he">${v.inf}</span> <span class="srs-ch-fr">${v.fr}</span>${srsVerbStatusChip(inf)}</div>`;
+      return `<div class="srs-ch-verb${srsFamIsKnown(inf) ? " known" : ""}"><span class="he">${v.inf}</span> <span class="srs-ch-fr">${srsFr(inf)}</span>${srsVerbStatusChip(inf)}</div>`;
     }).join("");
   } else {
     inner += `<div class="srs-ch-none">—</div>`;
