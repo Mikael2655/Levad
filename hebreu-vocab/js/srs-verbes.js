@@ -82,7 +82,37 @@ function srsSave() {
 function srsReady() {
   if (!srsData || srsLoadedFor !== activeProfile) srsLoad();
   else srsEnsureDaily();
+  if (srsData) srsEnsureQueued();
   return srsData;
+}
+/* À chaque ouverture : tout verbe sans état de répétition espacée est
+   automatiquement placé dans la FILE d'attente (avec sa date d'ajout).
+   Il n'existe donc jamais de verbe « hors compteur » : chaque verbe est
+   toujours dans file / paquet / boîtes / acquis.
+   - Au tout premier lancement du profil, le fonds initial entre avec une
+     date ancienne (added = 0) : il garde l'ordre de la liste.
+   - Ensuite, un verbe qui APPARAÎT (nouvel import, nouveau cours) entre
+     daté d'aujourd'hui → il est prioritaire car plus récent. */
+function srsEnsureQueued() {
+  const firstRun = Object.keys(srsData.cards).length === 0;
+  let changed = false;
+  SRS_INFS.forEach((inf) => {
+    const c = srsData.cards[inf];
+    if (!c) {
+      srsData.cards[inf] = {
+        status: "queue", box: 0, due: null, streak: 0,
+        added: firstRun ? 0 : todayNum(), triaged: false,
+        seen: 0, ok: 0, ko: 0,
+      };
+      changed = true;
+    } else if (c.status === "new" || c.status == null) {
+      c.status = "queue";
+      if (c.added == null) c.added = firstRun ? 0 : todayNum();
+      if (c.triaged == null) c.triaged = false;
+      changed = true;
+    }
+  });
+  if (changed) srsSave();
 }
 /* Remise à zéro du compteur de nouveaux verbes quand le jour change. */
 function srsEnsureDaily() {
@@ -355,10 +385,11 @@ function srsStartTriage() {
   render();
 }
 function srsTriageList() {
-  // Verbes pas encore classés (status "new"), infinitifs distincts
+  // Le tri (facultatif) parcourt les verbes de la FILE pas encore passés
+  // en revue. Rien n'est en limbo : ces verbes restent comptés dans la file.
   return SRS_INFS.filter((inf) => {
     const c = srsData.cards[inf];
-    return !c || c.status === "new";
+    return c && c.status === "queue" && !c.triaged;
   }).map((inf) => srsVerb(inf));
 }
 function srsTriageMark(inf, known) {
@@ -368,10 +399,14 @@ function srsTriageMark(inf, known) {
     // ramener le même jour
     c.status = "acquired";
     c.box = 4;
+    c.triaged = true;
     c.due = todayNum() + 1 + Math.floor(Math.random() * SRS_ACQUIRED_INTERVAL);
   } else {
+    // Pas connu → reste dans la file (déjà compté), marqué comme passé en
+    // revue pour ne pas le reproposer au tri.
     c.status = "queue";
-    c.added = todayNum();
+    c.triaged = true;
+    if (c.added == null) c.added = todayNum();
     c.due = null;
   }
   srsSave();
@@ -558,12 +593,18 @@ function srsHome() {
     [1, 2, 3, 4].map((b) => `<span class="srs-box"><b>${boxes[b] || 0}</b> <span>B${b}</span></span>`).join("");
   screen.appendChild(bx);
 
-  // Réconciliation : la source = à trier + Total. Garantit qu'aucun
-  // verbe ne disparaît (tout verbe est dans exactement un compteur).
-  const recEl = el("div", "srs-reconcile" + (rec.ok ? "" : " srs-reconcile-bad"));
-  recEl.innerHTML = rec.ok
-    ? `✓ <strong>${rec.source}</strong> verbes au total : <strong>${rec.newN}</strong> à trier + <strong>${rec.total}</strong> en mémorisation.`
-    : `⚠️ Incohérence : ${rec.source} verbes source ≠ ${rec.newN} à trier + ${rec.total} en mémorisation` +
+  // Réconciliation : le Total doit TOUJOURS égaler le nombre de verbes de
+  // la liste. Tout verbe est forcément dans file / paquet / boîtes / acquis
+  // (aucun « hors compteur »). Les entrées en double (même infinitif, deux
+  // sens) sont fusionnées : d'où 408 verbes distincts pour 411 entrées.
+  const invariant = rec.total === rec.source && rec.other.length === 0;
+  const dupNote = SRS_DUP_INFS.length
+    ? ` (${SRS_VERBS.length} entrées − ${SRS_DUP_INFS.length} doublons fusionnés)`
+    : "";
+  const recEl = el("div", "srs-reconcile" + (invariant ? "" : " srs-reconcile-bad"));
+  recEl.innerHTML = invariant
+    ? `✓ Total <strong>${rec.total}</strong> = tous les verbes de la liste${dupNote}.`
+    : `⚠️ Incohérence : Total ${rec.total} ≠ ${rec.source} verbes de la liste` +
       (rec.other.length ? ` (${rec.other.length} au statut inconnu : ${rec.other.join(", ")})` : "");
   screen.appendChild(recEl);
 
@@ -1056,10 +1097,11 @@ function srsAddScreen() {
   search.placeholder = "Filtrer (français ou hébreu)…";
   screen.appendChild(search);
 
-  // ne proposer que les verbes encore non classés par défaut
-  const onlyNew = { v: true };
+  // par défaut : les verbes encore dans la file (pas encore en cours de
+  // mémorisation) — ce sont ceux qu'on veut dater/prioriser pour un cours
+  const onlyQueue = { v: true };
   screen.appendChild(
-    checkToggle("Afficher seulement les verbes non encore classés", onlyNew.v, (val) => { onlyNew.v = val; renderList(); })
+    checkToggle("Afficher seulement les verbes encore en file", onlyQueue.v, (val) => { onlyQueue.v = val; renderList(); })
   );
 
   const selected = new Set();
@@ -1072,9 +1114,13 @@ function srsAddScreen() {
     const dayNum = srsDateToNum(dateInp.value);
     selected.forEach((inf) => {
       const c = srsCard(inf);
-      c.status = "queue";
-      c.added = dayNum;
-      c.box = 0; c.streak = 0; c.due = null;
+      c.added = dayNum; // date du cours → priorité
+      // On (re)met dans la file seulement si le verbe n'est pas déjà en
+      // cours de mémorisation : jamais de perte de progression.
+      if (c.status === "queue" || c.status === "new" || c.status == null) {
+        c.status = "queue";
+        c.box = 0; c.streak = 0; c.due = null;
+      }
     });
     srsSave();
     const msg = el("div", "srs-callout", `✅ ${selected.size} verbe(s) ajouté(s) à la file.`);
@@ -1087,7 +1133,7 @@ function srsAddScreen() {
     listWrap.innerHTML = "";
     const q = normalize(search.value);
     let items = SRS_INFS.map((inf) => srsVerb(inf)).filter(Boolean); // distincts
-    if (onlyNew.v) items = items.filter((v) => { const c = srsData.cards[v.inf]; return !c || c.status === "new"; });
+    if (onlyQueue.v) items = items.filter((v) => { const c = srsData.cards[v.inf]; return !c || c.status === "queue"; });
     if (q) items = items.filter((v) => normalize(srsFr(v.inf)).includes(q) || v.inf.includes(search.value.trim()));
     items = items.slice(0, 120);
     if (items.length === 0) { listWrap.appendChild(el("p", "hint", "Aucun verbe.")); return; }
@@ -1372,4 +1418,63 @@ function srsFamillesScreen() {
   }
   renderFamList();
   screen.appendChild(srsBackBtn());
+}
+
+/* ============================================================
+   BLOC « VERBES » DE L'ACCUEIL GÉNÉRAL
+   Remplace l'ancien système (travaillés / bien connus / Révision /
+   Mes erreurs) : une seule source de progression pour les verbes =
+   la répétition espacée. Montre les chiffres du jour + un bouton qui
+   lance directement la session. (La partie « Mots » reste inchangée.)
+   ============================================================ */
+function srsHomeBlock() {
+  srsReady();
+  const due = srsDueList().length;
+  const newLeft = srsNewRemainingToday();
+  const acq = srsCardsBy("acquired").length;
+  const total = srsTotalCount();
+  const packet = srsCardsBy("packet").length;
+  const queue = srsCardsBy("queue").length;
+  const streak = (typeof currentStreak === "function") ? currentStreak() : 0;
+  const canStart = due > 0 || packet > 0 || newLeft > 0;
+
+  const block = el("div", "home-block");
+  block.appendChild(el("div", "home-block-head",
+    `<span class="hb-title">🔤 Verbes</span><span class="daily-streak">🔥 <strong>${streak}</strong> <span>j</span></span>`));
+
+  // Trois chiffres du nouveau système
+  const banner = el("div", "stats-banner");
+  banner.innerHTML =
+    `<div><div class="big">${due}</div><div class="label">révisions dues</div></div>` +
+    `<div><div class="big">${newLeft}</div><div class="label">nouveaux du jour</div></div>` +
+    `<div><div class="big">${acq}</div><div class="label">acquis</div></div>`;
+  block.appendChild(banner);
+
+  // Bouton : lance la session du jour (ou renvoie au tableau de bord)
+  const actions = el("div", "daily-actions");
+  const btn = el("button", "btn btn-primary",
+    canStart ? `📅 Session du jour${due ? ` <span class="pill">${due}</span>` : ""}` : "À jour 🎉");
+  btn.addEventListener("click", () => {
+    state.view = "jeux"; state.jeux.sub = "verbes";
+    if (canStart) srsStartSession({ mode: "normal" });
+    else { state.srs.screen = "home"; render(); }
+  });
+  actions.appendChild(btn);
+  const board = el("button", "btn btn-neutral", "📊 Tableau de bord");
+  board.addEventListener("click", () => { state.view = "jeux"; state.jeux.sub = "verbes"; state.srs.screen = "home"; render(); });
+  actions.appendChild(board);
+  block.appendChild(actions);
+
+  // Rappel du Total (toujours = nombre de verbes de la liste)
+  block.appendChild(el("p", "hb-total",
+    `📊 Total <strong>${total}</strong> verbes · ${queue} en file · ${packet} au paquet`));
+  return block;
+}
+
+/* app.js a fait son premier rendu AVANT le chargement de ce fichier
+   (ordre des <script>). On re-rend une fois, maintenant que la
+   répétition espacée est disponible, pour que l'accueil et le jeu
+   « Verbes » utilisent le nouveau système dès l'ouverture de l'app. */
+if (typeof render === "function" && typeof activeProfile !== "undefined" && activeProfile) {
+  try { render(); } catch (e) { /* rendu initial : on ignore toute erreur */ }
 }

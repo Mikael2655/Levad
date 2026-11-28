@@ -779,20 +779,23 @@ function homeBlock(icon, name, scope, total, totalLabel, seen, known, newOnly, o
 function renderHome() {
   screen.appendChild(el("h2", "view-title home-title", `שלום ${activeProfile} !`));
 
-  // Stats verbes
-  const infItems = CONJ_ITEMS.filter((c) => c.isInf);
-  const kSeen = infItems.filter((c) => progress[c.key] && progress[c.key].seen > 0).length;
-  const kKnown = infItems.filter((c) => { const s = progress[c.key]; return s && s.box >= 3; }).length;
-  // Stats mots
+  // Bloc Verbes : nouveau système de répétition espacée (source unique).
+  if (typeof srsHomeBlock === "function") {
+    screen.appendChild(srsHomeBlock());
+  } else {
+    const infItems = CONJ_ITEMS.filter((c) => c.isInf);
+    const kSeen = infItems.filter((c) => progress[c.key] && progress[c.key].seen > 0).length;
+    const kKnown = infItems.filter((c) => { const s = progress[c.key]; return s && s.box >= 3; }).length;
+    screen.appendChild(
+      homeBlock("🔤", "Verbes", "verbes", infItems.length, "verbes", kSeen, kKnown, state.home.verbNew, (v) => {
+        state.home.verbNew = v;
+        render();
+      })
+    );
+  }
+  // Bloc Mots : inchangé (ancien système conservé pour l'instant).
   const vSeen = VOCAB.filter((w) => progress[w.he] && progress[w.he].seen > 0).length;
   const vKnown = VOCAB.filter((w) => { const s = progress[w.he]; return s && s.box >= 3; }).length;
-
-  screen.appendChild(
-    homeBlock("🔤", "Verbes", "verbes", infItems.length, "verbes", kSeen, kKnown, state.home.verbNew, (v) => {
-      state.home.verbNew = v;
-      render();
-    })
-  );
   screen.appendChild(
     homeBlock("📚", "Mots", "mots", VOCAB.length, "mots", vSeen, vKnown, state.home.vocabNew, (v) => {
       state.home.vocabNew = v;
